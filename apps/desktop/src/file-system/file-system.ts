@@ -136,10 +136,11 @@ export class FileSystem {
       const totalRows = Math.max(0, Math.ceil(info.size / 16));
       const actualRows = Math.max(0, Math.min(count, totalRows - offset / 16));
       const buffer = Buffer.alloc(actualRows * 16 + (actualRows ? 1 : 0));
+      let bytesRead = 0;
       if (buffer.length) {
-        const { bytesRead } = await file.read(buffer, 0, buffer.length, offset);
-        if (bytesRead < buffer.length) buffer.fill(0, bytesRead);
+        bytesRead = (await file.read(buffer, 0, buffer.length, offset)).bytesRead;
       }
+      const getByte = (index: number): number | undefined => index < bytesRead ? buffer[index] : undefined;
       const printable = (value: number): string =>
         value >= 0x20 && value <= 0x7e ? String.fromCharCode(value) : '.';
       const unicodeUnit = (low: number | undefined, high: number | undefined): string => {
@@ -152,14 +153,14 @@ export class FileSystem {
         const rowOffset = offset + rowIndex * 16;
         const rowStart = rowIndex * 16;
         const byteCount = Math.min(16, info.size - rowOffset);
-        const values = Array.from({ length: byteCount }, (_, index) => buffer[rowStart + index]);
+        const values = Array.from({ length: byteCount }, (_, index) => getByte(rowStart + index)).filter((value): value is number => value !== undefined);
         const hex = values.map(value => value.toString(16).padStart(2, '0').toUpperCase()).join(' ').padEnd(47, ' ');
         const ascii = values.map(printable).join('').padEnd(16, ' ');
         let utf16 = '';
         let utf16Shifted = '';
         for (let index = 0; index < 16; index += 2) {
-          utf16 += unicodeUnit(buffer[rowStart + index], buffer[rowStart + index + 1]);
-          utf16Shifted += unicodeUnit(buffer[rowStart + index + 1], buffer[rowStart + index + 2]);
+          utf16 += unicodeUnit(getByte(rowStart + index), getByte(rowStart + index + 1));
+          utf16Shifted += unicodeUnit(getByte(rowStart + index + 1), getByte(rowStart + index + 2));
         }
         return { offset: rowOffset, hex, ascii, utf16, utf16Shifted };
       });
