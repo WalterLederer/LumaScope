@@ -1,6 +1,6 @@
 import { closeSync, openSync, readSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
-import { extname } from 'node:path';
+import { extname, join } from 'node:path';
 import { parentPort } from 'node:worker_threads';
 import { ImageHistogram } from 'internal-api';
 import Vips from 'wasm-vips';
@@ -1305,10 +1305,12 @@ if (parentPort) {
               const y = Math.round(y0 + (y1 - y0) * t);
               const wavelength = startWavelength + (index - 1 + t) / (sampleCount - 1) * (endWavelength - startWavelength);
               const color = spectrumColor(wavelength);
-              for (let dy = -7; dy <= 7; dy++) {
+              // Keep the spectral contour optically sharp: a very narrow
+              // coloured halo surrounds a continuous, bright one-pixel core.
+              for (let dy = -2; dy <= 2; dy++) {
                 const distance = Math.abs(dy);
-                const halo = 7.2 * Math.exp(-0.5 * (distance / 3.2) ** 2);
-                const core = distance <= 1 ? 4.5 : 0;
+                const halo = 2.0 * Math.exp(-0.5 * (distance / 0.85) ** 2);
+                const core = distance === 0 ? 4.8 : 0;
                 addHdrLight(x, y + dy, color, halo, core);
               }
             }
@@ -1328,49 +1330,38 @@ if (parentPort) {
               addHdrLight(left + x, y, color, halo, core);
             }
           }
-          // Rasterize the LumaScope mark directly into the full-size OHSP image.
-          // It is therefore part of the Ultra HDR JPEG, not a viewer overlay.
-          const logoCenterX = outputWidth - right - 86;
-          const logoCenterY = 88;
-          const logoColor: [number, number, number] = [255, 248, 225];
-          const drawHdrLogoSegment = (x0: number, y0: number, x1: number, y1: number, intensity = 3.2) => {
-            const steps = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 1.5));
-            for (let step = 0; step <= steps; step++) {
-              const t = step / steps;
-              const x = Math.round(x0 + (x1 - x0) * t);
-              const y = Math.round(y0 + (y1 - y0) * t);
-              for (let dy = -3; dy <= 3; dy++) {
-                for (let dx = -3; dx <= 3; dx++) {
-                  const distance = Math.hypot(dx, dy);
-                  if (distance > 3) continue;
-                  addHdrLight(x + dx, y + dy, logoColor, intensity * Math.exp(-0.5 * distance * distance), 0);
-                }
+          // Use the exact application icon, decoded from the same ICO file
+          // used by the Electron window. Composite it into the HDR pixel buffer.
+          const iconPath = join(__dirname, 'assets', 'lumascope.ico');
+          using iconImage = vips.Image.newFromFile(iconPath);
+          const iconScale = 144 / Math.max(iconImage.width, iconImage.height);
+          using scaledIcon = iconImage.resize(iconScale, { kernel: vips.Kernel.lanczos3 });
+          const iconBytes = scaledIcon.writeToMemory();
+          const iconWidth = scaledIcon.width;
+          const iconHeight = scaledIcon.height;
+          const iconBands = scaledIcon.bands;
+          const logoLeft = outputWidth - right - iconWidth;
+          const logoTop = 16;
+          const iconIsFloat = iconBytes instanceof Float32Array;
+          for (let y = 0; y < iconHeight; y++) {
+            for (let x = 0; x < iconWidth; x++) {
+              const sourceOffset = (y * iconWidth + x) * iconBands;
+              const alpha = iconBands >= 4
+                ? Number(iconBytes[sourceOffset + 3]) / (iconIsFloat ? 1 : 255)
+                : 1;
+              if (alpha <= 0) continue;
+              const targetOffset = ((logoTop + y) * outputWidth + logoLeft + x) * 3;
+              for (let channel = 0; channel < 3; channel++) {
+                const encoded = Number(iconBytes[sourceOffset + Math.min(channel, iconBands - 1)]);
+                const srgb = Math.max(0, Math.min(1, encoded / (iconIsFloat ? 1 : 255)));
+                // Preserve the icon's original colours while giving its pixels
+                // a clearly visible HDR luminance above SDR reference white.
+                const linear = srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
+                hdrPixels[targetOffset + channel] = Math.min(12, hdrPixels[targetOffset + channel] * (1 - alpha) + linear * 3.2 * alpha);
               }
-              addHdrLight(x, y, logoColor, 4.0, 3.0);
             }
-          };
-          // Eight radial rays around a circular lens/sun mark.
-          for (let ray = 0; ray < 8; ray++) {
-            const angle = ray * Math.PI / 4;
-            drawHdrLogoSegment(
-              logoCenterX + Math.cos(angle) * 48,
-              logoCenterY + Math.sin(angle) * 48,
-              logoCenterX + Math.cos(angle) * 69,
-              logoCenterY + Math.sin(angle) * 69,
-              2.8
-            );
           }
-          // Circular outline and bright central lens.
-          for (let angle = 0; angle < Math.PI * 2; angle += 0.012) {
-            const x = logoCenterX + Math.cos(angle) * 34;
-            const y = logoCenterY + Math.sin(angle) * 34;
-            drawHdrLogoSegment(x, y, x + 0.5, y + 0.5, 2.4);
-          }
-          for (let angle = 0; angle < Math.PI * 2; angle += 0.04) {
-            const x = Math.round(logoCenterX + Math.cos(angle) * 10);
-            const y = Math.round(logoCenterY + Math.sin(angle) * 10);
-            addHdrLight(x, y, logoColor, 4.5, 4.0);
-          }
+          const logoCenterX = logoLeft + iconWidth / 2;
 
           // Stamp the actual local generation time directly below the logo.
           // The timestamp changes whenever the cached derivative is regenerated.
@@ -1380,7 +1371,7 @@ if (parentPort) {
           const timestampText = timestamp;
           const timestampScale = 2;
           const timestampWidth = timestampText.split('').reduce((sum, character) => sum + ((glyphs[character] ?? glyphs[' '])[0].length + 1) * timestampScale, 0) - timestampScale;
-          drawHdrText(timestampText, Math.round(logoCenterX - timestampWidth / 2), 174, timestampScale, [255, 248, 225]);
+          drawHdrText(timestampText, Math.round(logoCenterX - timestampWidth / 2), logoTop + iconHeight + 10, timestampScale, [255, 248, 225]);
 
           using image = vips.Image.newFromMemory(hdrPixels, outputWidth, outputHeight, 3, vips.BandFormat.float);
           using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
