@@ -705,8 +705,9 @@ export class ImageView {
   private hexRequestId = 0;
   protected readonly hexRowsPerPage = 256;
   protected readonly hexMaxBufferedRows = 768;
-  protected readonly hexVirtualTopHeight = computed(() => this.hexStartRow() * 22);
-  protected readonly hexVirtualBottomHeight = computed(() => Math.max(0, this.hexTotalRows() - this.hexStartRow() - this.hexRows().length) * 22);
+  protected readonly hexMeasuredRowHeight = signal(22);
+  protected readonly hexVirtualTopHeight = computed(() => this.hexStartRow() * this.hexMeasuredRowHeight());
+  protected readonly hexVirtualBottomHeight = computed(() => Math.max(0, this.hexTotalRows() - this.hexStartRow() - this.hexRows().length) * this.hexMeasuredRowHeight());
   protected readonly hexTotalRows = computed(() => Math.ceil(this.hexFileSize() / 16));
   protected readonly hexMaxStartRow = computed(() => Math.max(0, this.hexTotalRows() - this.hexRowsPerPage));
   protected readonly hexPositionLabel = computed(() => this.hexTotalRows()
@@ -907,7 +908,9 @@ export class ImageView {
     const viewport = this.hexScrollViewport()?.nativeElement;
     const boundedStart = Math.max(0, Math.min(Math.max(0, this.hexTotalRows() - this.hexRowsPerPage), Math.floor(startRow)));
     this.hexLoading.set(true);
-    this.hexStatus.set('Reading file…');
+    // Keep the existing table and its viewport geometry untouched while an
+    // incremental page is being fetched. Only the initial read needs a status.
+    if (!this.hexRows().length) this.hexStatus.set('Reading file…');
     try {
       const result = await this.fileSystem.readHexRange(path, boundedStart * 16, this.hexRowsPerPage);
       if (request !== this.hexRequestId || path !== this.hexFilePath()) return;
@@ -945,7 +948,7 @@ export class ImageView {
       // adjust scrollTop: the virtual spacers preserve the absolute file position.
     } catch (error) {
       if (request !== this.hexRequestId) return;
-      this.hexRows.set([]);
+      if (!preserveScrollPosition) this.hexRows.set([]);
       this.hexStatus.set('Could not read HEX data: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       if (request === this.hexRequestId) this.hexLoading.set(false);
@@ -961,6 +964,7 @@ export class ImageView {
     if (!total || !rows) return;
 
     const rowHeight = this.getHexRowHeight(element);
+    if (Math.abs(this.hexMeasuredRowHeight() - rowHeight) > 0.1) this.hexMeasuredRowHeight.set(rowHeight);
     const headerHeight = this.getHexHeaderHeight(element);
     const firstVisibleRow = Math.max(0, Math.floor((element.scrollTop - headerHeight) / rowHeight));
     const lastVisibleRow = Math.min(total, Math.ceil((element.scrollTop + element.clientHeight - headerHeight) / rowHeight));
