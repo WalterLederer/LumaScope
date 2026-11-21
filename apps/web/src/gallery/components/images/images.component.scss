@@ -1520,7 +1520,10 @@
 .detail-native-table {
   display: table !important;
   width: max-content !important;
-  min-width: 100% !important;
+  /* Do not stretch the table to the viewport: header-cell bottom borders
+     otherwise continue through the unused horizontal space after the last
+     actual column. The table should end at the final visible column. */
+  min-width: 0 !important;
   table-layout: fixed !important;
   border-collapse: separate !important;
   border-spacing: 0 !important;
