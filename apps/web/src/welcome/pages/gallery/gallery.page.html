@@ -10,11 +10,17 @@
     <aside class="gallery-folder-tree">
       <ui-vertical-stack>
         <section>
+<div class="gallery-actions-column-header">
+            <button type="button" (click)="toggleActionsColumnPosition()"
+                    [attr.aria-label]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'"
+                    [title]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'">⇄</button>
+          </div>
           @if (galleryRoot !== null) {
             <ui-tree #tree
                      [root]="galleryRoot"
                      [menu]="galleryMenu"
                      [inlineActions]="true"
+                     [actionsColumnPosition]="actionsColumnPosition()"
                      [reorderActions]="autoSortFavorites === false"
                      [enableLoading]="true"
                      (loadRequested)="loadTreeNode($event)"
@@ -45,11 +51,17 @@
     <aside class="gallery-folder-tree">
       <ui-vertical-stack>
         <section>
+<div class="gallery-actions-column-header">
+            <button type="button" (click)="toggleActionsColumnPosition()"
+                    [attr.aria-label]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'"
+                    [title]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'">⇄</button>
+          </div>
           @if (galleryRoot !== null) {
             <ui-tree #tree
                      [root]="galleryRoot"
                      [menu]="galleryMenu"
                      [inlineActions]="true"
+                     [actionsColumnPosition]="actionsColumnPosition()"
                      [reorderActions]="autoSortFavorites === false"
                      [enableLoading]="true"
                      (loadRequested)="loadTreeNode($event)"
