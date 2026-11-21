@@ -43,12 +43,12 @@ The spectrum chart is generated directly as a raster image; it does not require 
 - Peak annotations are added to full-size charts only; thumbnail layout remains compact.
 - The full-size chart uses a pure-black canvas; the background is not lifted to charcoal or grey during HDR conversion.
 - The Image / View presentation classifies `.ohsp` files as HDR because their full-size derivatives are Ultra HDR JPEGs; the SDR source-file metadata alone must not force the generated chart into SDR presentation.
-- The full-size spectrum outline has a wavelength-coloured HDR halo and a bright near-white core, with scRGB peaks up to 8.0.
-- The wavelength-coloured band below the X axis uses the same gradient as the spectrum fill, with a stronger HDR core and broader light halo (scRGB peaks up to 8.0).
+- The full-size spectrum outline has a stronger wavelength-coloured HDR halo and bright near-white core, with scRGB peaks up to 12.0.
+- The wavelength-coloured band below the X axis uses the same gradient as the spectrum fill, with a substantially brighter HDR core and broader light halo (scRGB peaks up to 12.0).
 - The PEAK annotation also receives a gold HDR halo and a near-white emissive core.
 - All glowing elements exceed reference white and are visibly emissive on HDR-capable displays; SDR displays tone-map them to the available range.
 - Both thumbnail and full-size OHSP charts are encoded as Ultra HDR JPEGs. Thumbnail previews use an emissive wavelength-coloured gradient beneath the spectral curve. Full-size charts use a brighter saturated HDR gradient beneath the curve, with a stronger coloured curve and wavelength-band glow while keeping the white core restrained.
-- OHSP thumbnails use cache version 6. This version is checked in both sidecar and database-backed cache modes, so previously cached SDR JPEGs are regenerated. The full-size cache tag is `ohsp-full-spectrum-v8` (cache version 28).
+- OHSP thumbnails use cache version 6. This version is checked in both sidecar and database-backed cache modes, so previously cached SDR JPEGs are regenerated. The full-size cache tag is `ohsp-full-spectrum-v9` (cache version 29).
 - 
 - The source `.ohsp` file is not modified.
 
