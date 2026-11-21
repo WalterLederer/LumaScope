@@ -2007,7 +2007,7 @@ export class CacheManager {
     let staleCount = 0;
     db.exec('BEGIN IMMEDIATE;');
     try {
-      const rows = select.iterate({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as Iterable<{
+      const rows = select.iterate({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as unknown as Iterable<{
         id: number; file_name: string; relative_folder_path: string
       }>;
       for (const row of rows) {
