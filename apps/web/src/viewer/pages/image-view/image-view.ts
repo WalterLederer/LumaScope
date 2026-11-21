@@ -735,11 +735,15 @@ export class ImageView {
   protected readonly setHexSearchMode = (value: string): void => {
     if (value !== 'ascii' && value !== 'hex') return;
     this.hexSearchMode.set(value);
+    this.hexSearchRequestId++;
+    this.hexSearchBusy.set(false);
     this.hexSearchHasMatch = false;
     this.hexSearchStatus.set('');
   };
   protected readonly onHexSearchTermChange = (value: string): void => {
     this.hexSearchTerm.set(value);
+    this.hexSearchRequestId++;
+    this.hexSearchBusy.set(false);
     this.hexSearchHasMatch = false;
     this.hexSearchStatus.set('');
   };
@@ -2301,6 +2305,7 @@ export class ImageView {
         this.hexRequestId++;
         this.hexFilePath.set(image?.path ?? null);
         this.hexSearchRequestId++;
+        this.hexSearchBusy.set(false);
         this.hexSearchHasMatch = false;
         this.hexSearchStatus.set('');
         this.hexCursorOffset.set(0);
