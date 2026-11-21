@@ -30,16 +30,20 @@ The wavelength range is read from each file rather than being hard-coded to 350â
 
 ## Spectrum rendering
 
-The spectrum chart is generated directly as an RGB raster image; it does not require SVG loading.
+The spectrum chart is generated directly as a raster image; it does not require SVG loading.
 
 - The horizontal axis is scaled from the file's start wavelength to its end wavelength.
 - The spectral curve uses all 601 sample values.
 - The area between the curve and the zero baseline is filled vertically.
 - The fill and curve colour are derived from the corresponding wavelength, using a wavelength-to-colour gradient.
-- The chart is encoded as JPEG for the thumbnail and full-size cache.
+- The thumbnail is encoded as a standard SDR JPEG.
+- The full-size chart is encoded as an Ultra HDR JPEG using linear scRGB pixels.
 - The full-size chart identifies the measurement model and includes capture date/time only when valid values can be read from the header.
 - It finds the maximum of all 601 spectral samples, marks the peak with a dashed vertical guide, and prints its exact wavelength and measured value in `mW/m2/nm` above the plot.
 - Peak annotations are added to full-size charts only; thumbnail layout remains compact.
+- The full-size chart adds a wavelength-coloured band below the X axis. Its colour gradient uses the same wavelength mapping as the spectrum fill.
+- The band has a bright HDR core and a soft light halo. Its scRGB values exceed reference white so it emits visible light on HDR-capable displays; on SDR displays it is tone-mapped to the available range.
+- The OHSP full-size cache tag is versioned independently so the SDR-to-Ultra-HDR conversion is regenerated.
 - The source `.ohsp` file is not modified.
 
 The zero-valued leading samples remain part of the curve. They are not skipped, trimmed or reinterpreted.
@@ -64,7 +68,7 @@ The CSV also contains measurement summaries and additional instrument/product/el
 
 ## Cache behaviour
 
-LumaScope creates a thumbnail and a full-size JPEG chart in the normal sidecar cache. The cache format version is tracked separately so that changes to the OHSP parser or chart renderer can regenerate previously cached output.
+LumaScope creates an SDR thumbnail and an Ultra HDR full-size chart in the normal sidecar cache. The cache format version is tracked separately so that changes to the OHSP parser or chart renderer can regenerate previously cached output.
 
 ## References and evidence
 
