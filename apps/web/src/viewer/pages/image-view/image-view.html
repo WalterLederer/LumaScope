@@ -156,6 +156,9 @@
             <input class="image-hex-position" type="range" min="0" [max]="hexMaxStartRow()" step="1" [value]="hexStartRow()" (change)="onHexPositionChange($event)" aria-label="HEX file position" [title]="hexPositionLabel()" />
           }
           @if (hexPositionLabel()) { <div class="image-hex-position-label">{{hexPositionLabel()}}</div> }
+          @if (hexFilePath() && hexTotalRows() > 0) {
+            <div class="image-hex-cursor-offset" aria-live="polite">Cursor offset: <strong>{{formatHexOffset(hexCursorOffset())}}</strong></div>
+          }
           @if (hexStatus()) {
             <div class="image-hex-status" role="status">{{hexStatus()}}</div>
           }
