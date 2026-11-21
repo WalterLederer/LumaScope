@@ -466,3 +466,22 @@
   width: auto !important;
   min-width: 0 !important;
 }
+
+/* Filter highlighting must win over alternate-row and selected-row paints.
+   Keep the filtered color visible on every matching row, including the selected one. */
+:host(.view-details.detail-filter-active),
+:host(.view-details-no-thumbnails.detail-filter-active) {
+  background: var(--detail-filtered-row-color, #e8f1fb) !important;
+  background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
+}
+:host(.view-details.detail-filter-active) > td,
+:host(.view-details-no-thumbnails.detail-filter-active) > td {
+  background: var(--detail-filtered-row-color, #e8f1fb) !important;
+  background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+:host(.view-details.detail-filter-active.selected-image) > td:first-child,
+:host(.view-details-no-thumbnails.detail-filter-active.selected-image) > td:first-child {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 75%, transparent) !important;
+}
