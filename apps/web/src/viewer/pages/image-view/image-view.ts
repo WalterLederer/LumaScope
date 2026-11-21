@@ -983,7 +983,15 @@ export class ImageView {
       if (!preserveScrollPosition) this.hexRows.set([]);
       this.hexStatus.set('Could not read HEX data: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
-      if (request === this.hexRequestId) this.hexLoading.set(false);
+      if (request === this.hexRequestId) {
+        this.hexLoading.set(false);
+        // If the user moved the scrollbar while a page was loading, immediately
+        // reconcile the bounded buffer with the latest viewport position.
+        const currentViewport = this.hexScrollViewport()?.nativeElement;
+        if (preserveScrollPosition && currentViewport && this.hexRows().length) {
+          this.onHexScroll({ currentTarget: currentViewport } as unknown as Event);
+        }
+      }
     }
   };
   protected readonly hexScrollViewport = viewChild<ElementRef<HTMLElement>>('hexScrollViewport');
