@@ -739,7 +739,7 @@ export class ImageView {
     this.hexFontSize.set(size);
     try { this.document.defaultView?.localStorage.setItem('hexFontSize', String(size)); } catch { /* Keep the current session value. */ }
   };
-  protected readonly hexByteDisplayMode = signal<'decimal' | 'hex' | 'octal' | 'binary'>('hex');
+  protected readonly hexByteDisplayMode = signal<'decimal' | 'hex' | 'octal' | 'binary' | 'utf16' | 'utf16-shifted'>('hex');
   protected readonly hexSearchMode = signal<'ascii' | 'hex'>('ascii');
   protected readonly hexSearchTerm = signal('');
   protected readonly hexSearchStatus = signal('');
@@ -817,7 +817,7 @@ export class ImageView {
     }
   };
   protected readonly setHexByteDisplayMode = (value: string): void => {
-    if (value === 'decimal' || value === 'hex' || value === 'octal' || value === 'binary') {
+    if (value === 'decimal' || value === 'hex' || value === 'octal' || value === 'binary' || value === 'utf16' || value === 'utf16-shifted') {
       this.hexByteDisplayMode.set(value);
     }
   };
