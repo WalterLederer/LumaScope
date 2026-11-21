@@ -336,7 +336,7 @@
      to the Name column and ignored the thumbnail zoom width. */
   --detail-grid-columns:
     var(--detail-actions-width, 44px)
-    max(52px, calc(var(--detail-thumb-width, 36px) + 20px + var(--detail-col-0-delta, 0px)))
+    max(28px, calc(var(--detail-thumb-width, 36px) + 4px + var(--detail-col-0-delta, 0px)))
     var(--detail-col-1-width, 210px)
     var(--detail-col-2-width, 150px)
     var(--detail-col-3-width, 150px)
@@ -350,7 +350,7 @@
     var(--detail-col-12-width, 220px);
 .detail-native-table.actions-column-right {
   --detail-grid-columns:
-    max(52px, calc(var(--detail-thumb-width, 36px) + 20px + var(--detail-col-0-delta, 0px)))
+    max(28px, calc(var(--detail-thumb-width, 36px) + 4px + var(--detail-col-0-delta, 0px)))
     var(--detail-col-1-width, 210px)
     var(--detail-col-2-width, 150px)
     var(--detail-col-3-width, 150px)
@@ -1727,7 +1727,7 @@
 /* The movable actions track is always compact, regardless of which side hosts it. */
 .detail-native-table.actions-column-right {
   --detail-grid-columns:
-    max(52px, calc(var(--detail-thumb-width, 36px) + 20px + var(--detail-col-0-delta, 0px)))
+    max(28px, calc(var(--detail-thumb-width, 36px) + 4px + var(--detail-col-0-delta, 0px)))
     var(--detail-col-1-width, 210px)
     var(--detail-col-2-width, 150px)
     var(--detail-col-3-width, 150px)
