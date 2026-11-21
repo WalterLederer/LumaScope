@@ -237,6 +237,7 @@ export interface DesktopCacheManager {
   readonly onGalleryFilesChanged: (callback: (directory: string) => void) => () => void;
   readonly getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => Promise<CacheDirectoryStats>;
   readonly reconcilePhotoRecords: (directory: string, sourceNames: string[], recursive?: boolean) => Promise<number>;
+  readonly reconcilePhotoRecordsFromDisk: (directory: string, recursive?: boolean) => Promise<number>;
   readonly selectDatabaseForDirectory: (directory: string) => Promise<boolean>;
   readonly getDirectoryPhotoLocations: (directory: string, recursive?: boolean) => Promise<PhotoLocation[]>;
   readonly getPhotoLocationsInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey: string) => Promise<PhotoLocation[]>;
