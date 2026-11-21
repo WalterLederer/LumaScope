@@ -1491,7 +1491,7 @@ export class CacheManager {
     try {
       for await (const entry of handle) {
         const entryPath = join(root, entry.name);
-        let metadata;
+        let metadata: Awaited<ReturnType<typeof stat>>;
         try {
           metadata = await stat(entryPath);
         } catch {
