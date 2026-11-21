@@ -63,6 +63,10 @@ export interface AppConfigV1Gallery {
   sortBy?: 'date' | 'gpsDate' | 'gps' | 'location' | 'name' | 'path' | 'size' | 'suffix';
   sortDir?: 'asc' | 'desc';
   selectedLocation?: string;
+  /** Include files from subfolders in the gallery. Defaults to false. */
+  includeFilesRecursive?: boolean;
+  /** Include files without a supported image decoder in the gallery. Defaults to false. */
+  includeUnsupportedFiles?: boolean;
 }
 export type ButtonStyle = 'blue' | 'flat' | 'outlined' | 'soft' | 'rounded';
 export const allButtonStyles: readonly ButtonStyle[] = ['blue', 'flat', 'outlined', 'soft', 'rounded'];
@@ -163,7 +167,9 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.thumbHeight || 'number' === typeof input.thumbHeight)
     && (undefined === input.sortBy || 'date' === input.sortBy || 'gpsDate' === input.sortBy || 'name' === input.sortBy || 'path' === input.sortBy || 'size' === input.sortBy)
     && (undefined === input.sortDir || 'asc' === input.sortDir || 'desc' === input.sortDir)
-    && (undefined === input.selectedLocation || 'string' === typeof input.selectedLocation);
+    && (undefined === input.selectedLocation || 'string' === typeof input.selectedLocation)
+    && (undefined === input.includeFilesRecursive || 'boolean' === typeof input.includeFilesRecursive)
+    && (undefined === input.includeUnsupportedFiles || 'boolean' === typeof input.includeUnsupportedFiles);
   const _io2 = (input: any): boolean =>
     'boolean' === typeof input.minimiseOnStart
     && (undefined === input.theme || 'dark' === input.theme || 'light' === input.theme)
