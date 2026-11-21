@@ -135,6 +135,8 @@
                 <option value="hex">Hex</option>
                 <option value="octal">Octal</option>
                 <option value="binary">Binary</option>
+                <option value="utf16">UTF-16</option>
+                <option value="utf16-shifted">UTF-16 +1</option>
               </select>
             </label>
           </header>
@@ -142,14 +144,16 @@
             <input type="range" min="9" max="22" step="1" [value]="hexFontSize()" (input)="setHexFontSize($any($event.target).value)" aria-label="HEX table font size" />
             <span>{{hexFontSize()}} px</span>
           </label>
-          <div class="image-hex-search" role="search" aria-label="Search HEX file">
-            <select [value]="hexSearchMode()" (change)="setHexSearchMode($any($event.target).value)" aria-label="Search format">
-              <option value="ascii">ASCII</option>
-              <option value="hex">Hex bytes</option>
-            </select>
-            <input type="text" [value]="hexSearchTerm()" (input)="onHexSearchTermChange($any($event.target).value)" (keydown.enter)="searchHexFile(1)" [placeholder]="hexSearchMode() === 'ascii' ? 'Search ASCII text…' : 'Search hex bytes…'" aria-label="Search text or hex bytes" />
-            <button type="button" (click)="searchHexFile(-1)" [disabled]="hexSearchBusy() || !hexFilePath()" title="Find previous">↑</button>
-            <button type="button" (click)="searchHexFile(1)" [disabled]="hexSearchBusy() || !hexFilePath()" title="Find next">↓</button>
+          <div class="image-hex-search-box">
+            <div class="image-hex-search" role="search" aria-label="Search HEX file">
+              <select [value]="hexSearchMode()" (change)="setHexSearchMode($any($event.target).value)" aria-label="Search format">
+                <option value="ascii">ASCII</option>
+                <option value="hex">Hex bytes</option>
+              </select>
+              <input type="text" [value]="hexSearchTerm()" (input)="onHexSearchTermChange($any($event.target).value)" (keydown.enter)="searchHexFile(1)" [placeholder]="hexSearchMode() === 'ascii' ? 'Search ASCII text…' : 'Search hex bytes…'" aria-label="Search text or hex bytes" />
+              <button type="button" (click)="searchHexFile(-1)" [disabled]="hexSearchBusy() || !hexFilePath()" title="Find previous">↑</button>
+              <button type="button" (click)="searchHexFile(1)" [disabled]="hexSearchBusy() || !hexFilePath()" title="Find next">↓</button>
+            </div>
           </div>
           @if (hexSearchStatus()) { <div class="image-hex-search-status" role="status">{{hexSearchStatus()}}</div> }
           @if (hexTotalRows() > hexRowsPerPage) {
@@ -166,16 +170,14 @@
             <div #hexScrollViewport class="image-hex-table-scroll" tabindex="0" (keydown)="onHexKeyDown($event)" (scroll)="onHexScroll($event)" aria-label="HEX data. Use arrow keys to move the byte cursor.">
               <table class="image-hex-table" [style.fontSize.px]="hexFontSize()">
                 <thead>
-                  <tr><th>Offset</th><th>{{hexByteDisplayMode() === 'decimal' ? 'Decimal bytes' : hexByteDisplayMode() === 'octal' ? 'Octal bytes' : hexByteDisplayMode() === 'binary' ? 'Binary bytes' : 'Hex bytes'}}</th><th>ASCII</th><th>UTF-16</th><th>UTF-16 +1</th></tr>
+                  <tr><th>Offset</th><th>{{hexByteDisplayMode() === 'decimal' ? 'Decimal bytes' : hexByteDisplayMode() === 'octal' ? 'Octal bytes' : hexByteDisplayMode() === 'binary' ? 'Binary bytes' : hexByteDisplayMode() === 'utf16' ? 'UTF-16' : hexByteDisplayMode() === 'utf16-shifted' ? 'UTF-16 +1' : 'Hex bytes'}}</th><th>ASCII</th></tr>
                 </thead>
                 <tbody>
                   @for (row of hexRows(); track row.offset) {
                     <tr>
                       <td class="hex-offset">{{formatHexOffset(row.offset)}}</td>
-                      <td class="hex-bytes" [class.hex-bytes-binary]="hexByteDisplayMode() === 'binary'">@for (byteIndex of hexByteIndices; track byteIndex) {<span class="hex-byte-cell" [class.hex-cursor]="hexCursorByteIndex(row.offset) === byteIndex" (click)="setHexCursor(row.offset + byteIndex)">{{formatHexByte(row.hex, byteIndex)}}</span> }</td>
+                      <td class="hex-bytes" [class.hex-bytes-binary]="hexByteDisplayMode() === 'binary'" [class.hex-unicode]="hexByteDisplayMode() === 'utf16' || hexByteDisplayMode() === 'utf16-shifted'">@for (byteIndex of hexByteIndices; track byteIndex) {<span [class.hex-byte-cell]="hexByteDisplayMode() !== 'utf16' && hexByteDisplayMode() !== 'utf16-shifted'" [class.hex-readable-string]="(hexByteDisplayMode() === 'utf16' ? isHexReadableCharacter(row.utf16, hexUtfIndex(byteIndex)) : hexByteDisplayMode() === 'utf16-shifted' ? isHexReadableCharacter(row.utf16Shifted, hexShiftedUtfIndex(byteIndex)) : false)" [class.hex-cursor]="hexCursorByteIndex(row.offset) === byteIndex" (click)="setHexCursor(row.offset + byteIndex)">{{hexByteDisplayMode() === 'utf16' ? (byteIndex % 2 === 0 ? (row.utf16[hexUtfIndex(byteIndex)] || ' ') : ' ') : hexByteDisplayMode() === 'utf16-shifted' ? (byteIndex % 2 === 1 ? (row.utf16Shifted[hexShiftedUtfIndex(byteIndex)] || ' ') : ' ') : formatHexByte(row.hex, byteIndex)}}</span> }</td>
                       <td class="hex-ascii">@for (byteIndex of hexByteIndices; track byteIndex) {<span [class.hex-readable-string]="isHexReadableCharacter(row.ascii, byteIndex)" [class.hex-cursor]="hexCursorByteIndex(row.offset) === byteIndex" (click)="setHexCursor(row.offset + byteIndex)">{{row.ascii[byteIndex] || ' '}}</span>}</td>
-                      <td class="hex-unicode">@for (byteIndex of hexByteIndices; track byteIndex) {@if (byteIndex % 2 === 0) {<span [class.hex-readable-string]="isHexReadableCharacter(row.utf16, hexUtfIndex(byteIndex))" [class.hex-cursor]="hexCursorUtfIndex(row.offset) === byteIndex / 2" (click)="setHexCursor(row.offset + byteIndex)">{{row.utf16[hexUtfIndex(byteIndex)] || ' '}}</span>}}</td>
-                      <td class="hex-unicode">@for (byteIndex of hexByteIndices; track byteIndex) {@if (byteIndex % 2 === 1) {<span [class.hex-readable-string]="isHexReadableCharacter(row.utf16Shifted, hexShiftedUtfIndex(byteIndex))" [class.hex-cursor]="hexCursorUtfIndex(row.offset, true) === hexShiftedUtfIndex(byteIndex)" (click)="setHexCursor(row.offset + byteIndex)">{{row.utf16Shifted[hexShiftedUtfIndex(byteIndex)] || ' '}}</span>}}</td>
                     </tr>
                   }
                 </tbody>
