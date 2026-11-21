@@ -1065,19 +1065,19 @@ if (parentPort) {
         return;
       }
 
-      const vips = await getVips();
-
-      if (cancelledRequests.has(id)) {
-        cancelRequest(id);
-        return;
-      }
-
       const sourceExtension = extname(source).toLowerCase();
 
       if (!supportedThumbnailExtensions.has(sourceExtension)) {
         const error = `No thumbnail decoder is registered for file extension "${sourceExtension || '(none)'}".`;
         console.info(`[ThumbWorker] Skipping thumbnail for unsupported file type: ${source}`);
         parentPort?.postMessage({ id, success: false, error } satisfies ThumbWorkerResponse);
+        return;
+      }
+
+      const vips = await getVips();
+
+      if (cancelledRequests.has(id)) {
+        cancelRequest(id);
         return;
       }
 
