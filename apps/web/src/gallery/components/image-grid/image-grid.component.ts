@@ -97,6 +97,18 @@ export class ImageGridComponent {
   readonly thumbnailColumns = signal(1);
   readonly thumbnailRowHeight = signal(160);
 
+  private readonly updateThumbnailGridGeometry = (viewport: HTMLElement): void => {
+    const tiles = Array.from(viewport.querySelectorAll<HTMLElement>('.images > app-thumbnail'));
+    const first = tiles[0];
+    if (!first) return;
+    const firstTop = first.offsetTop;
+    const nextRow = tiles.find(tile => tile.offsetTop > firstTop);
+    const rowHeight = nextRow ? nextRow.offsetTop - firstTop : first.getBoundingClientRect().height + 16;
+    const columns = Math.max(1, tiles.filter(tile => tile.offsetTop === firstTop).length);
+    this.thumbnailColumns.set(columns);
+    this.thumbnailRowHeight.set(Math.max(1, rowHeight));
+  };
+
   protected readonly onGalleryScroll = (event: Event): void => {
     const viewport = event.currentTarget as HTMLElement;
     const header = viewport.querySelector<HTMLElement>('.detail-native-table thead');
@@ -111,15 +123,10 @@ export class ImageGridComponent {
       const rowHeight = row?.getBoundingClientRect().height || 44;
       targetIndex = Math.max(0, Math.floor(Math.max(0, viewport.scrollTop - (header?.getBoundingClientRect().height ?? 0)) / rowHeight));
     } else {
-      const tiles = Array.from(viewport.querySelectorAll<HTMLElement>('.images > app-thumbnail'));
-      const first = tiles[0];
-      if (first) {
-        const firstTop = first.offsetTop;
-        const nextRow = tiles.find(tile => tile.offsetTop > firstTop);
-        const rowHeight = nextRow ? nextRow.offsetTop - firstTop : first.getBoundingClientRect().height + 16;
-        const columns = Math.max(1, tiles.filter(tile => tile.offsetTop === firstTop).length);
-        this.thumbnailColumns.set(columns);
-        this.thumbnailRowHeight.set(Math.max(1, rowHeight));
+      this.updateThumbnailGridGeometry(viewport);
+      const rowHeight = this.thumbnailRowHeight();
+      const columns = this.thumbnailColumns();
+      if ((this.images() ?? []).length > 0) {
         targetIndex = Math.max(0, Math.floor(viewport.scrollTop / Math.max(1, rowHeight)) * columns);
       }
     }
@@ -138,6 +145,7 @@ export class ImageGridComponent {
 
   protected readonly setViewMode = (mode: GalleryViewMode): void => {
     this.viewMode.set(mode);
+    this.galleryState.loadGalleryWindow(0);
     const viewport = this.scrollBox()?.nativeElement;
     if (viewport) viewport.scrollTop = 0;
     this.detailScrollTop.set(0);
@@ -491,6 +499,14 @@ export class ImageGridComponent {
 
   /* Constructor */
   constructor() {
+    effect(() => {
+      this.images();
+      const viewport = this.scrollBox()?.nativeElement;
+      if (viewport && this.viewMode() !== 'details' && this.viewMode() !== 'details-no-thumbnails') {
+        this.updateThumbnailGridGeometry(viewport);
+      }
+    });
+
     const normalizeDirectory = (value: string): string =>
       value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
     const unsubscribeDirectoryLocations = this.cacheManager.onDirectoryPhotoLocationsChanged(changedDirectory => {
