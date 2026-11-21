@@ -1304,8 +1304,39 @@ if (parentPort) {
           encodeScRgbAsUhdr(scrgb, target, 92);
           isHdr = true;
         } else {
-          using image = vips.Image.newFromMemory(pixels, outputWidth, outputHeight, 3, vips.BandFormat.uchar);
-          image.jpegsave(target, { Q: 82 });
+          // Thumbnail derivatives are Ultra HDR too. Make the wavelength-coloured
+          // area beneath the measured curve visibly emissive, while keeping the
+          // chart labels, axes and background at normal reference white.
+          const hdrPixels = new Float32Array(pixels.length);
+          for (let index = 0; index < pixels.length; index++) hdrPixels[index] = pixels[index] / 255;
+          const addThumbnailHdrLight = (x: number, y: number, color: [number, number, number], intensity: number, whiteCore = 0) => {
+            if (x < 0 || y < 0 || x >= outputWidth || y >= outputHeight) return;
+            const pixelOffset = (Math.floor(y) * outputWidth + Math.floor(x)) * 3;
+            for (let channel = 0; channel < 3; channel++) {
+              hdrPixels[pixelOffset + channel] = Math.min(4, hdrPixels[pixelOffset + channel] + color[channel] / 255 * intensity + whiteCore);
+            }
+          };
+          for (let x = 0; x < plotWidth; x++) {
+            const sampleIndex = Math.min(sampleCount - 1, Math.round(x / Math.max(1, plotWidth - 1) * (sampleCount - 1)));
+            const curveY = Math.round(yFor(values[sampleIndex]));
+            const wavelength = startWavelength + sampleIndex / (sampleCount - 1) * (endWavelength - startWavelength);
+            const color = spectrumColor(wavelength);
+            const fromY = Math.round(Math.min(curveY, zeroY));
+            const toY = Math.round(Math.max(curveY, zeroY));
+            for (let y = fromY; y <= toY; y++) {
+              addThumbnailHdrLight(left + x, y, color, 1.65, 0.18);
+            }
+            // A soft, wavelength-coloured glow makes the spectral line stand
+            // out from the brighter filled gradient at thumbnail dimensions.
+            for (let dy = -3; dy <= 3; dy++) {
+              const glow = 1.35 * Math.exp(-0.5 * (dy / 1.8) ** 2);
+              addThumbnailHdrLight(left + x, curveY + dy, color, glow, dy === 0 ? 0.8 : 0);
+            }
+          }
+          using image = vips.Image.newFromMemory(hdrPixels, outputWidth, outputHeight, 3, vips.BandFormat.float);
+          using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
+          encodeScRgbAsUhdr(scrgb, target, 88);
+          isHdr = true;
         }
       } else if (cameraRawExtensions.has(sourceExtension)) {
         processingStage = 'developing camera RAW with LibRaw';
