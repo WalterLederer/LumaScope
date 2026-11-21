@@ -1329,14 +1329,14 @@ if (parentPort) {
               addHdrLight(left + x, y, color, halo, core);
             }
           }
-          // Use the exact application icon, decoded from the same ICO file
-          // used by the Electron window. Composite it into the HDR pixel buffer.
+          // wasm-vips does not support decoding Windows ICO containers.
+          // Use the PNG application icon (the same LumaScope artwork) for compositing.
           const iconCandidates = [
-            join(__dirname, 'assets', 'lumascope.ico'),
-            join(__dirname, '..', 'assets', 'lumascope.ico'),
-            join(__dirname, '..', '..', 'assets', 'lumascope.ico'),
-            join(process.resourcesPath, 'lumascope', 'lumascope.ico'),
-            join(process.cwd(), 'apps', 'desktop', 'src', 'assets', 'lumascope.ico')
+            join(__dirname, 'assets', 'icon.png'),
+            join(__dirname, '..', 'assets', 'icon.png'),
+            join(__dirname, '..', '..', 'assets', 'icon.png'),
+            join(process.resourcesPath, 'lumascope', 'lumascope.png'),
+            join(process.cwd(), 'apps', 'desktop', 'src', 'assets', 'icon.png')
           ];
           const iconPath = iconCandidates.find(candidate => existsSync(candidate));
           if (!iconPath) {
