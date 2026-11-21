@@ -36,7 +36,7 @@ import { TimelineIndicatorsComponent } from '../timeline-indicators/timeline-ind
 import { imageUrl, thumbUrl } from '../../../viewer/utils/image-url';
 import { GalleryViewMode, groupImagesByYearAndMonth, YearGroup } from './images.component.types';
 
-type DetailSortColumn = 'name' | 'date' | 'gpsDate' | 'dimensions' | 'size' | 'suffix' | 'hdr' | 'thumb' | 'fullSize' | 'gps' | 'location' | 'path';
+type DetailSortColumn = 'name' | 'date' | 'gpsDate' | 'size' | 'suffix' | 'gps' | 'location' | 'path';
 
 type DetailTableColorKey = 'date' | 'gpsDate' | 'dimensions' | 'size' | 'selectedRow' | 'oddRow' | 'evenRow' | 'filteredRow';
 interface DetailTablePreferences {
@@ -236,24 +236,12 @@ export class ImagesComponent {
     const direction = this.activeDetailSortDirection() === 'asc' ? 1 : -1;
     const valueFor = (image: FileInfo): string | number | null => {
       const status = this.cacheStatuses().get(image.path);
-      const tags = this.metadata().get(image.path);
       switch (column) {
         case 'name': return image.name;
         case 'date': return typeof image.modifiedAt === 'number' && Number.isFinite(image.modifiedAt) ? image.modifiedAt : null;
         case 'gpsDate': return typeof status?.gpsTimestamp === 'number' && Number.isFinite(status.gpsTimestamp) ? status.gpsTimestamp : null;
-        case 'dimensions': {
-          const width = Number(tags?.ImageWidth) || 0;
-          const height = Number(tags?.ImageHeight) || 0;
-          return width > 0 && height > 0 ? width * height : null;
-        }
         case 'size': return Number.isFinite(image.size) ? image.size : null;
         case 'suffix': return this.getSuffix(image.name);
-        case 'hdr': {
-          const bits = tags?.BitsPerSample ?? tags?.BitDepth ?? tags?.ImagePixelDepth ?? null;
-          return imageDynamicRange(image.path, tags ?? null, bits === null ? null : String(bits));
-        }
-        case 'thumb': return status?.thumbnail?.status ?? null;
-        case 'fullSize': return status ? (status.fullSizeRequired ? status.fullSize?.status ?? 'missing' : 'not required') : null;
         case 'gps': return status?.latitude != null && status.longitude != null ? status.latitude * 1000 + status.longitude : null;
         case 'location': return this.locationDisplayNames().get(image.path) ?? null;
         case 'path': return this.relativeDetailPath(image);
