@@ -1,4 +1,4 @@
-import { app, IpcMainInvokeEvent, shell } from 'electron';
+import { app, BrowserWindow, dialog, IpcMainInvokeEvent, shell } from 'electron';
 import { ApiResponse, FileInfo, SortDirection, SortType, supportedFileExtensions, formatOsDateTime } from 'internal-api';
 import { Dirent, statSync } from 'node:fs';
 import { copyFile, mkdir, open, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
@@ -122,6 +122,57 @@ export class FileSystem {
       }
     }
     return { success: false, errorMessage: 'Documentation image not found: ' + fileName };
+  };
+
+  @IpcHandler({ name: 'FileSystem.exportHex' })
+  readonly exportHex = async (event: IpcMainInvokeEvent, sourcePath: string): Promise<ApiResponse<undefined>> => {
+    try {
+      const sourceBytes = await readFile(sourcePath);
+      const sourceName = sourcePath.split(/[\\\\/]/).pop() || 'file';
+      const suggestedName = sourceName.replace(/\\.[^.]*$/, '') + '.hex.txt';
+      const ownerWindow = BrowserWindow.fromWebContents(event.sender) ?? undefined;
+      const selection = await dialog.showSaveDialog(ownerWindow, {
+        title: 'Export HEX',
+        defaultPath: join(dirname(sourcePath), suggestedName),
+        buttonLabel: 'Export',
+        filters: [{ name: 'Text files', extensions: ['txt'] }, { name: 'All files', extensions: ['*'] }]
+      });
+      if (selection.canceled || !selection.filePath) return { success: true, data: undefined };
+
+      const lines = [
+        'OFFSET  HEX BYTES                                        ASCII                UTF-16LE              UTF-16LE (+1 byte)',
+        '-------- ------------------------------------------------ -------------------- -------------------- --------------------'
+      ];
+      const printable = (value: number): string =>
+        value >= 0x20 && value <= 0x7e ? String.fromCharCode(value) : '.';
+      const unicodeUnit = (low: number, high: number): string => {
+        const codeUnit = low | (high << 8);
+        if (codeUnit < 0x20 || (codeUnit >= 0x7f && codeUnit <= 0x9f)
+          || (codeUnit >= 0xd800 && codeUnit <= 0xdfff)) return '·';
+        return String.fromCharCode(codeUnit);
+      };
+      for (let offset = 0; offset < sourceBytes.length; offset += 16) {
+        const chunk = sourceBytes.subarray(offset, Math.min(offset + 16, sourceBytes.length));
+        const hex = Array.from(chunk, value => value.toString(16).padStart(2, '0').toUpperCase()).join(' ').padEnd(47, ' ');
+        const ascii = Array.from(chunk, printable).join('').padEnd(16, ' ');
+        let utf16 = '';
+        let utf16Shifted = '';
+        for (let index = 0; index < 16; index += 2) {
+          const low = sourceBytes[offset + index];
+          const high = sourceBytes[offset + index + 1];
+          utf16 += low === undefined || high === undefined ? ' ' : unicodeUnit(low, high);
+          const shiftedLow = sourceBytes[offset + index + 1];
+          const shiftedHigh = sourceBytes[offset + index + 2];
+          utf16Shifted += shiftedLow === undefined || shiftedHigh === undefined ? ' ' : unicodeUnit(shiftedLow, shiftedHigh);
+        }
+        lines.push(offset.toString(16).toUpperCase().padStart(8, '0') + '  ' + hex + '  ' + ascii + '  ' + utf16 + '  ' + utf16Shifted);
+      }
+      await writeFile(selection.filePath, lines.join('\\r\\n') + '\\r\\n', 'utf-8');
+      return { success: true, data: undefined };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { success: false, errorMessage: 'HEX export failed: ' + message };
+    }
   };
 
   @IpcHandler({ name: 'FileSystem.writeText' })
