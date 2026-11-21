@@ -2589,7 +2589,11 @@
   color: var(--color-text-default);
   border-radius: 2px;
 }
-:host .image-hex-table .hex-byte-cell,
+:host .image-hex-table .hex-byte-cell {
+  display: inline-block;
+  margin-right: 6px;
+  cursor: crosshair;
+}
 :host .image-hex-table .hex-ascii span,
 :host .image-hex-table .hex-unicode span { cursor: crosshair; }
 :host .image-hex-table .hex-cursor {
