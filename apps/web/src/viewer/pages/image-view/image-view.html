@@ -535,7 +535,7 @@
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'summary') {
         <app-exif-info [exif]="exif" [dimensions]="dimensions" [fileSize]="selected.size" [bitDepth]="imageBitDepth()" [path]="selected.path" [decoderName]="decoderForPath(selected.path)" [modifiedAt]="selected.modifiedAt" [loadDuration]="loadDuration()" [decodeDuration]="imageDecodeDuration()" [totalDuration]="imageTotalDuration()" [conversionDuration]="conversionDuration()" [fullSizeFromCache]="fullSizeFromCache()" [requiresConversion]="requiresConversion(selected.path)" />
         <details class="image-database-section app-disclosure" [open]="sidebarSectionExpanded('database')" (toggle)="onSidebarDetailsToggle('database', $event)">
-          <summary class="section-heading">SQLite database record</summary>
+          <summary class="section-heading">Database record</summary>
           @if (sidebarSectionExpanded('database')) {
             @if (photoDatabaseRecordStatus()) {
               <div class="image-database-record-status" role="status">{{photoDatabaseRecordStatus()}}</div>
