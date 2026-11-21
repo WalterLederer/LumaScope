@@ -98,15 +98,21 @@ export class ImageGridComponent {
   readonly thumbnailRowHeight = signal(160);
 
   private readonly updateThumbnailGridGeometry = (viewport: HTMLElement): void => {
+    const grid = viewport.querySelector<HTMLElement>('.images');
     const tiles = Array.from(viewport.querySelectorAll<HTMLElement>('.images > app-thumbnail'));
     const first = tiles[0];
     if (!first) return;
     const firstTop = first.offsetTop;
     const nextRow = tiles.find(tile => tile.offsetTop > firstTop);
-    const rowHeight = nextRow ? nextRow.offsetTop - firstTop : first.getBoundingClientRect().height + 16;
+    const styles = this.document.defaultView?.getComputedStyle(grid ?? first);
+    const rowGap = Number.parseFloat(styles?.rowGap ?? '') || 0;
+    const measuredHeight = first.getBoundingClientRect().height;
+    const rowHeight = nextRow ? nextRow.offsetTop - firstTop : measuredHeight + rowGap;
     const columns = Math.max(1, tiles.filter(tile => tile.offsetTop === firstTop).length);
-    this.thumbnailColumns.set(columns);
-    this.thumbnailRowHeight.set(Math.max(1, rowHeight));
+    if (this.thumbnailColumns() !== columns) this.thumbnailColumns.set(columns);
+    if (Math.abs(this.thumbnailRowHeight() - Math.max(1, rowHeight)) > 0.5) {
+      this.thumbnailRowHeight.set(Math.max(1, rowHeight));
+    }
   };
 
   protected readonly onGalleryScroll = (event: Event): void => {
@@ -501,13 +507,26 @@ export class ImageGridComponent {
 
   /* Constructor */
   constructor() {
-    effect(() => {
-      this.images();
-      this.thumbSize();
+    effect(onCleanup => {
+      const images = this.images();
+      const thumbSize = this.thumbSize();
+      const mode = this.viewMode();
       const viewport = this.scrollBox()?.nativeElement;
-      if (viewport && this.viewMode() !== 'details' && this.viewMode() !== 'details-no-thumbnails') {
+      if (!viewport || mode === 'details' || mode === 'details-no-thumbnails') return;
+
+      const updateGeometry = (): void => {
+        this.detailScrollTop.set(viewport.scrollTop);
+        this.detailViewportHeight.set(viewport.clientHeight);
         this.updateThumbnailGridGeometry(viewport);
-      }
+      };
+      updateGeometry();
+
+      if (typeof ResizeObserver === 'undefined') return;
+      const observer = new ResizeObserver(updateGeometry);
+      observer.observe(viewport);
+      const firstTile = viewport.querySelector<HTMLElement>('.images > app-thumbnail');
+      if (firstTile) observer.observe(firstTile);
+      onCleanup(() => observer.disconnect());
     });
 
     const normalizeDirectory = (value: string): string =>
