@@ -77,8 +77,8 @@
             <button type="button" (click)="sortDetailBy('gpsDate')">@if (detailSortAriaSort('gpsDate') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('gpsDate') }}</span>}<span class="sort-label">GPS Date</span></button>
             <button type="button" class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize GPS date column" (pointerdown)="startColumnResize($event, 3)" (dblclick)="autofitDetailColumn($event, 3)"></button>
           </th>
-          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('dimensions')">
-            <button type="button" (click)="sortDetailBy('dimensions')">@if (detailSortAriaSort('dimensions') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('dimensions') }}</span>}<span class="sort-label">Dimensions</span></button>
+          <th class="detail-column-heading" scope="col">
+            <span class="sort-label">Dimensions</span>
             <button type="button" class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize dimensions column" (pointerdown)="startColumnResize($event, 4)" (dblclick)="autofitDetailColumn($event, 4)"></button>
           </th>
           <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('size')">
@@ -89,16 +89,16 @@
             <button type="button" (click)="sortDetailBy('suffix')">@if (detailSortAriaSort('suffix') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('suffix') }}</span>}<span class="sort-label">Suffix</span></button>
             <button type="button" class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize suffix column" (pointerdown)="startColumnResize($event, 6)" (dblclick)="autofitDetailColumn($event, 6)"></button>
           </th>
-          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('hdr')">
-            <button type="button" (click)="sortDetailBy('hdr')">@if (detailSortAriaSort('hdr') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('hdr') }}</span>}<span class="sort-label">HDR</span></button>
+          <th class="detail-column-heading" scope="col">
+            <span class="sort-label">HDR</span>
             <button type="button" class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize HDR column" (pointerdown)="startColumnResize($event, 7)" (dblclick)="autofitDetailColumn($event, 7)"></button>
           </th>
-          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('thumb')">
-            <button type="button" (click)="sortDetailBy('thumb')">@if (detailSortAriaSort('thumb') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('thumb') }}</span>}<span class="sort-label">Thumb</span></button>
+          <th class="detail-column-heading" scope="col">
+            <span class="sort-label">Thumb</span>
             <button type="button" class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize thumbnail status column" (pointerdown)="startColumnResize($event, 8)" (dblclick)="autofitDetailColumn($event, 8)"></button>
           </th>
-          <th class="detail-column-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('fullSize')">
-            <button type="button" (click)="sortDetailBy('fullSize')">@if (detailSortAriaSort('fullSize') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('fullSize') }}</span>}<span class="sort-label">Full-Size Conversion</span></button>
+          <th class="detail-column-heading" scope="col">
+            <span class="sort-label">Full-Size Conversion</span>
             <button type="button" class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize full-size column" (pointerdown)="startColumnResize($event, 9)" (dblclick)="autofitDetailColumn($event, 9)"></button>
           </th>
           <th class="count-heading" scope="col" [attr.aria-sort]="detailSortAriaSort('gps')">
