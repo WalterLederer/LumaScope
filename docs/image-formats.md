@@ -36,3 +36,8 @@ The application uses several decoding families:
 - **Custom OHSP parser** for OHSP-350SF spectral measurement files.
 
 Some formats use an intermediate converted image for display. The full-size cache column indicates whether LumaScope generates and manages a full-size converted cache entry for that format; it does not indicate whether the original file is modified.
+
+
+## Dynamic image detail table
+
+The image detail view is database-backed and uses virtualized row rendering so that very large file collections can be displayed without creating a DOM row for every file. Only the viewport range plus a small overscan is rendered at once. See [Dynamic database-backed image detail table](image-detail-table.md) for the rendering strategy, database information and scalability details.
