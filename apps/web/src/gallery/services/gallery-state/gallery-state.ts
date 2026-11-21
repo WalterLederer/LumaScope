@@ -1,4 +1,4 @@
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { TreeNode, updateSubject } from '@light-matter/ui';
 import { FileInfo, getThumbnailSize, thumbnailDimensions, ThumbnailSize } from 'internal-api';
 import { BehaviorSubject, defer, filter, map, Observable, distinctUntilChanged, finalize, shareReplay, startWith, switchMap, take, tap } from 'rxjs';
