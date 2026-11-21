@@ -17,6 +17,7 @@ export class TreeComponent<T> {
   readonly menu = input<TemplateRef<unknown> | null>(null);
   readonly inlineActions = input(false);
   readonly reorderActions = input(false);
+  readonly actionsColumnPosition = input<'left' | 'right'>('left');
   readonly selected = output<TreeNode<T>>();
   readonly hovered = output<TreeNode<T> | null>();
   readonly loadRequested = output<TreeLoadRequest<T>>();
