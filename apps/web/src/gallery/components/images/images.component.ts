@@ -211,6 +211,10 @@ export class ImagesComponent {
   readonly detailScrollTop = input(0);
   readonly detailViewportHeight = input(1200);
   readonly detailHeaderHeight = input(0);
+  readonly windowStart = input(0);
+  readonly totalFileCount = input(0);
+  readonly thumbnailColumns = input(1);
+  readonly thumbnailRowHeight = input(160);
 
   // Detail headers expose the current gallery sort initially, then own sorting after a header is clicked.
   readonly detailSortColumn = signal<DetailSortColumn | null>(null);
@@ -491,16 +495,28 @@ export class ImagesComponent {
   );
   readonly detailVirtualStart = computed(() => {
     const bodyOffset = Math.max(0, this.detailScrollTop() - this.detailHeaderHeight());
-    const requested = Math.max(0, Math.floor(bodyOffset / this.detailVirtualRowHeight()) - this.detailVirtualOverscan);
-    return Math.min(requested, Math.max(0, this.sortedDetailImages().length - this.detailVirtualCount()));
+    const globalRequested = Math.max(0, Math.floor(bodyOffset / this.detailVirtualRowHeight()) - this.detailVirtualOverscan);
+    const localRequested = Math.max(0, globalRequested - this.windowStart());
+    return Math.min(localRequested, Math.max(0, this.sortedDetailImages().length - this.detailVirtualCount()));
   });
   readonly visibleDetailImages = computed(() =>
     this.sortedDetailImages().slice(this.detailVirtualStart(), this.detailVirtualStart() + this.detailVirtualCount())
   );
-  readonly detailVirtualTopSpacer = computed(() => this.detailVirtualStart() * this.detailVirtualRowHeight());
+  readonly detailVirtualTopSpacer = computed(() =>
+    (this.windowStart() + this.detailVirtualStart()) * this.detailVirtualRowHeight()
+  );
   readonly detailVirtualBottomSpacer = computed(() => Math.max(0,
-    this.sortedDetailImages().length - this.detailVirtualStart() - this.visibleDetailImages().length
+    this.totalFileCount() - this.windowStart() - this.detailVirtualStart() - this.visibleDetailImages().length
   ) * this.detailVirtualRowHeight());
+  readonly thumbnailVirtualTopSpacer = computed(() =>
+    Math.floor(this.windowStart() / Math.max(1, this.thumbnailColumns())) * this.thumbnailRowHeight()
+  );
+  readonly thumbnailVirtualBottomSpacer = computed(() => {
+    const columns = Math.max(1, this.thumbnailColumns());
+    const totalRows = Math.ceil(this.totalFileCount() / columns);
+    const renderedEndRow = Math.ceil((this.windowStart() + (this.images()?.length ?? 0)) / columns);
+    return Math.max(0, totalRows - renderedEndRow) * this.thumbnailRowHeight();
+  });
   readonly isDateSorted = computed(() => this.sortBy() === 'date');
   readonly groupedImages = computed<YearGroup[]>(() => {
     if (!this.isDateSorted()) {
