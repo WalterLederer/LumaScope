@@ -943,9 +943,9 @@ export class ImagesComponent {
     signal: AbortSignal,
     progressBase = 0,
     progressMultiplier = 1
-  ): Promise<{ total: number; scanned: number }> => {
+  ): Promise<{ total: number; scanned: number; matched: number }> => {
     const folder = this.folderPath();
-    if (!folder) return { total: 0, scanned: 0 };
+    if (!folder) return { total: 0, scanned: 0, matched: 0 };
     const recursive = this.includeFilesRecursive();
     const includeUnsupported = this.includeUnsupportedFiles();
     const sortBy = this.sortBy();
@@ -955,6 +955,7 @@ export class ImagesComponent {
     let offset = 0;
     let total = this.totalFileCount();
     let resetLog = true;
+    let matched = 0;
     while (!signal.aborted) {
       const page = await this.cacheManager.getGalleryFilesPage(
         folder, recursive, includeUnsupported, sortBy, sortDir, offset, 500
@@ -967,6 +968,7 @@ export class ImagesComponent {
         && supportedFileExtensions.includes(image.ext.toLowerCase().replace('.', ''))
       );
       if (batch.length > 0) {
+        matched += batch.length;
         await callback(batch, offset, total, resetLog);
         resetLog = false;
       }
@@ -976,7 +978,7 @@ export class ImagesComponent {
       this.cacheRunProgress.update(progress => ({ ...progress, completed: Math.min(total * progressMultiplier, progressBase + offset) }));
       if (page.files.length < 500) break;
     }
-    return { total, scanned: offset };
+    return { total, scanned: offset, matched };
   };
 
   readonly cacheDisplayedFiles = async (): Promise<void> => {
@@ -997,7 +999,7 @@ export class ImagesComponent {
           resetLog, progressOffset: offset, progressTotal: total, suppressRefresh: true
         });
       }, controller.signal);
-      if (result.scanned === 0) this.cacheRunCurrentOperation.set('No displayed images found to cache.');
+      if (result.matched === 0) this.cacheRunCurrentOperation.set('No displayed images found to cache.');
       else if (!controller.signal.aborted) {
         await this.cacheManager.appendBuildLog(`Displayed gallery cache operation completed: scanned ${result.scanned} / ${result.total} files`);
       }
@@ -1053,7 +1055,7 @@ export class ImagesComponent {
           });
         }, controller.signal, total, 2);
       }
-      if (deletion.scanned === 0) this.cacheRunCurrentOperation.set('No displayed images found to re-cache.');
+      if (deletion.matched === 0) this.cacheRunCurrentOperation.set('No displayed images found to re-cache.');
       else if (controller.signal.aborted) this.cacheRunCurrentOperation.set('Displayed gallery Re-Cache cancelled.');
       else await this.cacheManager.appendBuildLog(`Displayed gallery Re-Cache completed: ${deletion.scanned} / ${total} files scanned`);
     } catch (error) {
