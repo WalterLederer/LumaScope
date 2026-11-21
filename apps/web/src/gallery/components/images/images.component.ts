@@ -908,6 +908,9 @@ export class ImagesComponent {
     try {
       this.cacheRunCurrentOperation.set(`Indexing files in ${folder}`);
       const scan = await this.cacheManager.scanGalleryDirectory(folder);
+      if (!scan.complete) {
+        await this.cacheManager.appendBuildLog(`Folder scan incomplete in ${folder}; stale database records were preserved.`);
+      }
       this.cacheRunProgress.set({ completed: 0, total: scan.files });
       for (let offset = 0; offset < scan.files && !controller.signal.aborted; offset += 500) {
         const page = await this.cacheManager.getGalleryFilesPage(folder, false, true, 'name', 'asc', offset, 500);
@@ -1137,12 +1140,25 @@ export class ImagesComponent {
     let processedFiles = 0;
     let processedImages = 0;
     let removedStaleRecords = 0;
+    let enumerationComplete = true;
     let resetLog = true;
     try {
       while (pendingDirectories.length > 0 && !controller.signal.aborted) {
         const directoryPath = pendingDirectories.shift()!;
         this.cacheRunCurrentOperation.set(`Indexing files and subfolders in ${directoryPath}`);
-        const scan = await this.cacheManager.scanGalleryDirectory(directoryPath);
+        let scan: Awaited<ReturnType<typeof this.cacheManager.scanGalleryDirectory>>;
+        try {
+          scan = await this.cacheManager.scanGalleryDirectory(directoryPath);
+        } catch (error) {
+          enumerationComplete = false;
+          console.warn('Failed to index gallery folder', directoryPath, error);
+          await this.cacheManager.appendBuildLog(`Folder indexing failed in ${directoryPath}: ${error instanceof Error ? error.message : String(error)}`);
+          continue;
+        }
+        if (!scan.complete) {
+          enumerationComplete = false;
+          await this.cacheManager.appendBuildLog(`Folder scan incomplete in ${directoryPath}; stale database records were preserved.`);
+        }
         removedStaleRecords += scan.removedStale;
         for (const childPath of scan.directories) {
           const key = childPath.toLocaleLowerCase();
@@ -1178,6 +1194,9 @@ export class ImagesComponent {
 
       if (!controller.signal.aborted) {
         await this.cacheManager.appendBuildLog(`Recursive photo database reconciliation: removed ${removedStaleRecords} stale records under ${rootPath}`);
+        if (!enumerationComplete) {
+          await this.cacheManager.appendBuildLog('Recursive database cleanup was incomplete; stale records in folders that could not be scanned were preserved.');
+        }
       }
       if (processedImages === 0 && !controller.signal.aborted) {
         await this.cacheManager.resetBuildLog();
