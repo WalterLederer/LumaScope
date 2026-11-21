@@ -1708,11 +1708,12 @@ export class CacheManager {
     sortBy: SortType = 'name',
     sortDir: SortDirection = 'asc',
     offset = 0,
-    limit = 250
+    limit = 250,
+    nameFilter = ''
   ): Promise<{ files: FileInfo[]; totalCount: number; offset: number; limit: number }> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
     const safeOffset = Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : 0;
-    const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(500, Math.trunc(limit))) : 250;
+    const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(1000, Math.trunc(limit))) : 250;
     const databaseKey = this.databaseKeyForPath(directory);
     const db = this.databaseForPath(directory);
     this.activeDatabaseKey = databaseKey;
@@ -1726,14 +1727,17 @@ export class CacheManager {
       )`;
     const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `lower(photos.file_name) LIKE :extension${index}`).join(' OR ')})`;
     const filterParams: Record<string, string | number> = {
-      folder, recursive: recursive ? 1 : 0, folderPrefix
+      folder, recursive: recursive ? 1 : 0, folderPrefix,
+      ...(normalizedNameFilter ? { nameFilter: normalizedNameFilter } : {})
     };
     if (!includeUnsupported) {
       supportedFileExtensions.forEach((extension, index) => { filterParams[`extension${index}`] = `%.${extension.toLowerCase()}`; });
     }
-    const where = scope + supportedFilter;
+    const normalizedNameFilter = typeof nameFilter === 'string' ? nameFilter.trim().toLocaleLowerCase() : '';
+    const nameFilterSql = normalizedNameFilter ? ' AND instr(lower(photos.file_name), :nameFilter) > 0' : '';
+    const where = scope + supportedFilter + nameFilterSql;
     // Counts are independent of sorting and are reused across page requests.
-    const countCacheKey = [databaseKey, folder.toLocaleLowerCase(), recursive ? '1' : '0', includeUnsupported ? '1' : '0'].join('|');
+    const countCacheKey = [databaseKey, folder.toLocaleLowerCase(), recursive ? '1' : '0', includeUnsupported ? '1' : '0', normalizedNameFilter].join('|');
     const countStartedAt = Date.now();
     let totalCount = this.galleryCountCache.get(countCacheKey);
     if (totalCount === undefined) {
