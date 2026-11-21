@@ -926,10 +926,8 @@ export class ImagesComponent {
         this.cacheRunProgress.set({ completed: Math.min(scan.files, offset + page.files.length), total: scan.files });
         if (page.files.length < 500) break;
       }
-      if (this.verifyCacheFiles() && !controller.signal.aborted) {
-        this.cacheRunCurrentOperation.set(`Verifying photo database records in ${folder}`);
-        const reconciledRecords = await this.cacheManager.reconcilePhotoRecordsFromDisk(folder, false);
-        await this.cacheManager.appendBuildLog(`Photo database reconciliation: removed ${reconciledRecords} stale records in ${folder}`);
+      if (!controller.signal.aborted) {
+        await this.cacheManager.appendBuildLog(`Photo database reconciliation: removed ${scan.removedStale} stale records in ${folder}`);
       }
       if (processedImages === 0 && !controller.signal.aborted) {
         await this.cacheManager.resetBuildLog();
@@ -1138,12 +1136,14 @@ export class ImagesComponent {
     const pendingDirectories: string[] = [rootPath];
     let processedFiles = 0;
     let processedImages = 0;
+    let removedStaleRecords = 0;
     let resetLog = true;
     try {
       while (pendingDirectories.length > 0 && !controller.signal.aborted) {
         const directoryPath = pendingDirectories.shift()!;
         this.cacheRunCurrentOperation.set(`Indexing files and subfolders in ${directoryPath}`);
         const scan = await this.cacheManager.scanGalleryDirectory(directoryPath);
+        removedStaleRecords += scan.removedStale;
         for (const childPath of scan.directories) {
           const key = childPath.toLocaleLowerCase();
           if (!visitedDirectories.has(key)) {
@@ -1176,10 +1176,8 @@ export class ImagesComponent {
         processedFiles += scan.files;
       }
 
-      if (!controller.signal.aborted && this.verifyCacheFiles()) {
-        this.cacheRunCurrentOperation.set(`Verifying photo database records under ${rootPath}`);
-        const reconciledRecords = await this.cacheManager.reconcilePhotoRecordsFromDisk(rootPath, true);
-        await this.cacheManager.appendBuildLog(`Recursive photo database reconciliation: removed ${reconciledRecords} stale records under ${rootPath}`);
+      if (!controller.signal.aborted) {
+        await this.cacheManager.appendBuildLog(`Recursive photo database reconciliation: removed ${removedStaleRecords} stale records under ${rootPath}`);
       }
       if (processedImages === 0 && !controller.signal.aborted) {
         await this.cacheManager.resetBuildLog();
