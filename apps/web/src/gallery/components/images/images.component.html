@@ -322,16 +322,16 @@
   </div>
 } @else {
   <div class="images" [class.info-tiles]="viewMode() === 'tiles'">
-    @if (viewMode() === 'thumbnails' && thumbnailVirtualTopSpacer() > 0) {
+    @if ((viewMode() === 'thumbnails' || viewMode() === 'tiles') && thumbnailVirtualTopSpacer() > 0) {
       <div class="gallery-window-spacer" aria-hidden="true" [style.height.px]="thumbnailVirtualTopSpacer()"></div>
     }
-    @for (image of imageList; track image.path) {
+    @for (image of (viewMode() === 'thumbnails' || viewMode() === 'tiles' ? visibleThumbnailImages() : imageList); track image.path) {
       <app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="selectedImagePath() === image.path" [image]="image" [viewMode]="viewMode()"
                      (hovered)="hovered.emit($event)"
                      (cacheUpdated)="cacheUpdated.emit($event)"
                      (clicked)="this.selected.emit($event)" />
     }
-    @if (viewMode() === 'thumbnails' && thumbnailVirtualBottomSpacer() > 0) {
+    @if ((viewMode() === 'thumbnails' || viewMode() === 'tiles') && thumbnailVirtualBottomSpacer() > 0) {
       <div class="gallery-window-spacer" aria-hidden="true" [style.height.px]="thumbnailVirtualBottomSpacer()"></div>
     }
   </div>
