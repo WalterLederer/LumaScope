@@ -1718,7 +1718,9 @@
   box-sizing: border-box !important;
 }
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading > .column-resizer {
-  right: -6px !important;
+  right: 0 !important;
+  width: 6px !important;
+  min-width: 6px !important;
 }
 .detail-native-table > tbody.images.details-list > tr > td.detail-actions .detail-row-menu-trigger {
   position: relative !important;
