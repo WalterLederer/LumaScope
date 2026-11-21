@@ -1377,7 +1377,7 @@ if (parentPort) {
           const generatedAt = new Date();
           const twoDigits = (value: number) => String(value).padStart(2, '0');
           const timestamp = `${generatedAt.getFullYear()}-${twoDigits(generatedAt.getMonth() + 1)}-${twoDigits(generatedAt.getDate())} ${twoDigits(generatedAt.getHours())}:${twoDigits(generatedAt.getMinutes())}:${twoDigits(generatedAt.getSeconds())}`;
-          const timestampText = `GENERATED ${timestamp}`;
+          const timestampText = timestamp;
           const timestampScale = 2;
           const timestampWidth = timestampText.split('').reduce((sum, character) => sum + ((glyphs[character] ?? glyphs[' '])[0].length + 1) * timestampScale, 0) - timestampScale;
           drawHdrText(timestampText, Math.round(logoCenterX - timestampWidth / 2), 174, timestampScale, [255, 248, 225]);
