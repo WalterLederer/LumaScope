@@ -73,7 +73,7 @@ The CSV also contains measurement summaries and additional instrument/product/el
 
 ## Cache behaviour
 
-LumaScope creates an SDR thumbnail and an Ultra HDR full-size chart in the normal sidecar cache. The cache format version is tracked separately so that changes to the OHSP parser or chart renderer can regenerate previously cached output.
+LumaScope creates both the thumbnail and the full-size chart as Ultra HDR JPEGs in the normal sidecar cache. Both derivatives are generated from linear scRGB Float32 canvases. The cache format version is tracked separately so that changes to the OHSP parser or chart renderer can regenerate previously cached output.
 
 ## References and evidence
 
