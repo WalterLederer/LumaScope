@@ -938,13 +938,51 @@ export class ImagesComponent {
     this.cacheAbortController?.abort();
   };
 
+  private readonly forEachDisplayedGalleryBatch = async (
+    callback: (images: FileInfo[], offset: number, total: number, resetLog: boolean) => Promise<void>,
+    signal: AbortSignal
+  ): Promise<{ total: number; scanned: number }> => {
+    const folder = this.folderPath();
+    if (!folder) return { total: 0, scanned: 0 };
+    const recursive = this.includeFilesRecursive();
+    const includeUnsupported = this.includeUnsupportedFiles();
+    const sortBy = this.sortBy();
+    const sortDir = this.sortDirection();
+    const filter = (this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails')
+      && this.nameFilterActive() ? this.nameFilter().trim().toLocaleLowerCase() : '';
+    let offset = 0;
+    let total = this.totalFileCount();
+    let resetLog = true;
+    while (!signal.aborted) {
+      const page = await this.cacheManager.getGalleryFilesPage(
+        folder, recursive, includeUnsupported, sortBy, sortDir, offset, 500
+      );
+      if (page.totalCount >= 0) total = page.totalCount;
+      if (offset === 0) this.cacheRunProgress.set({ completed: 0, total });
+      if (page.files.length === 0) break;
+      const batch = page.files.filter(image =>
+        (!filter || image.name.toLocaleLowerCase().includes(filter))
+        && supportedFileExtensions.includes(image.ext.toLowerCase().replace(/^\\./, ''))
+      );
+      if (batch.length > 0) {
+        await callback(batch, offset, total, resetLog);
+        resetLog = false;
+      }
+      offset += page.files.length;
+      // Progress includes filtered-out and unsupported rows too, because they
+      // have been scanned and intentionally skipped.
+      this.cacheRunProgress.update(progress => ({ ...progress, completed: Math.min(total, offset) }));
+      if (page.files.length < 500) break;
+    }
+    return { total, scanned: offset };
+  };
+
   readonly cacheDisplayedFiles = async (): Promise<void> => {
-    const images = this.displayedImages().filter(image => supportedFileExtensions.includes(image.ext.toLowerCase().replace('.', '')));
-    if (this.galleryCacheBuild.cacheRunActive() || this.cacheRunActive() || images.length === 0) return;
+    if (this.galleryCacheBuild.cacheRunActive() || this.cacheRunActive() || !this.folderPath()) return;
     const controller = new AbortController();
     this.cacheAbortController = controller;
     this.cacheRunActive.set(true);
-    this.cacheRunProgress.set({ completed: batchOptions?.progressOffset ?? 0, total: batchOptions?.progressTotal ?? images.length });
+    this.cacheRunCurrentOperation.set('Preparing displayed gallery cache batches...');
     const releaseActivity = this.galleryCacheBuild.trackActivity({
       active: this.cacheRunActive,
       progress: this.cacheRunProgress,
@@ -952,7 +990,18 @@ export class ImagesComponent {
       cancel: this.cancelCacheRun
     });
     try {
-      await this.runCacheForImages(images, true, controller.signal);
+      const result = await this.forEachDisplayedGalleryBatch(async (batch, offset, total, resetLog) => {
+        await this.runCacheForImages(batch, true, controller.signal, {
+          resetLog, progressOffset: offset, progressTotal: total
+        });
+      }, controller.signal);
+      if (result.scanned === 0) this.cacheRunCurrentOperation.set('No displayed images found to cache.');
+      else if (!controller.signal.aborted) {
+        await this.cacheManager.appendBuildLog(`Displayed gallery cache operation completed: scanned ${result.scanned} / ${result.total} files`);
+      }
+    } catch (error) {
+      this.cacheRunCurrentOperation.set(`Cache build failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Failed to cache displayed gallery files', error);
     } finally {
       if (this.cacheAbortController === controller) this.cacheAbortController = null;
       this.cacheRunActive.set(false);
@@ -966,7 +1015,55 @@ export class ImagesComponent {
   };
 
   readonly reCacheDisplayedFiles = (): void => {
-    void this.reCacheImages(this.displayedImages());
+    void this.reCacheDisplayedGalleryScope();
+  };
+
+  private readonly reCacheDisplayedGalleryScope = async (): Promise<void> => {
+    if (this.galleryCacheBuild.cacheRunActive() || this.cacheRunActive() || !this.folderPath()) return;
+    const controller = new AbortController();
+    this.cacheAbortController = controller;
+    this.cacheRunActive.set(true);
+    this.cacheRunCurrentOperation.set('Removing existing displayed gallery cache entries...');
+    const releaseActivity = this.galleryCacheBuild.trackActivity({
+      active: this.cacheRunActive,
+      progress: this.cacheRunProgress,
+      currentOperation: this.cacheRunCurrentOperation,
+      cancel: this.cancelCacheRun
+    });
+    let total = 0;
+    try {
+      await this.cacheManager.resetBuildLog();
+      await this.cacheManager.appendBuildLog('Displayed gallery Re-Cache started: ' + formatOsDateTime(new Date()));
+      const deletion = await this.forEachDisplayedGalleryBatch(async (batch, offset, count) => {
+        total = count;
+        for (let index = 0; index < batch.length && !controller.signal.aborted; index++) {
+          const image = batch[index];
+          this.cacheRunCurrentOperation.set(`Removing cache entries for file ${offset + index + 1} / ${count}: ${image.name}`);
+          await this.cacheManager.deleteImage(image.path);
+        }
+      }, controller.signal);
+      total = deletion.total;
+      if (!controller.signal.aborted && deletion.scanned > 0) {
+        await this.cacheManager.appendBuildLog('Existing cache entries removed; rebuilding thumbnails and full-size conversions.');
+        await this.forEachDisplayedGalleryBatch(async (batch, offset, count) => {
+          await this.runCacheForImages(batch, true, controller.signal, {
+            resetLog: false, progressOffset: count + offset, progressTotal: count * 2
+          });
+        }, controller.signal);
+      }
+      if (deletion.scanned === 0) this.cacheRunCurrentOperation.set('No displayed images found to re-cache.');
+      else if (controller.signal.aborted) this.cacheRunCurrentOperation.set('Displayed gallery Re-Cache cancelled.');
+      else await this.cacheManager.appendBuildLog(`Displayed gallery Re-Cache completed: ${deletion.scanned} / ${total} files scanned`);
+    } catch (error) {
+      this.cacheRunCurrentOperation.set(`Cache rebuild failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Failed to re-cache displayed gallery files', error);
+    } finally {
+      if (this.cacheAbortController === controller) this.cacheAbortController = null;
+      this.cacheRunActive.set(false);
+      this.manualRefresh.update(value => value + 1);
+      releaseActivity();
+      this.cacheUpdated.emit('');
+    }
   };
 
   private readonly reCacheImages = async (images: FileInfo[]): Promise<void> => {
