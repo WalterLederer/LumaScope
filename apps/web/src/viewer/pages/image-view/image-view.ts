@@ -711,7 +711,7 @@ export class ImageView {
     : '');
   protected readonly formatHexOffset = (offset: number): string => offset.toString(16).toUpperCase().padStart(8, '0');
   protected readonly hexStringSegments = (value: string, ascii = false): Array<{ text: string; isString: boolean }> => {
-    const pattern = ascii ? /[\\x20-\\x7E]{4,}/g : /[^\\u0000-\\u001F\\u007F·]{4,}/gu;
+    const pattern = ascii ? /[\x20-\x7E]{4,}/g : /[^\u0000-\u001F\u007F·]{4,}/gu;
     const segments: Array<{ text: string; isString: boolean }> = [];
     let position = 0;
     for (const match of value.matchAll(pattern)) {
