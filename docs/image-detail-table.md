@@ -71,3 +71,14 @@ The HEX viewer works on the original file's bytes and is independent of image-fo
 The table is designed for collections containing many thousands of files and can render substantially larger collections without creating a corresponding number of DOM rows. The total file collection is still held and sorted by the gallery data layer; virtualization reduces DOM and layout work, but it does not mean the entire file inventory is streamed from SQLite one visible page at a time.
 
 Actual loading time and memory use therefore also depend on directory enumeration, the size of the in-memory file collection, metadata availability and the selected columns. The 500-file batching applies to cache-status requests; it should not be interpreted as a fixed maximum table size.
+
+### Searching file contents
+
+The Hex tab includes a search field with two modes:
+
+- **ASCII** searches for an exact 7-bit ASCII text sequence.
+- **Hex bytes** searches for a byte sequence entered as hexadecimal digits. Spaces and common separators are optional; for example, `DE AD BE EF`, `DEADBEEF` and `0xDE 0xAD 0xBE 0xEF` are accepted.
+
+Use the up and down controls to find the previous or next occurrence. A match moves the synchronized byte cursor to the first matching byte, loads the corresponding table range if necessary, and displays its hexadecimal file offset.
+
+Searching is performed by the desktop file service in 1 MB blocks. It does not load the complete file into the renderer or depend on the currently visible 256-row table range. ASCII and hexadecimal searches therefore work throughout large files, including unsupported file formats that are enabled with **Include unsupported files**.
