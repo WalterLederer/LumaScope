@@ -137,6 +137,7 @@ const api: Desktop = {
     getGalleryFiles: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection) => ipcRenderer.invoke('CacheManager.getGalleryFiles', directory, recursive, includeUnsupported, sortBy, sortDir),
     getGalleryFilesPage: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection, offset?: number, limit?: number) => ipcRenderer.invoke('CacheManager.getGalleryFilesPage', directory, recursive, includeUnsupported, sortBy, sortDir, offset, limit),
     getGalleryFileAtPosition: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection, position?: number) => ipcRenderer.invoke('CacheManager.getGalleryFileAtPosition', directory, recursive, includeUnsupported, sortBy, sortDir, position),
+    getGalleryFilePosition: (directory: string, sourcePath: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection) => ipcRenderer.invoke('CacheManager.getGalleryFilePosition', directory, sourcePath, recursive, includeUnsupported, sortBy, sortDir),
     getGalleryUnsupportedSummary: (directory: string, recursive?: boolean) => ipcRenderer.invoke('CacheManager.getGalleryUnsupportedSummary', directory, recursive),
     onGalleryFilesChanged: (callback: (directory: string) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, directory: string): void => callback(directory);
