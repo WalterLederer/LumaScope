@@ -725,6 +725,23 @@ export class ImageView {
   };
   protected readonly isHexReadableCharacter = (value: string, index: number): boolean =>
     /[A-Za-z0-9]/.test(value[index] ?? '') && /[A-Za-z0-9]{4,}/.test(value);
+  protected readonly hexByteDisplayMode = signal<'decimal' | 'hex' | 'octal' | 'binary'>('hex');
+  protected readonly setHexByteDisplayMode = (value: string): void => {
+    if (value === 'decimal' || value === 'hex' || value === 'octal' || value === 'binary') {
+      this.hexByteDisplayMode.set(value);
+    }
+  };
+  protected readonly formatHexByte = (hex: string, index: number): string => {
+    const raw = hex.slice(index * 3, index * 3 + 2);
+    if (!raw.trim()) return this.hexByteDisplayMode() === 'binary' ? '        ' : '   ';
+    const value = Number.parseInt(raw, 16);
+    switch (this.hexByteDisplayMode()) {
+      case 'decimal': return String(value).padStart(3, ' ');
+      case 'octal': return value.toString(8).padStart(3, '0');
+      case 'binary': return value.toString(2).padStart(8, '0');
+      default: return value.toString(16).toUpperCase().padStart(2, '0');
+    }
+  };
   protected readonly hexByteIndices = Array.from({ length: 16 }, (_, index) => index);
   protected readonly hexCursorOffset = signal(0);
   protected readonly hexCursorRowActive = (rowOffset: number): boolean =>
