@@ -41,9 +41,11 @@ The spectrum chart is generated directly as a raster image; it does not require 
 - The full-size chart identifies the measurement model and includes capture date/time only when valid values can be read from the header.
 - It finds the maximum of all 601 spectral samples, marks the peak with a dashed vertical guide, and prints its exact wavelength and measured value in `mW/m2/nm` above the plot.
 - Peak annotations are added to full-size charts only; thumbnail layout remains compact.
-- The full-size chart adds a wavelength-coloured band below the X axis. Its colour gradient uses the same wavelength mapping as the spectrum fill.
-- The band has a bright HDR core and a soft light halo. Its scRGB values exceed reference white so it emits visible light on HDR-capable displays; on SDR displays it is tone-mapped to the available range.
-- The OHSP full-size cache tag is versioned independently so the SDR-to-Ultra-HDR conversion is regenerated.
+- The full-size chart uses a pure-black canvas; the background is not lifted to charcoal or grey during HDR conversion.
+- The full-size spectrum outline has a wavelength-coloured HDR halo and a bright near-white core, with scRGB peaks up to 8.0.
+- The wavelength-coloured band below the X axis uses the same gradient as the spectrum fill, with a stronger HDR core and broader light halo (scRGB peaks up to 8.0).
+- Both glowing elements exceed reference white and are visibly emissive on HDR-capable displays; SDR displays tone-map them to the available range.
+- The OHSP full-size cache tag is versioned independently so the updated black-background and stronger HDR rendering are regenerated.
 - The source `.ohsp` file is not modified.
 
 The zero-valued leading samples remain part of the curve. They are not skipped, trimmed or reinterpreted.
