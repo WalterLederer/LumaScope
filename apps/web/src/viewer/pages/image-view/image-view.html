@@ -114,6 +114,10 @@
     <img class="sdr-quality-logo sdr-logo-image" src="sdr-logo.png" alt="SDR — Standard Dynamic Range" title="SDR view of an HDR-capable image">
   }
 
+  @if ((selected?.path ?? '').toLowerCase().endsWith('.ohsp')) {
+    <img class="ohsp-lumascope-hdr-logo" src="lumascope-app-icon.svg" alt="LumaScope" title="LumaScope" aria-hidden="true">
+  }
+
   @if (!fullScreen && !controlsSidebarVisible()) {
     <button class="show-controls-sidebar" type="button" title="Show image controls" aria-label="Show image controls" (click)="toggleControlsSidebar()">⚙</button>
   }
