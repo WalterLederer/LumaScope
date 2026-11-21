@@ -944,7 +944,7 @@ export class ImagesComponent {
     const controller = new AbortController();
     this.cacheAbortController = controller;
     this.cacheRunActive.set(true);
-    this.cacheRunProgress.set({ completed: 0, total: images.length });
+    this.cacheRunProgress.set({ completed: batchOptions?.progressOffset ?? 0, total: batchOptions?.progressTotal ?? images.length });
     const releaseActivity = this.galleryCacheBuild.trackActivity({
       active: this.cacheRunActive,
       progress: this.cacheRunProgress,
@@ -1113,7 +1113,12 @@ export class ImagesComponent {
     }
   };
 
-  private readonly runCacheForImages = async (images: FileInfo[], alreadyActive = false, signal?: AbortSignal): Promise<void> => {
+  private readonly runCacheForImages = async (
+    images: FileInfo[],
+    alreadyActive = false,
+    signal?: AbortSignal,
+    batchOptions?: { resetLog?: boolean; progressOffset?: number; progressTotal?: number }
+  ): Promise<void> => {
     if (images.length === 0) {
       this.cacheRunCurrentOperation.set('No images found to cache.');
       return;
@@ -1129,9 +1134,13 @@ export class ImagesComponent {
     let thumbnailsGenerated = 0;
     let fullSizeConversionsGenerated = 0;
     try {
-      await this.cacheManager.resetBuildLog();
-      await this.cacheManager.appendBuildLog('Cache build started: ' + formatOsDateTime(new Date()));
-      await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
+      if (batchOptions?.resetLog !== false) {
+        await this.cacheManager.resetBuildLog();
+        await this.cacheManager.appendBuildLog('Cache build started: ' + formatOsDateTime(new Date()));
+        await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
+      } else {
+        await this.cacheManager.appendBuildLog('Cache batch started: ' + formatOsDateTime(new Date()));
+      }
       const statusPreparationStartedAt = performance.now();
       let gpsMetadataVerified = 0;
       const gpsMetadataErrors: string[] = [];
@@ -1262,7 +1271,7 @@ export class ImagesComponent {
       const errorSummary = cacheBuildErrors.length
         ? `Failed files: ${cacheBuildErrors.length}\n${cacheBuildErrors.join('\n')}`
         : 'Failed files: 0';
-      const summary = `Cache build ${signal?.aborted ? 'cancelled' : 'completed'}\n${verificationSummary}\nGenerated: ${thumbnailsGenerated} thumbnails, ${fullSizeConversionsGenerated} full-size conversions\nProcessed: ${this.cacheRunProgress().completed}/${images.length}\n${errorSummary}\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
+      const summary = `Cache build ${signal?.aborted ? 'cancelled' : 'completed'}\n${verificationSummary}\nGenerated: ${thumbnailsGenerated} thumbnails, ${fullSizeConversionsGenerated} full-size conversions\nProcessed in this batch: ${images.length}; overall progress: ${this.cacheRunProgress().completed}/${this.cacheRunProgress().total}\n${errorSummary}\nTotal time: ${Math.round(performance.now() - buildStartedAt)} ms`;
       await this.cacheManager.appendBuildLog(summary);
       this.cacheRunCurrentOperation.set(summary);
     } catch (error) {
