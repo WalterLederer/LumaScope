@@ -54,7 +54,7 @@
   <td class="detail-path" [title]="detailPath()">{{ detailPath() || '.' }}</td>
   <td class="detail-actions detail-actions-right" [hidden]="actionsColumnPosition() !== 'right'" [attr.data-row-number]="rowNumber()">
     <button type="button" class="file-row-menu-trigger detail-row-menu-trigger" [cdkMenuTriggerFor]="rowActionsMenu"
-            [attr.aria-label]="'File actions for ' + image().name" title="File actions">☰</button>
+            [attr.aria-label]="'File actions for ' + image().name" title="File actions" (click)="$event.stopPropagation()">☰</button>
   </td>
 
 } @else {
