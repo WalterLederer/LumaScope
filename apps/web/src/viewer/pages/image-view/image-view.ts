@@ -904,7 +904,6 @@ export class ImageView {
     }
     const request = ++this.hexRequestId;
     const viewport = this.hexScrollViewport()?.nativeElement;
-    const previousScrollTop = viewport?.scrollTop ?? 0;
     const boundedStart = Math.max(0, Math.min(Math.max(0, this.hexTotalRows() - this.hexRowsPerPage), Math.floor(startRow)));
     this.hexLoading.set(true);
     this.hexStatus.set('Reading file…');
