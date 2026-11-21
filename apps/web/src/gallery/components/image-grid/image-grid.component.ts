@@ -255,7 +255,7 @@ export class ImageGridComponent {
 
     const newImages = images.filter(image => !this.cacheStatsPaths.has(image.path));
     if (newImages.length === 0) {
-      this.cacheStats.update(current => ({ ...current, total: images.length }));
+      this.cacheStats.update(current => ({ ...current, total: this.galleryState.totalFileCount() || images.length }));
       return;
     }
 
@@ -302,7 +302,7 @@ export class ImageGridComponent {
         return;
       }
       this.cacheStats.set({
-        total: images.length,
+        total: this.galleryState.totalFileCount() || images.length,
         thumbnails: this.thumbnailCachePaths.size,
         fullSizeConversions: this.fullSizeCachePaths.size,
         gps: this.cacheStatsGps,
