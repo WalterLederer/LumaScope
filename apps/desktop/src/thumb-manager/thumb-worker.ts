@@ -161,6 +161,15 @@ let libRawConstructorPromise: Promise<LibRawConstructor> | null = null;
 
 const cameraRawExtensions = new Set([ '.dng', '.rw2', '.raw' ]);
 
+// Keep thumbnail decoding aligned with the image formats advertised by the app.
+// Files such as archives, text sidecars and arbitrary unsupported suffixes must
+// never be sent to libvips' generic image loader.
+const supportedThumbnailExtensions = new Set([
+  '.avif', '.bmp', '.gif', '.heic', '.heif', '.jpe', '.jpeg', '.jpg',
+  '.jxl', '.jxr', '.exr', '.ohsp', '.png', '.raw', '.dng', '.rw2',
+  '.hdr', '.svg', '.tif', '.tiff', '.webp'
+]);
+
 async function getLibRawConstructor(): Promise<LibRawConstructor> {
   if (!libRawConstructorPromise) {
     libRawConstructorPromise = (async () => {
@@ -1064,6 +1073,13 @@ if (parentPort) {
       }
 
       const sourceExtension = extname(source).toLowerCase();
+
+      if (!supportedThumbnailExtensions.has(sourceExtension)) {
+        const error = `No thumbnail decoder is registered for file extension "${sourceExtension || '(none)'}".`;
+        console.info(`[ThumbWorker] Skipping thumbnail for unsupported file type: ${source}`);
+        parentPort?.postMessage({ id, success: false, error } satisfies ThumbWorkerResponse);
+        return;
+      }
 
       if (sourceExtension === '.ohsp') {
         processingStage = 'reading OHSP spectral measurements';
