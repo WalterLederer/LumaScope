@@ -94,6 +94,8 @@ export class ImageGridComponent {
   readonly detailScrollTop = signal(0);
   readonly detailViewportHeight = signal(1200);
   readonly detailHeaderHeight = signal(0);
+  readonly thumbnailColumns = signal(1);
+  readonly thumbnailRowHeight = signal(160);
 
   protected readonly onGalleryScroll = (event: Event): void => {
     const viewport = event.currentTarget as HTMLElement;
@@ -101,10 +103,36 @@ export class ImageGridComponent {
     this.detailScrollTop.set(viewport.scrollTop);
     this.detailViewportHeight.set(viewport.clientHeight);
     this.detailHeaderHeight.set(header?.getBoundingClientRect().height ?? 0);
-    // Keep every gallery view incrementally populated; the detail view then
-    // combines these bounded pages with its virtual row renderer.
-    if (viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < viewport.clientHeight * 1.5) {
-      this.galleryState.loadNextGalleryPage();
+
+    const detailMode = this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails';
+    let targetIndex = 0;
+    if (detailMode) {
+      const row = viewport.querySelector<HTMLElement>('.detail-virtual-row');
+      const rowHeight = row?.getBoundingClientRect().height || 44;
+      targetIndex = Math.max(0, Math.floor(Math.max(0, viewport.scrollTop - (header?.getBoundingClientRect().height ?? 0)) / rowHeight));
+    } else {
+      const tiles = Array.from(viewport.querySelectorAll<HTMLElement>('.images > app-thumbnail'));
+      const first = tiles[0];
+      if (first) {
+        const firstTop = first.offsetTop;
+        const nextRow = tiles.find(tile => tile.offsetTop > firstTop);
+        const rowHeight = nextRow ? nextRow.offsetTop - firstTop : first.getBoundingClientRect().height + 16;
+        const columns = Math.max(1, tiles.filter(tile => tile.offsetTop === firstTop).length);
+        this.thumbnailColumns.set(columns);
+        this.thumbnailRowHeight.set(Math.max(1, rowHeight));
+        targetIndex = Math.max(0, Math.floor(viewport.scrollTop / Math.max(1, rowHeight)) * columns);
+      }
+    }
+
+    const images = this.images() ?? [];
+    const windowStart = this.galleryState.galleryWindowStart();
+    const threshold = Math.max(100, Math.floor(images.length * 0.2));
+    if (targetIndex < windowStart + threshold || targetIndex > windowStart + images.length - threshold) {
+      const desiredStart = Math.max(0, targetIndex - Math.floor(images.length / 2));
+      const alignedStart = detailMode
+        ? desiredStart
+        : Math.floor(desiredStart / Math.max(1, this.thumbnailColumns())) * Math.max(1, this.thumbnailColumns());
+      this.galleryState.loadGalleryWindow(alignedStart);
     }
   };
 
