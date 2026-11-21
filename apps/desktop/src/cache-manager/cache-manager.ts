@@ -1426,7 +1426,7 @@ export class CacheManager {
   readonly scanGalleryDirectory = async (
     _event: IpcMainInvokeEvent,
     directory: string
-  ): Promise<{ files: number; directories: string[]; removedStale: number }> => {
+  ): Promise<{ files: number; directories: string[]; removedStale: number; complete: boolean }> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
     const root = resolve(directory);
     const db = this.databaseForPath(root);
@@ -1531,7 +1531,7 @@ export class CacheManager {
     }
     db.exec('DELETE FROM temp.lumascope_seen_gallery_files;');
     this.notifyGalleryFilesChanged(root);
-    return { files, directories, removedStale };
+    return { files, directories, removedStale, complete: scanComplete };
   };
 
   @IpcHandler({ name: 'CacheManager.registerGalleryFiles' })
