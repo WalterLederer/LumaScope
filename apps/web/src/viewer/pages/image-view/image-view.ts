@@ -988,7 +988,7 @@ export class ImageView {
         // If the user moved the scrollbar while a page was loading, immediately
         // reconcile the bounded buffer with the latest viewport position.
         const currentViewport = this.hexScrollViewport()?.nativeElement;
-        if (preserveScrollPosition && currentViewport && this.hexRows().length) {
+        if (preserveScrollPosition && !this.hexStatus() && currentViewport && this.hexRows().length) {
           this.onHexScroll({ currentTarget: currentViewport } as unknown as Event);
         }
       }
