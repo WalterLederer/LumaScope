@@ -1332,12 +1332,12 @@ if (parentPort) {
           // wasm-vips does not support decoding Windows ICO containers.
           // Use the PNG application icon (the same LumaScope artwork) for compositing.
           const iconCandidates = [
-            // This is the designed LumaScope camera/aperture logo, not the legacy sun app icon.
-            join(process.resourcesPath, 'lumascope', 'lumascope.png'),
-            join(__dirname, 'assets', 'icon.png'),
-            join(__dirname, '..', 'assets', 'icon.png'),
-            join(__dirname, '..', '..', 'assets', 'icon.png'),
-            join(process.cwd(), 'apps', 'desktop', 'src', 'assets', 'icon.png')
+            // Use the supplied PNG asset directly; do not substitute or convert another app icon.
+            join(process.resourcesPath, 'lumascope', 'lumaScope_icon.png'),
+            join(__dirname, 'assets', 'lumaScope_icon.png'),
+            join(__dirname, '..', 'assets', 'lumaScope_icon.png'),
+            join(__dirname, '..', '..', 'assets', 'lumaScope_icon.png'),
+            join(process.cwd(), 'apps', 'desktop', 'src', 'assets', 'lumaScope_icon.png')
           ];
           const iconPath = iconCandidates.find(candidate => existsSync(candidate));
           if (!iconPath) {
@@ -1345,7 +1345,8 @@ if (parentPort) {
           }
           console.info(`[ThumbWorker] Embedding OHSP full-size LumaScope logo: ${iconPath}`);
           using iconImage = vips.Image.newFromFile(iconPath);
-          const iconScale = 240 / Math.max(iconImage.width, iconImage.height);
+          // 25% of the previous 240 px logo size, so it no longer covers the chart.
+          const iconScale = 60 / Math.max(iconImage.width, iconImage.height);
           using scaledIcon = iconImage.resize(iconScale, { kernel: vips.Kernel.lanczos3 });
           const iconBytes = scaledIcon.writeToMemory();
           const iconWidth = scaledIcon.width;
@@ -1372,9 +1373,7 @@ if (parentPort) {
               }
             }
           }
-          const logoCenterX = logoLeft + iconWidth / 2;
-
-          // Stamp the actual local generation time directly below the logo.
+          // Stamp the actual local generation time at the top, immediately left of the logo.
           // The timestamp changes whenever the cached derivative is regenerated.
           const generatedAt = new Date();
           const twoDigits = (value: number) => String(value).padStart(2, '0');
@@ -1382,7 +1381,8 @@ if (parentPort) {
           const timestampText = timestamp;
           const timestampScale = 2;
           const timestampWidth = timestampText.split('').reduce((sum, character) => sum + ((glyphs[character] ?? glyphs[' '])[0].length + 1) * timestampScale, 0) - timestampScale;
-          drawHdrText(timestampText, Math.round(logoCenterX - timestampWidth / 2), logoTop + iconHeight + 10, timestampScale, [255, 248, 225]);
+          const timestampLeft = Math.max(24, logoLeft - timestampWidth - 16);
+          drawHdrText(timestampText, timestampLeft, logoTop + 10, timestampScale, [255, 248, 225]);
 
           using image = vips.Image.newFromMemory(hdrPixels, outputWidth, outputHeight, 3, vips.BandFormat.float);
           using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
@@ -1397,7 +1397,7 @@ if (parentPort) {
             if (x < 0 || y < 0 || x >= outputWidth || y >= outputHeight) return;
             const pixelOffset = (Math.floor(y) * outputWidth + Math.floor(x)) * 3;
             for (let channel = 0; channel < 3; channel++) {
-              hdrPixels[pixelOffset + channel] = Math.min(20, hdrPixels[pixelOffset + channel] + color[channel] / 255 * intensity + whiteCore);
+              hdrPixels[pixelOffset + channel] = Math.min(32, hdrPixels[pixelOffset + channel] + color[channel] / 255 * intensity + whiteCore);
             }
           };
           for (let x = 0; x < plotWidth; x++) {
@@ -1408,13 +1408,13 @@ if (parentPort) {
             const fromY = Math.round(Math.min(curveY, zeroY));
             const toY = Math.round(Math.max(curveY, zeroY));
             for (let y = fromY; y <= toY; y++) {
-              addThumbnailHdrLight(left + x, y, color, 11.0, 1.5);
+              addThumbnailHdrLight(left + x, y, color, 16.0, 3.0);
             }
             // Use a stronger emissive curve in the small derivative so its gain
             // map remains clearly visible at gallery thumbnail dimensions.
-            for (let dy = -5; dy <= 5; dy++) {
-              const glow = 8.0 * Math.exp(-0.5 * (dy / 2.6) ** 2);
-              addThumbnailHdrLight(left + x, curveY + dy, color, glow, dy === 0 ? 8.0 : 0);
+            for (let dy = -6; dy <= 6; dy++) {
+              const glow = 12.0 * Math.exp(-0.5 * (dy / 3.0) ** 2);
+              addThumbnailHdrLight(left + x, curveY + dy, color, glow, dy === 0 ? 14.0 : 0);
             }
           }
           using image = vips.Image.newFromMemory(hdrPixels, outputWidth, outputHeight, 3, vips.BandFormat.float);
