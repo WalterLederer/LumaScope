@@ -133,6 +133,7 @@ const api: Desktop = {
     resetBuildLog: () => ipcRenderer.invoke('CacheManager.resetBuildLog'),
     appendBuildLog: (line: string) => ipcRenderer.invoke('CacheManager.appendBuildLog', line),
     registerGalleryFiles: (directory: string, files: import('internal-api').FileInfo[]) => ipcRenderer.invoke('CacheManager.registerGalleryFiles', directory, files),
+    scanGalleryDirectory: (directory: string) => ipcRenderer.invoke('CacheManager.scanGalleryDirectory', directory),
     removeGalleryFile: (sourceName: string) => ipcRenderer.invoke('CacheManager.removeGalleryFile', sourceName),
     getGalleryFiles: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection) => ipcRenderer.invoke('CacheManager.getGalleryFiles', directory, recursive, includeUnsupported, sortBy, sortDir),
     getGalleryFilesPage: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection, offset?: number, limit?: number) => ipcRenderer.invoke('CacheManager.getGalleryFilesPage', directory, recursive, includeUnsupported, sortBy, sortDir, offset, limit),
