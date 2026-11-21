@@ -1499,7 +1499,9 @@ export class CacheManager {
           continue;
         }
         if (metadata.isDirectory()) {
-          if (!['.cache', '.thumbnails'].includes(entry.name.toLowerCase())) directories.push(entryPath);
+          if (!entry.isSymbolicLink() && !['.cache', '.thumbnails'].includes(entry.name.toLowerCase())) {
+            directories.push(entryPath);
+          }
           continue;
         }
         if (!metadata.isFile()) continue;
