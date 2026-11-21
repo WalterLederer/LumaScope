@@ -940,7 +940,9 @@ export class ImagesComponent {
 
   private readonly forEachDisplayedGalleryBatch = async (
     callback: (images: FileInfo[], offset: number, total: number, resetLog: boolean) => Promise<void>,
-    signal: AbortSignal
+    signal: AbortSignal,
+    progressBase = 0,
+    progressMultiplier = 1
   ): Promise<{ total: number; scanned: number }> => {
     const folder = this.folderPath();
     if (!folder) return { total: 0, scanned: 0 };
@@ -958,11 +960,11 @@ export class ImagesComponent {
         folder, recursive, includeUnsupported, sortBy, sortDir, offset, 500
       );
       if (page.totalCount >= 0) total = page.totalCount;
-      if (offset === 0) this.cacheRunProgress.set({ completed: 0, total });
+      if (offset === 0) this.cacheRunProgress.set({ completed: progressBase, total: total * progressMultiplier });
       if (page.files.length === 0) break;
       const batch = page.files.filter(image =>
         (!filter || image.name.toLocaleLowerCase().includes(filter))
-        && supportedFileExtensions.includes(image.ext.toLowerCase().replace(/^\\./, ''))
+        && supportedFileExtensions.includes(image.ext.toLowerCase().replace('.', ''))
       );
       if (batch.length > 0) {
         await callback(batch, offset, total, resetLog);
@@ -971,7 +973,7 @@ export class ImagesComponent {
       offset += page.files.length;
       // Progress includes filtered-out and unsupported rows too, because they
       // have been scanned and intentionally skipped.
-      this.cacheRunProgress.update(progress => ({ ...progress, completed: Math.min(total, offset) }));
+      this.cacheRunProgress.update(progress => ({ ...progress, completed: Math.min(total * progressMultiplier, progressBase + offset) }));
       if (page.files.length < 500) break;
     }
     return { total, scanned: offset };
@@ -1041,7 +1043,7 @@ export class ImagesComponent {
           this.cacheRunCurrentOperation.set(`Removing cache entries for file ${offset + index + 1} / ${count}: ${image.name}`);
           await this.cacheManager.deleteImage(image.path);
         }
-      }, controller.signal);
+      }, controller.signal, 0, 2);
       total = deletion.total;
       if (!controller.signal.aborted && deletion.scanned > 0) {
         await this.cacheManager.appendBuildLog('Existing cache entries removed; rebuilding thumbnails and full-size conversions.');
@@ -1049,7 +1051,7 @@ export class ImagesComponent {
           await this.runCacheForImages(batch, true, controller.signal, {
             resetLog: false, progressOffset: count + offset, progressTotal: count * 2
           });
-        }, controller.signal);
+        }, controller.signal, total, 2);
       }
       if (deletion.scanned === 0) this.cacheRunCurrentOperation.set('No displayed images found to re-cache.');
       else if (controller.signal.aborted) this.cacheRunCurrentOperation.set('Displayed gallery Re-Cache cancelled.');
