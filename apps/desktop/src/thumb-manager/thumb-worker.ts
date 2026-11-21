@@ -1136,6 +1136,25 @@ if (parentPort) {
           let cursor = x;
           for (const rawChar of text.toUpperCase()) { const glyph = glyphs[rawChar] ?? glyphs[' ']; for (let gy = 0; gy < glyph.length; gy++) for (let gx = 0; gx < glyph[gy].length; gx++) if (glyph[gy][gx] === '1') for (let sy = 0; sy < scale; sy++) for (let sx = 0; sx < scale; sx++) setPixel(cursor + gx * scale + sx, y + gy * scale + sy, color); cursor += (glyph[0].length + 1) * scale; }
         };
+        const drawVerticalText = (text: string, x: number, centerY: number, scale: number, color: [number, number, number]) => {
+          const normalized = text.toUpperCase();
+          const textWidth = normalized.split('').reduce((sum, rawChar) => sum + ((glyphs[rawChar] ?? glyphs[' '])[0].length + 1) * scale, 0) - scale;
+          let cursorY = Math.round(centerY - textWidth / 2);
+          for (const rawChar of normalized) {
+            const glyph = glyphs[rawChar] ?? glyphs[' '];
+            for (let gy = 0; gy < glyph.length; gy++) {
+              for (let gx = 0; gx < glyph[gy].length; gx++) {
+                if (glyph[gy][gx] !== '1') continue;
+                for (let sy = 0; sy < scale; sy++) {
+                  for (let sx = 0; sx < scale; sx++) {
+                    setPixel(x + (glyph.length - 1 - gy) * scale + sy, cursorY + gx * scale + sx, color);
+                  }
+                }
+              }
+            }
+            cursorY += (glyph[0].length + 1) * scale;
+          }
+        };
         const left = Math.round(outputWidth * 0.09), right = Math.round(outputWidth * 0.025), top = Math.round(outputHeight * (isFullSize ? 0.13 : 0.07)), bottom = Math.round(outputHeight * 0.15);
         const plotWidth = outputWidth - left - right, plotHeight = outputHeight - top - bottom;
         const minimum = Math.min(0, ...values), maximum = Math.max(0, ...values), range = maximum - minimum || 1;
@@ -1174,9 +1193,10 @@ if (parentPort) {
           drawText(`MODEL ${instrument}${captureTimestamp ? `  ${captureTimestamp}` : ''}`, left, 8, headerScale, headerColor);
           const formattedPeakValue = peakValue.toFixed(12).replace(/\.?0+$/, '');
           drawText(`PEAK ${peakWavelength.toFixed(2)} NM = ${formattedPeakValue} MW/M2/NM`, left, 8 + 10 * headerScale, headerScale, peakLabelColor);
+          drawText(`MEASUREMENT POINTS: ${sampleCount}`, left, 8 + 20 * headerScale, headerScale, headerColor);
         }
         drawText('WAVELENGTH (NM)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.48),textScale,[235,235,235]);
-        drawText('SPECTRAL VALUE',3,Math.round(outputHeight*.43),textScale,[235,235,235]);
+        drawVerticalText('SPECTRAL VALUE',3,Math.round(top + plotHeight / 2),textScale,[235,235,235]);
         processingStage = 'encoding OHSP spectral chart';
         using image = vips.Image.newFromMemory(pixels, outputWidth, outputHeight, 3, vips.BandFormat.uchar);
         image.jpegsave(target, { Q: width > 0 ? 82 : 92 });
