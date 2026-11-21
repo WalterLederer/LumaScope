@@ -11,6 +11,7 @@ This document records the file-layout observations confirmed with an OHSP-350SF 
 ## Confirmed file structure
 
 - The file begins with the ASCII instrument identifier `OHSP-350SF`.
+- The supplied file stores the measurement date as ASCII at byte offset `0x156` (10 characters, `YYYY-MM-DD`) and the measurement time at `0x163` (8 characters, `HH:MM:SS`). These offsets are confirmed against the supplied binary and matching CSV export.
 - The spectral sample block begins at byte offset `0x16C`.
 - The block contains **601 little-endian IEEE-754 32-bit floating-point values**.
 - The 601 samples represent consecutive 1 nm wavelength steps.
@@ -34,6 +35,9 @@ The spectrum chart is generated directly as an RGB raster image; it does not req
 - The area between the curve and the zero baseline is filled vertically.
 - The fill and curve colour are derived from the corresponding wavelength, using a wavelength-to-colour gradient.
 - The chart is encoded as JPEG for the thumbnail and full-size cache.
+- The full-size chart identifies the measurement model and the capture date/time from the OHSP header.
+- It finds the maximum of all 601 spectral samples, marks the peak with a dashed vertical guide, and prints its exact wavelength and measured value in `mW/m2/nm` above the plot.
+- Peak annotations are added to full-size charts only; thumbnail layout remains compact.
 - The source `.ohsp` file is not modified.
 
 The zero-valued leading samples remain part of the curve. They are not skipped, trimmed or reinterpreted.
@@ -53,7 +57,7 @@ The CSV also contains measurement summaries and additional instrument/product/el
 
 - Only the OHSP-350SF binary layout described above is currently supported.
 - The sample block uses the confirmed offset `0x16C` and 601 float samples. Other OHSP instrument variants may use a different layout and are not guessed or auto-detected.
-- Measurement summary values such as illuminance, CCT, CRI/Ra, dominant wavelength, flicker metrics and electrical parameters are not extracted.
+- Measurement summary values such as illuminance, CCT, CRI/Ra, dominant wavelength, flicker metrics and electrical parameters are not extracted. The peak value shown on the chart is calculated directly from the spectral sample block.
 - The chart visualizes the spectral samples; it is not a full reproduction of the manufacturer's measurement report.
 
 ## Cache behaviour
