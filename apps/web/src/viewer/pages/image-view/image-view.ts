@@ -750,7 +750,7 @@ export class ImageView {
       const bytes = Array.from(term, character => character.charCodeAt(0));
       return bytes.length && bytes.every(value => value >= 0 && value <= 0x7f) ? bytes : null;
     }
-    const compact = term.replace(/0x/gi, '').replace(/[\\s,;:_-]/g, '');
+    const compact = term.replace(/0x/gi, '').replace(/[\s,;:_-]/g, '');
     if (!compact || compact.length % 2 !== 0 || !/^[0-9a-f]+$/i.test(compact)) return null;
     return compact.match(/.{2}/g)!.map(value => Number.parseInt(value, 16));
   };
