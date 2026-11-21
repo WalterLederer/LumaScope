@@ -1137,7 +1137,7 @@ if (parentPort) {
           for (const rawChar of text.toUpperCase()) { const glyph = glyphs[rawChar] ?? glyphs[' ']; for (let gy = 0; gy < glyph.length; gy++) for (let gx = 0; gx < glyph[gy].length; gx++) if (glyph[gy][gx] === '1') for (let sy = 0; sy < scale; sy++) for (let sx = 0; sx < scale; sx++) setPixel(cursor + gx * scale + sx, y + gy * scale + sy, color); cursor += (glyph[0].length + 1) * scale; }
         };
         const drawVerticalText = (text: string, x: number, centerY: number, scale: number, color: [number, number, number]) => {
-          const normalized = text.toUpperCase();
+          const normalized = text.toUpperCase().split('').reverse().join('');
           const textWidth = normalized.split('').reduce((sum, rawChar) => sum + ((glyphs[rawChar] ?? glyphs[' '])[0].length + 1) * scale, 0) - scale;
           let cursorY = Math.round(centerY - textWidth / 2);
           for (const rawChar of normalized) {
@@ -1147,7 +1147,7 @@ if (parentPort) {
                 if (glyph[gy][gx] !== '1') continue;
                 for (let sy = 0; sy < scale; sy++) {
                   for (let sx = 0; sx < scale; sx++) {
-                    setPixel(x + (glyph.length - 1 - gy) * scale + sy, cursorY + gx * scale + sx, color);
+                    setPixel(x + gy * scale + sy, cursorY + (glyph[0].length - 1 - gx) * scale + sx, color);
                   }
                 }
               }
@@ -1197,7 +1197,7 @@ if (parentPort) {
           drawText(`MEASUREMENT POINTS: ${sampleCount}`, left, 8 + 20 * headerScale, headerScale, headerColor);
         }
         drawText('WAVELENGTH (NM)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.48),axisLabelScale,[235,235,235]);
-        drawVerticalText('SPECTRAL VALUE',3,Math.round(top + plotHeight / 2),axisLabelScale,[235,235,235]);
+        drawVerticalText('SPECTRAL VALUE (MW/M2/NM)',3,Math.round(top + plotHeight / 2),axisLabelScale,[235,235,235]);
         processingStage = 'encoding OHSP spectral chart';
         using image = vips.Image.newFromMemory(pixels, outputWidth, outputHeight, 3, vips.BandFormat.uchar);
         image.jpegsave(target, { Q: width > 0 ? 82 : 92 });
