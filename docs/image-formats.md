@@ -2,7 +2,7 @@
 
 [Back to README](../README.md)
 
-The Help reference contains **15 format entries: 9 HDR-capable entries, 6 SDR entries and 6 decoder families**. Bit depth is per channel unless stated otherwise. HDR capability is format- and file-dependent; the presence of a format in this table does not mean every file using that extension contains HDR data.
+The Help reference contains **16 format entries: 9 HDR-capable entries, 7 SDR entries and 7 decoder families**. Bit depth is per channel unless stated otherwise. HDR capability is format- and file-dependent; the presence of a format in this table does not mean every file using that extension contains HDR data.
 
 | Format | Extensions | HDR path | Full-size cache | Bit depth | Decoder / conversion path | Details |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -14,6 +14,7 @@ The Help reference contains **15 format entries: 9 HDR-capable entries, 6 SDR en
 | JPEG XL | `.jxl` | Yes, when present and exposed by decoder | No | 8–16 bit integer; 16/32 bit float | Chromium / Electron | Supports high bit depth and HDR where the file and decoder expose it. |
 | JPEG XR | `.jxr` | Yes | Yes | 8/16 bit integer; 16/32 bit float | jpegxr + wasm-vips; HDR converted to scRGB/JPEG for display | High-bit-depth and floating-point images use the HDR display path. |
 | OpenEXR | `.exr` | Yes | Yes | 16 bit half or 32 bit float | exrs; EXR converted to scRGB/JPEG for display | HDR; the viewer currently uses the standard RGB channels. |
+| OHSP Spectral Measurement | `.ohsp` | No | Yes | 601 IEEE-754 32-bit floating-point spectral samples | Custom OHSP-350SF binary parser; wavelength-coloured spectrum chart | [OHSP file format](ohsp-format.md) |
 | PNG | `.png` | Yes, for supported high-bit-depth content | No | 1/2/4/8/16 bit/channel | Chromium / Electron | Lossless raster format with transparency and high-bit-depth support. |
 | Camera RAW (DNG / Panasonic RW2 / RAW) | `.dng`, `.rw2`, `.raw` | No, not inferred from RAW data alone | Yes | Depends on camera; commonly 10–16 bit sensor data | LibRaw WASM; developed to linear 16-bit RGB and converted to scRGB / Ultra HDR JPEG | Includes Panasonic RW2 files. The generic `.raw` extension is accepted, but decoding depends on the file variant being supported by LibRaw. Camera RAW is developed with the as-shot white balance; no embedded Ultra HDR gain map is assumed. |
 | Radiance HDR | `.hdr` | Yes | Yes | 32 bit RGBE per pixel | wasm-vips / libvips; expanded to floating-point RGB and converted for display | Radiance RGBE image format. |
@@ -32,5 +33,6 @@ The application uses several decoding families:
 - **jpegxr** for JPEG XR decoding and conversion.
 - **exrs** for OpenEXR.
 - **LibRaw WASM** for camera RAW files, including DNG and Panasonic RW2; `.raw` files are accepted when their variant is supported by LibRaw.
+- **Custom OHSP parser** for OHSP-350SF spectral measurement files.
 
 Some formats use an intermediate converted image for display. The full-size cache column indicates whether LumaScope generates and manages a full-size converted cache entry for that format; it does not indicate whether the original file is modified.
