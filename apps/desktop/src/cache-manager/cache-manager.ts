@@ -1739,11 +1739,16 @@ export class CacheManager {
     // Counts are independent of sorting and are reused across page requests.
     const countCacheKey = [databaseKey, folder.toLocaleLowerCase(), recursive ? '1' : '0', includeUnsupported ? '1' : '0', normalizedNameFilter].join('|');
     const countStartedAt = Date.now();
-    let totalCount = normalizedNameFilter ? undefined : this.galleryCountCache.get(countCacheKey);
+    let totalCount = this.galleryCountCache.get(countCacheKey);
     if (totalCount === undefined) {
       const totalCountRow = db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number };
       totalCount = Number(totalCountRow.totalCount) || 0;
-      if (!normalizedNameFilter) this.galleryCountCache.set(countCacheKey, totalCount);
+      this.galleryCountCache.set(countCacheKey, totalCount);
+      // Keep searches typed character by character from growing this cache indefinitely.
+      if (this.galleryCountCache.size > 100) {
+        const oldestKey = this.galleryCountCache.keys().next().value;
+        if (oldestKey !== undefined) this.galleryCountCache.delete(oldestKey);
+      }
     }
     const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
     const orderBy = sortBy === 'path'
