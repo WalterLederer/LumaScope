@@ -172,6 +172,54 @@ export class FileSystem {
     }
   };
 
+  @IpcHandler({ name: 'FileSystem.searchBytes' })
+  readonly searchBytes = async (_: IpcMainInvokeEvent, sourcePath: string, searchBytes: number[], startOffset: number, direction: 1 | -1): Promise<ApiResponse<number | null>> => {
+    let file: Awaited<ReturnType<typeof open>> | undefined;
+    try {
+      if (typeof sourcePath !== 'string' || !sourcePath) throw new Error('Invalid file path.');
+      if (!Array.isArray(searchBytes) || searchBytes.length === 0 || searchBytes.length > 65536
+        || searchBytes.some(value => !Number.isInteger(value) || value < 0 || value > 255)) {
+        throw new Error('Invalid search byte sequence.');
+      }
+      if (direction !== 1 && direction !== -1) throw new Error('Invalid search direction.');
+      file = await open(sourcePath, 'r');
+      const info = await file.stat();
+      const pattern = Buffer.from(searchBytes);
+      if (pattern.length > info.size) return { success: true, data: null };
+      const chunkSize = 1024 * 1024;
+      if (direction > 0) {
+        let blockStart = Math.max(0, Math.floor(startOffset));
+        while (blockStart < info.size) {
+          const readLength = Math.min(chunkSize + pattern.length - 1, info.size - blockStart);
+          const buffer = Buffer.alloc(readLength);
+          const bytesRead = (await file.read(buffer, 0, readLength, blockStart)).bytesRead;
+          const available = buffer.subarray(0, bytesRead);
+          const index = available.indexOf(pattern, Math.max(0, Math.floor(startOffset) - blockStart));
+          if (index >= 0 && index < chunkSize) return { success: true, data: blockStart + index };
+          blockStart += chunkSize;
+        }
+      } else {
+        let upperBound = Math.min(Math.floor(startOffset), info.size - pattern.length);
+        while (upperBound >= 0) {
+          const lowerBound = Math.max(0, upperBound - chunkSize + 1);
+          const readEnd = Math.min(info.size, upperBound + pattern.length);
+          const readLength = readEnd - lowerBound;
+          const buffer = Buffer.alloc(readLength);
+          const bytesRead = (await file.read(buffer, 0, readLength, lowerBound)).bytesRead;
+          const available = buffer.subarray(0, bytesRead);
+          const index = available.lastIndexOf(pattern, upperBound - lowerBound);
+          if (index >= 0 && index >= 0) return { success: true, data: lowerBound + index };
+          upperBound = lowerBound - 1;
+        }
+      }
+      return { success: true, data: null };
+    } catch (error) {
+      return { success: false, errorMessage: 'Could not search file: ' + (error instanceof Error ? error.message : String(error)) };
+    } finally {
+      await file?.close().catch(() => undefined);
+    }
+  };
+
   @IpcHandler({ name: 'FileSystem.exportHex' })
   readonly exportHex = async (event: IpcMainInvokeEvent, sourcePath: string): Promise<ApiResponse<undefined>> => {
     try {
