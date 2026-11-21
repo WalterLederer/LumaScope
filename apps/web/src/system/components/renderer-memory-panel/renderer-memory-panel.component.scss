@@ -1,0 +1,12 @@
+:host { display: block; min-width: 0; }
+.memory-panel { display: grid; gap: 18px; padding: 12px; }
+.memory-panel-section { display: grid; gap: 10px; min-width: 0; }
+.memory-panel-section h3 { margin: 0; font-size: 0.95rem; font-weight: 600; }
+.memory-panel-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px 16px; align-items: baseline; }
+.memory-panel-grid strong { text-align: right; font-variant-numeric: tabular-nums; }
+.memory-panel table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.memory-panel th, .memory-panel td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border-color, rgba(128,128,128,.25)); }
+.memory-panel th { font-weight: 600; }
+.memory-panel-note { margin: 0; color: var(--text-secondary, #888); font-size: 0.82rem; }
+.memory-panel-error { margin: 0; color: var(--color-error, #c44); font-size: 0.85rem; }
+.memory-panel button { justify-self: start; }
