@@ -703,7 +703,7 @@ export class ImageView {
   protected readonly hexLoading = signal(false);
   protected readonly hexStatus = signal('Select a file in the detail list to view its HEX contents.');
   private hexRequestId = 0;
-  private readonly hexRowsPerPage = 256;
+  protected readonly hexRowsPerPage = 256;
   protected readonly hexTotalRows = computed(() => Math.ceil(this.hexFileSize() / 16));
   protected readonly hexMaxStartRow = computed(() => Math.max(0, this.hexTotalRows() - this.hexRowsPerPage));
   protected readonly hexPositionLabel = computed(() => this.hexTotalRows()
@@ -764,7 +764,10 @@ export class ImageView {
   };
   protected readonly onHexPositionChange = (event: Event): void => {
     const value = Number((event.currentTarget as HTMLInputElement | null)?.value ?? 0);
-    if (Number.isFinite(value)) void this.loadHexRange(value);
+    if (!Number.isFinite(value)) return;
+    const viewport = this.hexScrollViewport()?.nativeElement;
+    if (viewport) viewport.scrollTop = 0;
+    void this.loadHexRange(value);
   };
   protected readonly currentImageCacheStatus = signal('Cache status not loaded.');
   protected readonly photoDatabaseRecord = signal<PhotoDatabaseRecord | null>(null);
@@ -2152,6 +2155,8 @@ export class ImageView {
         this.hexRows.set([]);
         this.hexFileSize.set(0);
         this.hexStartRow.set(0);
+        const hexViewport = this.hexScrollViewport()?.nativeElement;
+        if (hexViewport) hexViewport.scrollTop = 0;
         this.hexLoading.set(false);
         this.hexStatus.set(image ? 'Loading selected file…' : 'Select a file in the detail list to view its HEX contents.');
         if (image && this.activeImageSidebarTab() === 'image' && this.activeImageSubTab() === 'hex') void this.loadHexRange(0);
