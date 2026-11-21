@@ -136,7 +136,6 @@ export class ThumbnailComponent implements OnDestroy {
   };
 
   readonly copyImagePath = async (): Promise<void> => {
-    this.closeRowActionMenu();
     try {
       await navigator.clipboard.writeText(this.image().path);
     } catch (error) {
@@ -145,20 +144,17 @@ export class ThumbnailComponent implements OnDestroy {
   };
 
   readonly openImagePath = async (): Promise<void> => {
-    this.closeRowActionMenu();
     const folder = await this.fileSystem.dirname(this.image().path);
     const error = await this.processManager.openPath(folder);
     if (error) window.alert(error);
   };
 
   readonly openImageFile = async (): Promise<void> => {
-    this.closeRowActionMenu();
     const error = await this.processManager.openPath(this.image().path);
     if (error) window.alert(error);
   };
 
   readonly deleteImageFile = async (): Promise<void> => {
-    this.closeRowActionMenu();
     const deleted = await this.imageFileActions.confirmAndDelete(this.image().path);
     if (deleted === false) window.alert('The image could not be deleted.');
   };
