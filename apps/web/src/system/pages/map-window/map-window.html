@@ -1145,46 +1145,7 @@
 </div>
 <div class="settings-tab-panel" data-settings-tab="memory" role="tabpanel" [hidden]="activeSettingsTab() !== 'memory'">
   <div class="settings-tab-content cache-tab">
-    <div class="map-cache-section">
-      <div class="map-cache-heading">Renderer diagnostics (Location window)</div>
-      <div class="map-cache-row"><span>DOM elements</span><strong>{{ rendererDiagnostics().domElements.toLocaleString(locale) }}</strong></div>
-      <div class="map-cache-row"><span>Map DOM elements</span><strong>{{ rendererDiagnostics().mapDomElements.toLocaleString(locale) }}</strong></div>
-      <div class="map-cache-row"><span>Map tiles / markers</span><strong>{{ rendererDiagnostics().mapTiles.toLocaleString(locale) }} / {{ rendererDiagnostics().mapMarkers.toLocaleString(locale) }}</strong></div>
-      <div class="map-cache-row"><span>Canvas elements</span><strong>{{ rendererDiagnostics().canvasElements.toLocaleString(locale) }}</strong></div>
-      <div class="map-cache-row"><span>JavaScript heap used</span><strong>{{ rendererDiagnostics().heapUsedBytes === null ? 'Not available' : formatOfflineMapSize(rendererDiagnostics().heapUsedBytes) }}</strong></div>
-      <div class="map-cache-row"><span>JavaScript heap allocated</span><strong>{{ rendererDiagnostics().heapTotalBytes === null ? '—' : formatOfflineMapSize(rendererDiagnostics().heapTotalBytes) }}</strong></div>
-      <div class="map-cache-row"><span>JavaScript heap limit</span><strong>{{ rendererDiagnostics().heapLimitBytes === null ? '—' : formatOfflineMapSize(rendererDiagnostics().heapLimitBytes) }}</strong></div>
-      <p class="offline-map-status">DOM and JavaScript heap values belong to this Location window only. The separate Image / Gallery window is not included in these renderer counters.</p>
-    </div>
-    <div class="map-cache-section">
-      <div class="map-cache-heading">Process memory</div>
-      <div class="map-cache-row"><span>Total (Working Set)</span><strong>{{ formatOfflineMapSize(totalProcessMemoryBytes()) }}</strong></div>
-      <div class="map-cache-row"><span>Last updated</span><strong>{{ memoryUpdatedAt() || '—' }}</strong></div>
-      <table class="offline-maps-table memory-process-table">
-        <colgroup><col style="width:42%"><col style="width:14%"><col style="width:24%"><col style="width:20%"></colgroup>
-        <thead><tr><th>Process</th><th>PID</th><th>Working Set</th><th>Private</th></tr></thead>
-        <tbody>
-          @for (entry of processMemory().processes; track entry.pid) {
-            <tr>
-              <td>{{ entry.name }}</td>
-              <td>{{ entry.pid }}</td>
-              <td>{{ formatOfflineMapSize(entry.workingSetBytes) }}</td>
-              <td>{{ entry.privateBytes === null ? '—' : formatOfflineMapSize(entry.privateBytes) }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-      @if (processMemory().processes.length === 1) {
-        <span class="offline-map-status">No OsmAnd helper processes are currently running.</span>
-      }
-      @if (processMemory().error) {
-        <span class="offline-map-import-error">Could not read complete helper memory data: {{ processMemory().error }}</span>
-      }
-      <div class="map-cache-actions">
-        <span class="offline-map-status">Automatically refreshes every 2 seconds while the Memory tab is open</span>
-        <button type="button" (click)="refreshProcessMemory()">Refresh</button>
-      </div>
-    </div>
+    <app-renderer-memory-panel [enabled]="activeSettingsTab() === 'memory'" windowLabel="Location window" />
   </div>
 </div>
 <div class="settings-tab-panel" data-settings-tab="download" role="tabpanel" [hidden]="activeSettingsTab() !== 'download'">
