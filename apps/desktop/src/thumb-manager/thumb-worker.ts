@@ -1065,7 +1065,35 @@ if (parentPort) {
 
       const sourceExtension = extname(source).toLowerCase();
 
-      if (cameraRawExtensions.has(sourceExtension)) {
+      if (sourceExtension === '.ohsp') {
+        processingStage = 'reading OHSP spectral measurements';
+        const data = await readFile(source);
+        const offset = 0x16c;
+        const sampleCount = 601;
+        if (data.length < offset + sampleCount * 4) throw new Error('Invalid OHSP file: spectral sample block is truncated.');
+        const values = Array.from({ length: sampleCount }, (_, index) => data.readFloatLE(offset + index * 4));
+        if (values.some(value => !Number.isFinite(value))) throw new Error('Invalid OHSP file: spectral values contain non-finite numbers.');
+        const outputWidth = width > 0 ? width : 1600, outputHeight = height > 0 ? height : 900;
+        const left = Math.round(outputWidth * 0.075), right = Math.round(outputWidth * 0.025), top = Math.round(outputHeight * 0.065), bottom = Math.round(outputHeight * 0.12);
+        const plotWidth = outputWidth - left - right, plotHeight = outputHeight - top - bottom;
+        const minimum = Math.min(0, ...values), maximum = Math.max(0, ...values), range = maximum - minimum || 1;
+        const yFor = (value: number) => top + (maximum - value) / range * plotHeight, zeroY = yFor(0);
+        const points = values.map((value, index) => (left + index / 600 * plotWidth) + ',' + yFor(value).toFixed(2));
+        const colorAt = (wavelength: number): string => {
+          const stops: Array<[number, number, number, number]> = [[350,110,0,180],[380,90,0,255],[440,0,0,255],[490,0,255,255],[510,0,255,0],[580,255,255,0],[645,255,0,0],[700,255,0,0],[950,80,0,40]];
+          let index = 0; while (index < stops.length - 2 && wavelength > stops[index + 1][0]) index++;
+          const a = stops[index], b = stops[index + 1], t = (wavelength-a[0])/(b[0]-a[0]), factor = wavelength < 420 ? 0.65+0.35*(wavelength-350)/70 : wavelength > 700 ? 0.3+0.7*(950-wavelength)/250 : 1;
+          return '#' + [1,2,3].map(i => Math.round(Math.max(0,Math.min(255,(a[i]+(b[i]-a[i])*t)*factor))).toString(16).padStart(2,'0')).join('');
+        };
+        const gradientStops = Array.from({length:61},(_,i)=>'<stop offset="'+(i/60*100).toFixed(2)+'%" stop-color="'+colorAt(350+i*10)+'"/>').join('');
+        const font = Math.max(11,outputWidth*0.012);
+        const grid = Array.from({length:6},(_,i)=>{const value=maximum-i/5*range,y=yFor(value);return '<line x1="'+left+'" y1="'+y+'" x2="'+(outputWidth-right)+'" y2="'+y+'" stroke="#888" stroke-opacity=".3"/><text x="'+(left-10)+'" y="'+(y+4)+'" text-anchor="end" font-size="'+font+'" fill="#bbb">'+value.toPrecision(3)+'</text>';}).join('');
+        const xTicks = [350,450,550,650,750,850,950].map(nm=>{const x=left+(nm-350)/600*plotWidth;return '<line x1="'+x+'" y1="'+top+'" x2="'+x+'" y2="'+(top+plotHeight)+'" stroke="#888" stroke-opacity=".18"/><text x="'+x+'" y="'+(top+plotHeight+Math.max(20,outputHeight*.035))+'" text-anchor="middle" font-size="'+font+'" fill="#bbb">'+nm+'</text>';}).join('');
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="'+outputWidth+'" height="'+outputHeight+'"><defs><linearGradient id="s" x1="0" x2="1" y1="0" y2="0">'+gradientStops+'</linearGradient></defs><rect width="100%" height="100%" fill="#101216"/>'+grid+xTicks+'<polygon points="'+left+','+zeroY+' '+points.join(' ')+' '+(outputWidth-right)+','+zeroY+'" fill="url(#s)" fill-opacity=".82"/><polyline points="'+points.join(' ')+'" fill="none" stroke="url(#s)" stroke-width="'+Math.max(1.5,outputWidth*.002)+'"/><line x1="'+left+'" y1="'+zeroY+'" x2="'+(outputWidth-right)+'" y2="'+zeroY+'" stroke="#eee"/><line x1="'+left+'" y1="'+top+'" x2="'+left+'" y2="'+(top+plotHeight)+'" stroke="#ddd"/><text x="'+(left+plotWidth/2)+'" y="'+(outputHeight-12)+'" text-anchor="middle" font-size="'+font+'" fill="#eee">Wavelength (nm)</text><text transform="translate(20 '+(top+plotHeight/2)+') rotate(-90)" text-anchor="middle" font-size="'+font+'" fill="#eee">Spectral value</text></svg>';
+        processingStage = 'rendering OHSP spectral curve';
+        using image = vips.Image.svgloadBuffer(Buffer.from(svg), { dpi: 96 });
+        image.jpegsave(target, { Q: width > 0 ? 82 : 92 });
+      } else if (cameraRawExtensions.has(sourceExtension)) {
         processingStage = 'developing camera RAW with LibRaw';
         using cameraRawImage = await decodeCameraRawToVips(vips, source, width > 0 && height > 0, width > 0 && height > 0 ? Math.max(width, height) : 0);
 
