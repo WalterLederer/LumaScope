@@ -116,12 +116,17 @@ export class ImageGridComponent {
     this.detailViewportHeight.set(viewport.clientHeight);
     this.detailHeaderHeight.set(header?.getBoundingClientRect().height ?? 0);
 
-    // Details and information tiles retain their complete incremental result
-    // set because their client-side sorting/grouping depends on it. The
-    // thumbnail-only view uses a fixed-size database window.
-    if (this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails' || this.viewMode() === 'tiles') {
-      if (viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < viewport.clientHeight * 1.5) {
-        this.galleryState.loadNextGalleryPage();
+    const images = this.images() ?? [];
+    const windowStart = this.galleryState.galleryWindowStart();
+    const viewMode = this.viewMode();
+
+    if (viewMode === 'details' || viewMode === 'details-no-thumbnails') {
+      const firstRow = viewport.querySelector<HTMLElement>('.detail-native-table tbody tr');
+      const rowHeight = firstRow?.getBoundingClientRect().height ?? 36;
+      const globalIndex = Math.max(0, Math.floor(Math.max(0, viewport.scrollTop - this.detailHeaderHeight()) / Math.max(1, rowHeight)));
+      const threshold = Math.max(80, Math.floor(images.length * 0.2));
+      if (globalIndex < windowStart + threshold || globalIndex > windowStart + images.length - threshold) {
+        this.galleryState.loadGalleryWindow(Math.max(0, globalIndex - Math.floor(images.length / 2)));
       }
       return;
     }
@@ -130,8 +135,6 @@ export class ImageGridComponent {
     const rowHeight = this.thumbnailRowHeight();
     const columns = this.thumbnailColumns();
     const targetIndex = Math.max(0, Math.floor(viewport.scrollTop / Math.max(1, rowHeight)) * columns);
-    const images = this.images() ?? [];
-    const windowStart = this.galleryState.galleryWindowStart();
     const threshold = Math.max(100, Math.floor(images.length * 0.2));
     if (targetIndex < windowStart + threshold || targetIndex > windowStart + images.length - threshold) {
       const desiredStart = Math.max(0, targetIndex - Math.floor(images.length / 2));
