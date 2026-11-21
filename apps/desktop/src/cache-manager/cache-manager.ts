@@ -1614,8 +1614,11 @@ export class CacheManager {
       supportedFileExtensions.forEach((extension, index) => { filterParams[`extension${index}`] = `%.${extension.toLowerCase()}`; });
     }
     const where = scope + supportedFilter;
-    // Do not count the entire folder before returning the first visible rows.
-    // The gallery discovers the end of the result set as subsequent pages are loaded.
+    // Return the complete result count with every page so the renderer can
+    // virtualize the entire database result without loading all FileInfo rows.
+    const countStartedAt = Date.now();
+    const totalCountRow = db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number };
+    const totalCount = Number(totalCountRow.totalCount) || 0;
     const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
     const orderBy = sortBy === 'path'
       ? `paths.relative_folder_path COLLATE NOCASE ${direction}, photos.file_name COLLATE NOCASE ${direction}`
@@ -1655,7 +1658,12 @@ export class CacheManager {
         ext: extname(row.file_name), createdAt: row.modified_at, size: row.file_size, modifiedAt: row.modified_at
       } satisfies FileInfo;
     });
-    return { files, totalCount: -1, offset: safeOffset, limit: safeLimit };
+    console.info('[GalleryDB] COUNT END getGalleryFilesPage', {
+      directory,
+      totalCount,
+      durationMs: Date.now() - countStartedAt
+    });
+    return { files, totalCount, offset: safeOffset, limit: safeLimit };
   };
 
   @IpcHandler({ name: 'CacheManager.getDirectoryCacheStats' })
