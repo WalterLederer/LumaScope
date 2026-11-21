@@ -742,6 +742,8 @@ export class ImageView {
       default: return value.toString(16).toUpperCase().padStart(2, '0');
     }
   };
+  protected readonly hexUtfIndex = (byteIndex: number): number => Math.floor(byteIndex / 2);
+  protected readonly hexShiftedUtfIndex = (byteIndex: number): number => Math.floor((byteIndex - 1) / 2);
   protected readonly hexByteIndices = Array.from({ length: 16 }, (_, index) => index);
   protected readonly hexCursorOffset = signal(0);
   protected readonly hexCursorRowActive = (rowOffset: number): boolean =>
@@ -2225,7 +2227,8 @@ export class ImageView {
       .pipe(distinctUntilChanged((previous, current) => previous?.path === current?.path), takeUntilDestroyed(this.destroyRef))
       .subscribe(image => {
         this.hexRequestId++;
-        this.hexFilePath.set(image?.path ?? null);\n        this.hexCursorOffset.set(0);
+        this.hexFilePath.set(image?.path ?? null);
+        this.hexCursorOffset.set(0);
         this.hexRows.set([]);
         this.hexFileSize.set(0);
         this.hexStartRow.set(0);
