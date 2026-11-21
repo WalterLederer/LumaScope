@@ -904,8 +904,11 @@ export class ImagesComponent {
     this.cacheRunActive.set(true);
     this.cacheRunProgress.set({ completed: 0, total: 0 });
     let processedImages = 0;
-    let resetLog = true;
+    const resetLog = false;
     try {
+      await this.cacheManager.resetBuildLog();
+      await this.cacheManager.appendBuildLog('Cache build started: ' + formatOsDateTime(new Date()));
+      await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
       this.cacheRunCurrentOperation.set(`Indexing files in ${folder}`);
       const scan = await this.cacheManager.scanGalleryDirectory(folder);
       if (!scan.complete) {
@@ -920,7 +923,6 @@ export class ImagesComponent {
             resetLog, progressOffset: offset, progressTotal: scan.files, suppressRefresh: true
           });
           processedImages += images.length;
-          resetLog = false;
         }
         if (importGpx) {
           const gpxFiles = page.files.filter(file => file.ext.toLowerCase() === '.gpx').map(file => file.path);
@@ -933,7 +935,6 @@ export class ImagesComponent {
         await this.cacheManager.appendBuildLog(`Photo database reconciliation: removed ${scan.removedStale} stale records in ${folder}`);
       }
       if (processedImages === 0 && !controller.signal.aborted) {
-        await this.cacheManager.resetBuildLog();
         await this.cacheManager.appendBuildLog('Cache build completed: no supported images found.');
         this.cacheRunCurrentOperation.set('No supported images found to cache.');
       }
@@ -1141,8 +1142,11 @@ export class ImagesComponent {
     let processedImages = 0;
     let removedStaleRecords = 0;
     let enumerationComplete = true;
-    let resetLog = true;
+    const resetLog = false;
     try {
+      await this.cacheManager.resetBuildLog();
+      await this.cacheManager.appendBuildLog('Recursive cache build started: ' + formatOsDateTime(new Date()));
+      await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
       while (pendingDirectories.length > 0 && !controller.signal.aborted) {
         const directoryPath = pendingDirectories.shift()!;
         this.cacheRunCurrentOperation.set(`Indexing files and subfolders in ${directoryPath}`);
@@ -1177,7 +1181,6 @@ export class ImagesComponent {
               progressTotal: processedFiles + scan.files, suppressRefresh: true
             });
             processedImages += images.length;
-            resetLog = false;
           }
           if (importGpx) {
             const gpxFiles = page.files.filter(file => file.ext.toLowerCase() === '.gpx').map(file => file.path);
@@ -1199,7 +1202,6 @@ export class ImagesComponent {
         }
       }
       if (processedImages === 0 && !controller.signal.aborted) {
-        await this.cacheManager.resetBuildLog();
         await this.cacheManager.appendBuildLog('Recursive cache build completed: no supported images found.');
         this.cacheRunCurrentOperation.set('No supported images found to cache.');
       }
