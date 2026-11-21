@@ -46,11 +46,14 @@ export interface AppConfigV1Gallery {
   thumbHeight?: number;
   sortBy?: 'date' | 'gpsDate' | 'gps' | 'location' | 'name' | 'path' | 'size' | 'suffix';
   sortDir?: 'asc' | 'desc';
+  includeFilesRecursive?: boolean;
+  includeUnsupportedFiles?: boolean;
 }
 
 export interface AppConfigV1System {
   minimiseOnStart: boolean;
   theme?: 'dark' | 'light';
+  galleryDetailActionsColumnPosition?: 'left' | 'right';
   bounds?: {
     x: number;
     y: number;
