@@ -497,6 +497,11 @@ export class ImagesComponent {
     return Math.max(0, totalRows - renderedEndRow) * this.thumbnailRowHeight();
   });
   readonly isDateSorted = computed(() => this.sortBy() === 'date');
+  // Keep the year/month layout for small folders; larger date-sorted folders use
+  // the same virtualized flat list as every other sort mode.
+  readonly useGroupedDateLayout = computed(() =>
+    this.isDateSorted() && this.totalFileCount() <= 100 && this.totalFileCount() <= (this.images()?.length ?? 0)
+  );
   readonly groupedImages = computed<YearGroup[]>(() => {
     if (!this.isDateSorted()) {
       return [];
