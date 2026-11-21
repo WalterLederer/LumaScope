@@ -270,7 +270,7 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
     const useSidecar = cacheManager.usesSidecarStorage(fileName);
     const isOhsp = extname(fileName).toLowerCase() === '.ohsp';
     const tag = isOhsp
-      ? `${useSidecar ? 'sidecar' : `${width}x${height}`}-ohsp-uhdr-v3`
+      ? `${useSidecar ? 'sidecar' : `${width}x${height}`}-ohsp-uhdr-v4`
       : useSidecar
         ? 'sidecar-thumbnail-v2'
         : `${width}x${height}${isJxr ? '-jxr-uhdr' : isAvif ? '-avif' : isHeif ? '-heif' : isExr ? '-exr-uhdr-v2' : isRadiance ? '-radiance-hdr' : isTiff ? '-tiff-hdr-v6' : ''}`;
