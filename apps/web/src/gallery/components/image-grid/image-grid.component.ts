@@ -96,6 +96,7 @@ export class ImageGridComponent {
   readonly detailHeaderHeight = signal(0);
   readonly thumbnailColumns = signal(1);
   readonly thumbnailRowHeight = signal(160);
+  private thumbnailGeometryInitialized = false;
 
   private readonly updateThumbnailGridGeometry = (viewport: HTMLElement): void => {
     const grid = viewport.querySelector<HTMLElement>('.images');
@@ -109,10 +110,25 @@ export class ImageGridComponent {
     const measuredHeight = first.getBoundingClientRect().height;
     const rowHeight = nextRow ? nextRow.offsetTop - firstTop : measuredHeight + rowGap;
     const columns = Math.max(1, tiles.filter(tile => tile.offsetTop === firstTop).length);
-    if (this.thumbnailColumns() !== columns) this.thumbnailColumns.set(columns);
-    if (Math.abs(this.thumbnailRowHeight() - Math.max(1, rowHeight)) > 0.5) {
-      this.thumbnailRowHeight.set(Math.max(1, rowHeight));
+    const nextRowHeight = Math.max(1, rowHeight);
+    const previousColumns = Math.max(1, this.thumbnailColumns());
+    const previousRowHeight = Math.max(1, this.thumbnailRowHeight());
+    const geometryChanged = previousColumns !== columns || Math.abs(previousRowHeight - nextRowHeight) > 0.5;
+
+    if (this.thumbnailGeometryInitialized && geometryChanged && viewport.scrollTop > 0) {
+      // Keep the first image row anchored when the viewport width or thumbnail
+      // size changes the number or height of grid rows.
+      const previousRowPosition = viewport.scrollTop / previousRowHeight;
+      const previousImageIndex = Math.floor(previousRowPosition) * previousColumns;
+      const nextRowPosition = previousImageIndex / columns + (previousRowPosition % 1);
+      const nextScrollTop = Math.max(0, nextRowPosition * nextRowHeight);
+      viewport.scrollTop = nextScrollTop;
+      this.detailScrollTop.set(nextScrollTop);
     }
+
+    if (this.thumbnailColumns() !== columns) this.thumbnailColumns.set(columns);
+    if (Math.abs(this.thumbnailRowHeight() - nextRowHeight) > 0.5) this.thumbnailRowHeight.set(nextRowHeight);
+    this.thumbnailGeometryInitialized = true;
   };
 
   protected readonly onGalleryScroll = (event: Event): void => {
