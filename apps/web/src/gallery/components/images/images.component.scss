@@ -501,6 +501,13 @@
 }
 .detail-native-table th:last-child,
 .detail-native-table td:last-child { border-right: 0; }
+
+/* A hidden right-side actions cell can remain the DOM last child. Remove the
+   divider from the actual last visible header cell instead, in both header
+   tiers, so no stray vertical frame remains after the Path column. */
+.detail-native-table > thead > tr > th:not([hidden]):not(:has(~ th:not([hidden]))) {
+  border-right: 0 !important;
+}
 /* Keep the column title on its own visual line and separate it from
    the statistics row beneath it. */
 .detail-native-table thead tr.detail-header-labels th > button {
