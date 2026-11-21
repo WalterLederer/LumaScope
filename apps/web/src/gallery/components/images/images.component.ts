@@ -748,7 +748,11 @@ export class ImagesComponent {
     // Read the width from the matching COL element, not from the TH. In a
     // native table the header cell can report a width affected by adjacent
     // tracks; the COL is the authoritative width that this resizer changes.
-    const columnElement = table.querySelectorAll<HTMLTableColElement>(':scope > colgroup > col').item(cell.cellIndex);
+    // The left actions COL remains in the DOM when hidden, so the physical
+    // COL index is offset by one while the actions column is on the left.
+    // Resize the COL belonging to this logical data column, not the next one.
+    const physicalColumnIndex = columnIndex + (this.detailActionsColumnPosition() === 'left' ? 1 : 0);
+    const columnElement = table.querySelectorAll<HTMLTableColElement>(':scope > colgroup > col').item(physicalColumnIndex);
     if (!columnElement) return;
     const measuredColumnWidth = columnElement.getBoundingClientRect().width;
     const startWidth = measuredColumnWidth > 0 ? measuredColumnWidth : cell.getBoundingClientRect().width;
