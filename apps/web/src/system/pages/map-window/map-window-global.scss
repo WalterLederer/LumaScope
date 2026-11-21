@@ -890,6 +890,9 @@ app-map-window {
   color: inherit;
   font-size: 12px;
 }
+.gpx-database-native-table col[hidden],
+.gpx-database-native-table th[hidden],
+.gpx-database-native-table td[hidden] { display: none !important; }
 .gpx-database-native-table th,
 .gpx-database-native-table td {
   position: relative;
