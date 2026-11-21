@@ -61,118 +61,174 @@ const describeCaptureError = (error: unknown, phase: string): Error => {
   return new Error(`Capture phase: ${phase}. ${message}${code}`);
 };
 
+type LoupeCaptureFormat = 'rgba16F' | 'rgba8';
+
+interface CaptureProbeResult {
+  label: string;
+  requestedColorFormat: LoupeCaptureFormat;
+  cursorCapture: boolean;
+  started: boolean;
+  startDurationMs?: number;
+  firstFrameDurationMs?: number;
+  frameReceived: boolean;
+  actualColorFormat?: string;
+  width?: number;
+  height?: number;
+  rowPitch?: number;
+  bufferByteLength?: number;
+  layoutValid?: boolean;
+  error?: string;
+  stopError?: string;
+}
+
+const runCaptureProbe = async (
+  monitorIndex: number,
+  requestedColorFormat: LoupeCaptureFormat,
+  cursorCapture: boolean,
+  timeoutMs: number,
+  label: string
+): Promise<{ report: CaptureProbeResult; frame?: CapturedFrame }> => {
+  const apiSupport = captureApiSupport();
+  const capture = new ScreenCapture({
+    monitorIndex,
+    colorFormat: requestedColorFormat as unknown as ConstructorParameters<typeof ScreenCapture>[0]['colorFormat'],
+    cursorCapture,
+    // Do not pass drawBorder on systems that do not advertise border-setting support.
+    // Likewise, omit the minimum-update option unless the API explicitly supports it.
+    ...(apiSupport.minimumUpdateInterval ? { minimumUpdateIntervalMs: 0 } : {})
+  });
+  const report: CaptureProbeResult = {
+    label,
+    requestedColorFormat,
+    cursorCapture,
+    started: false,
+    frameReceived: false
+  };
+  let captured: CapturedFrame | undefined;
+  try {
+    const startAt = Date.now();
+    await capture.start();
+    report.started = true;
+    report.startDurationMs = Date.now() - startAt;
+
+    const frameAt = Date.now();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const frame = await Promise.race([
+      capture.nextFrame(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`No first frame within ${timeoutMs} ms`)), timeoutMs);
+      })
+    ]).finally(() => {
+      if (timer !== undefined) clearTimeout(timer);
+    });
+    report.firstFrameDurationMs = Date.now() - frameAt;
+    if (!frame) throw new Error('Capture ended without delivering a frame');
+
+    report.frameReceived = true;
+    report.actualColorFormat = String(frame.colorFormat);
+    report.width = frame.width;
+    report.height = frame.height;
+    report.rowPitch = frame.rowPitch;
+    report.bufferByteLength = frame.buffer.byteLength;
+
+    const bytesPerPixel = requestedColorFormat === 'rgba16F' ? 8 : 4;
+    const layoutValid = frame.rowPitch === frame.width * bytesPerPixel
+      && frame.buffer.byteLength === frame.width * frame.height * bytesPerPixel;
+    report.layoutValid = layoutValid;
+
+    if (requestedColorFormat === 'rgba16F') {
+      if (String(frame.colorFormat) !== 'rgba16F') {
+        throw new Error(`Expected rgba16F, received ${String(frame.colorFormat)}`);
+      }
+      if (!layoutValid) throw new Error('Unexpected FP16 frame layout');
+      captured = { buffer: Buffer.from(frame.buffer), width: frame.width, height: frame.height };
+    }
+  } catch (error) {
+    report.error = error instanceof Error ? error.message : String(error);
+  } finally {
+    try {
+      await capture.stop();
+    } catch (error) {
+      report.stopError = error instanceof Error ? error.message : String(error);
+    }
+  }
+  return { report, frame: captured };
+};
+
 export const captureLoupeFrame = async (monitorIndex: number): Promise<{ width: number; height: number }> => {
   if (process.platform !== 'win32') {
     throw new Error('The HDR loupe capture currently requires Windows.');
   }
 
   const request = ++captureRequest;
-  const createCapture = (drawBorder?: boolean): ScreenCapture => new ScreenCapture({
-    monitorIndex,
-    // The package runtime supports rgba16F (verified by the FP16 prototype),
-    // but its published TypeScript union omits this accepted format.
-    colorFormat: 'rgba16F' as unknown as ConstructorParameters<typeof ScreenCapture>[0]['colorFormat'],
-    cursorCapture: false,
-    // Windows 10 build 19045 reports that MinimumUpdateInterval is unsupported.
-    // Only pass the option on systems where the capture API advertises support.
-    ...(captureApiSupport().minimumUpdateInterval ? { minimumUpdateIntervalMs: 0 } : {}),
-    ...(drawBorder === undefined ? {} : { drawBorder })
-  });
-
-  // Windows 10 builds before 20348 do not support changing the WGC capture
-  // border. Retry without the option only for that specific compatibility error.
-  let capture = createCapture(false);
-  let phase = 'initialize capture';
-  const captureStartedAt = Date.now();
-  let phaseStartedAt = captureStartedAt;
-  const logPhase = (nextPhase: string): void => {
-    const now = Date.now();
-    console.info('[HDR Loupe] WGC phase:', JSON.stringify({
-      phase: nextPhase,
-      previousPhaseDurationMs: now - phaseStartedAt,
-      elapsedMs: now - captureStartedAt
-    }));
-    phase = nextPhase;
-    phaseStartedAt = now;
-  };
-  console.info('[HDR Loupe] WGC session diagnostics:', JSON.stringify({
+  const startedAt = Date.now();
+  const apiSupport = captureApiSupport();
+  const reports: CaptureProbeResult[] = [];
+  console.info('[HDR Loupe] WGC diagnostic fallback started:', JSON.stringify({
     platform: process.platform,
     arch: process.arch,
     node: process.versions.node,
-    apiSupport: captureApiSupport(),
+    apiSupport,
     monitorIndex,
-    requestedColorFormat: 'rgba16F',
-    cursorCapture: false,
-    minimumUpdateIntervalRequested: captureApiSupport().minimumUpdateInterval,
-    borderSettingRequested: false
+    note: 'Monitor mapping is unchanged. Unsupported optional settings are omitted. rgba8 is diagnostic SDR only and is never accepted as an HDR loupe frame.'
   }, null, 2));
-  try {
-    logPhase('start capture session');
-    try {
-      await capture.start();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (!message.toLowerCase().includes('toggling the capture border is not supported')) {
-        throw error;
-      }
 
-      await capture.stop().catch(() => undefined);
-      capture = createCapture();
-      await capture.start();
+  // First try the actual HDR path without optional settings that this Windows
+  // version does not advertise. If that fails, vary cursor capture, then run
+  // an rgba8 control probe to distinguish general WGC failure from FP16 failure.
+  const probes: Array<{ format: LoupeCaptureFormat; cursor: boolean; timeout: number; label: string }> = [
+    { format: 'rgba16F', cursor: false, timeout: 10000, label: 'FP16 baseline (no unsupported optional settings)' },
+    ...(apiSupport.cursorSettings
+      ? [{ format: 'rgba16F' as const, cursor: true, timeout: 5000, label: 'FP16 with cursor capture enabled' }]
+      : []),
+    { format: 'rgba8', cursor: false, timeout: 5000, label: 'SDR rgba8 control (diagnostic only)' }
+  ];
+
+  let fp16Frame: CapturedFrame | undefined;
+  for (const probe of probes) {
+    const result = await runCaptureProbe(
+      monitorIndex,
+      probe.format,
+      probe.cursor,
+      probe.timeout,
+      probe.label
+    );
+    reports.push(result.report);
+    console.info('[HDR Loupe] WGC probe result:', JSON.stringify(result.report, null, 2));
+
+    if (probe.format === 'rgba16F' && result.frame) {
+      fp16Frame = result.frame;
+      break;
     }
-    logPhase('wait for first FP16 frame');
-    let timeout: ReturnType<typeof setTimeout> | undefined;
-    const frame = await Promise.race([
-      capture.nextFrame(),
-      new Promise<never>((_, reject) => {
-        timeout = setTimeout(() => reject(new Error(`HDR monitor capture timed out after ${Date.now() - phaseStartedAt} ms waiting for the first FP16 frame.`)), 10000);
-      })
-    ]).finally(() => {
-      if (timeout !== undefined) clearTimeout(timeout);
-    });
-
-    logPhase('validate captured FP16 frame');
-    if (!frame) throw new Error('HDR monitor capture returned no frame.');
-    if (frame.colorFormat !== 'rgba16F') throw new Error(`Expected rgba16F but received ${String(frame.colorFormat)}.`);
-    if (frame.rowPitch !== frame.width * 8 || frame.buffer.byteLength !== frame.width * frame.height * 8) {
-      throw new Error('Unexpected FP16 frame layout; refusing to sample incorrect pixels.');
-    }
-
-    console.info('[HDR Loupe] WGC first frame received:', JSON.stringify({
-      elapsedMs: Date.now() - captureStartedAt,
-      width: frame.width,
-      height: frame.height,
-      colorFormat: frame.colorFormat,
-      rowPitch: frame.rowPitch,
-      bufferByteLength: frame.buffer.byteLength,
-      expectedRowPitch: frame.width * 8,
-      expectedBufferByteLength: frame.width * frame.height * 8
-    }));
-
-    if (request === captureRequest) {
-      capturedFrame = { buffer: Buffer.from(frame.buffer), width: frame.width, height: frame.height };
-    }
-    return { width: frame.width, height: frame.height };
-  } catch (error) {
-    const detail = error as { name?: unknown; message?: unknown; code?: unknown; hresult?: unknown; stack?: unknown };
-    console.error('[HDR Loupe] WGC capture failed:', JSON.stringify({
-      phase,
-      phaseElapsedMs: Date.now() - phaseStartedAt,
-      totalElapsedMs: Date.now() - captureStartedAt,
-      errorName: detail?.name,
-      errorMessage: detail?.message ?? String(error),
-      code: detail?.code,
-      hresult: detail?.hresult,
-      stack: detail?.stack
-    }, null, 2));
-    throw describeCaptureError(error, phase);
-  } finally {
-    const stopStartedAt = Date.now();
-    await capture.stop().catch(stopError => {
-      console.warn('[HDR Loupe] WGC session stop failed:', stopError);
-    });
-    console.info('[HDR Loupe] WGC session stopped:', JSON.stringify({ stopDurationMs: Date.now() - stopStartedAt, totalElapsedMs: Date.now() - captureStartedAt }));
   }
+
+  const sdrControl = reports.find(report =>
+    report.requestedColorFormat === 'rgba8' && report.frameReceived
+  );
+  const summary = {
+    elapsedMs: Date.now() - startedAt,
+    monitorIndex,
+    fp16Succeeded: Boolean(fp16Frame),
+    sdrControlReceivedFrame: Boolean(sdrControl),
+    conclusion: fp16Frame
+      ? 'HDR FP16 capture is working.'
+      : sdrControl
+        ? 'WGC delivers frames in rgba8, but the FP16 HDR path failed.'
+        : 'Neither FP16 nor the rgba8 control delivered a frame; this is not isolated to FP16.',
+    probes: reports
+  };
+  console.info('[HDR Loupe] WGC diagnostic summary:', JSON.stringify(summary, null, 2));
+
+  if (!fp16Frame) {
+    throw new Error(
+      sdrControl
+        ? 'HDR loupe unavailable: WGC delivered an SDR rgba8 control frame, but no valid rgba16F frame. See the WGC diagnostic summary.'
+        : 'HDR loupe unavailable: neither rgba16F nor the rgba8 WGC control delivered a frame. See the WGC diagnostic summary.'
+    );
+  }
+
+  if (request === captureRequest) capturedFrame = fp16Frame;
+  return { width: fp16Frame.width, height: fp16Frame.height };
 };
 
 export const releaseLoupeFrame = (): void => {
