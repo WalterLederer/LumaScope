@@ -780,55 +780,14 @@ export class ImageView {
     }
     this.hexSearchBusy.set(true);
     this.hexSearchStatus.set('Searching file…');
-    const matchesAt = (bytes: number[], index: number): boolean =>
-      pattern.every((value, offset) => bytes[index + offset] === value);
     try {
-      let matchOffset = -1;
-      if (direction > 0) {
-        let blockStart = Math.floor(startOffset / 4096) * 4096;
-        let carry: number[] = [];
-        while (blockStart < fileSize && matchOffset < 0) {
-          const result = await this.fileSystem.readHexRange(path, blockStart, this.hexRowsPerPage);
-          if (request !== this.hexSearchRequestId || path !== this.hexFilePath()) return;
-          if (!result.success) throw new Error(result.errorMessage || 'Could not read file data.');
-          const bytes = result.data.rows.flatMap(row => (row.hex.match(/[0-9a-f]{2}/gi) ?? []).map(value => Number.parseInt(value, 16)));
-          const combined = [...carry, ...bytes];
-          const combinedStart = blockStart - carry.length;
-          const firstIndex = Math.max(0, startOffset - combinedStart);
-          for (let index = firstIndex; index <= combined.length - pattern.length; index++) {
-            if (matchesAt(combined, index)) { matchOffset = combinedStart + index; break; }
-          }
-          carry = pattern.length > 1 ? combined.slice(-(pattern.length - 1)) : [];
-          blockStart += 4096;
-        }
-      } else {
-        let blockStart = Math.floor(startOffset / 4096) * 4096;
-        let upperBound = Math.min(startOffset, fileSize - pattern.length);
-        while (blockStart >= 0 && matchOffset < 0) {
-          const readStart = Math.floor(Math.max(0, blockStart - (pattern.length - 1)) / 16) * 16;
-          const readEnd = Math.min(fileSize, blockStart + 4096);
-          const rowCount = Math.ceil((readEnd - readStart) / 16);
-          const result = await this.fileSystem.readHexRange(path, readStart, rowCount);
-          if (request !== this.hexSearchRequestId || path !== this.hexFilePath()) return;
-          if (!result.success) throw new Error(result.errorMessage || 'Could not read file data.');
-          const bytes = result.data.rows.flatMap(row => (row.hex.match(/[0-9a-f]{2}/gi) ?? []).map(value => Number.parseInt(value, 16)));
-          const lowerBound = Math.max(0, blockStart);
-          for (let offset = upperBound; offset >= lowerBound; offset--) {
-            const index = offset - readStart;
-            if (index >= 0 && index + pattern.length <= bytes.length && matchesAt(bytes, index)) {
-              matchOffset = offset;
-              break;
-            }
-          }
-          upperBound = blockStart - 1;
-          blockStart -= 4096;
-        }
-      }
+      const result = await this.fileSystem.searchBytes(path, pattern, startOffset, direction);
       if (request !== this.hexSearchRequestId || path !== this.hexFilePath()) return;
-      if (matchOffset >= 0) {
+      if (!result.success) throw new Error(result.errorMessage || 'Could not search file data.');
+      if (result.data !== null) {
         this.hexSearchHasMatch = true;
-        this.hexSearchStatus.set(`Match at 0x${matchOffset.toString(16).toUpperCase().padStart(8, '0')}.`);
-        this.setHexCursor(matchOffset);
+        this.hexSearchStatus.set(`Match at 0x${result.data.toString(16).toUpperCase().padStart(8, '0')}.`);
+        this.setHexCursor(result.data);
       } else {
         this.hexSearchHasMatch = false;
         this.hexSearchStatus.set(direction > 0 ? 'No further match found.' : 'No previous match found.');
