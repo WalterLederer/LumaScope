@@ -892,6 +892,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTrackColorMenuPosition = signal({ top: 8, left: 8 });
   protected readonly autoFixLogMenuOpen = signal(false);
   protected readonly gpxRowActionMenuOpen = signal<string | null>(null);
+  protected readonly actionsColumnPosition = signal<'left' | 'right'>('left');
+  protected readonly toggleActionsColumnPosition = (): void => this.actionsColumnPosition.update(position => position === 'left' ? 'right' : 'left');
   protected readonly gpxRowActionTrack = signal<GpxTrackFile | null>(null);
   protected readonly gpxRowActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly gpxTrackSettingsTrack = signal<GpxTrackFile | null>(null);
