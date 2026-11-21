@@ -834,7 +834,7 @@ export class MapWindow implements OnInit, OnDestroy {
     return {
       domElements: document.getElementsByTagName('*').length,
       mapDomElements: document.querySelectorAll('.leaflet-container *, .maplibregl-map *').length,
-      mapTiles: document.querySelectorAll('.leaflet-tile, .maplibregl-canvas').length,
+      mapTiles: document.querySelectorAll('.leaflet-tile').length,
       mapMarkers: document.querySelectorAll('.leaflet-marker-icon, .maplibregl-marker').length,
       canvasElements: document.getElementsByTagName('canvas').length,
       heapUsedBytes: Number.isFinite(memory?.usedJSHeapSize) ? memory!.usedJSHeapSize! : null,
