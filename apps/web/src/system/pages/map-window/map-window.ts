@@ -817,6 +817,31 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly rerenderVisibleTilesProgress = signal({ completed: 0, total: 0 });
   protected readonly processMemory = signal<import('internal-api').ProcessMemorySnapshot>({ processes: [], error: null });
   protected readonly memoryUpdatedAt = signal('');
+  protected readonly rendererDiagnostics = signal({
+    domElements: 0,
+    mapDomElements: 0,
+    mapTiles: 0,
+    mapMarkers: 0,
+    canvasElements: 0,
+    heapUsedBytes: null as number | null,
+    heapTotalBytes: null as number | null,
+    heapLimitBytes: null as number | null
+  });
+  private readonly readRendererDiagnostics = () => {
+    const memory = (performance as Performance & {
+      memory?: { usedJSHeapSize?: number; totalJSHeapSize?: number; jsHeapSizeLimit?: number };
+    }).memory;
+    return {
+      domElements: document.getElementsByTagName('*').length,
+      mapDomElements: document.querySelectorAll('.leaflet-container *, .maplibregl-map *').length,
+      mapTiles: document.querySelectorAll('.leaflet-tile, .maplibregl-canvas').length,
+      mapMarkers: document.querySelectorAll('.leaflet-marker-icon, .maplibregl-marker').length,
+      canvasElements: document.getElementsByTagName('canvas').length,
+      heapUsedBytes: Number.isFinite(memory?.usedJSHeapSize) ? memory!.usedJSHeapSize! : null,
+      heapTotalBytes: Number.isFinite(memory?.totalJSHeapSize) ? memory!.totalJSHeapSize! : null,
+      heapLimitBytes: Number.isFinite(memory?.jsHeapSizeLimit) ? memory!.jsHeapSizeLimit! : null
+    };
+  };
   protected readonly totalProcessMemoryBytes = computed(() => this.processMemory().processes.reduce((sum, entry) => sum + entry.workingSetBytes, 0));
   private memoryRefreshTimer: ReturnType<typeof setInterval> | null = null;
   protected readonly offlineMapImportErrors = signal<string[]>([]);
@@ -4245,6 +4270,7 @@ export class MapWindow implements OnInit, OnDestroy {
     return value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2) + ' ' + units[unit];
   };
   protected readonly refreshProcessMemory = async (): Promise<void> => {
+    this.rendererDiagnostics.set(this.readRendererDiagnostics());
     if (!this.desktop) return;
     try {
       this.processMemory.set(await this.desktop.ProcessManager.getProcessMemoryUsage());
