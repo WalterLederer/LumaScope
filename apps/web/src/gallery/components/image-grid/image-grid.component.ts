@@ -256,6 +256,7 @@ export class ImageGridComponent {
   readonly totalFileCount = this.galleryState.totalFileCount;
   readonly includeUnsupportedFiles = toSignal(this.galleryState.includeUnsupportedFiles(), { initialValue: false });
   readonly galleryLoading = toSignal(this.galleryState.galleryLoading(), { initialValue: false });
+  readonly galleryRefreshing = toSignal(this.galleryState.galleryRefreshing(), { initialValue: false });
   readonly includeFilesRecursive = toSignal(this.galleryState.includeFilesRecursive(), { initialValue: false });
 
   protected readonly setIncludeUnsupportedFiles = (value: boolean): void => {
