@@ -1712,9 +1712,9 @@
 }
 .detail-native-table.actions-column-right > thead > tr.detail-header-labels > th.detail-actions-heading,
 .detail-native-table.actions-column-right > tbody.images.details-list > tr > td.detail-actions {
-  width: 44px !important;
-  min-width: 44px !important;
-  max-width: 44px !important;
+  width: var(--detail-actions-width, 44px) !important;
+  min-width: var(--detail-actions-width, 44px) !important;
+  max-width: var(--detail-actions-width, 44px) !important;
   box-sizing: border-box !important;
 }
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading > .column-resizer {
