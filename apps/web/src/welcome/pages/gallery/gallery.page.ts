@@ -79,6 +79,8 @@ export class GalleryPage {
 
   readonly showImageGrid = input(true);
   readonly selectedImagePath = input<string | null>(null);
+  readonly actionsColumnPosition = signal<'left' | 'right'>('left');
+  protected readonly toggleActionsColumnPosition = (): void => this.actionsColumnPosition.update(position => position === 'left' ? 'right' : 'left');
 
 
   protected readonly tree = viewChild(TreeComponent);
