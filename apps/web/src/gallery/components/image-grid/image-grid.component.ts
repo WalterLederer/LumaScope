@@ -494,6 +494,9 @@ export class ImageGridComponent {
   protected readonly updateNameFilter = (value: string): void => {
     this.nameFilter.set(value);
     this.nameFilterActive.set(value.trim().length > 0);
+    this.galleryState.setNameFilter(value);
+    const viewport = this.scrollBox()?.nativeElement;
+    if (viewport) viewport.scrollTop = 0;
   };
 
   /* Constructor */
