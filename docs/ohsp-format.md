@@ -48,7 +48,7 @@ The spectrum chart is generated directly as a raster image; it does not require 
 - The PEAK annotation also receives a gold HDR halo and a near-white emissive core.
 - All glowing elements exceed reference white and are visibly emissive on HDR-capable displays; SDR displays tone-map them to the available range.
 - Both thumbnail and full-size OHSP charts are encoded as Ultra HDR JPEGs. Thumbnail previews use an emissive wavelength-coloured gradient beneath the spectral curve. Full-size charts use a brighter saturated HDR gradient beneath the curve, with a stronger coloured curve and wavelength-band glow while keeping the white core restrained.
-- OHSP thumbnails use cache version 6. This version is checked in both sidecar and database-backed cache modes, so previously cached SDR JPEGs are regenerated. The full-size cache tag is `ohsp-full-spectrum-v9` (cache version 29).
+- OHSP thumbnails use cache version 8 and the `ohsp-uhdr-v2` derivative tag. The worker reopens each generated thumbnail, verifies that an Ultra HDR gain map exists, decodes it back to scRGB, and checks that the decoded peak exceeds reference white. Previously cached thumbnails are regenerated. The full-size cache tag is `ohsp-full-spectrum-v9` (cache version 29).
 - 
 - The source `.ohsp` file is not modified.
 
