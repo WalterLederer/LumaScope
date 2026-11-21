@@ -129,19 +129,22 @@
               <strong>{{hexFileName()}}</strong>
               <span>{{hexFileSize() ? formatFileSize(hexFileSize()) : ''}}</span>
             </div>
-            <span class="image-hex-row-count">{{hexTotalRows().toLocaleString()}} rows</span>
+            <span class="image-hex-row-count">{{hexFileSize() ? formatFileSize(hexFileSize()) : ''}}</span>
           </header>
+          @if (hexTotalRows() > hexRowsPerPage) {
+            <input class="image-hex-position" type="range" min="0" [max]="hexMaxStartRow()" step="1" [value]="hexStartRow()" (change)="onHexPositionChange($event)" aria-label="HEX file position" [title]="hexPositionLabel()" />
+          }
+          @if (hexPositionLabel()) { <div class="image-hex-position-label">{{hexPositionLabel()}}</div> }
           @if (hexStatus()) {
             <div class="image-hex-status" role="status">{{hexStatus()}}</div>
           }
           @if (hexFilePath() && hexTotalRows() > 0) {
-            <div class="image-hex-table-scroll" (scroll)="onHexScroll($event)">
+            <div #hexScrollViewport class="image-hex-table-scroll" (scroll)="onHexScroll($event)">
               <table class="image-hex-table">
                 <thead>
                   <tr><th>Offset</th><th>Hex bytes</th><th>ASCII</th><th>UTF-16</th><th>UTF-16 +1</th></tr>
                 </thead>
                 <tbody>
-                  <tr class="image-hex-spacer"><td colspan="5" [style.height.px]="hexTopSpacer()"></td></tr>
                   @for (row of hexRows(); track row.offset) {
                     <tr>
                       <td class="hex-offset">{{formatHexOffset(row.offset)}}</td>
@@ -151,7 +154,6 @@
                       <td class="hex-unicode">{{row.utf16Shifted}}</td>
                     </tr>
                   }
-                  <tr class="image-hex-spacer"><td colspan="5" [style.height.px]="hexBottomSpacer()"></td></tr>
                 </tbody>
               </table>
             </div>
