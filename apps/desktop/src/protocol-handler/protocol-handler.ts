@@ -272,8 +272,8 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
     const tag = isOhsp
       ? `${useSidecar ? 'sidecar' : `${width}x${height}`}-ohsp-uhdr-v7`
       : useSidecar
-        ? 'sidecar-thumbnail-uhdr-v3'
-        : `${width}x${height}-thumbnail-uhdr-v3${isJxr ? '-jxr-uhdr' : isAvif ? '-avif' : isHeif ? '-heif' : isExr ? '-exr-uhdr-v2' : isRadiance ? '-radiance-hdr' : isTiff ? '-tiff-hdr-v6' : ''}`;
+        ? 'sidecar-thumbnail-v2'
+        : `${width}x${height}${isJxr ? '-jxr-uhdr' : isAvif ? '-avif' : isHeif ? '-heif' : isExr ? '-exr-uhdr-v2' : isRadiance ? '-radiance-hdr' : isTiff ? '-tiff-hdr-v6' : ''}`;
 
     // Lightweight preflight used by the gallery to distinguish cache reads from generation.
     if (params.get('status') === '1') {
