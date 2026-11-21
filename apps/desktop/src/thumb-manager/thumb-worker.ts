@@ -1206,7 +1206,7 @@ if (parentPort) {
           const hdrPixels = new Float32Array(pixels.length);
           for (let index = 0; index < pixels.length; index++) hdrPixels[index] = pixels[index] / 255;
           const axisY = Math.round(top + plotHeight);
-          const bandCenterY = axisY + 36;
+          const bandCenterY = axisY + 42;
           const glowRadius = 16;
           for (let x = 0; x < plotWidth; x++) {
             const wavelength = startWavelength + x / Math.max(1, plotWidth - 1) * (endWavelength - startWavelength);
@@ -1214,8 +1214,8 @@ if (parentPort) {
             for (let y = bandCenterY - glowRadius; y <= bandCenterY + glowRadius; y++) {
               if (y < 0 || y >= outputHeight) continue;
               const distance = Math.abs(y - bandCenterY);
-              const halo = 0.85 * Math.exp(-0.5 * (distance / 7) ** 2);
-              const core = distance <= 3 ? 2.5 : 0;
+              const halo = 1.0 * Math.exp(-0.5 * (distance / 7) ** 2);
+              const core = distance <= 3 ? 3.0 : 0;
               const intensity = halo + core;
               if (intensity < 0.015) continue;
               const pixelOffset = (y * outputWidth + left + x) * 3;
