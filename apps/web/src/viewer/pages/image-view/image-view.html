@@ -129,7 +129,14 @@
               <strong>{{hexFileName()}}</strong>
               <span>{{hexFileSize() ? formatFileSize(hexFileSize()) : ''}}</span>
             </div>
-            <span class="image-hex-row-count">{{hexFileSize() ? formatFileSize(hexFileSize()) : ''}}</span>
+            <label class="image-hex-format-control">Byte format
+              <select [value]="hexByteDisplayMode()" (change)="setHexByteDisplayMode($any($event.target).value)" aria-label="Byte display format">
+                <option value="decimal">Decimal</option>
+                <option value="hex">Hex</option>
+                <option value="octal">Octal</option>
+                <option value="binary">Binary</option>
+              </select>
+            </label>
           </header>
           @if (hexTotalRows() > hexRowsPerPage) {
             <input class="image-hex-position" type="range" min="0" [max]="hexMaxStartRow()" step="1" [value]="hexStartRow()" (change)="onHexPositionChange($event)" aria-label="HEX file position" [title]="hexPositionLabel()" />
@@ -142,13 +149,13 @@
             <div #hexScrollViewport class="image-hex-table-scroll" tabindex="0" (keydown)="onHexKeyDown($event)" (scroll)="onHexScroll($event)" aria-label="HEX data. Use arrow keys to move the byte cursor.">
               <table class="image-hex-table">
                 <thead>
-                  <tr><th>Offset</th><th>Hex bytes</th><th>ASCII</th><th>UTF-16</th><th>UTF-16 +1</th></tr>
+                  <tr><th>Offset</th><th>{{hexByteDisplayMode() === 'decimal' ? 'Decimal bytes' : hexByteDisplayMode() === 'octal' ? 'Octal bytes' : hexByteDisplayMode() === 'binary' ? 'Binary bytes' : 'Hex bytes'}}</th><th>ASCII</th><th>UTF-16</th><th>UTF-16 +1</th></tr>
                 </thead>
                 <tbody>
                   @for (row of hexRows(); track row.offset) {
                     <tr>
                       <td class="hex-offset">{{formatHexOffset(row.offset)}}</td>
-                      <td class="hex-bytes">@for (byteIndex of hexByteIndices; track byteIndex) {<span class="hex-byte-cell" [class.hex-cursor]="hexCursorByteIndex(row.offset) === byteIndex" (click)="setHexCursor(row.offset + byteIndex)">{{row.hex.slice(byteIndex * 3, byteIndex * 3 + 2) || '  '}}</span> }</td>
+                      <td class="hex-bytes" [class.hex-bytes-binary]="hexByteDisplayMode() === 'binary'">@for (byteIndex of hexByteIndices; track byteIndex) {<span class="hex-byte-cell" [class.hex-cursor]="hexCursorByteIndex(row.offset) === byteIndex" (click)="setHexCursor(row.offset + byteIndex)">{{formatHexByte(row.hex, byteIndex)}}</span> }</td>
                       <td class="hex-ascii">@for (byteIndex of hexByteIndices; track byteIndex) {<span [class.hex-readable-string]="isHexReadableCharacter(row.ascii, byteIndex)" [class.hex-cursor]="hexCursorByteIndex(row.offset) === byteIndex" (click)="setHexCursor(row.offset + byteIndex)">{{row.ascii[byteIndex] || ' '}}</span>}</td>
                       <td class="hex-unicode">@for (byteIndex of hexByteIndices; track byteIndex) {@if (byteIndex % 2 === 0) {<span [class.hex-readable-string]="isHexReadableCharacter(row.utf16, Math.floor(byteIndex / 2))" [class.hex-cursor]="hexCursorUtfIndex(row.offset) === byteIndex / 2" (click)="setHexCursor(row.offset + byteIndex)">{{row.utf16[Math.floor(byteIndex / 2)] || ' '}}</span>}}</td>
                       <td class="hex-unicode">@for (byteIndex of hexByteIndices; track byteIndex) {@if (byteIndex % 2 === 1) {<span [class.hex-readable-string]="isHexReadableCharacter(row.utf16Shifted, Math.floor((byteIndex - 1) / 2))" [class.hex-cursor]="hexCursorUtfIndex(row.offset, true) === Math.floor((byteIndex - 1) / 2)" (click)="setHexCursor(row.offset + byteIndex)">{{row.utf16Shifted[Math.floor((byteIndex - 1) / 2)] || ' '}}</span>}}</td>
