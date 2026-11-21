@@ -1866,6 +1866,54 @@ export class CacheManager {
     return staleIds.length;
   };
 
+  @IpcHandler({ name: 'CacheManager.reconcilePhotoRecordsFromDisk' })
+  readonly reconcilePhotoRecordsFromDisk = async (
+    _event: IpcMainInvokeEvent,
+    directory: string,
+    recursive = false
+  ): Promise<number> => {
+    if (typeof directory !== 'string' || !directory.trim()) {
+      throw new Error('A valid image folder path is required.');
+    }
+    const root = resolve(directory);
+    const databaseKey = this.databaseKeyForPath(root);
+    const db = this.databaseForPath(root);
+    const folder = this.toRelativeFolderPath(root, databaseKey) ?? '';
+    const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
+    const select = db.prepare(`SELECT photos.id, photos.file_name, paths.relative_folder_path
+      FROM photos
+      JOIN paths ON paths.id = photos.path_id
+      WHERE lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
+          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
+        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))`);
+    const insertStale = db.prepare('INSERT OR IGNORE INTO temp.lumascope_stale_photo_ids (id) VALUES (:id)');
+    const deleteStale = db.prepare('DELETE FROM photos WHERE id IN (SELECT id FROM temp.lumascope_stale_photo_ids)');
+    db.exec('CREATE TEMP TABLE IF NOT EXISTS lumascope_stale_photo_ids (id INTEGER PRIMARY KEY);');
+    db.exec('DELETE FROM temp.lumascope_stale_photo_ids;');
+    let staleCount = 0;
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      const rows = select.iterate({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as Iterable<{
+        id: number; file_name: string; relative_folder_path: string
+      }>;
+      for (const row of rows) {
+        const sourcePath = join(this.resolveStoredFolderPath(row.relative_folder_path, databaseKey), row.file_name);
+        if (!existsSync(sourcePath)) {
+          insertStale.run({ id: row.id });
+          staleCount++;
+        }
+      }
+      if (staleCount > 0) deleteStale.run();
+      db.exec('DELETE FROM paths WHERE id NOT IN (SELECT DISTINCT path_id FROM photos);');
+      db.exec('DELETE FROM temp.lumascope_stale_photo_ids;');
+      db.exec('COMMIT;');
+    } catch (error) {
+      try { db.exec('ROLLBACK;'); } catch { /* Preserve the database error. */ }
+      throw error;
+    }
+    return staleCount;
+  };
+
   @IpcHandler({ name: 'CacheManager.reconcilePhotoRecords' })
   readonly reconcilePhotoRecords = async (
     _event: IpcMainInvokeEvent,
