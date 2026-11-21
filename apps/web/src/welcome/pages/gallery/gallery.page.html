@@ -11,6 +11,8 @@
       <ui-vertical-stack>
         <section>
 <div class="gallery-actions-column-header" [class.actions-column-right]="actionsColumnPosition() === 'right'">
+            <button type="button" (click)="navigateBack()" [disabled]="!canNavigateBack()" aria-label="Go to previous folder" title="Back">←</button>
+            <button type="button" (click)="navigateForward()" [disabled]="!canNavigateForward()" aria-label="Go to next folder" title="Forward">→</button>
             <button type="button" (click)="toggleActionsColumnPosition()"
                     [attr.aria-label]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'"
                     [title]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'">⇄</button>
@@ -52,6 +54,8 @@
       <ui-vertical-stack>
         <section>
 <div class="gallery-actions-column-header" [class.actions-column-right]="actionsColumnPosition() === 'right'">
+            <button type="button" (click)="navigateBack()" [disabled]="!canNavigateBack()" aria-label="Go to previous folder" title="Back">←</button>
+            <button type="button" (click)="navigateForward()" [disabled]="!canNavigateForward()" aria-label="Go to next folder" title="Forward">→</button>
             <button type="button" (click)="toggleActionsColumnPosition()"
                     [attr.aria-label]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'"
                     [title]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'">⇄</button>
