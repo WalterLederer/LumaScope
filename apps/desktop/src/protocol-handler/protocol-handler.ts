@@ -268,9 +268,12 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
     const cacheManager = injector.inject('CacheManager');
     const thumbManager = injector.inject('ThumbManager');
     const useSidecar = cacheManager.usesSidecarStorage(fileName);
-    const tag = useSidecar
-      ? 'sidecar-thumbnail-v2'
-      : `${width}x${height}${isJxr ? '-jxr-uhdr' : isAvif ? '-avif' : isHeif ? '-heif' : isExr ? '-exr-uhdr-v2' : isRadiance ? '-radiance-hdr' : isTiff ? '-tiff-hdr-v6' : ''}`;
+    const isOhsp = extname(fileName).toLowerCase() === '.ohsp';
+    const tag = isOhsp
+      ? `${useSidecar ? 'sidecar' : `${width}x${height}`}-ohsp-uhdr-v1`
+      : useSidecar
+        ? 'sidecar-thumbnail-v2'
+        : `${width}x${height}${isJxr ? '-jxr-uhdr' : isAvif ? '-avif' : isHeif ? '-heif' : isExr ? '-exr-uhdr-v2' : isRadiance ? '-radiance-hdr' : isTiff ? '-tiff-hdr-v6' : ''}`;
 
     // Lightweight preflight used by the gallery to distinguish cache reads from generation.
     if (params.get('status') === '1') {
