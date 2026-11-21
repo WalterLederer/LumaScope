@@ -6564,7 +6564,22 @@ export class MapWindow implements OnInit, OnDestroy {
     const cell = handle.closest('th') as HTMLElement | null;
     if (!cell) return;
     const startX = event.clientX;
-    const startWidth = cell.getBoundingClientRect().width;
+    // The rendered TH can be wider than its configured track because the
+    // table fills the available viewport width. Use the COL's declared width
+    // (including an existing CSS custom-property override) as the resize
+    // baseline so the first pointer movement cannot jump to the stretched TH.
+    const column = table.querySelectorAll<HTMLTableColElement>(':scope > colgroup > col').item(columnIndex);
+    const configuredWidth = Number.parseFloat(
+      getComputedStyle(table).getPropertyValue(`--offline-col-${columnIndex}`)
+    );
+    const widthDeclaration = column?.style.width ?? '';
+    const fallbackMatch = widthDeclaration.match(/var\\([^,]+,\\s*([0-9.]+)px\\s*\\)/);
+    const fallbackWidth = fallbackMatch ? Number.parseFloat(fallbackMatch[1]) : Number.NaN;
+    const startWidth = Number.isFinite(configuredWidth) && configuredWidth > 0
+      ? configuredWidth
+      : Number.isFinite(fallbackWidth) && fallbackWidth > 0
+        ? fallbackWidth
+        : Number.parseFloat(column ? getComputedStyle(column).width : '') || cell.getBoundingClientRect().width;
     const minimum = columnIndex === 0 ? 44 : columnIndex === 3 ? 64 : columnIndex === 5 ? 180 : 42;
     const pointerId = event.pointerId;
     const document = table.ownerDocument;
