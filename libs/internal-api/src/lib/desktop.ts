@@ -786,6 +786,14 @@ export const supportedFileFormats = [
     details: 'HDR; the viewer currently uses the standard RGB channels.'
   },
   {
+    name: 'OHSP Spectral Measurement',
+    extensions: [ 'ohsp' ],
+    hdr: false,
+    fullSizeCache: true,
+    bitDepth: '601 IEEE-754 32-bit floating-point spectral samples',
+    details: 'Hopocolor OHSP350SF measurements from 350 nm to 950 nm, rendered as a wavelength-coloured spectrum chart.'
+  },
+  {
     name: 'PNG',
     extensions: [ 'png' ],
     hdr: true,
