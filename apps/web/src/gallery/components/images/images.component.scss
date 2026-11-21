@@ -47,7 +47,7 @@
   width: 100%;
   max-width: none;
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 12px 0 0;
   box-sizing: border-box;
 }
 
@@ -312,7 +312,7 @@
   /* The parent .wrapper is the real scrollport. It owns clipping and rounded
      corners so horizontal overflow can reach its scrollbar. */
   position: relative;
-  padding: 0 12px;
+  padding: 0 12px 0 0;
   box-sizing: border-box;
 }
 .detail-native-table {
