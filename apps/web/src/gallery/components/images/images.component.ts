@@ -539,6 +539,8 @@ export class ImagesComponent {
   };
 
   readonly detailColumnWidths = signal<Record<number, number>>({});
+  readonly detailActionsColumnPosition = signal<'left' | 'right'>('left');
+  protected readonly toggleDetailActionsColumnPosition = (): void => this.detailActionsColumnPosition.update(position => position === 'left' ? 'right' : 'left');
 
   protected readonly relativeDetailPath = (image: FileInfo): string => {
     const root = (this.folderPath() ?? '').replace(/[\\/]+$/, '');
