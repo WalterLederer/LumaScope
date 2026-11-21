@@ -11,7 +11,9 @@ This document records the file-layout observations confirmed with an OHSP-350SF 
 ## Confirmed file structure
 
 - The file begins with the ASCII instrument identifier `OHSP-350SF`.
-- Capture date/time extraction is provisional. The offsets `0x156` and `0x163` were tried as ASCII date/time fields, but this layout has not been verified across the OHSP collection. Missing or unrecognized values are treated as unavailable and never invalidate the spectral data.
+- The capture date is stored as a 10-byte ASCII string (`YYYY-MM-DD`) at offset `0x158`, followed by a null terminator at `0x162`.
+- The capture time is stored as an 8-byte ASCII string (`HH:MM:SS`) at offset `0x163`, followed by a null terminator at `0x16B`.
+- Both fields are optional for parsing: missing or unrecognized values are treated as unavailable and never invalidate otherwise valid spectral data.
 - The spectral sample block begins at byte offset `0x16C`.
 - The block contains **601 little-endian IEEE-754 32-bit floating-point values**.
 - The 601 samples represent consecutive 1 nm wavelength steps.
@@ -66,4 +68,4 @@ LumaScope creates a thumbnail and a full-size JPEG chart in the normal sidecar c
 
 ## References and evidence
 
-The implementation details above are based on inspection of the supplied OHSP-350SF binary file and comparison with its CSV export. The file begins with the `OHSP-350SF` identifier, the spectral data at `0x16C` includes valid leading zeros, and the final two float values in the sample are 350 and 950. The date/time offsets remain provisional and must be checked against additional original files. These findings do not establish the binary layout of other OHSP models.
+The implementation details above are based on inspection of supplied OHSP-350SF binary data and comparison with its CSV export. A hex dump confirms the ASCII date `2023-11-17` at `0x158`, the ASCII time `23:34:06` at `0x163`, the spectral data at `0x16C` (including valid leading zeros), and final float values of 350 and 950. The date/time offsets are confirmed for this inspected OHSP-350SF sample; these findings do not establish the binary layout of other OHSP models.
