@@ -1726,6 +1726,7 @@ export class CacheManager {
         OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))
       )`;
     const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `lower(photos.file_name) LIKE :extension${index}`).join(' OR ')})`;
+    const normalizedNameFilter = typeof nameFilter === 'string' ? nameFilter.trim().toLocaleLowerCase() : '';
     const filterParams: Record<string, string | number> = {
       folder, recursive: recursive ? 1 : 0, folderPrefix,
       ...(normalizedNameFilter ? { nameFilter: normalizedNameFilter } : {})
@@ -1733,17 +1734,16 @@ export class CacheManager {
     if (!includeUnsupported) {
       supportedFileExtensions.forEach((extension, index) => { filterParams[`extension${index}`] = `%.${extension.toLowerCase()}`; });
     }
-    const normalizedNameFilter = typeof nameFilter === 'string' ? nameFilter.trim().toLocaleLowerCase() : '';
     const nameFilterSql = normalizedNameFilter ? ' AND instr(lower(photos.file_name), :nameFilter) > 0' : '';
     const where = scope + supportedFilter + nameFilterSql;
     // Counts are independent of sorting and are reused across page requests.
     const countCacheKey = [databaseKey, folder.toLocaleLowerCase(), recursive ? '1' : '0', includeUnsupported ? '1' : '0', normalizedNameFilter].join('|');
     const countStartedAt = Date.now();
-    let totalCount = this.galleryCountCache.get(countCacheKey);
+    let totalCount = normalizedNameFilter ? undefined : this.galleryCountCache.get(countCacheKey);
     if (totalCount === undefined) {
       const totalCountRow = db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number };
       totalCount = Number(totalCountRow.totalCount) || 0;
-      this.galleryCountCache.set(countCacheKey, totalCount);
+      if (!normalizedNameFilter) this.galleryCountCache.set(countCacheKey, totalCount);
     }
     const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
     const orderBy = sortBy === 'path'
