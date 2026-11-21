@@ -10,7 +10,7 @@
     <aside class="gallery-folder-tree">
       <ui-vertical-stack>
         <section>
-<div class="gallery-actions-column-header">
+<div class="gallery-actions-column-header" [class.actions-column-right]="actionsColumnPosition() === 'right'">
             <button type="button" (click)="toggleActionsColumnPosition()"
                     [attr.aria-label]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'"
                     [title]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'">⇄</button>
@@ -51,7 +51,7 @@
     <aside class="gallery-folder-tree">
       <ui-vertical-stack>
         <section>
-<div class="gallery-actions-column-header">
+<div class="gallery-actions-column-header" [class.actions-column-right]="actionsColumnPosition() === 'right'">
             <button type="button" (click)="toggleActionsColumnPosition()"
                     [attr.aria-label]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'"
                     [title]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'">⇄</button>
