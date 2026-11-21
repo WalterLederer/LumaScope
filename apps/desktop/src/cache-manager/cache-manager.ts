@@ -17,7 +17,7 @@ const execFileAsync = promisify(execFile);
 const CACHE_STORAGE_TYPE = { SIDECAR: 2, PARALLEL: 3 } as const;
 const THUMBNAIL_CACHE_VERSION = 2;
 const DNG_THUMBNAIL_CACHE_VERSION = 3;
-const OHSP_THUMBNAIL_CACHE_VERSION = 5;
+const OHSP_THUMBNAIL_CACHE_VERSION = 6;
 const THUMBNAIL_CACHE_TAG = 'sidecar-thumbnail-v2';
 const FULLSIZE_CACHE_VERSION_CODES: Record<string, number> = {
   'jxr-full-uhdr': 10,
@@ -30,7 +30,7 @@ const FULLSIZE_CACHE_VERSION_CODES: Record<string, number> = {
   'tiff-full-hdr-v6': 17,
   'dng-full-raw-v2': 19,
   'camera-raw-full-v1': 20,
-  'ohsp-full-spectrum-v7': 27
+  'ohsp-full-spectrum-v8': 28
 };
 const getFullSizeCacheVersionCode = (tag: string): number | null => FULLSIZE_CACHE_VERSION_CODES[tag] ?? null;
 const getThumbnailCacheVersion = (sourceName: string): number => {
@@ -2105,8 +2105,11 @@ export class CacheManager {
     const cacheId = full ? previous?.fullsize_cache_id : previous?.thumbnail_cache_id;
     const cacheVersion = full ? previous?.fullsize_cache_version : previous?.thumbnail_cache_version;
     const sourceChanged = previous !== null && (previousSize !== sourceStats.size || previousModified !== sourceStats.mtimeMs);
-    const storedVersion = full ? getFullSizeCacheVersionCode(sourceTag) : sourceTag === THUMBNAIL_CACHE_TAG ? getThumbnailCacheVersion(sourceName) : null;
-    if (sourceChanged || (cacheVersion !== null && cacheVersion !== storedVersion)) await rm(targetPath, { force: true });
+    const isOhsp = extname(sourceName).toLowerCase() === '.ohsp';
+    const storedVersion = full
+      ? getFullSizeCacheVersionCode(sourceTag)
+      : sourceTag === THUMBNAIL_CACHE_TAG || isOhsp ? getThumbnailCacheVersion(sourceName) : null;
+    if (sourceChanged || (storedVersion !== null && cacheVersion !== storedVersion)) await rm(targetPath, { force: true });
     if (!sourceChanged && cacheId === CACHE_STORAGE_TYPE.SIDECAR && cacheVersion === storedVersion && storedVersion !== null && existsSync(targetPath)) return targetPath;
     await this.ensureCacheDirectory(dirname(targetPath));
     if (!existsSync(targetPath)) {
