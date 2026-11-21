@@ -58,6 +58,7 @@ export class GalleryState {
   private readonly galleryPageSize = 250;
   private galleryLoadedCount = 0;
   private galleryTotalCount = 0;
+  readonly totalFileCount = signal(0);
   private galleryPageLoading = false;
   private galleryFilesRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly includeUnsupportedFiles$ = new BehaviorSubject(false);
@@ -184,6 +185,7 @@ export class GalleryState {
     this.galleryLoading$.next(true);
     this.galleryLoadedCount = 0;
     this.galleryTotalCount = 0;
+    this.totalFileCount.set(0);
     this.galleryPageLoading = false;
     this.images$.next([]);
     this.configuration.updateGalleryConfig({ selectedLocation: path });
@@ -218,6 +220,7 @@ export class GalleryState {
           this.galleryTotalCount = page.totalCount >= 0
             ? page.totalCount
             : page.files.length < this.galleryPageSize ? page.files.length : -1;
+          this.totalFileCount.set(this.galleryTotalCount >= 0 ? this.galleryTotalCount : page.files.length);
           this.images$.next(page.files);
         }),
         map(() => true),
@@ -244,6 +247,7 @@ export class GalleryState {
       this.galleryLoadedCount = offset + page.files.length;
       if (page.totalCount >= 0) this.galleryTotalCount = page.totalCount;
       else if (page.files.length < this.galleryPageSize) this.galleryTotalCount = this.galleryLoadedCount;
+      this.totalFileCount.set(this.galleryTotalCount >= 0 ? this.galleryTotalCount : this.galleryLoadedCount);
       if (page.files.length > 0) this.images$.next([...this.images$.value, ...page.files]);
     }).catch(error => {
       console.error('Failed to load the next gallery database page', directory, error);
