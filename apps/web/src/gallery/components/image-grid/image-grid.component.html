@@ -88,10 +88,20 @@
   </aside>
 </ui-toolbar>
 
-@if (galleryLoading()) {
+@if (galleryLoading() || galleryRefreshing() || cacheRunActive()) {
   <div class="gallery-loading-indicator" role="status" aria-live="polite">
     <span class="gallery-loading-spinner" aria-hidden="true"></span>
-    <span>Loading folder contents from the photo database…</span>
+    @if (cacheRunActive()) {
+      <span>{{ cacheRunCurrentOperation() || 'Indexing folder contents…' }}</span>
+      @if (cacheRunProgress().total > 0) {
+        <span>{{ cacheRunProgress().completed.toLocaleString() }} / {{ cacheRunProgress().total.toLocaleString() }} files</span>
+      }
+    } @else if (galleryRefreshing()) {
+      <span>Updating the file list after background folder indexing…</span>
+      <span>{{ images()?.length ?? 0 }} files currently displayed</span>
+    } @else {
+      <span>Loading folder contents from the photo database…</span>
+    }
   </div>
 }
 
