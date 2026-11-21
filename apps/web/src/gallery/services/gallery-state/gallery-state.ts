@@ -97,6 +97,9 @@ export class GalleryState {
           sortDir: config.gallery.sortDir ?? defaultSort.sortDir
         });
 
+        this.includeFilesRecursive$.next(config.gallery.includeFilesRecursive ?? false);
+        this.includeUnsupportedFiles$.next(config.gallery.includeUnsupportedFiles ?? false);
+
         const savedLocation = config.gallery.selectedLocation;
         if (savedLocation) this.selectedLocation$.next(savedLocation);
 
@@ -187,6 +190,7 @@ export class GalleryState {
   readonly setIncludeUnsupportedFiles = (value: boolean): void => {
     if (this.includeUnsupportedFiles$.value === value) return;
     this.includeUnsupportedFiles$.next(value);
+    this.configuration.updateGalleryConfig({ includeUnsupportedFiles: value });
     const path = this.selectedLocation$.value;
     if (path) this.navigateTo(path).subscribe();
   };
@@ -194,6 +198,7 @@ export class GalleryState {
   readonly setIncludeFilesRecursive = (value: boolean): void => {
     if (this.includeFilesRecursive$.value === value) return;
     this.includeFilesRecursive$.next(value);
+    this.configuration.updateGalleryConfig({ includeFilesRecursive: value });
     const path = this.selectedLocation$.value;
     if (path) this.navigateTo(path).subscribe();
   };
