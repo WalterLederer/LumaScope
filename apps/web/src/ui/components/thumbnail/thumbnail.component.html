@@ -2,7 +2,7 @@
 @let error = hasError();
 
 @if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
-  <td class="detail-actions" [attr.data-row-number]="rowNumber()">
+  <td class="detail-actions" [hidden]="actionsColumnPosition() !== 'left'" [attr.data-row-number]="rowNumber()">
     <button type="button" class="file-row-menu-trigger detail-row-menu-trigger"
             [cdkMenuTriggerFor]="rowActionsMenu"
             [attr.aria-label]="'File actions for ' + image().name"
@@ -18,6 +18,10 @@
         <button type="button" role="menuitem" cdkMenuItem (click)="requestReCacheFile()"><span aria-hidden="true">↻</span> Re-Cache file</button>
       </div>
     </ng-template>
+  </td>
+  <td class="detail-actions detail-actions-right" [hidden]="actionsColumnPosition() !== 'right'" [attr.data-row-number]="rowNumber()">
+    <button type="button" class="file-row-menu-trigger detail-row-menu-trigger" [cdkMenuTriggerFor]="rowActionsMenu"
+            [attr.aria-label]="'File actions for ' + image().name" title="File actions">☰</button>
   </td>
     @if (viewMode() === 'details-no-thumbnails') {
     <td class="detail-thumb-empty" aria-hidden="true"></td>
