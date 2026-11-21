@@ -1146,7 +1146,7 @@ export class ImagesComponent {
       while (pendingDirectories.length > 0 && !controller.signal.aborted) {
         const directoryPath = pendingDirectories.shift()!;
         this.cacheRunCurrentOperation.set(`Indexing files and subfolders in ${directoryPath}`);
-        let scan: Awaited<ReturnType<typeof this.cacheManager.scanGalleryDirectory>>;
+        let scan: { files: number; directories: string[]; removedStale: number; complete: boolean };
         try {
           scan = await this.cacheManager.scanGalleryDirectory(directoryPath);
         } catch (error) {
