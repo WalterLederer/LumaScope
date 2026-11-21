@@ -889,6 +889,8 @@ export class ImageView {
       return;
     }
     const request = ++this.hexRequestId;
+    const viewport = this.hexScrollViewport()?.nativeElement;
+    const previousScrollTop = viewport?.scrollTop ?? 0;
     const boundedStart = Math.max(0, Math.min(Math.max(0, this.hexTotalRows() - this.hexRowsPerPage), Math.floor(startRow)));
     this.hexStartRow.set(boundedStart);
     this.hexLoading.set(true);
@@ -900,8 +902,17 @@ export class ImageView {
       this.hexFileSize.set(result.data.fileSize);
       this.hexRows.set(result.data.rows);
       this.hexStatus.set(result.data.rows.length ? '' : 'The selected file is empty.');
-      const viewport = this.hexScrollViewport()?.nativeElement;
-      if (viewport && scrollAdjustment) viewport.scrollTop = Math.max(0, viewport.scrollTop + scrollAdjustment);
+      // Restore the viewport only after Angular has rendered the replacement rows.
+      // Applying scrollTop before the DOM update lets the old scrollHeight clamp
+      // the value and can make the virtual window jump backwards.
+      if (viewport && scrollAdjustment) {
+        const targetScrollTop = Math.max(0, previousScrollTop + scrollAdjustment);
+        requestAnimationFrame(() => {
+          if (request === this.hexRequestId && viewport.isConnected) {
+            viewport.scrollTop = targetScrollTop;
+          }
+        });
+      }
     } catch (error) {
       if (request !== this.hexRequestId) return;
       this.hexRows.set([]);
