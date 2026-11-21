@@ -17,7 +17,7 @@ const execFileAsync = promisify(execFile);
 const CACHE_STORAGE_TYPE = { SIDECAR: 2, PARALLEL: 3 } as const;
 const THUMBNAIL_CACHE_VERSION = 2;
 const DNG_THUMBNAIL_CACHE_VERSION = 3;
-const OHSP_THUMBNAIL_CACHE_VERSION = 9;
+const OHSP_THUMBNAIL_CACHE_VERSION = 10;
 const THUMBNAIL_CACHE_TAG = 'sidecar-thumbnail-v2';
 const FULLSIZE_CACHE_VERSION_CODES: Record<string, number> = {
   'jxr-full-uhdr': 10,
