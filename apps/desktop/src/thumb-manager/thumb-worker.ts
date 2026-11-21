@@ -1153,14 +1153,31 @@ if (parentPort) {
           '(':['001','010','100','100','100','010','001'],')':['100','010','001','001','001','010','100'],
           '-':['00000','00000','00000','11111','00000','00000','00000'],'.':['000','000','000','000','000','011','011'],
           ':':['000','011','011','000','011','011','000'],'/':['00001','00010','00010','00100','01000','01000','10000'],
-          '=':['00000','11111','00000','11111','00000','00000','00000'],' ':['000','000','000','000','000','000','000']
+          '=':['00000','11111','00000','11111','00000','00000','00000'],
+          'a':['00000','00000','01110','00001','01111','10001','01111'],
+          'c':['00000','00000','01111','10000','10000','10000','01111'],
+          'e':['00000','00000','01110','10001','11111','10000','01110'],
+          'g':['00000','01111','10001','10001','01111','00001','01110'],
+          'h':['10000','10000','10110','11001','10001','10001','10001'],
+          'l':['11000','01000','01000','01000','01000','01000','11100'],
+          'm':['00000','00000','11010','10101','10101','10101','10101'],
+          'n':['00000','00000','10110','11001','10001','10001','10001'],
+          'p':['00000','11110','10001','10001','11110','10000','10000'],
+          'r':['00000','00000','10110','11001','10000','10000','10000'],
+          's':['00000','00000','01111','10000','01110','00001','11110'],
+          't':['01000','01000','11110','01000','01000','01001','00110'],
+          'u':['00000','00000','10001','10001','10001','10011','01101'],
+          'v':['00000','00000','10001','10001','10001','01010','00100'],
+          'w':['00000','00000','10001','10001','10101','10101','01010'],
+          '²':['01100','10010','00100','01000','11110','00000','00000'],
+          ' ':['000','000','000','000','000','000','000']
         };
         const drawText = (text: string, x: number, y: number, scale: number, color: [number, number, number]) => {
           let cursor = x;
-          for (const rawChar of text.toUpperCase()) { const glyph = glyphs[rawChar] ?? glyphs[' ']; for (let gy = 0; gy < glyph.length; gy++) for (let gx = 0; gx < glyph[gy].length; gx++) if (glyph[gy][gx] === '1') for (let sy = 0; sy < scale; sy++) for (let sx = 0; sx < scale; sx++) setPixel(cursor + gx * scale + sx, y + gy * scale + sy, color); cursor += (glyph[0].length + 1) * scale; }
+          for (const rawChar of text) { const glyph = glyphs[rawChar] ?? glyphs[' ']; for (let gy = 0; gy < glyph.length; gy++) for (let gx = 0; gx < glyph[gy].length; gx++) if (glyph[gy][gx] === '1') for (let sy = 0; sy < scale; sy++) for (let sx = 0; sx < scale; sx++) setPixel(cursor + gx * scale + sx, y + gy * scale + sy, color); cursor += (glyph[0].length + 1) * scale; }
         };
         const drawVerticalText = (text: string, x: number, centerY: number, scale: number, color: [number, number, number]) => {
-          const normalized = text.toUpperCase().split('').reverse().join('');
+          const normalized = text.split('').reverse().join('');
           const textWidth = normalized.split('').reduce((sum, rawChar) => sum + ((glyphs[rawChar] ?? glyphs[' '])[0].length + 1) * scale, 0) - scale;
           let cursorY = Math.round(centerY - textWidth / 2);
           for (const rawChar of normalized) {
@@ -1219,8 +1236,8 @@ if (parentPort) {
           drawText(`PEAK ${peakWavelength.toFixed(2)} NM = ${formattedPeakValue} MW/M2/NM`, left, 8 + 10 * headerScale, headerScale, peakLabelColor);
           drawText(`MEASUREMENT POINTS: ${sampleCount}`, left, 8 + 20 * headerScale, headerScale, headerColor);
         }
-        drawText('WAVELENGTH (NM)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.48),axisLabelScale,[235,235,235]);
-        drawVerticalText('SPECTRAL VALUE (MW/M2/NM)',3,Math.round(top + plotHeight / 2),axisLabelScale,[235,235,235]);
+        drawText('Wavelength (nm)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.56),axisLabelScale,[235,235,235]);
+        drawVerticalText('Spectral value (uW/cm²/nm)',12,Math.round(top + plotHeight / 2),axisLabelScale,[235,235,235]);
         processingStage = 'encoding OHSP spectral chart';
         if (isFullSize) {
           // The full-size derivative is an Ultra HDR JPEG. The wavelength band
@@ -1362,7 +1379,7 @@ if (parentPort) {
           console.info(`[ThumbWorker] Embedding OHSP full-size LumaScope logo: ${iconPath}`);
           using iconImage = vips.Image.newFromFile(iconPath);
           // 25% of the previous 240 px logo size, so it no longer covers the chart.
-          const iconScale = 60 / Math.max(iconImage.width, iconImage.height);
+          const iconScale = 84 / Math.max(iconImage.width, iconImage.height);
           using scaledIcon = iconImage.resize(iconScale, { kernel: vips.Kernel.lanczos3 });
           const iconBytes = scaledIcon.writeToMemory();
           const iconWidth = scaledIcon.width;
@@ -1398,7 +1415,7 @@ if (parentPort) {
           const timestampScale = 2;
           const timestampWidth = timestampText.split('').reduce((sum, character) => sum + ((glyphs[character] ?? glyphs[' '])[0].length + 1) * timestampScale, 0) - timestampScale;
           const timestampLeft = Math.max(24, logoLeft - timestampWidth - 16);
-          drawHdrText(timestampText, timestampLeft, logoTop + 10, timestampScale, [255, 248, 225]);
+          drawHdrText(timestampText, timestampLeft, logoTop + 2, timestampScale, [255, 248, 225]);
 
           using image = vips.Image.newFromMemory(hdrPixels, outputWidth, outputHeight, 3, vips.BandFormat.float);
           using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
