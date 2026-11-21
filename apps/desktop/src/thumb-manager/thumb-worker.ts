@@ -1070,11 +1070,11 @@ if (parentPort) {
         const data = await readFile(source);
         const instrument = data.toString('ascii', 0, 10);
         if (instrument !== 'OHSP-350SF') throw new Error(`Unsupported OHSP instrument layout: ${instrument || 'unknown'}.`);
-        // Capture date/time fields are optional: the binary header layout has
-        // not yet been verified across the user's complete OHSP file collection.
-        // Never reject an otherwise valid spectrum because these fields are absent
-        // or encoded differently. Only show a timestamp when both values validate.
-        const rawCaptureDate = data.toString('ascii', 0x156, 0x160).trim();
+        // The OHSP-350SF header stores the capture date/time as null-terminated
+        // ASCII strings: YYYY-MM-DD at 0x158 (10 bytes), then HH:MM:SS at
+        // 0x163 (8 bytes). Keep both fields optional so unknown variants do not
+        // invalidate an otherwise readable spectral measurement.
+        const rawCaptureDate = data.toString('ascii', 0x158, 0x162).trim();
         const rawCaptureTime = data.toString('ascii', 0x163, 0x16b).trim();
         const captureDate = /^\d{4}-\d{2}-\d{2}$/.test(rawCaptureDate) ? rawCaptureDate : '';
         const captureTime = /^\d{2}:\d{2}:\d{2}$/.test(rawCaptureTime) ? rawCaptureTime : '';
