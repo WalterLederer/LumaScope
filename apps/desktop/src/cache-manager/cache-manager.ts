@@ -1708,7 +1708,7 @@ export class CacheManager {
       const extension = extname(sourceName).toLowerCase();
       const thumbnailValid = row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR
         && row.thumbnail_cache_version === getThumbnailCacheVersion(sourceName);
-      const fullSizeTag = ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+      const fullSizeTag = extension === '.ohsp' ? 'ohsp-full-spectrum-v1' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
       const fullSizeValid = FULL_SIZE_EXTENSIONS.has(extension) && row.fullsize_cache_id !== null
         && row.fullsize_cache_version === getFullSizeCacheVersionCode(fullSizeTag);
       if (!verifyCacheFiles) {
