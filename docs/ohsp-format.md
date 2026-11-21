@@ -1,6 +1,6 @@
 # OHSP spectral measurement file format
 
-[Back to supported image formats](image-formats.md) · [Back to README](../README.md)
+[Back to supported image formats](image-formats.md) · [Image detail table](image-detail-table.md) · [Back to README](../README.md)
 
 ## Scope
 
