@@ -1047,12 +1047,19 @@ app-map-window {
 .offline-files-resizable-table td[hidden] {
   display: none !important;
 }
+.actions-column-position-toggle,
 .offline-actions-column-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 24px;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  flex: 0 0 24px !important;
+  width: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+  height: 24px !important;
   margin: 0;
   padding: 0;
   border: 0;
@@ -1064,6 +1071,7 @@ app-map-window {
   line-height: 1;
   cursor: pointer;
 }
+.actions-column-position-toggle:hover,
 .offline-actions-column-toggle:hover {
   background: var(--color-surface-default-high, #454b55);
 }
