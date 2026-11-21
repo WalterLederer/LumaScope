@@ -2454,6 +2454,18 @@
   color: var(--color-text-secondary);
   font-size: 10px;
 }
+:host .image-hex-position {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  accent-color: var(--color-accent, #287fc1);
+}
+:host .image-hex-position-label {
+  flex: 0 0 auto;
+  color: var(--color-text-secondary);
+  font: 10px/14px Consolas, 'Courier New', monospace;
+}
 :host .image-hex-status {
   flex: 0 0 auto;
   padding: 6px;
@@ -2502,11 +2514,6 @@
 :host .image-hex-table .hex-bytes { min-width: 390px; color: var(--color-text-default); }
 :host .image-hex-table .hex-ascii { min-width: 135px; }
 :host .image-hex-table .hex-unicode { min-width: 95px; }
-:host .image-hex-table .image-hex-spacer td {
-  padding: 0;
-  height: 0;
-  border: 0;
-}
 :host .image-hex-loading {
   position: absolute;
   right: 14px;
