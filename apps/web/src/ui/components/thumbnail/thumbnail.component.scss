@@ -13,6 +13,12 @@
   overflow: hidden;
 }
 
+/* Ultra HDR JPEG gain maps need an unrestricted dynamic-range presentation.
+   Without this, Chromium displays the generated OHSP HDR thumbnails as SDR. */
+.thumbnail-preview img {
+  dynamic-range-limit: no-limit;
+}
+
 .message {
   display: flex;
   justify-content: center;
