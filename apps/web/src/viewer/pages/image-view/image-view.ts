@@ -995,6 +995,14 @@ export class ImageView {
     const overlap = 64;
     const pageStep = Math.floor(this.hexRowsPerPage / 2);
 
+    // A scrollbar drag can jump beyond the current contiguous buffer. Replace
+    // the buffer around that viewport instead of merging disjoint ranges.
+    if (firstVisibleRow < start || firstVisibleRow >= loadedEnd) {
+      const nextStart = Math.max(0, Math.min(total - this.hexRowsPerPage, firstVisibleRow - pageStep));
+      void this.loadHexRange(nextStart, false);
+      return;
+    }
+
     // Fetch only the missing edge. Existing rows remain in the buffer and keep
     // their DOM identity; a bounded buffer prevents unbounded memory growth.
     if (firstVisibleRow < start + overlap && start > 0) {
