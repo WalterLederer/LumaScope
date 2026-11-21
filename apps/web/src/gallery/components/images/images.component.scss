@@ -1757,3 +1757,21 @@
 .detail-native-table.actions-column-right > colgroup > col:last-child {
   width: 44px !important;
 }
+
+/* Center the header hamburger and its column-switch control on the exact
+   horizontal midpoint of the compact actions column, on either side. */
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .folder-actions-menu-trigger,
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .detail-actions-column-toggle {
+  position: absolute !important;
+  left: 50% !important;
+  right: auto !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  transform: translateX(-50%) !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .folder-actions-menu-trigger {
+  top: 10px !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .detail-actions-column-toggle {
+  top: 54px !important;
+}
