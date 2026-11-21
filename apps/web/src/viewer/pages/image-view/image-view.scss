@@ -2487,6 +2487,14 @@
   color: var(--color-text-default);
   font-variant-numeric: tabular-nums;
 }
+:host .image-hex-search-box {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 8px;
+  background: var(--color-surface-default);
+}
 :host .image-hex-search {
   display: flex;
   flex: 0 0 auto;
