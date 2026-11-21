@@ -706,8 +706,28 @@ export class ImageView {
   protected readonly hexRowsPerPage = 256;
   protected readonly hexMaxBufferedRows = 768;
   protected readonly hexMeasuredRowHeight = signal(22);
-  protected readonly hexVirtualTopHeight = computed(() => this.hexStartRow() * this.hexMeasuredRowHeight());
-  protected readonly hexVirtualBottomHeight = computed(() => Math.max(0, this.hexTotalRows() - this.hexStartRow() - this.hexRows().length) * this.hexMeasuredRowHeight());
+  protected readonly hexHeaderHeight = signal(25);
+  protected readonly hexViewportScrollTop = signal(0);
+  protected readonly hexViewportHeight = signal(600);
+  private readonly hexVirtualOverscanRows = 12;
+  protected readonly hexVirtualStart = computed(() => {
+    const rowHeight = Math.max(1, this.hexMeasuredRowHeight());
+    const firstVisibleRow = Math.max(0, Math.floor((this.hexViewportScrollTop() - this.hexHeaderHeight()) / rowHeight));
+    const firstRenderedRow = Math.max(0, firstVisibleRow - this.hexVirtualOverscanRows);
+    return Math.min(Math.max(0, firstRenderedRow - this.hexStartRow()), Math.max(0, this.hexRows().length - 1));
+  });
+  protected readonly hexVisibleRows = computed(() => {
+    const count = Math.ceil(Math.max(200, this.hexViewportHeight()) / Math.max(1, this.hexMeasuredRowHeight())) + this.hexVirtualOverscanRows * 2;
+    const start = this.hexVirtualStart();
+    return this.hexRows().slice(start, start + count);
+  });
+  protected readonly hexVirtualTopHeight = computed(() =>
+    (this.hexStartRow() + this.hexVirtualStart()) * this.hexMeasuredRowHeight()
+  );
+  protected readonly hexVirtualBottomHeight = computed(() => Math.max(
+    0,
+    this.hexTotalRows() - this.hexStartRow() - this.hexVirtualStart() - this.hexVisibleRows().length
+  ) * this.hexMeasuredRowHeight());
   protected readonly hexTotalRows = computed(() => Math.ceil(this.hexFileSize() / 16));
   protected readonly hexMaxStartRow = computed(() => Math.max(0, this.hexTotalRows() - this.hexRowsPerPage));
   protected readonly hexPositionLabel = computed(() => this.hexTotalRows()
@@ -964,8 +984,11 @@ export class ImageView {
     if (!total || !rows) return;
 
     const rowHeight = this.getHexRowHeight(element);
-    if (Math.abs(this.hexMeasuredRowHeight() - rowHeight) > 0.1) this.hexMeasuredRowHeight.set(rowHeight);
     const headerHeight = this.getHexHeaderHeight(element);
+    this.hexViewportScrollTop.set(element.scrollTop);
+    this.hexViewportHeight.set(element.clientHeight);
+    if (Math.abs(this.hexMeasuredRowHeight() - rowHeight) > 0.1) this.hexMeasuredRowHeight.set(rowHeight);
+    if (Math.abs(this.hexHeaderHeight() - headerHeight) > 0.1) this.hexHeaderHeight.set(headerHeight);
     const firstVisibleRow = Math.max(0, Math.floor((element.scrollTop - headerHeight) / rowHeight));
     const lastVisibleRow = Math.min(total, Math.ceil((element.scrollTop + element.clientHeight - headerHeight) / rowHeight));
     const loadedEnd = start + rows;
@@ -2381,8 +2404,12 @@ export class ImageView {
         this.hexRows.set([]);
         this.hexFileSize.set(0);
         this.hexStartRow.set(0);
+        this.hexViewportScrollTop.set(0);
         const hexViewport = this.hexScrollViewport()?.nativeElement;
-        if (hexViewport) this.setHexViewportScrollTop(hexViewport, 0);
+        if (hexViewport) {
+          this.setHexViewportScrollTop(hexViewport, 0);
+          this.hexViewportHeight.set(hexViewport.clientHeight);
+        }
         this.hexLoading.set(false);
         this.hexStatus.set(image ? 'Loading selected file…' : 'Select a file in the detail list to view its HEX contents.');
         if (image && this.activeImageSidebarTab() === 'image' && this.activeImageSubTab() === 'hex') void this.loadHexRange(0);
