@@ -20,6 +20,7 @@ import { ImageGridComponent } from '../../../gallery/components/image-grid/image
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
 import { GalleryCacheBuild } from '../../../gallery/services/gallery-cache-build/gallery-cache-build';
+import { Configuration } from '../../../system/services/configuration/configuration';
 import { ProcessManager } from '../../../ipc/process-manager';
 import { defaultSortMode, treeNode } from '../../../gallery/services/gallery-state/gallery-state.types';
 import { Dialogs } from '../../../ipc/dialogs';
@@ -67,6 +68,8 @@ export class GalleryPage {
 
   private readonly galleryLocations = inject(GalleryLocations);
 
+  private readonly configuration = inject(Configuration);
+
   readonly router = inject(Router);
 
   readonly viewNavigator = inject(ViewNavigator);
@@ -80,7 +83,11 @@ export class GalleryPage {
   readonly showImageGrid = input(true);
   readonly selectedImagePath = input<string | null>(null);
   readonly actionsColumnPosition = signal<'left' | 'right'>('left');
-  protected readonly toggleActionsColumnPosition = (): void => this.actionsColumnPosition.update(position => position === 'left' ? 'right' : 'left');
+  protected readonly toggleActionsColumnPosition = (): void => {
+    const nextPosition = this.actionsColumnPosition() === 'left' ? 'right' : 'left';
+    this.actionsColumnPosition.set(nextPosition);
+    this.configuration.updateSystemConfig({ galleryDetailActionsColumnPosition: nextPosition });
+  };
 
 
   protected readonly tree = viewChild(TreeComponent);
@@ -176,6 +183,9 @@ export class GalleryPage {
   readonly thumbSize$ = this.galleryState.thumbSize();
 
   constructor() {
+    this.configuration.config().pipe(take(1)).subscribe(config => {
+      this.actionsColumnPosition.set(config.system.galleryDetailActionsColumnPosition === 'right' ? 'right' : 'left');
+    });
 
     // Only the image-grid instance owns window title and cache refresh side effects.
     if (this.showImageGrid()) this.selectedLocation$.pipe(takeUntilDestroyed()).subscribe(location => {
