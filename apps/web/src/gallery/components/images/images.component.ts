@@ -1241,7 +1241,7 @@ export class ImagesComponent {
               if (Number.isInteger(index) && index >= -1 && index <= 12
                 && typeof value === 'number' && Number.isFinite(value)
                 && (index === 0 ? value >= -1000 && value <= 3000 : index === -1 ? value >= 44 && value <= 3000 : value >= 40 && value <= 3000)) {
-                validWidths[index] = index === -1 && value === 56 ? 44 : value;
+                validWidths[index] = index === -1 ? 44 : value;
               }
             }
             this.detailColumnWidths.set(validWidths);
