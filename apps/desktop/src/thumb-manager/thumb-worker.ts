@@ -1073,25 +1073,66 @@ if (parentPort) {
         if (data.length < offset + sampleCount * 4) throw new Error('Invalid OHSP file: spectral sample block is truncated.');
         const values = Array.from({ length: sampleCount }, (_, index) => data.readFloatLE(offset + index * 4));
         if (values.some(value => !Number.isFinite(value))) throw new Error('Invalid OHSP file: spectral values contain non-finite numbers.');
-        const outputWidth = width > 0 ? width : 1600, outputHeight = height > 0 ? height : 900;
-        const left = Math.round(outputWidth * 0.075), right = Math.round(outputWidth * 0.025), top = Math.round(outputHeight * 0.065), bottom = Math.round(outputHeight * 0.12);
+        const outputWidth = Math.max(320, width > 0 ? width : 1600);
+        const outputHeight = Math.max(180, height > 0 ? height : 900);
+        const pixels = Buffer.alloc(outputWidth * outputHeight * 3);
+        for (let i = 0; i < pixels.length; i += 3) { pixels[i] = 16; pixels[i + 1] = 18; pixels[i + 2] = 22; }
+        const setPixel = (x: number, y: number, color: [number, number, number]) => {
+          if (x < 0 || y < 0 || x >= outputWidth || y >= outputHeight) return;
+          const p = (Math.floor(y) * outputWidth + Math.floor(x)) * 3;
+          pixels[p] = color[0]; pixels[p + 1] = color[1]; pixels[p + 2] = color[2];
+        };
+        const line = (x0: number, y0: number, x1: number, y1: number, color: [number, number, number]) => {
+          x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+          const dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1, dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+          let error = dx + dy;
+          while (true) { setPixel(x0, y0, color); if (x0 === x1 && y0 === y1) break; const twice = 2 * error; if (twice >= dy) { error += dy; x0 += sx; } if (twice <= dx) { error += dx; y0 += sy; } }
+        };
+        const glyphs: Record<string, string[]> = {
+          '0':['01110','10001','10011','10101','11001','10001','01110'],'1':['00100','01100','00100','00100','00100','00100','01110'],
+          '2':['01110','10001','00001','00010','00100','01000','11111'],'3':['11110','00001','00001','01110','00001','00001','11110'],
+          '4':['00010','00110','01010','10010','11111','00010','00010'],'5':['11111','10000','10000','11110','00001','00001','11110'],
+          '6':['01110','10000','10000','11110','10001','10001','01110'],'7':['11111','00001','00010','00100','01000','01000','01000'],
+          '8':['01110','10001','10001','01110','10001','10001','01110'],'9':['01110','10001','10001','01111','00001','00001','01110'],
+          'A':['01110','10001','10001','11111','10001','10001','10001'],'B':['11110','10001','10001','11110','10001','10001','11110'],
+          'C':['01111','10000','10000','10000','10000','10000','01111'],'D':['11110','10001','10001','10001','10001','10001','11110'],
+          'E':['11111','10000','10000','11110','10000','10000','11111'],'F':['11111','10000','10000','11110','10000','10000','10000'],
+          'G':['01111','10000','10000','10111','10001','10001','01111'],'H':['10001','10001','10001','11111','10001','10001','10001'],
+          'I':['111','010','010','010','010','010','111'],'L':['10000','10000','10000','10000','10000','10000','11111'],
+          'M':['10001','11011','10101','10101','10001','10001','10001'],'N':['10001','11001','10101','10011','10001','10001','10001'],
+          'P':['11110','10001','10001','11110','10000','10000','10000'],'R':['11110','10001','10001','11110','10100','10010','10001'],
+          'S':['01111','10000','10000','01110','00001','00001','11110'],'T':['11111','00100','00100','00100','00100','00100','00100'],
+          'U':['10001','10001','10001','10001','10001','10001','01110'],'V':['10001','10001','10001','10001','10001','01010','00100'],
+          'W':['10001','10001','10001','10101','10101','10101','01010'],'Y':['10001','10001','01010','00100','00100','00100','00100'],
+          '(':['001','010','100','100','100','010','001'],')':['100','010','001','001','001','010','100'],
+          '-':['00000','00000','00000','11111','00000','00000','00000'],'.':['000','000','000','000','000','011','011'],
+          ':':['000','011','011','000','011','011','000'],' ':['000','000','000','000','000','000','000']
+        };
+        const drawText = (text: string, x: number, y: number, scale: number, color: [number, number, number]) => {
+          let cursor = x;
+          for (const rawChar of text.toUpperCase()) { const glyph = glyphs[rawChar] ?? glyphs[' ']; for (let gy = 0; gy < glyph.length; gy++) for (let gx = 0; gx < glyph[gy].length; gx++) if (glyph[gy][gx] === '1') for (let sy = 0; sy < scale; sy++) for (let sx = 0; sx < scale; sx++) setPixel(cursor + gx * scale + sx, y + gy * scale + sy, color); cursor += (glyph[0].length + 1) * scale; }
+        };
+        const left = Math.round(outputWidth * 0.09), right = Math.round(outputWidth * 0.025), top = Math.round(outputHeight * 0.07), bottom = Math.round(outputHeight * 0.15);
         const plotWidth = outputWidth - left - right, plotHeight = outputHeight - top - bottom;
         const minimum = Math.min(0, ...values), maximum = Math.max(0, ...values), range = maximum - minimum || 1;
         const yFor = (value: number) => top + (maximum - value) / range * plotHeight, zeroY = yFor(0);
-        const points = values.map((value, index) => (left + index / 600 * plotWidth) + ',' + yFor(value).toFixed(2));
-        const colorAt = (wavelength: number): string => {
+        const spectrumColor = (wavelength: number): [number, number, number] => {
           const stops: Array<[number, number, number, number]> = [[350,110,0,180],[380,90,0,255],[440,0,0,255],[490,0,255,255],[510,0,255,0],[580,255,255,0],[645,255,0,0],[700,255,0,0],[950,80,0,40]];
           let index = 0; while (index < stops.length - 2 && wavelength > stops[index + 1][0]) index++;
           const a = stops[index], b = stops[index + 1], t = (wavelength-a[0])/(b[0]-a[0]), factor = wavelength < 420 ? 0.65+0.35*(wavelength-350)/70 : wavelength > 700 ? 0.3+0.7*(950-wavelength)/250 : 1;
-          return '#' + [1,2,3].map(i => Math.round(Math.max(0,Math.min(255,(a[i]+(b[i]-a[i])*t)*factor))).toString(16).padStart(2,'0')).join('');
+          return [1,2,3].map(i => Math.round(Math.max(0,Math.min(255,(a[i]+(b[i]-a[i])*t)*factor)))) as [number,number,number];
         };
-        const gradientStops = Array.from({length:61},(_,i)=>'<stop offset="'+(i/60*100).toFixed(2)+'%" stop-color="'+colorAt(350+i*10)+'"/>').join('');
-        const font = Math.max(11,outputWidth*0.012);
-        const grid = Array.from({length:6},(_,i)=>{const value=maximum-i/5*range,y=yFor(value);return '<line x1="'+left+'" y1="'+y+'" x2="'+(outputWidth-right)+'" y2="'+y+'" stroke="#888" stroke-opacity=".3"/><text x="'+(left-10)+'" y="'+(y+4)+'" text-anchor="end" font-size="'+font+'" fill="#bbb">'+value.toPrecision(3)+'</text>';}).join('');
-        const xTicks = [350,450,550,650,750,850,950].map(nm=>{const x=left+(nm-350)/600*plotWidth;return '<line x1="'+x+'" y1="'+top+'" x2="'+x+'" y2="'+(top+plotHeight)+'" stroke="#888" stroke-opacity=".18"/><text x="'+x+'" y="'+(top+plotHeight+Math.max(20,outputHeight*.035))+'" text-anchor="middle" font-size="'+font+'" fill="#bbb">'+nm+'</text>';}).join('');
-        const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="'+outputWidth+'" height="'+outputHeight+'"><defs><linearGradient id="s" x1="0" x2="1" y1="0" y2="0">'+gradientStops+'</linearGradient></defs><rect width="100%" height="100%" fill="#101216"/>'+grid+xTicks+'<polygon points="'+left+','+zeroY+' '+points.join(' ')+' '+(outputWidth-right)+','+zeroY+'" fill="url(#s)" fill-opacity=".82"/><polyline points="'+points.join(' ')+'" fill="none" stroke="url(#s)" stroke-width="'+Math.max(1.5,outputWidth*.002)+'"/><line x1="'+left+'" y1="'+zeroY+'" x2="'+(outputWidth-right)+'" y2="'+zeroY+'" stroke="#eee"/><line x1="'+left+'" y1="'+top+'" x2="'+left+'" y2="'+(top+plotHeight)+'" stroke="#ddd"/><text x="'+(left+plotWidth/2)+'" y="'+(outputHeight-12)+'" text-anchor="middle" font-size="'+font+'" fill="#eee">Wavelength (nm)</text><text transform="translate(20 '+(top+plotHeight/2)+') rotate(-90)" text-anchor="middle" font-size="'+font+'" fill="#eee">Spectral value</text></svg>';
-        processingStage = 'rendering OHSP spectral curve';
-        using image = vips.Image.svgloadBuffer(Buffer.from(svg), { dpi: 96 });
+        const gridColor: [number,number,number] = [65,68,74], axisColor: [number,number,number] = [210,214,220], labelColor: [number,number,number] = [190,195,202];
+        for (let tick = 0; tick <= 5; tick++) { const value = maximum - tick / 5 * range, y = yFor(value); line(left,y,outputWidth-right,y,gridColor); drawText(value.toPrecision(3), Math.max(2,left-78), y-4, 2, labelColor); }
+        for (const nm of [350,450,550,650,750,850,950]) { const x = left + (nm-350)/600*plotWidth; line(x,top,x,top+plotHeight,gridColor); drawText(String(nm),x-18,top+plotHeight+10,2,labelColor); }
+        for (let x = 0; x < plotWidth; x++) { const index = Math.min(600,Math.round(x/plotWidth*600)), y = Math.round(yFor(values[index])); const color = spectrumColor(350+index); for (let fy = Math.round(Math.min(y,zeroY)); fy <= Math.round(Math.max(y,zeroY)); fy++) setPixel(left+x,fy,color); }
+        for (let index = 1; index < sampleCount; index++) line(left+(index-1)/600*plotWidth,yFor(values[index-1]),left+index/600*plotWidth,yFor(values[index]),[245,245,245]);
+        line(left,zeroY,outputWidth-right,zeroY,[245,245,245]); line(left,top,left,top+plotHeight,axisColor); line(left,top+plotHeight,outputWidth-right,top+plotHeight,axisColor);
+        const textScale = Math.max(1,Math.floor(outputWidth/1200));
+        drawText('WAVELENGTH (NM)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.48),textScale,[235,235,235]);
+        drawText('SPECTRAL VALUE',3,Math.round(outputHeight*.43),textScale,[235,235,235]);
+        processingStage = 'encoding OHSP spectral chart';
+        using image = vips.Image.newFromMemory(pixels, outputWidth, outputHeight, 3, vips.BandFormat.uchar);
         image.jpegsave(target, { Q: width > 0 ? 82 : 92 });
       } else if (cameraRawExtensions.has(sourceExtension)) {
         processingStage = 'developing camera RAW with LibRaw';
