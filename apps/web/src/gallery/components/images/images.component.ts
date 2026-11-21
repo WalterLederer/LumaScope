@@ -913,7 +913,7 @@ export class ImagesComponent {
         await this.cacheManager.registerGalleryFiles(folder, files);
         for (let offset = 0; offset < files.length && !controller.signal.aborted; offset += 500) {
           const batch = files.slice(offset, offset + 500);
-          const images = batch.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, '')));
+          const images = batch.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
           if (images.length > 0) {
             await this.runCacheForImages(images, true, controller.signal, {
               resetLog, progressOffset: processedImages, progressTotal: processedImages + images.length, suppressRefresh: true
@@ -1173,7 +1173,7 @@ export class ImagesComponent {
         await this.cacheManager.registerGalleryFiles(directoryPath, files);
         for (let offset = 0; offset < files.length && !controller.signal.aborted; offset += 500) {
           const batch = files.slice(offset, offset + 500);
-          const images = batch.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, '')));
+          const images = batch.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
           if (images.length > 0) {
             await this.runCacheForImages(images, true, controller.signal, {
               resetLog, progressOffset: processedImages, progressTotal: processedImages + images.length, suppressRefresh: true
