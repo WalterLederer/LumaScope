@@ -909,10 +909,9 @@ export class ImagesComponent {
       if (folder) {
         this.cacheRunCurrentOperation.set(`Reading images in ${folder}`);
         const entries = await this.fileSystem.readDir(folder);
-        const files = entries.filter(entry => !entry.isDirectory);
-        await this.cacheManager.registerGalleryFiles(folder, files);
-        for (let offset = 0; offset < files.length && !controller.signal.aborted; offset += 500) {
-          const batch = files.slice(offset, offset + 500);
+        await this.cacheManager.registerGalleryFiles(folder, entries);
+        for (let offset = 0; offset < entries.length && !controller.signal.aborted; offset += 500) {
+          const batch = entries.slice(offset, offset + 500).filter(entry => !entry.isDirectory);
           const images = batch.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
           if (images.length > 0) {
             await this.runCacheForImages(images, true, controller.signal, {
@@ -1169,10 +1168,9 @@ export class ImagesComponent {
           }
         }
 
-        const files = entries.filter(entry => !entry.isDirectory);
-        await this.cacheManager.registerGalleryFiles(directoryPath, files);
-        for (let offset = 0; offset < files.length && !controller.signal.aborted; offset += 500) {
-          const batch = files.slice(offset, offset + 500);
+        await this.cacheManager.registerGalleryFiles(directoryPath, entries);
+        for (let offset = 0; offset < entries.length && !controller.signal.aborted; offset += 500) {
+          const batch = entries.slice(offset, offset + 500).filter(entry => !entry.isDirectory);
           const images = batch.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
           if (images.length > 0) {
             await this.runCacheForImages(images, true, controller.signal, {
