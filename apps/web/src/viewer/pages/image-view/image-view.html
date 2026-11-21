@@ -176,7 +176,7 @@
                   @if (hexVirtualTopHeight() > 0) {
                     <tr class="hex-virtual-spacer" aria-hidden="true"><td colspan="3" [style.height.px]="hexVirtualTopHeight()"></td></tr>
                   }
-                  @for (row of hexRows(); track row.offset) {
+                  @for (row of hexVisibleRows(); track row.offset) {
                     <tr class="hex-data-row">
                       <td class="hex-offset">{{formatHexOffset(row.offset)}}</td>
                       <td class="hex-bytes" [class.hex-bytes-binary]="hexByteDisplayMode() === 'binary'" [class.hex-unicode]="hexByteDisplayMode() === 'utf16' || hexByteDisplayMode() === 'utf16-shifted'">@for (byteIndex of hexByteIndices; track byteIndex) {<span [class.hex-byte-cell]="hexByteDisplayMode() !== 'utf16' && hexByteDisplayMode() !== 'utf16-shifted'" [class.hex-readable-string]="(hexByteDisplayMode() === 'utf16' ? isHexReadableCharacter(row.utf16, hexUtfIndex(byteIndex)) : hexByteDisplayMode() === 'utf16-shifted' ? isHexReadableCharacter(row.utf16Shifted, hexShiftedUtfIndex(byteIndex)) : false)" [class.hex-cursor]="hexCursorByteIndex(row.offset) === byteIndex" (click)="setHexCursor(row.offset + byteIndex)">{{hexByteDisplayMode() === 'utf16' ? (byteIndex % 2 === 0 ? (row.utf16[hexUtfIndex(byteIndex)] || ' ') : ' ') : hexByteDisplayMode() === 'utf16-shifted' ? (byteIndex % 2 === 1 ? (row.utf16Shifted[hexShiftedUtfIndex(byteIndex)] || ' ') : ' ') : formatHexByte(row.hex, byteIndex)}}</span> }</td>
