@@ -147,7 +147,7 @@ const getFullSizeDerivative = async (
   thumbManager: ThumbManager
 ): Promise<string | null> => {
   const extension = extname(fileName).toLowerCase();
-  const derivativeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw', '.ohsp', '.jxl', '.png' ]);
+  const derivativeExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw', '.jxl', '.png' ]);
   const convertibleExtensions = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw', '.ohsp' ]);
   if (derivativeExtensions.has(extension)) {
     // Converted files use a shared sibling folder named "jpg", matching the source basename.
