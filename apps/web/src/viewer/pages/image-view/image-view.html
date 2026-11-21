@@ -138,6 +138,10 @@
               </select>
             </label>
           </header>
+          <label class="image-hex-font-control">Font size
+            <input type="range" min="9" max="22" step="1" [value]="hexFontSize()" (input)="setHexFontSize($any($event.target).value)" aria-label="HEX table font size" />
+            <span>{{hexFontSize()}} px</span>
+          </label>
           <div class="image-hex-search" role="search" aria-label="Search HEX file">
             <select [value]="hexSearchMode()" (change)="setHexSearchMode($any($event.target).value)" aria-label="Search format">
               <option value="ascii">ASCII</option>
@@ -157,7 +161,7 @@
           }
           @if (hexFilePath() && hexTotalRows() > 0) {
             <div #hexScrollViewport class="image-hex-table-scroll" tabindex="0" (keydown)="onHexKeyDown($event)" (scroll)="onHexScroll($event)" aria-label="HEX data. Use arrow keys to move the byte cursor.">
-              <table class="image-hex-table">
+              <table class="image-hex-table" [style.fontSize.px]="hexFontSize()">
                 <thead>
                   <tr><th>Offset</th><th>{{hexByteDisplayMode() === 'decimal' ? 'Decimal bytes' : hexByteDisplayMode() === 'octal' ? 'Octal bytes' : hexByteDisplayMode() === 'binary' ? 'Binary bytes' : 'Hex bytes'}}</th><th>ASCII</th><th>UTF-16</th><th>UTF-16 +1</th></tr>
                 </thead>
