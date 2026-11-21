@@ -317,15 +317,12 @@ export class ImageGridComponent {
   };
 
   readonly onCacheUpdated = (sourceName: string): void => {
-    if (!sourceName) {
-      this.cachePathUpdateRevision++;
-      this.resetDirectoryCacheStats();
-      void this.refreshDirectoryCacheStats();
+    if (sourceName) {
+      // Thumbnail completion events are not database mutations. The cache
+      // manager's revision signal below is the authoritative invalidation
+      // trigger for actual cache writes.
       return;
     }
-    if (!this.cacheStatsPaths.has(sourceName)) return;
-    // A metadata/cache write invalidates the affected aggregate. Rebuild once
-    // after the write; ordinary virtual-scroll updates remain incremental.
     this.cachePathUpdateRevision++;
     this.resetDirectoryCacheStats();
     void this.refreshDirectoryCacheStats();
