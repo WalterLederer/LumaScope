@@ -485,3 +485,21 @@
 :host(.view-details-no-thumbnails.detail-filter-active.selected-image) > td:first-child {
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 75%, transparent) !important;
 }
+
+
+/* Keep the inactive actions cell out of layout even though legacy rules
+   explicitly restore table-cell display for detail-row cells. */
+:host(.view-details) > .detail-actions[hidden],
+:host(.view-details-no-thumbnails) > .detail-actions[hidden] {
+  display: none !important;
+}
+/* Center the row hamburger in the same narrow actions column as the header. */
+:host(.view-details) > .detail-actions:not([hidden]) > .detail-row-menu-trigger,
+:host(.view-details-no-thumbnails) > .detail-actions:not([hidden]) > .detail-row-menu-trigger {
+  position: relative !important;
+  inset: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto !important;
+}
