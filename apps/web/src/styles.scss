@@ -171,3 +171,16 @@ html body table:not([role="presentation"]) > :is(thead, tbody, tfoot) > tr > :la
 html body table:not([role="presentation"]) > :is(thead, tbody, tfoot) > tr:last-child > :is(th, td) {
   border-bottom: 0;
 }
+
+
+/* Data tables use square edges throughout the application. Rounded scrollports
+   expose moving rows at their corners on some native-table/scrollbar combinations. */
+html body :is(table, .detail-table, .details-mode, .gpx-database-table, .shortcut-table-scroll, [class*="table-wrap"]) {
+  border-radius: 0 !important;
+  clip-path: none !important;
+  -webkit-clip-path: none !important;
+}
+html body :is(table, .detail-table, .details-mode, .gpx-database-table, .shortcut-table-scroll, [class*="table-wrap"])::before,
+html body :is(table, .detail-table, .details-mode, .gpx-database-table, .shortcut-table-scroll, [class*="table-wrap"])::after {
+  border-radius: 0 !important;
+}
