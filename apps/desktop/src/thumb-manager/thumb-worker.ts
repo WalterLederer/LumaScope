@@ -1338,13 +1338,13 @@ if (parentPort) {
             const fromY = Math.round(Math.min(curveY, zeroY));
             const toY = Math.round(Math.max(curveY, zeroY));
             for (let y = fromY; y <= toY; y++) {
-              addThumbnailHdrLight(left + x, y, color, 1.65, 0.18);
+              addThumbnailHdrLight(left + x, y, color, 2.8, 0.25);
             }
-            // A soft, wavelength-coloured glow makes the spectral line stand
-            // out from the brighter filled gradient at thumbnail dimensions.
+            // Use a stronger emissive curve in the small derivative so its gain
+            // map remains clearly visible at gallery thumbnail dimensions.
             for (let dy = -3; dy <= 3; dy++) {
-              const glow = 1.35 * Math.exp(-0.5 * (dy / 1.8) ** 2);
-              addThumbnailHdrLight(left + x, curveY + dy, color, glow, dy === 0 ? 0.8 : 0);
+              const glow = 2.0 * Math.exp(-0.5 * (dy / 1.8) ** 2);
+              addThumbnailHdrLight(left + x, curveY + dy, color, glow, dy === 0 ? 1.1 : 0);
             }
           }
           using image = vips.Image.newFromMemory(hdrPixels, outputWidth, outputHeight, 3, vips.BandFormat.float);
