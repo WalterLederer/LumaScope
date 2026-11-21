@@ -2415,3 +2415,106 @@
   opacity: 1;
   cursor: not-allowed;
 }
+
+
+/* HEX viewer: fixed-height rows with range-based virtual loading for large files. */
+:host .image-controls-sidebar .image-hex-viewer {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 8px;
+  gap: 6px;
+}
+:host .image-hex-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+  min-width: 0;
+  gap: 8px;
+  font-size: 11px;
+}
+:host .image-hex-file-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+:host .image-hex-file-info strong,
+:host .image-hex-file-info span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+:host .image-hex-file-info span,
+:host .image-hex-row-count {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+}
+:host .image-hex-status {
+  flex: 0 0 auto;
+  padding: 6px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+:host .image-hex-table-scroll {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-default-lowest);
+  contain: strict;
+}
+:host .image-hex-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font: 11px/22px Consolas, 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+}
+:host .image-hex-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-surface-default);
+}
+:host .image-hex-table th {
+  height: 25px;
+  padding: 0 6px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--color-border-default);
+  font: 600 10px/25px Arial, sans-serif;
+}
+:host .image-hex-table td {
+  height: 22px;
+  padding: 0 6px;
+  white-space: pre;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+:host .image-hex-table .hex-offset { color: var(--color-text-secondary); }
+:host .image-hex-table .hex-bytes { min-width: 390px; color: var(--color-text-default); }
+:host .image-hex-table .hex-ascii { min-width: 135px; }
+:host .image-hex-table .hex-unicode { min-width: 95px; }
+:host .image-hex-table .image-hex-spacer td {
+  padding: 0;
+  height: 0;
+  border: 0;
+}
+:host .image-hex-loading {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  background: var(--color-surface-default);
+  box-shadow: 0 1px 5px rgb(0 0 0 / 20%);
+  font-size: 10px;
+  pointer-events: none;
+}
