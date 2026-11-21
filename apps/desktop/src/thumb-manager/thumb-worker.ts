@@ -1313,6 +1313,49 @@ if (parentPort) {
               addHdrLight(left + x, y, color, halo, core);
             }
           }
+          // Rasterize the LumaScope mark directly into the full-size OHSP image.
+          // It is therefore part of the Ultra HDR JPEG, not a viewer overlay.
+          const logoCenterX = outputWidth - right - 86;
+          const logoCenterY = 88;
+          const logoColor: [number, number, number] = [255, 248, 225];
+          const drawHdrLogoSegment = (x0: number, y0: number, x1: number, y1: number, intensity = 3.2) => {
+            const steps = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 1.5));
+            for (let step = 0; step <= steps; step++) {
+              const t = step / steps;
+              const x = Math.round(x0 + (x1 - x0) * t);
+              const y = Math.round(y0 + (y1 - y0) * t);
+              for (let dy = -3; dy <= 3; dy++) {
+                for (let dx = -3; dx <= 3; dx++) {
+                  const distance = Math.hypot(dx, dy);
+                  if (distance > 3) continue;
+                  addHdrLight(x + dx, y + dy, logoColor, intensity * Math.exp(-0.5 * distance * distance), 0);
+                }
+              }
+              addHdrLight(x, y, logoColor, 4.0, 3.0);
+            }
+          };
+          // Eight radial rays around a circular lens/sun mark.
+          for (let ray = 0; ray < 8; ray++) {
+            const angle = ray * Math.PI / 4;
+            drawHdrLogoSegment(
+              logoCenterX + Math.cos(angle) * 48,
+              logoCenterY + Math.sin(angle) * 48,
+              logoCenterX + Math.cos(angle) * 69,
+              logoCenterY + Math.sin(angle) * 69,
+              2.8
+            );
+          }
+          // Circular outline and bright central lens.
+          for (let angle = 0; angle < Math.PI * 2; angle += 0.012) {
+            const x = logoCenterX + Math.cos(angle) * 34;
+            const y = logoCenterY + Math.sin(angle) * 34;
+            drawHdrLogoSegment(x, y, x + 0.5, y + 0.5, 2.4);
+          }
+          for (let angle = 0; angle < Math.PI * 2; angle += 0.04) {
+            const x = Math.round(logoCenterX + Math.cos(angle) * 10);
+            const y = Math.round(logoCenterY + Math.sin(angle) * 10);
+            addHdrLight(x, y, logoColor, 4.5, 4.0);
+          }
           using image = vips.Image.newFromMemory(hdrPixels, outputWidth, outputHeight, 3, vips.BandFormat.float);
           using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
           encodeScRgbAsUhdr(scrgb, target, 92);
@@ -1327,7 +1370,7 @@ if (parentPort) {
             if (x < 0 || y < 0 || x >= outputWidth || y >= outputHeight) return;
             const pixelOffset = (Math.floor(y) * outputWidth + Math.floor(x)) * 3;
             for (let channel = 0; channel < 3; channel++) {
-              hdrPixels[pixelOffset + channel] = Math.min(4, hdrPixels[pixelOffset + channel] + color[channel] / 255 * intensity + whiteCore);
+              hdrPixels[pixelOffset + channel] = Math.min(8, hdrPixels[pixelOffset + channel] + color[channel] / 255 * intensity + whiteCore);
             }
           };
           for (let x = 0; x < plotWidth; x++) {
@@ -1338,13 +1381,13 @@ if (parentPort) {
             const fromY = Math.round(Math.min(curveY, zeroY));
             const toY = Math.round(Math.max(curveY, zeroY));
             for (let y = fromY; y <= toY; y++) {
-              addThumbnailHdrLight(left + x, y, color, 2.8, 0.25);
+              addThumbnailHdrLight(left + x, y, color, 5.5, 0.5);
             }
             // Use a stronger emissive curve in the small derivative so its gain
             // map remains clearly visible at gallery thumbnail dimensions.
             for (let dy = -3; dy <= 3; dy++) {
-              const glow = 2.0 * Math.exp(-0.5 * (dy / 1.8) ** 2);
-              addThumbnailHdrLight(left + x, curveY + dy, color, glow, dy === 0 ? 1.1 : 0);
+              const glow = 4.0 * Math.exp(-0.5 * (dy / 1.8) ** 2);
+              addThumbnailHdrLight(left + x, curveY + dy, color, glow, dy === 0 ? 2.5 : 0);
             }
           }
           using image = vips.Image.newFromMemory(hdrPixels, outputWidth, outputHeight, 3, vips.BandFormat.float);
@@ -1366,7 +1409,7 @@ if (parentPort) {
             const value = Number(decodedThumbnailPixels[index]);
             if (Number.isFinite(value)) decodedThumbnailPeak = Math.max(decodedThumbnailPeak, value);
           }
-          if (decodedThumbnailPeak <= 1.01) {
+          if (decodedThumbnailPeak <= 1.5) {
             throw new Error(`OHSP thumbnail Ultra HDR gain map decoded without values above reference white (peak ${decodedThumbnailPeak.toFixed(3)}).`);
           }
           console.info(`[ThumbWorker] OHSP Ultra HDR thumbnail verified: ${target}; gainmap=${thumbnailGainmap.width}x${thumbnailGainmap.height}; decoded scRGB peak=${decodedThumbnailPeak.toFixed(3)}`);
