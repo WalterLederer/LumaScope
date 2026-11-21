@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, Observable, take, tap } from 'rxjs';
+import { BehaviorSubject, combineLatest, firstValueFrom, from, map, Observable, of, switchMap, take, tap, catchError } from 'rxjs';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { imageUrl } from '../../utils/image-url';
@@ -15,97 +15,116 @@ export class ViewNavigator {
   /* State */
   readonly standalone = signal(false);
 
-  private readonly images$ = this.galleryState.images();
+  private readonly selectedPath$ = new BehaviorSubject<string | null>(null);
+  private readonly totalFileCount$ = toObservable(this.galleryState.totalFileCount);
   private readonly cacheRevision$ = toObservable(this.cacheManager.cacheRevision);
 
-  // Keep the selected file stable when sorting or refreshing changes its index.
-  private readonly selectedPath$ = new BehaviorSubject<string | null>(null);
-
-  private readonly selectedImage$: Observable<SelectedImage | null> = combineLatest([
-    this.images$,
+  // Resolve the selected path against the database's complete, sorted result set.
+  // This keeps navigation independent of how many thumbnail pages are resident.
+  private readonly selectedIndex$: Observable<number> = combineLatest([
     this.selectedPath$,
-    this.cacheRevision$
+    this.galleryState.selectedLocation(),
+    this.galleryState.sortMode(),
+    this.galleryState.includeUnsupportedFiles(),
+    this.galleryState.includeFilesRecursive()
   ]).pipe(
-    map(([images, selectedPath, cacheRevision]) => {
-      if (selectedPath === null) return null;
-      const image = images.find(item => item.path === selectedPath);
-      if (!image) return null;
-
-      return {
-        path: image.path,
-        url: imageUrl(image.path, cacheRevision),
-        size: image.size,
-        modifiedAt: image.modifiedAt
-      };
-    })
+    switchMap(([path]) => path === null
+      ? of(-1)
+      : from(this.galleryState.getGalleryFilePosition(path)).pipe(
+          map(position => position > 0 ? position - 1 : -1),
+          catchError(error => {
+            console.error('Failed to resolve selected gallery file position', path, error);
+            return of(-1);
+          })
+        ))
   );
 
-  private readonly selectedIndex$ = combineLatest([this.images$, this.selectedPath$])
-    .pipe(map(([images, selectedPath]) => selectedPath === null
-      ? -1
-      : images.findIndex(image => image.path === selectedPath)));
-
-  private readonly hasPrevious$ = this.selectedIndex$
-    .pipe(map(index => index > 0));
-
-  private readonly hasNext$ = combineLatest([this.images$, this.selectedIndex$])
-    .pipe(map(([images, index]) => index >= 0 && index < images.length - 1));
+  private readonly selectedImage$: Observable<SelectedImage | null> = combineLatest([
+    this.selectedPath$,
+    this.selectedIndex$,
+    this.cacheRevision$
+  ]).pipe(
+    switchMap(([path, index, cacheRevision]) => {
+      if (path === null || index < 0) return of(null);
+      return from(this.galleryState.getGalleryFileAtPosition(index + 1)).pipe(
+        map(image => image ? {
+          path: image.path,
+          url: imageUrl(image.path, cacheRevision),
+          size: image.size,
+          modifiedAt: image.modifiedAt
+        } : null),
+        catchError(error => {
+          console.error('Failed to load selected gallery file', path, error);
+          return of(null);
+        })
+      );
+    })
+  );
 
   /* Getters */
   readonly selectedImage = () => this.selectedImage$;
 
-  readonly imagePosition = () => combineLatest([this.images$, this.selectedIndex$])
-    .pipe(map(([images, index]) => ({
-      position: index >= 0 && index < images.length ? index + 1 : 0,
-      total: images.length
+  readonly imagePosition = () => combineLatest([this.selectedIndex$, this.totalFileCount$])
+    .pipe(map(([index, total]) => ({
+      position: index >= 0 && index < total ? index + 1 : 0,
+      total
     })));
 
-  readonly hasPrevious = () => this.hasPrevious$;
+  readonly hasPrevious = () => this.selectedIndex$.pipe(map(index => index > 0));
 
-  readonly hasNext = () => this.hasNext$;
+  readonly hasNext = () => combineLatest([this.selectedIndex$, this.totalFileCount$])
+    .pipe(map(([index, total]) => index >= 0 && index < total - 1));
 
   /* Modifiers */
-  readonly previous = () => combineLatest([this.images$, this.selectedIndex$])
-    .pipe(
-      take(1),
-      filter(([_, index]) => index > 0),
-      map(([images, index]) => images[index - 1].path)
-    )
-    .subscribe(path => this.selectedPath$.next(path));
+  readonly previous = async (): Promise<void> => {
+    const index = await firstValueFrom(this.selectedIndex$.pipe(take(1)));
+    if (index <= 0) return;
+    const image = await this.galleryState.getGalleryFileAtPosition(index);
+    if (image) this.selectedPath$.next(image.path);
+  };
 
-  readonly next = () => combineLatest([this.images$, this.selectedIndex$])
-    .pipe(
-      take(1),
-      filter(([images, index]) => index >= 0 && index < images.length - 1),
-      map(([images, index]) => images[index + 1].path)
-    )
-    .subscribe(path => this.selectedPath$.next(path));
+  readonly next = async (): Promise<void> => {
+    const [index, total] = await firstValueFrom(combineLatest([
+      this.selectedIndex$, this.totalFileCount$
+    ]).pipe(take(1)));
+    if (index < 0 || index >= total - 1) return;
+    const image = await this.galleryState.getGalleryFileAtPosition(index + 2);
+    if (image) this.selectedPath$.next(image.path);
+  };
 
-  readonly selectPosition = (position: number) => this.images$
-    .pipe(
-      take(1),
-      map(images => images[Math.max(0, Math.min(images.length - 1, Math.trunc(position) - 1))]?.path ?? null)
-    )
-    .subscribe(path => this.selectedPath$.next(path));
+  readonly selectPosition = (position: number): void => {
+    const total = this.galleryState.totalFileCount();
+    const target = Math.max(1, Math.min(total, Math.trunc(position)));
+    if (total <= 0 || !Number.isFinite(target)) {
+      this.selectedPath$.next(null);
+      return;
+    }
+    void this.galleryState.getGalleryFileAtPosition(target).then(image => {
+      this.selectedPath$.next(image?.path ?? null);
+    }).catch(error => console.error('Failed to select gallery position', target, error));
+  };
 
-  readonly selectImage = (path: string) => this.images$
-    .pipe(
-      take(1),
-      map(images => images.some(image => image.path === path)),
-      tap(found => this.selectedPath$.next(found ? path : null))
-    );
+  readonly selectImage = (path: string): Observable<boolean> => from(
+    this.galleryState.getGalleryFilePosition(path)
+  ).pipe(
+    map(position => position > 0),
+    tap(found => this.selectedPath$.next(found ? path : null)),
+    catchError(error => {
+      console.error('Failed to select gallery image', path, error);
+      this.selectedPath$.next(null);
+      return of(false);
+    })
+  );
 
   readonly deleteImage = async (path: string): Promise<boolean> => {
-    const images = await firstValueFrom(this.images$.pipe(take(1)));
-    const deletedIndex = images.findIndex(image => image.path === path);
-
-    if (deletedIndex < 0 || !await this.galleryState.deleteImage(path)) {
-      return false;
-    }
+    const deletedPosition = await this.galleryState.getGalleryFilePosition(path);
+    if (deletedPosition <= 0 || !await this.galleryState.deleteImage(path)) return false;
 
     if (this.selectedPath$.value === path) {
-      const remainingImages = await firstValueFrom(this.images$.pipe(take(1)));
-      const replacement = remainingImages[Math.min(deletedIndex, remainingImages.length - 1)];
+      const nextTotal = this.galleryState.totalFileCount();
+      const replacement = nextTotal > 0
+        ? await this.galleryState.getGalleryFileAtPosition(Math.min(deletedPosition, nextTotal))
+        : null;
       this.selectedPath$.next(replacement?.path ?? null);
     }
 
