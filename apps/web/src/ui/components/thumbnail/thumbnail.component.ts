@@ -155,6 +155,11 @@ export class ThumbnailComponent implements OnDestroy {
     if (error) window.alert(error);
   };
 
+  readonly exportHex = async (): Promise<void> => {
+    const result = await this.fileSystem.exportHex(this.image().path);
+    if (!result.success) window.alert(result.errorMessage ?? 'HEX export failed.');
+  };
+
   readonly deleteImageFile = async (): Promise<void> => {
     const deleted = await this.imageFileActions.confirmAndDelete(this.image().path);
     if (deleted === false) window.alert('The image could not be deleted.');
