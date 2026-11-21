@@ -1097,7 +1097,9 @@ if (parentPort) {
         const outputHeight = Math.max(180, height > 0 ? height : 900);
         const isFullSize = width === 0 && height === 0;
         const pixels = Buffer.alloc(outputWidth * outputHeight * 3);
-        for (let i = 0; i < pixels.length; i += 3) { pixels[i] = 16; pixels[i + 1] = 18; pixels[i + 2] = 22; }
+        // Keep the chart canvas genuinely black, including the HDR base layer.
+        // A lifted charcoal base is perceived as grey after Ultra HDR display mapping.
+        pixels.fill(0);
         const setPixel = (x: number, y: number, color: [number, number, number]) => {
           if (x < 0 || y < 0 || x >= outputWidth || y >= outputHeight) return;
           const p = (Math.floor(y) * outputWidth + Math.floor(x)) * 3;
@@ -1205,23 +1207,54 @@ if (parentPort) {
           // the spectrum visibly emits light on an HDR-capable display.
           const hdrPixels = new Float32Array(pixels.length);
           for (let index = 0; index < pixels.length; index++) hdrPixels[index] = pixels[index] / 255;
+
+          // Additive scRGB light is intentionally kept separate from the SDR
+          // raster drawing so the curve and wavelength band retain real HDR peaks.
+          const addHdrLight = (x: number, y: number, color: [number, number, number], intensity: number, whiteCore = 0) => {
+            if (x < 0 || y < 0 || x >= outputWidth || y >= outputHeight || intensity <= 0) return;
+            const pixelOffset = (Math.floor(y) * outputWidth + Math.floor(x)) * 3;
+            for (let channel = 0; channel < 3; channel++) {
+              const colored = color[channel] / 255 * intensity;
+              hdrPixels[pixelOffset + channel] = Math.min(8, hdrPixels[pixelOffset + channel] + colored + whiteCore);
+            }
+          };
+
+          // Bright spectral outline with a broad wavelength-coloured halo and
+          // a near-white HDR core. Sample every pixel along each segment so
+          // the glow remains continuous even at full-size output dimensions.
+          for (let index = 1; index < sampleCount; index++) {
+            const x0 = left + (index - 1) / (sampleCount - 1) * plotWidth;
+            const x1 = left + index / (sampleCount - 1) * plotWidth;
+            const y0 = yFor(values[index - 1]);
+            const y1 = yFor(values[index]);
+            const steps = Math.max(1, Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
+            for (let step = 0; step <= steps; step++) {
+              const t = step / steps;
+              const x = Math.round(x0 + (x1 - x0) * t);
+              const y = Math.round(y0 + (y1 - y0) * t);
+              const wavelength = startWavelength + (index - 1 + t) / (sampleCount - 1) * (endWavelength - startWavelength);
+              const color = spectrumColor(wavelength);
+              for (let dy = -7; dy <= 7; dy++) {
+                const distance = Math.abs(dy);
+                const halo = 2.4 * Math.exp(-0.5 * (distance / 3.2) ** 2);
+                const core = distance <= 1 ? 5.0 : 0;
+                addHdrLight(x, y + dy, color, halo, core);
+              }
+            }
+          }
+
           const axisY = Math.round(top + plotHeight);
           const bandCenterY = axisY + 42;
-          const glowRadius = 16;
+          const glowRadius = 24;
           for (let x = 0; x < plotWidth; x++) {
             const wavelength = startWavelength + x / Math.max(1, plotWidth - 1) * (endWavelength - startWavelength);
             const color = spectrumColor(wavelength);
             for (let y = bandCenterY - glowRadius; y <= bandCenterY + glowRadius; y++) {
               if (y < 0 || y >= outputHeight) continue;
               const distance = Math.abs(y - bandCenterY);
-              const halo = 1.0 * Math.exp(-0.5 * (distance / 7) ** 2);
-              const core = distance <= 3 ? 3.0 : 0;
-              const intensity = halo + core;
-              if (intensity < 0.015) continue;
-              const pixelOffset = (y * outputWidth + left + x) * 3;
-              hdrPixels[pixelOffset] = Math.min(4, hdrPixels[pixelOffset] + color[0] / 255 * intensity);
-              hdrPixels[pixelOffset + 1] = Math.min(4, hdrPixels[pixelOffset + 1] + color[1] / 255 * intensity);
-              hdrPixels[pixelOffset + 2] = Math.min(4, hdrPixels[pixelOffset + 2] + color[2] / 255 * intensity);
+              const halo = 2.4 * Math.exp(-0.5 * (distance / 9) ** 2);
+              const core = distance <= 4 ? 6.0 : 0;
+              addHdrLight(left + x, y, color, halo, core);
             }
           }
           using image = vips.Image.newFromMemory(hdrPixels, outputWidth, outputHeight, 3, vips.BandFormat.float);
