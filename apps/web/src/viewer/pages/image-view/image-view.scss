@@ -2583,8 +2583,9 @@
   font: 600 10px/25px Arial, sans-serif;
 }
 :host .image-hex-table td {
-  height: 22px;
+  height: auto;
   padding: 0 6px;
+  line-height: 1.25;
   white-space: pre;
   border-bottom: 1px solid var(--color-border-subtle);
 }
@@ -2598,8 +2599,8 @@
   overflow: hidden;
 }
 :host .image-hex-table tr.hex-data-row td {
-  height: 22px;
-  line-height: 22px;
+  height: auto;
+  line-height: 1.25;
 }
 :host .image-hex-table .hex-offset { color: var(--color-text-secondary); }
 :host .image-hex-table .hex-bytes { width: 310px; min-width: 310px; color: var(--color-text-default); }
