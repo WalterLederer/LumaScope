@@ -204,7 +204,7 @@ const histogram = async (params: URLSearchParams, signal?: AbortSignal): Promise
       const cacheManager = injector.inject('CacheManager');
       const thumbManager = injector.inject('ThumbManager');
       const isTiff = [ '.tif', '.tiff' ].includes(extension);
-      const tag = extension === '.ohsp' ? 'ohsp-full-spectrum-v14' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}-full-${isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr'}`;
+      const tag = extension === '.ohsp' ? 'ohsp-full-spectrum-v15' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}-full-${isTiff ? 'hdr-v6' : extension === '.exr' ? 'uhdr-v2' : 'uhdr'}`;
       const result = await getFullSizeDerivative(fileName, tag, cacheManager, thumbManager);
 
       if (signal?.aborted) {
@@ -270,7 +270,7 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
     const useSidecar = cacheManager.usesSidecarStorage(fileName);
     const isOhsp = extname(fileName).toLowerCase() === '.ohsp';
     const tag = isOhsp
-      ? `${useSidecar ? 'sidecar' : `${width}x${height}`}-ohsp-uhdr-v6`
+      ? `${useSidecar ? 'sidecar' : `${width}x${height}`}-ohsp-uhdr-v7`
       : useSidecar
         ? 'sidecar-thumbnail-v2'
         : `${width}x${height}${isJxr ? '-jxr-uhdr' : isAvif ? '-avif' : isHeif ? '-heif' : isExr ? '-exr-uhdr-v2' : isRadiance ? '-radiance-hdr' : isTiff ? '-tiff-hdr-v6' : ''}`;
@@ -354,7 +354,7 @@ const raw = async (params: URLSearchParams, signal?: AbortSignal): Promise<Globa
       const cacheManager = injector.inject('CacheManager');
       const thumbManager = injector.inject('ThumbManager');
       const extension = extname(fileName).toLowerCase();
-      const cacheTag = extension === '.ohsp' ? 'ohsp-full-spectrum-v14' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+      const cacheTag = extension === '.ohsp' ? 'ohsp-full-spectrum-v15' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
       const cacheEntry = cacheManager.exists(fileName, cacheTag);
       let wasCacheHit = false;
       if (cacheEntry && typeof cacheEntry['target_path'] === 'string' && existsSync(cacheEntry['target_path'])) {
