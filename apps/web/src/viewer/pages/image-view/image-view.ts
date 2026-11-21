@@ -732,9 +732,9 @@ export class ImageView {
   protected readonly hexCursorByteIndex = (rowOffset: number): number =>
     this.hexCursorRowActive(rowOffset) ? this.hexCursorOffset() - rowOffset : -1;
   protected readonly hexCursorUtfIndex = (rowOffset: number, shifted = false): number => {
-    if (!this.hexCursorRowActive(rowOffset)) return -1;
-    const byteIndex = this.hexCursorByteIndex(rowOffset);
-    return shifted ? (byteIndex >= 1 ? Math.floor((byteIndex - 1) / 2) : -1) : Math.floor(byteIndex / 2);
+    const byteIndex = this.hexCursorOffset() - rowOffset;
+    if (shifted) return byteIndex >= 1 && byteIndex <= 16 ? Math.floor((byteIndex - 1) / 2) : -1;
+    return byteIndex >= 0 && byteIndex < 16 ? Math.floor(byteIndex / 2) : -1;
   };
   protected readonly setHexCursor = (offset: number): void => {
     const bounded = Math.max(0, Math.min(Math.max(0, this.hexFileSize() - 1), Math.floor(offset)));
