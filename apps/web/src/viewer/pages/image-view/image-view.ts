@@ -710,8 +710,8 @@ export class ImageView {
     ? `Rows ${(this.hexStartRow() + 1).toLocaleString()}–${Math.min(this.hexTotalRows(), this.hexStartRow() + this.hexRows().length).toLocaleString()} of ${this.hexTotalRows().toLocaleString()}`
     : '');
   protected readonly formatHexOffset = (offset: number): string => offset.toString(16).toUpperCase().padStart(8, '0');
-  protected readonly hexStringSegments = (value: string, ascii = false): Array<{ text: string; isString: boolean }> => {
-    const pattern = ascii ? /[\x20-\x7E]{4,}/g : /[^\u0000-\u001F\u007F·]{4,}/gu;
+  protected readonly hexStringSegments = (value: string): Array<{ text: string; isString: boolean }> => {
+    const pattern = /[A-Za-z0-9]{4,}/g;
     const segments: Array<{ text: string; isString: boolean }> = [];
     let position = 0;
     for (const match of value.matchAll(pattern)) {
@@ -722,6 +722,34 @@ export class ImageView {
     }
     if (position < value.length) segments.push({ text: value.slice(position), isString: false });
     return segments.length ? segments : [{ text: value, isString: false }];
+  };
+  protected readonly hexByteIndices = Array.from({ length: 16 }, (_, index) => index);
+  protected readonly hexCursorOffset = signal(0);
+  protected readonly hexCursorRowActive = (rowOffset: number): boolean =>
+    Math.floor(this.hexCursorOffset() / 16) === Math.floor(rowOffset / 16);
+  protected readonly hexCursorByteIndex = (rowOffset: number): number =>
+    this.hexCursorRowActive(rowOffset) ? this.hexCursorOffset() - rowOffset : -1;
+  protected readonly hexCursorUtfIndex = (rowOffset: number, shifted = false): number => {
+    if (!this.hexCursorRowActive(rowOffset)) return -1;
+    const byteIndex = this.hexCursorByteIndex(rowOffset);
+    return shifted ? (byteIndex >= 1 ? Math.floor((byteIndex - 1) / 2) : -1) : Math.floor(byteIndex / 2);
+  };
+  protected readonly setHexCursor = (offset: number): void => {
+    const bounded = Math.max(0, Math.min(Math.max(0, this.hexFileSize() - 1), Math.floor(offset)));
+    this.hexCursorOffset.set(bounded);
+    const row = Math.floor(bounded / 16);
+    const start = this.hexStartRow();
+    if (row < start || row >= start + this.hexRows().length) {
+      void this.loadHexRange(Math.min(row, this.hexMaxStartRow()));
+    }
+  };
+  protected readonly onHexKeyDown = (event: KeyboardEvent): void => {
+    const delta = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1
+      : event.key === 'ArrowUp' ? -16 : event.key === 'ArrowDown' ? 16 : 0;
+    if (!delta || !this.hexFileSize()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.setHexCursor(this.hexCursorOffset() + delta);
   };
   protected readonly formatFileSize = (size: number): string => {
     if (size < 1024) return size + ' B';
@@ -2167,7 +2195,7 @@ export class ImageView {
       .pipe(distinctUntilChanged((previous, current) => previous?.path === current?.path), takeUntilDestroyed(this.destroyRef))
       .subscribe(image => {
         this.hexRequestId++;
-        this.hexFilePath.set(image?.path ?? null);
+        this.hexFilePath.set(image?.path ?? null);\n        this.hexCursorOffset.set(0);
         this.hexRows.set([]);
         this.hexFileSize.set(0);
         this.hexStartRow.set(0);
