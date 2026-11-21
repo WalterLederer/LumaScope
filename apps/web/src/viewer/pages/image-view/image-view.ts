@@ -2529,9 +2529,8 @@ export class ImageView {
 
     effect(onCleanup => {
       const viewport = this.hexScrollViewport()?.nativeElement;
-      const fontSize = this.hexFontSize();
-      const rowCount = this.hexRows().length;
-      const firstVisibleOffset = this.hexVisibleRows()[0]?.offset ?? -1;
+      this.hexFontSize();
+      this.hexRows().length;
       if (!viewport) return;
 
       const updateGeometry = (): void => {
