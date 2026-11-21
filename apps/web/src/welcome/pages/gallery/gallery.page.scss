@@ -433,4 +433,5 @@ ui-side-panel {
 }
 
 .gallery-actions-column-header { display:flex; justify-content:flex-start; min-height:30px; padding:0 0 4px; }
+.gallery-actions-column-header.actions-column-right { justify-content:flex-end; }
 .gallery-actions-column-header button { width:72px; min-height:28px; border:1px solid var(--color-border-default, #888); border-radius:4px; background:transparent; color:inherit; cursor:pointer; font-size:18px; }
