@@ -233,8 +233,6 @@ export class ImageGridComponent {
     const images = this.images() ?? [];
     const folder = this.selectedLocation();
     const verifyCacheFiles = this.verifyCacheFiles();
-    const request = ++this.cacheStatsRequest;
-    const pathUpdateRevision = this.cachePathUpdateRevision;
     const currentPaths = new Set(images.map(image => image.path));
 
     // A folder change, verification-mode change, or removal of previously
@@ -246,6 +244,8 @@ export class ImageGridComponent {
     if (mustReset) this.resetDirectoryCacheStats();
     this.cacheStatsFolder = folder;
     this.cacheStatsVerifyFiles = verifyCacheFiles;
+    const request = ++this.cacheStatsRequest;
+    const pathUpdateRevision = this.cachePathUpdateRevision;
 
     if (images.length === 0) {
       this.resetDirectoryCacheStats();
