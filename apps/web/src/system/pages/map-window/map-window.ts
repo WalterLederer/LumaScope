@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { SliderComponent, ButtonTooltipDirective} from '@light-matter/ui';
 import { GpxDatabaseImportComponent } from './gpx-database-import.component';
 import { GpxTrackPreviewComponent } from './gpx-track-preview.component';
+import { RendererMemoryPanelComponent } from '../../components/renderer-memory-panel/renderer-memory-panel.component';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { Desktop, formatGpsCoordinates as formatSystemGpsCoordinates, formatOsDateTime, lookupReverseGeocoding, type FixPhotoLocationsProgress, type GpxElevationProfile, type OsmAndHillshadeDatabase } from 'internal-api';
 import { ThemeService } from '../../services/theme/theme.service';
@@ -113,7 +114,7 @@ interface MapErrorEntry {
 @Component({
   selector: 'app-map-window',
   standalone: true,
-  imports: [SliderComponent, GpxDatabaseImportComponent, GpxTrackPreviewComponent ,
+  imports: [SliderComponent, GpxDatabaseImportComponent, GpxTrackPreviewComponent, RendererMemoryPanelComponent,
     ButtonTooltipDirective
   ],
   host: { '[class.overlay-mode]': 'overlayMode' },
@@ -187,7 +188,6 @@ export class MapWindow implements OnInit, OnDestroy {
     if (tab === 'track' && this.favoriteGpxDatabaseKeysReady()) void this.refreshLatestGpxElevationProfile();
     if (tab === 'offlineMaps') this.offlineMapListMounted.set(true);
     this.persistLocationUiState({ activeSettingsTab: tab });
-    if (tab === 'memory') void this.refreshProcessMemory();
   };
   protected readonly settingsOpen = signal(false);
   protected readonly activeSettingsTab = signal<'location' | 'fix' | 'track' | 'routing' | 'timeSlider' | 'marker' | 'view' | 'offlineMaps' | 'cache' | 'memory' | 'download' | 'errors'>('location');
@@ -815,35 +815,6 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly rerenderVisibleTilesBusy = signal(false);
   protected readonly rerenderVisibleTilesStatus = signal('');
   protected readonly rerenderVisibleTilesProgress = signal({ completed: 0, total: 0 });
-  protected readonly processMemory = signal<import('internal-api').ProcessMemorySnapshot>({ processes: [], error: null });
-  protected readonly memoryUpdatedAt = signal('');
-  protected readonly rendererDiagnostics = signal({
-    domElements: 0,
-    mapDomElements: 0,
-    mapTiles: 0,
-    mapMarkers: 0,
-    canvasElements: 0,
-    heapUsedBytes: null as number | null,
-    heapTotalBytes: null as number | null,
-    heapLimitBytes: null as number | null
-  });
-  private readonly readRendererDiagnostics = () => {
-    const memory = (performance as Performance & {
-      memory?: { usedJSHeapSize?: number; totalJSHeapSize?: number; jsHeapSizeLimit?: number };
-    }).memory;
-    return {
-      domElements: document.getElementsByTagName('*').length,
-      mapDomElements: document.querySelectorAll('.leaflet-container *, .maplibregl-map *').length,
-      mapTiles: document.querySelectorAll('.leaflet-tile').length,
-      mapMarkers: document.querySelectorAll('.leaflet-marker-icon, .maplibregl-marker').length,
-      canvasElements: document.getElementsByTagName('canvas').length,
-      heapUsedBytes: Number.isFinite(memory?.usedJSHeapSize) ? memory!.usedJSHeapSize! : null,
-      heapTotalBytes: Number.isFinite(memory?.totalJSHeapSize) ? memory!.totalJSHeapSize! : null,
-      heapLimitBytes: Number.isFinite(memory?.jsHeapSizeLimit) ? memory!.jsHeapSizeLimit! : null
-    };
-  };
-  protected readonly totalProcessMemoryBytes = computed(() => this.processMemory().processes.reduce((sum, entry) => sum + entry.workingSetBytes, 0));
-  private memoryRefreshTimer: ReturnType<typeof setInterval> | null = null;
   protected readonly offlineMapImportErrors = signal<string[]>([]);
   protected readonly mapErrors = signal<MapErrorEntry[]>([]);
   private mapErrorSequence = 0;
@@ -1813,9 +1784,6 @@ export class MapWindow implements OnInit, OnDestroy {
       void this.initializeFixLocationMap();
     }
     void this.refreshOsmAndTileCache();
-    this.memoryRefreshTimer = setInterval(() => {
-      if (this.activeSettingsTab() === 'memory') void this.refreshProcessMemory();
-    }, 2000);
     if (this.desktop) {
       this.osmAndStyleRestore = (async () => {
         try {
@@ -2036,8 +2004,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineRenderStatusUnsubscribe = null;
     this.favoriteLocationsUnsubscribe?.();
     this.favoriteLocationsUnsubscribe = null;
-    if (this.memoryRefreshTimer) clearInterval(this.memoryRefreshTimer);
-    this.memoryRefreshTimer = null;
     this.stopTimeSliderAnimation();
     this.walkingMarker?.remove(); this.walkingMarker = null;
     this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
@@ -4268,19 +4234,6 @@ export class MapWindow implements OnInit, OnDestroy {
     let value = bytes / 1024, unit = 0;
     while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
     return value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2) + ' ' + units[unit];
-  };
-  protected readonly refreshProcessMemory = async (): Promise<void> => {
-    this.rendererDiagnostics.set(this.readRendererDiagnostics());
-    if (!this.desktop) return;
-    try {
-      this.processMemory.set(await this.desktop.ProcessManager.getProcessMemoryUsage());
-      this.memoryUpdatedAt.set(new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date()));
-    } catch (error) {
-      this.processMemory.update(current => ({
-        ...current,
-        error: error instanceof Error ? error.message : String(error)
-      }));
-    }
   };
   protected readonly clearAllGpxDatabaseEntries = async (): Promise<void> => {
     if (!this.desktop || this.gpxDatabaseClearBusy()) return;
