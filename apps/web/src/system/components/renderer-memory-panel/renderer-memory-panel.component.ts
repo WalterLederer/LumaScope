@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, signal } from '@angular/core';
 import { ProcessMemorySnapshot } from 'internal-api';
 import { ProcessManager } from '../../../ipc/process-manager';
 
@@ -32,6 +32,7 @@ export class RendererMemoryPanelComponent {
     heapUsedBytes: null, heapTotalBytes: null, heapLimitBytes: null
   });
   protected readonly processMemory = signal<ProcessMemorySnapshot>({ processes: [], error: null });
+  protected readonly totalProcessMemoryBytes = computed(() => this.processMemory().processes.reduce((sum, entry) => sum + entry.workingSetBytes, 0));
   protected readonly updatedAt = signal('');
   private readonly processManager = inject(ProcessManager);
   private readonly destroyRef = inject(DestroyRef);
