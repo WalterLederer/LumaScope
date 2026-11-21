@@ -703,6 +703,7 @@ export class ImageView {
   protected readonly hexLoading = signal(false);
   protected readonly hexStatus = signal('Select a file in the detail list to view its HEX contents.');
   private hexRequestId = 0;
+  private hexProgrammaticScrollTop: number | null = null;
   protected readonly hexRowsPerPage = 256;
   protected readonly hexTotalRows = computed(() => Math.ceil(this.hexFileSize() / 16));
   protected readonly hexMaxStartRow = computed(() => Math.max(0, this.hexTotalRows() - this.hexRowsPerPage));
@@ -845,6 +846,15 @@ export class ImageView {
     if (shifted) return byteIndex >= 1 && byteIndex <= 16 ? Math.floor((byteIndex - 1) / 2) : -1;
     return byteIndex >= 0 && byteIndex < 16 ? Math.floor(byteIndex / 2) : -1;
   };
+  private readonly setHexViewportScrollTop = (viewport: HTMLElement, value: number): void => {
+    const target = Math.max(0, value);
+    this.hexProgrammaticScrollTop = target;
+    viewport.scrollTop = target;
+  };
+  private readonly getHexRowHeight = (viewport: HTMLElement): number => {
+    const measured = viewport.querySelector('tbody tr')?.getBoundingClientRect().height ?? 0;
+    return Number.isFinite(measured) && measured > 0 ? measured : 22;
+  };
   protected readonly setHexCursor = (offset: number): void => {
     const bounded = Math.max(0, Math.min(Math.max(0, this.hexFileSize() - 1), Math.floor(offset)));
     this.hexCursorOffset.set(bounded);
@@ -853,15 +863,16 @@ export class ImageView {
     const viewport = this.hexScrollViewport()?.nativeElement;
     viewport?.focus({ preventScroll: true });
     if (row < start || row >= start + this.hexRows().length) {
-      if (viewport) viewport.scrollTop = 0;
+      if (viewport) this.setHexViewportScrollTop(viewport, 0);
       void this.loadHexRange(Math.min(row, this.hexMaxStartRow()));
       return;
     }
     if (viewport) {
-      const rowTop = (row - start) * 22;
-      if (rowTop < viewport.scrollTop) viewport.scrollTop = rowTop;
-      else if (rowTop + 22 > viewport.scrollTop + viewport.clientHeight) {
-        viewport.scrollTop = rowTop + 22 - viewport.clientHeight;
+      const rowHeight = this.getHexRowHeight(viewport);
+      const rowTop = (row - start) * rowHeight;
+      if (rowTop < viewport.scrollTop) this.setHexViewportScrollTop(viewport, rowTop);
+      else if (rowTop + rowHeight > viewport.scrollTop + viewport.clientHeight) {
+        this.setHexViewportScrollTop(viewport, rowTop + rowHeight - viewport.clientHeight);
       }
     }
   };
@@ -909,7 +920,7 @@ export class ImageView {
         const targetScrollTop = Math.max(0, previousScrollTop + scrollAdjustment);
         requestAnimationFrame(() => {
           if (request === this.hexRequestId && viewport.isConnected) {
-            viewport.scrollTop = targetScrollTop;
+            this.setHexViewportScrollTop(viewport, targetScrollTop);
           }
         });
       }
@@ -924,23 +935,29 @@ export class ImageView {
   protected readonly hexScrollViewport = viewChild<ElementRef<HTMLElement>>('hexScrollViewport');
   protected readonly onHexScroll = (event: Event): void => {
     const element = event.currentTarget as HTMLElement | null;
-    if (!element || this.hexLoading()) return;
+    if (!element) return;
+    if (this.hexProgrammaticScrollTop !== null) {
+      const expected = this.hexProgrammaticScrollTop;
+      this.hexProgrammaticScrollTop = null;
+      if (Math.abs(element.scrollTop - expected) <= 1) return;
+    }
+    if (this.hexLoading()) return;
     const start = this.hexStartRow();
     const total = this.hexTotalRows();
     const rows = this.hexRows().length;
     if (element.scrollTop + element.clientHeight >= element.scrollHeight - 48 && start + rows < total) {
       const nextStart = Math.min(this.hexMaxStartRow(), start + Math.floor(this.hexRowsPerPage / 2));
-      if (nextStart > start) void this.loadHexRange(nextStart, -(nextStart - start) * 22);
+      if (nextStart > start) void this.loadHexRange(nextStart, -(nextStart - start) * this.getHexRowHeight(element));
     } else if (element.scrollTop <= 24 && start > 0) {
       const nextStart = Math.max(0, start - Math.floor(this.hexRowsPerPage / 2));
-      if (nextStart < start) void this.loadHexRange(nextStart, (start - nextStart) * 22);
+      if (nextStart < start) void this.loadHexRange(nextStart, (start - nextStart) * this.getHexRowHeight(element));
     }
   };
   protected readonly onHexPositionChange = (event: Event): void => {
     const value = Number((event.currentTarget as HTMLInputElement | null)?.value ?? 0);
     if (!Number.isFinite(value)) return;
     const viewport = this.hexScrollViewport()?.nativeElement;
-    if (viewport) viewport.scrollTop = 0;
+    if (viewport) this.setHexViewportScrollTop(viewport, 0);
     void this.loadHexRange(value);
   };
   protected readonly currentImageCacheStatus = signal('Cache status not loaded.');
@@ -2338,7 +2355,7 @@ export class ImageView {
         this.hexFileSize.set(0);
         this.hexStartRow.set(0);
         const hexViewport = this.hexScrollViewport()?.nativeElement;
-        if (hexViewport) hexViewport.scrollTop = 0;
+        if (hexViewport) this.setHexViewportScrollTop(hexViewport, 0);
         this.hexLoading.set(false);
         this.hexStatus.set(image ? 'Loading selected file…' : 'Select a file in the detail list to view its HEX contents.');
         if (image && this.activeImageSidebarTab() === 'image' && this.activeImageSubTab() === 'hex') void this.loadHexRange(0);
