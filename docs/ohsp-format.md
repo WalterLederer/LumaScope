@@ -36,7 +36,7 @@ The spectrum chart is generated directly as a raster image; it does not require 
 - The spectral curve uses all 601 sample values.
 - The area between the curve and the zero baseline is filled vertically.
 - The fill and curve colour are derived from the corresponding wavelength, using a wavelength-to-colour gradient.
-- The thumbnail is encoded as a standard SDR JPEG.
+- The thumbnail is encoded as an Ultra HDR JPEG using linear scRGB pixels, just like the full-size chart.
 - The full-size chart is encoded as an Ultra HDR JPEG using linear scRGB pixels.
 - The full-size chart identifies the measurement model and includes capture date/time only when valid values can be read from the header.
 - It finds the maximum of all 601 spectral samples, marks the peak with a dashed vertical guide, and prints its exact wavelength and measured value in `mW/m2/nm` above the plot.
@@ -47,8 +47,9 @@ The spectrum chart is generated directly as a raster image; it does not require 
 - The wavelength-coloured band below the X axis uses the same gradient as the spectrum fill, with a stronger HDR core and broader light halo (scRGB peaks up to 8.0).
 - The PEAK annotation also receives a gold HDR halo and a near-white emissive core.
 - All glowing elements exceed reference white and are visibly emissive on HDR-capable displays; SDR displays tone-map them to the available range.
-- Both thumbnail and full-size OHSP charts are encoded as Ultra HDR JPEGs. Thumbnail previews use a brighter emissive wavelength-coloured gradient beneath the spectral curve; full-size charts now also use a brighter saturated HDR gradient beneath the curve, with stronger coloured curve and wavelength-band glow while reducing the white core that previously washed out spectral colours.
-- The OHSP thumbnail cache version is 5, forcing thumbnail regeneration for the HDR preview change. The full-size cache tag is `ohsp-full-spectrum-v7` (cache version 27).
+- Both thumbnail and full-size OHSP charts are encoded as Ultra HDR JPEGs. Thumbnail previews use an emissive wavelength-coloured gradient beneath the spectral curve. Full-size charts use a brighter saturated HDR gradient beneath the curve, with a stronger coloured curve and wavelength-band glow while keeping the white core restrained.
+- OHSP thumbnails use cache version 6. This version is checked in both sidecar and database-backed cache modes, so previously cached SDR JPEGs are regenerated. The full-size cache tag is `ohsp-full-spectrum-v8` (cache version 28).
+- 
 - The source `.ohsp` file is not modified.
 
 The zero-valued leading samples remain part of the curve. They are not skipped, trimmed or reinterpreted.
