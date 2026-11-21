@@ -56,7 +56,9 @@ export class GalleryState {
     this.navigateTo(path, false).subscribe();
   };
   private readonly galleryPageSize = 250;
+  private readonly galleryWindowSize = 1000;
   private galleryLoadedCount = 0;
+  readonly galleryWindowStart = signal(0);
   private galleryTotalCount = 0;
   readonly totalFileCount = signal(0);
   private galleryPageLoading = false;
@@ -204,6 +206,7 @@ export class GalleryState {
     this.selectedLocation$.next(path);
     this.galleryLoading$.next(true);
     this.galleryLoadedCount = 0;
+    this.galleryWindowStart.set(0);
     this.galleryTotalCount = 0;
     this.totalFileCount.set(0);
     this.galleryPageLoading = false;
@@ -271,6 +274,38 @@ export class GalleryState {
       if (page.files.length > 0) this.images$.next([...this.images$.value, ...page.files]);
     }).catch(error => {
       console.error('Failed to load the next gallery database page', directory, error);
+    }).finally(() => {
+      if (request === this.navigationRequest) this.galleryPageLoading = false;
+    });
+  };
+
+  /**
+   * Load a bounded slice of the full database result set. The absolute
+   * offset is retained separately so the view can render virtual spacers
+   * while the renderer only holds this window in memory.
+   */
+  readonly loadGalleryWindow = (requestedOffset: number): void => {
+    const directory = this.selectedLocation$.value;
+    if (!directory || this.galleryPageLoading) return;
+    const total = this.galleryTotalCount >= 0 ? this.galleryTotalCount : this.totalFileCount();
+    const maxOffset = Math.max(0, total - this.galleryWindowSize);
+    const offset = Math.max(0, Math.min(maxOffset, Math.trunc(requestedOffset)));
+    if (offset === this.galleryWindowStart() && this.images$.value.length > 0) return;
+    const request = this.navigationRequest;
+    const sort = this.sortMode$.value;
+    this.galleryPageLoading = true;
+    void this.cacheManager.getGalleryFilesPage(
+      directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
+      sort.sortBy, sort.sortDir, offset, this.galleryWindowSize
+    ).then(page => {
+      if (request !== this.navigationRequest || directory !== this.selectedLocation$.value) return;
+      this.galleryWindowStart.set(offset);
+      this.galleryLoadedCount = page.files.length;
+      if (page.totalCount >= 0) this.galleryTotalCount = page.totalCount;
+      this.totalFileCount.set(this.galleryTotalCount >= 0 ? this.galleryTotalCount : Math.max(this.galleryWindowStart() + page.files.length, this.totalFileCount()));
+      this.images$.next(page.files);
+    }).catch(error => {
+      console.error('Failed to load a bounded gallery window', { directory, offset, error });
     }).finally(() => {
       if (request === this.navigationRequest) this.galleryPageLoading = false;
     });
