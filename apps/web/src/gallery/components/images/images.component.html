@@ -323,7 +323,7 @@
 } @else {
   <div class="images" [class.info-tiles]="viewMode() === 'tiles'">
     @if ((viewMode() === 'thumbnails' || viewMode() === 'tiles') && thumbnailVirtualTopSpacer() > 0) {
-      <div class="gallery-window-spacer" aria-hidden="true" [style.height.px]="thumbnailVirtualTopSpacer()"></div>
+      <div class="gallery-window-spacer gallery-window-spacer-top" aria-hidden="true" [style.height.px]="thumbnailVirtualTopSpacer()"></div>
     }
     @for (image of (viewMode() === 'thumbnails' || viewMode() === 'tiles' ? visibleThumbnailImages() : imageList); track image.path) {
       <app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="selectedImagePath() === image.path" [image]="image" [viewMode]="viewMode()"
@@ -332,7 +332,7 @@
                      (clicked)="this.selected.emit($event)" />
     }
     @if ((viewMode() === 'thumbnails' || viewMode() === 'tiles') && thumbnailVirtualBottomSpacer() > 0) {
-      <div class="gallery-window-spacer" aria-hidden="true" [style.height.px]="thumbnailVirtualBottomSpacer()"></div>
+      <div class="gallery-window-spacer gallery-window-spacer-bottom" aria-hidden="true" [style.height.px]="thumbnailVirtualBottomSpacer()"></div>
     }
   </div>
 }
