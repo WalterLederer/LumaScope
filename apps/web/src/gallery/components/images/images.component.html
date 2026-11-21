@@ -283,7 +283,7 @@
       </section>
     </div>
   }
-} @else if (isDateSorted() && totalFileCount() <= imageList.length) {
+} @else if (useGroupedDateLayout()) {
   <div class="gallery-layout">
     <div class="groups-container">
       @for (yearGroup of groupedImages(); track yearGroup.year) {
