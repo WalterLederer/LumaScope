@@ -1426,7 +1426,7 @@ export class CacheManager {
   readonly scanGalleryDirectory = async (
     _event: IpcMainInvokeEvent,
     directory: string
-  ): Promise<{ files: number; directories: string[] }> => {
+  ): Promise<{ files: number; directories: string[]; removedStale: number }> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
     const root = resolve(directory);
     const db = this.databaseForPath(root);
@@ -1460,9 +1460,10 @@ export class CacheManager {
         modified_at = excluded.modified_at`);
     const deleteStale = db.prepare(`DELETE FROM photos
       WHERE path_id = :pathId
-        AND file_name NOT IN (SELECT file_name FROM temp.lumascope_seen_gallery_files)`);
+        AND lower(file_name) NOT IN (SELECT lower(file_name) FROM temp.lumascope_seen_gallery_files)`);
     const directories: string[] = [];
     let files = 0;
+    let removedStale = 0;
     let scanComplete = true;
     let batch: Array<{ name: string; size: number; modifiedAt: number }> = [];
     const flushBatch = (): void => {
@@ -1520,7 +1521,7 @@ export class CacheManager {
     if (scanComplete) {
       db.exec('BEGIN IMMEDIATE;');
       try {
-        deleteStale.run({ pathId: pathRow.id });
+        removedStale = Number(deleteStale.run({ pathId: pathRow.id }).changes);
         db.exec('DELETE FROM paths WHERE id NOT IN (SELECT DISTINCT path_id FROM photos);');
         db.exec('COMMIT;');
       } catch (error) {
@@ -1530,7 +1531,7 @@ export class CacheManager {
     }
     db.exec('DELETE FROM temp.lumascope_seen_gallery_files;');
     this.notifyGalleryFilesChanged(root);
-    return { files, directories };
+    return { files, directories, removedStale };
   };
 
   @IpcHandler({ name: 'CacheManager.registerGalleryFiles' })
