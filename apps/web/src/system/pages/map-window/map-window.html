@@ -1186,7 +1186,7 @@
           <thead><tr><th [hidden]="actionsColumnPosition() !== 'left'"><button type="button" class="offline-actions-column-toggle" (click)="toggleActionsColumnPosition()" aria-label="Move actions column to right" title="Move actions column to right">⇄</button></th><th>URL<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize URL column" (pointerdown)="startOfflineColumnResize($event, 1)"></span></th><th>Filetype<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize filetype column" (pointerdown)="startOfflineColumnResize($event, 2)"></span></th><th>Use for updates<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize updates column" (pointerdown)="startOfflineColumnResize($event, 3)"></span></th><th [hidden]="actionsColumnPosition() !== 'right'"><button type="button" class="offline-actions-column-toggle" (click)="toggleActionsColumnPosition()" aria-label="Move actions column to left" title="Move actions column to left">⇄</button></th></tr></thead>
           <tbody>
             @for (source of downloadSources(); track $index; let i = $index) {
-              <tr><td class="offline-row-actions download-source-row-actions">
+              <tr><td class="offline-row-actions download-source-row-actions" [hidden]="actionsColumnPosition() !== 'left'">
                   <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu('download-source:' + i, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === 'download-source:' + i" [attr.aria-label]="'Actions for download source ' + (i + 1)" title="Download source actions">☰</button>
                 </td>
                 <td class="download-source-url"><input type="url" [value]="source.url" (change)="updateDownloadSource(i, { url: $any($event.target).value })" aria-label="Download source URL"></td>
@@ -1215,7 +1215,7 @@
             <thead><tr><th [hidden]="actionsColumnPosition() !== 'left'"><button type="button" class="offline-actions-column-toggle" (click)="toggleActionsColumnPosition()" aria-label="Move actions column to right" title="Move actions column to right">⇄</button></th><th>File name<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize file name column" (pointerdown)="startOfflineColumnResize($event, 1)"></span></th><th>Type<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize type column" (pointerdown)="startOfflineColumnResize($event, 2)"></span></th><th>Catalogue date<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize catalogue date column" (pointerdown)="startOfflineColumnResize($event, 3)"></span></th><th>Source<span class="offline-column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize source column" (pointerdown)="startOfflineColumnResize($event, 4)"></span></th><th [hidden]="actionsColumnPosition() !== 'right'"><button type="button" class="offline-actions-column-toggle" (click)="toggleActionsColumnPosition()" aria-label="Move actions column to left" title="Move actions column to left">⇄</button></th></tr></thead>
             <tbody>
               @for (file of offlineMapCatalogueFiles(); track file.url) {
-                <tr [class.offline-catalogue-matched]="file.matched"><td class="offline-row-actions offline-catalogue-row-actions">
+                <tr [class.offline-catalogue-matched]="file.matched"><td class="offline-row-actions offline-catalogue-row-actions" [hidden]="actionsColumnPosition() !== 'left'">
                     <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu('catalogue:' + file.url, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === 'catalogue:' + file.url" [attr.aria-label]="'Actions for ' + file.fileName" title="Update file actions">☰</button>
                   </td>
                   <td class="offline-catalogue-file-name"><strong>{{ file.fileName }}</strong></td>
@@ -1317,7 +1317,7 @@
                     @let hillshadeDuplicateSet = hillshadeDuplicateIds();
                     @for (map of sortedOffline().filter(map => map.type === 'obf'); track map.id) {
                       @let inUse = isOfflineMapInUse(map);
-                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))"><td class="offline-row-actions">
+                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))"><td class="offline-row-actions" [hidden]="actionsColumnPosition() !== 'left'">
                           <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(map.filePath, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === map.filePath" [attr.aria-label]="'Actions for ' + map.filePath" title="File actions">☰</button>
                         </td>
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
@@ -1335,7 +1335,7 @@
                         </td></tr>
                     }
                     @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'osmand-resources'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
-                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'"><td class="offline-row-actions">
+                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'"><td class="offline-row-actions" [hidden]="actionsColumnPosition() !== 'left'">
                           <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(entry.path, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === entry.path" [attr.aria-label]="'Actions for ' + entry.path" title="File actions">☰</button>
                         </td>
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
@@ -1354,7 +1354,7 @@
                     }
                     @for (map of sortedOffline().filter(map => map.type === 'mapsforge'); track map.id) {
                       @let inUse = isOfflineMapInUse(map);
-                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))"><td class="offline-row-actions">
+                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))"><td class="offline-row-actions" [hidden]="actionsColumnPosition() !== 'left'">
                           <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(map.filePath, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === map.filePath" [attr.aria-label]="'Actions for ' + map.filePath" title="File actions">☰</button>
                         </td>
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
@@ -1372,7 +1372,7 @@
                         </td></tr>
                     }
                     @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'mapsforge-theme'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
-                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'"><td class="offline-row-actions">
+                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'"><td class="offline-row-actions" [hidden]="actionsColumnPosition() !== 'left'">
                           <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(entry.path, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === entry.path" [attr.aria-label]="'Actions for ' + entry.path" title="File actions">☰</button>
                         </td>
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
@@ -1391,7 +1391,7 @@
                     }
                     @for (map of sortedOffline().filter(map => map.type !== 'obf' && map.type !== 'mapsforge'); track map.id) {
                       @let inUse = isOfflineMapInUse(map);
-                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))"><td class="offline-row-actions">
+                      <tr [class.mbtiles-map-disabled]="!map.enabled" [class.obf-map-row]="map.type === 'obf'" [class.mbtiles-map-row]="map.type !== 'obf'" [class.file-path-error]="offlineFilesChecked() && (offlineMapHasMissingFile(map) || duplicateIds.has(map.id))"><td class="offline-row-actions" [hidden]="actionsColumnPosition() !== 'left'">
                           <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(map.filePath, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === map.filePath" [attr.aria-label]="'Actions for ' + map.filePath" title="File actions">☰</button>
                         </td>
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol" [class.in-use]="inUse" [attr.title]="inUse ? 'Currently used by the selected map source' : 'Not in use'">{{ inUse ? '●' : '—' }}</span></td>
@@ -1409,7 +1409,7 @@
                         </td></tr>
                     }
                     @for (database of sortedHillshadeDatabases(); track database.id) {
-                      <tr class="hillshade-map-row" [class.mbtiles-map-disabled]="!database.enabled || !database.available" [class.file-path-error]="offlineFilesChecked() && (!database.path.trim() || !database.available || hillshadeDuplicateSet.has(database.id))"><td class="offline-row-actions">
+                      <tr class="hillshade-map-row" [class.mbtiles-map-disabled]="!database.enabled || !database.available" [class.file-path-error]="offlineFilesChecked() && (!database.path.trim() || !database.available || hillshadeDuplicateSet.has(database.id))"><td class="offline-row-actions" [hidden]="actionsColumnPosition() !== 'left'">
                           <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(database.path, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === database.path" [attr.aria-label]="'Actions for ' + database.path" title="File actions">☰</button>
                         </td>
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
@@ -1425,7 +1425,7 @@
                         </td></tr>
                     }
                     @for (entry of filteredResourcePackageEntries().filter(entry => entry.type === 'valhalla'); track entry.type + '|' + entry.path + '|' + entry.fileName) {
-                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'"><td class="offline-row-actions">
+                      <tr class="resource-package-entry-row" [class.resource-valhalla-row]="entry.type === 'valhalla'" [class.resource-osmand-row]="entry.type === 'osmand-resources'" [class.resource-mapsforge-row]="entry.type === 'mapsforge-theme'"><td class="offline-row-actions" [hidden]="actionsColumnPosition() !== 'left'">
                           <button type="button" class="file-row-menu-trigger offline-row-menu-trigger" (click)="toggleOfflineRowActionMenu(entry.path, $event); $event.stopPropagation()" [attr.aria-expanded]="offlineRowActionMenuOpen() === entry.path" [attr.aria-label]="'Actions for ' + entry.path" title="File actions">☰</button>
                         </td>
                         <td class="mbtiles-inuse-column"><span class="mbtiles-inuse-symbol">—</span></td>
