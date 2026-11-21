@@ -723,6 +723,8 @@ export class ImageView {
     if (position < value.length) segments.push({ text: value.slice(position), isString: false });
     return segments.length ? segments : [{ text: value, isString: false }];
   };
+  protected readonly isHexReadableCharacter = (value: string, index: number): boolean =>
+    /[A-Za-z0-9]/.test(value[index] ?? '') && /[A-Za-z0-9]{4,}/.test(value);
   protected readonly hexByteIndices = Array.from({ length: 16 }, (_, index) => index);
   protected readonly hexCursorOffset = signal(0);
   protected readonly hexCursorRowActive = (rowOffset: number): boolean =>
