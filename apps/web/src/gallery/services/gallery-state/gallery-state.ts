@@ -29,6 +29,7 @@ export class GalleryState {
 
   private readonly images$ = new BehaviorSubject<FileInfo[]>([]);
   private readonly galleryLoading$ = new BehaviorSubject(false);
+  private readonly galleryRefreshing$ = new BehaviorSubject(false);
   private navigationRequest = 0;
   private readonly navigationHistory: string[] = [];
   private navigationHistoryIndex = -1;
@@ -155,6 +156,7 @@ export class GalleryState {
 
   readonly images = () => this.images$.asObservable();
   readonly galleryLoading = () => this.galleryLoading$.asObservable();
+  readonly galleryRefreshing = () => this.galleryRefreshing$.asObservable();
   readonly includeUnsupportedFiles = () => this.includeUnsupportedFiles$.asObservable();
   readonly includeFilesRecursive = () => this.includeFilesRecursive$.asObservable();
   readonly includeFilesRecursiveValue = (): boolean => this.includeFilesRecursive$.value;
@@ -220,6 +222,7 @@ export class GalleryState {
     const request = ++this.navigationRequest;
     this.selectedLocation$.next(path);
     this.galleryLoading$.next(true);
+    this.galleryRefreshing$.next(false);
     this.galleryLoadedCount = 0;
     this.galleryWindowStart.set(0);
     this.galleryTotalCount = 0;
@@ -342,6 +345,7 @@ export class GalleryState {
 
   private readonly refreshLoadedGalleryPages = async (directory: string): Promise<void> => {
     const request = ++this.navigationRequest;
+    this.galleryRefreshing$.next(true);
     this.galleryPageLoading = false;
     this.pendingGalleryWindowOffset = null;
     const sort = this.sortMode$.value;
@@ -358,6 +362,8 @@ export class GalleryState {
       this.images$.next(page.files);
     } catch (error) {
       console.error('Failed to refresh the current gallery window', directory, error);
+    } finally {
+      if (request === this.navigationRequest) this.galleryRefreshing$.next(false);
     }
   };
 
