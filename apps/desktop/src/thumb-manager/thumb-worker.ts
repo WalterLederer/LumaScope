@@ -1070,6 +1070,13 @@ if (parentPort) {
         const data = await readFile(source);
         const instrument = data.toString('ascii', 0, 10);
         if (instrument !== 'OHSP-350SF') throw new Error(`Unsupported OHSP instrument layout: ${instrument || 'unknown'}.`);
+        // The supplied OHSP-350SF layout stores the measurement date and time
+        // as ASCII fields in the header (confirmed against its matching CSV export).
+        const captureDate = data.toString('ascii', 0x156, 0x160).trim();
+        const captureTime = data.toString('ascii', 0x163, 0x16b).trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(captureDate) || !/^\d{2}:\d{2}:\d{2}$/.test(captureTime)) {
+          throw new Error('Invalid OHSP file: measurement date or time metadata is missing or invalid.');
+        }
         const offset = 0x16c;
         const sampleCount = 601;
         const metadataSize = 8;
@@ -1117,13 +1124,14 @@ if (parentPort) {
           'W':['10001','10001','10001','10101','10101','10101','01010'],'Y':['10001','10001','01010','00100','00100','00100','00100'],
           '(':['001','010','100','100','100','010','001'],')':['100','010','001','001','001','010','100'],
           '-':['00000','00000','00000','11111','00000','00000','00000'],'.':['000','000','000','000','000','011','011'],
-          ':':['000','011','011','000','011','011','000'],' ':['000','000','000','000','000','000','000']
+          ':':['000','011','011','000','011','011','000'],'/':['00001','00010','00010','00100','01000','01000','10000'],
+          '=':['00000','11111','00000','11111','00000','00000','00000'],' ':['000','000','000','000','000','000','000']
         };
         const drawText = (text: string, x: number, y: number, scale: number, color: [number, number, number]) => {
           let cursor = x;
           for (const rawChar of text.toUpperCase()) { const glyph = glyphs[rawChar] ?? glyphs[' ']; for (let gy = 0; gy < glyph.length; gy++) for (let gx = 0; gx < glyph[gy].length; gx++) if (glyph[gy][gx] === '1') for (let sy = 0; sy < scale; sy++) for (let sx = 0; sx < scale; sx++) setPixel(cursor + gx * scale + sx, y + gy * scale + sy, color); cursor += (glyph[0].length + 1) * scale; }
         };
-        const left = Math.round(outputWidth * 0.09), right = Math.round(outputWidth * 0.025), top = Math.round(outputHeight * 0.07), bottom = Math.round(outputHeight * 0.15);
+        const left = Math.round(outputWidth * 0.09), right = Math.round(outputWidth * 0.025), top = Math.round(outputHeight * 0.13), bottom = Math.round(outputHeight * 0.15);
         const plotWidth = outputWidth - left - right, plotHeight = outputHeight - top - bottom;
         const minimum = Math.min(0, ...values), maximum = Math.max(0, ...values), range = maximum - minimum || 1;
         const yFor = (value: number) => top + (maximum - value) / range * plotHeight, zeroY = yFor(0);
@@ -1138,8 +1146,25 @@ if (parentPort) {
         for (let tick = 0; tick <= 6; tick++) { const nm = startWavelength + (endWavelength - startWavelength) * tick / 6; const x = left + tick / 6 * plotWidth; line(x,top,x,top+plotHeight,gridColor); drawText(String(Math.round(nm)),x-18,top+plotHeight+10,2,labelColor); }
         for (let x = 0; x < plotWidth; x++) { const index = Math.min(600,Math.round(x/plotWidth*600)), y = Math.round(yFor(values[index])); const wavelength = startWavelength + index / (sampleCount - 1) * (endWavelength - startWavelength); const color = spectrumColor(wavelength); for (let fy = Math.round(Math.min(y,zeroY)); fy <= Math.round(Math.max(y,zeroY)); fy++) setPixel(left+x,fy,color); }
         for (let index = 1; index < sampleCount; index++) line(left+(index-1)/(sampleCount-1)*plotWidth,yFor(values[index-1]),left+index/(sampleCount-1)*plotWidth,yFor(values[index]),[245,245,245]);
+        const peakValue = Math.max(...values);
+        const peakIndex = values.indexOf(peakValue);
+        const peakWavelength = startWavelength + peakIndex / (sampleCount - 1) * (endWavelength - startWavelength);
+        const peakX = left + peakIndex / (sampleCount - 1) * plotWidth;
+        const peakY = yFor(peakValue);
+        const peakLineColor: [number, number, number] = [255, 205, 80];
+        // Draw a dashed guide from the measured peak down to the wavelength axis.
+        for (let y = Math.ceil(peakY); y < top + plotHeight; y += 16) {
+          line(peakX, y, peakX, Math.min(y + 8, top + plotHeight), peakLineColor);
+        }
+        line(peakX - 5, peakY, peakX + 5, peakY, peakLineColor);
+        line(peakX, peakY - 5, peakX, peakY + 5, peakLineColor);
         line(left,zeroY,outputWidth-right,zeroY,[245,245,245]); line(left,top,left,top+plotHeight,axisColor); line(left,top+plotHeight,outputWidth-right,top+plotHeight,axisColor);
         const textScale = Math.max(1,Math.floor(outputWidth/1200));
+        const headerScale = Math.max(1, Math.floor(outputWidth / 1200));
+        const headerColor: [number, number, number] = [235, 239, 245];
+        const peakLabelColor: [number, number, number] = [255, 205, 80];
+        drawText(`MODEL ${instrument}  ${captureDate} ${captureTime}`, left, 8, headerScale, headerColor);
+        drawText(`PEAK ${peakWavelength.toFixed(2)} NM = ${String(peakValue)} MW/M2/NM`, left, 8 + 10 * headerScale, headerScale, peakLabelColor);
         drawText('WAVELENGTH (NM)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.48),textScale,[235,235,235]);
         drawText('SPECTRAL VALUE',3,Math.round(outputHeight*.43),textScale,[235,235,235]);
         processingStage = 'encoding OHSP spectral chart';
