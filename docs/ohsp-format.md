@@ -11,7 +11,7 @@ This document records the file-layout observations confirmed with an OHSP-350SF 
 ## Confirmed file structure
 
 - The file begins with the ASCII instrument identifier `OHSP-350SF`.
-- The supplied file stores the measurement date as ASCII at byte offset `0x156` (10 characters, `YYYY-MM-DD`) and the measurement time at `0x163` (8 characters, `HH:MM:SS`). These offsets are confirmed against the supplied binary and matching CSV export.
+- Capture date/time extraction is provisional. The offsets `0x156` and `0x163` were tried as ASCII date/time fields, but this layout has not been verified across the OHSP collection. Missing or unrecognized values are treated as unavailable and never invalidate the spectral data.
 - The spectral sample block begins at byte offset `0x16C`.
 - The block contains **601 little-endian IEEE-754 32-bit floating-point values**.
 - The 601 samples represent consecutive 1 nm wavelength steps.
@@ -35,7 +35,7 @@ The spectrum chart is generated directly as an RGB raster image; it does not req
 - The area between the curve and the zero baseline is filled vertically.
 - The fill and curve colour are derived from the corresponding wavelength, using a wavelength-to-colour gradient.
 - The chart is encoded as JPEG for the thumbnail and full-size cache.
-- The full-size chart identifies the measurement model and the capture date/time from the OHSP header.
+- The full-size chart identifies the measurement model and includes capture date/time only when valid values can be read from the header.
 - It finds the maximum of all 601 spectral samples, marks the peak with a dashed vertical guide, and prints its exact wavelength and measured value in `mW/m2/nm` above the plot.
 - Peak annotations are added to full-size charts only; thumbnail layout remains compact.
 - The source `.ohsp` file is not modified.
@@ -66,4 +66,4 @@ LumaScope creates a thumbnail and a full-size JPEG chart in the normal sidecar c
 
 ## References and evidence
 
-The implementation details above are based on inspection of the supplied OHSP-350SF binary file and comparison with its CSV export. The file begins with the `OHSP-350SF` identifier, the spectral data at `0x16C` includes valid leading zeros, and the final two float values in the sample are 350 and 950. These findings confirm the current supported sample layout; they do not establish the binary layout of other OHSP models.
+The implementation details above are based on inspection of the supplied OHSP-350SF binary file and comparison with its CSV export. The file begins with the `OHSP-350SF` identifier, the spectral data at `0x16C` includes valid leading zeros, and the final two float values in the sample are 350 and 950. The date/time offsets remain provisional and must be checked against additional original files. These findings do not establish the binary layout of other OHSP models.
