@@ -1220,7 +1220,7 @@ if (parentPort) {
             const pixelOffset = (Math.floor(y) * outputWidth + Math.floor(x)) * 3;
             for (let channel = 0; channel < 3; channel++) {
               const colored = color[channel] / 255 * intensity;
-              hdrPixels[pixelOffset + channel] = Math.min(8, hdrPixels[pixelOffset + channel] + colored + whiteCore);
+              hdrPixels[pixelOffset + channel] = Math.min(12, hdrPixels[pixelOffset + channel] + colored + whiteCore);
             }
           };
 
@@ -1272,7 +1272,7 @@ if (parentPort) {
             const fromY = Math.round(Math.min(curveY, zeroY));
             const toY = Math.round(Math.max(curveY, zeroY));
             for (let y = fromY; y <= toY; y++) {
-              addHdrLight(left + x, y, color, 2.8, 0.12);
+              addHdrLight(left + x, y, color, 4.2, 0.18);
             }
           }
 
@@ -1292,8 +1292,8 @@ if (parentPort) {
               const color = spectrumColor(wavelength);
               for (let dy = -7; dy <= 7; dy++) {
                 const distance = Math.abs(dy);
-                const halo = 4.8 * Math.exp(-0.5 * (distance / 3.2) ** 2);
-                const core = distance <= 1 ? 3.5 : 0;
+                const halo = 7.2 * Math.exp(-0.5 * (distance / 3.2) ** 2);
+                const core = distance <= 1 ? 4.5 : 0;
                 addHdrLight(x, y + dy, color, halo, core);
               }
             }
@@ -1308,8 +1308,8 @@ if (parentPort) {
             for (let y = bandCenterY - glowRadius; y <= bandCenterY + glowRadius; y++) {
               if (y < 0 || y >= outputHeight) continue;
               const distance = Math.abs(y - bandCenterY);
-              const halo = 5.4 * Math.exp(-0.5 * (distance / 9) ** 2);
-              const core = distance <= 4 ? 0.65 : 0;
+              const halo = 8.0 * Math.exp(-0.5 * (distance / 9) ** 2);
+              const core = distance <= 4 ? 1.0 : 0;
               addHdrLight(left + x, y, color, halo, core);
             }
           }
