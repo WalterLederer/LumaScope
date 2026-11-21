@@ -1165,7 +1165,7 @@ if (parentPort) {
         }
         line(left,zeroY,outputWidth-right,zeroY,[245,245,245]); line(left,top,left,top+plotHeight,axisColor); line(left,top+plotHeight,outputWidth-right,top+plotHeight,axisColor);
         const textScale = Math.max(1,Math.floor(outputWidth/1200));
-        const headerScale = Math.max(1, Math.floor(outputWidth / 1200));
+        const headerScale = Math.max(2, Math.floor(outputWidth / 1200));
         const headerColor: [number, number, number] = [235, 239, 245];
         const peakLabelColor: [number, number, number] = [255, 205, 80];
         if (isFullSize) {
