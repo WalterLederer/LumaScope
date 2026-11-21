@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, HostListener,
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmationDialogComponent, SliderComponent, ButtonTooltipDirective} from '@light-matter/ui';
-import { CapturePreview, Desktop, ExifTags, ImageHistogram, PhotoDatabaseRecord, formatGpsCoordinate as formatSystemGpsCoordinate, formatGpsCoordinates, formatOsDateTime } from 'internal-api';
+import { CapturePreview, Desktop, ExifTags, HexReadRow, ImageHistogram, PhotoDatabaseRecord, formatGpsCoordinate as formatSystemGpsCoordinate, formatGpsCoordinates, formatOsDateTime } from 'internal-api';
 import { catchError, distinctUntilChanged, filter, firstValueFrom, from, fromEvent, map, of, startWith, switchMap, take, tap } from 'rxjs';
 import { ExifService } from '../../../ipc/exif';
 import { HistogramService } from '../../../ipc/histogram';
@@ -677,7 +677,7 @@ export class ImageView {
     this.sidebarResizeCleanup = onUp;
   };
   protected readonly imageSidebarTabs = [{"id":"gallery","label":"Browse"},{"id":"image","label":"Image"},{"id":"location","label":"Location"},{"id":"capture","label":"Capture"},{"id":"general","label":"General"},{"id":"cache","label":"Cache"},{"id":"help","label":"Help"}];
-  protected readonly imageSubTabs = [{"id":"summary","label":"Summary"},{"id":"actions","label":"Actions"},{"id":"histogram","label":"Histogram"},{"id":"view","label":"View"},{"id":"highlight","label":"Highlight"},{"id":"zoom","label":"Zoom"},{"id":"corrections","label":"Corrections"},{"id":"cache","label":"Cache"}];
+  protected readonly imageSubTabs = [{"id":"summary","label":"Summary"},{"id":"actions","label":"Actions"},{"id":"histogram","label":"Histogram"},{"id":"view","label":"View"},{"id":"highlight","label":"Highlight"},{"id":"zoom","label":"Zoom"},{"id":"corrections","label":"Corrections"},{"id":"hex","label":"Hex"},{"id":"cache","label":"Cache"}];
   private readActiveImageSidebarTab(): string {
     try { const saved = this.document.defaultView?.localStorage.getItem('activeImageSidebarTab'); return this.imageSubTabs.some(tab => tab.id === saved) ? 'image' : this.imageSidebarTabs.some(tab => tab.id === saved) ? saved! : 'gallery'; }
     catch { return 'gallery'; }
@@ -695,6 +695,71 @@ export class ImageView {
     } catch { return 'summary'; }
   }
   protected readonly activeImageSubTab = signal(this.readActiveImageSubTab());
+  protected readonly hexFilePath = signal<string | null>(null);
+  protected readonly hexFileName = computed(() => this.hexFilePath()?.split(/[\\/]/).pop() ?? 'No file selected');
+  protected readonly hexRows = signal<HexReadRow[]>([]);
+  protected readonly hexFileSize = signal(0);
+  protected readonly hexStartRow = signal(0);
+  protected readonly hexLoading = signal(false);
+  protected readonly hexStatus = signal('Select a file in the detail list to view its HEX contents.');
+  private hexRequestId = 0;
+  private readonly hexRowsPerPage = 256;
+  protected readonly hexTotalRows = computed(() => Math.ceil(this.hexFileSize() / 16));
+  // Browser scroll-height limits are lower than the virtual size of very large files.
+  // Scale the spacer to a safe height while mapping its scroll ratio to the full file.
+  protected readonly hexScrollHeight = computed(() => Math.min(this.hexTotalRows() * 22, 12_000_000));
+  protected readonly hexTopSpacer = computed(() => {
+    const total = this.hexTotalRows();
+    const available = Math.max(0, this.hexScrollHeight() - this.hexRowsPerPage * 22);
+    return total > this.hexRowsPerPage ? this.hexStartRow() / (total - this.hexRowsPerPage) * available : 0;
+  });
+  protected readonly hexBottomSpacer = computed(() =>
+    Math.max(0, this.hexScrollHeight() - this.hexTopSpacer() - this.hexRows().length * 22));
+  protected readonly formatHexOffset = (offset: number): string => offset.toString(16).toUpperCase().padStart(8, '0');
+  protected readonly formatFileSize = (size: number): string => {
+    if (size < 1024) return size + ' B';
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    let value = size / 1024;
+    let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
+    return value.toFixed(1) + ' ' + units[unit];
+  };
+  protected readonly loadHexRange = async (startRow = 0): Promise<void> => {
+    const path = this.hexFilePath();
+    if (!path) {
+      this.hexRows.set([]);
+      this.hexStatus.set('No file selected.');
+      return;
+    }
+    const request = ++this.hexRequestId;
+    const boundedStart = Math.max(0, Math.min(Math.max(0, this.hexTotalRows() - this.hexRowsPerPage), Math.floor(startRow)));
+    this.hexStartRow.set(boundedStart);
+    this.hexLoading.set(true);
+    this.hexStatus.set('Reading file…');
+    try {
+      const result = await this.fileSystem.readHexRange(path, boundedStart * 16, this.hexRowsPerPage);
+      if (request !== this.hexRequestId || path !== this.hexFilePath()) return;
+      if (!result.success) throw new Error(result.errorMessage);
+      this.hexFileSize.set(result.data.fileSize);
+      this.hexRows.set(result.data.rows);
+      this.hexStatus.set(result.data.rows.length ? '' : 'The selected file is empty.');
+    } catch (error) {
+      if (request !== this.hexRequestId) return;
+      this.hexRows.set([]);
+      this.hexStatus.set('Could not read HEX data: ' + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      if (request === this.hexRequestId) this.hexLoading.set(false);
+    }
+  };
+  protected readonly onHexScroll = (event: Event): void => {
+    const element = event.currentTarget as HTMLElement | null;
+    const total = this.hexTotalRows();
+    if (!element || !total || this.hexLoading()) return;
+    const maxScroll = Math.max(1, element.scrollHeight - element.clientHeight);
+    const ratio = Math.max(0, Math.min(1, element.scrollTop / maxScroll));
+    const nextStart = Math.round(ratio * Math.max(0, total - this.hexRowsPerPage));
+    if (Math.abs(nextStart - this.hexStartRow()) >= 96) void this.loadHexRange(nextStart);
+  };
   protected readonly currentImageCacheStatus = signal('Cache status not loaded.');
   protected readonly photoDatabaseRecord = signal<PhotoDatabaseRecord | null>(null);
   protected readonly photoDatabaseRecordEntries = computed(() => {
@@ -821,6 +886,7 @@ export class ImageView {
   protected readonly setActiveImageSubTab = (tab: string): void => {
     if (!this.imageSubTabs.some(item => item.id === tab)) return;
     this.activeImageSubTab.set(tab);
+    if (tab === 'hex') void this.loadHexRange(0);
     if (tab === 'cache') {
       this.refreshCurrentImageCache();
       void this.loadPhotoDatabaseRecord();
@@ -2072,6 +2138,18 @@ export class ImageView {
   };
 
   constructor() {
+    this.selectedImage$
+      .pipe(distinctUntilChanged((previous, current) => previous?.path === current?.path), takeUntilDestroyed(this.destroyRef))
+      .subscribe(image => {
+        this.hexRequestId++;
+        this.hexFilePath.set(image?.path ?? null);
+        this.hexRows.set([]);
+        this.hexFileSize.set(0);
+        this.hexStartRow.set(0);
+        this.hexLoading.set(false);
+        this.hexStatus.set(image ? 'Loading selected file…' : 'Select a file in the detail list to view its HEX contents.');
+        if (image && this.activeImageSidebarTab() === 'image' && this.activeImageSubTab() === 'hex') void this.loadHexRange(0);
+      });
     this.zoomSliderColorControl.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(value => this.themeService.setZoomSliderColorFromSlider(value));
