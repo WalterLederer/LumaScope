@@ -1623,3 +1623,33 @@
   width: auto !important;
   min-width: 0 !important;
 }
+
+
+/* The actions column is a single movable column. These high-specificity
+   hidden rules override legacy table-cell display declarations above. */
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading[hidden] {
+  display: none !important;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-row > td.detail-actions[hidden] {
+  display: none !important;
+}
+/* Give the visible actions header a complete cell outline and center both
+   controls on the same horizontal axis. */
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) {
+  border: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
+  padding: 7px 2px !important;
+  text-align: center !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .file-row-menu-trigger,
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .detail-actions-column-toggle {
+  position: relative !important;
+  inset: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .detail-actions-column-toggle {
+  margin-top: 3px !important;
+}
