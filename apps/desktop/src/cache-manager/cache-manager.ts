@@ -17,7 +17,7 @@ const execFileAsync = promisify(execFile);
 const CACHE_STORAGE_TYPE = { SIDECAR: 2, PARALLEL: 3 } as const;
 const THUMBNAIL_CACHE_VERSION = 2;
 const DNG_THUMBNAIL_CACHE_VERSION = 3;
-const OHSP_THUMBNAIL_CACHE_VERSION = 12;
+const OHSP_THUMBNAIL_CACHE_VERSION = 13;
 const THUMBNAIL_CACHE_TAG = 'sidecar-thumbnail-v2';
 const FULLSIZE_CACHE_VERSION_CODES: Record<string, number> = {
   'jxr-full-uhdr': 10,
@@ -30,7 +30,7 @@ const FULLSIZE_CACHE_VERSION_CODES: Record<string, number> = {
   'tiff-full-hdr-v6': 17,
   'dng-full-raw-v2': 19,
   'camera-raw-full-v1': 20,
-  'ohsp-full-spectrum-v14': 34
+  'ohsp-full-spectrum-v15': 35
 };
 const getFullSizeCacheVersionCode = (tag: string): number | null => FULLSIZE_CACHE_VERSION_CODES[tag] ?? null;
 const getThumbnailCacheVersion = (sourceName: string): number => {
