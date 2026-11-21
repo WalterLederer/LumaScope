@@ -1350,6 +1350,26 @@ if (parentPort) {
           using image = vips.Image.newFromMemory(hdrPixels, outputWidth, outputHeight, 3, vips.BandFormat.float);
           using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
           encodeScRgbAsUhdr(scrgb, target, 88);
+
+          // Verify the actual thumbnail file, not just the in-memory source pixels.
+          // This catches encoder regressions that would otherwise silently leave
+          // the gallery with an SDR JPEG despite the OHSP HDR rendering path.
+          using encodedThumbnail = vips.Image.newFromFile(target);
+          const thumbnailGainmap = encodedThumbnail.gainmap;
+          if (!thumbnailGainmap || thumbnailGainmap.width < 1 || thumbnailGainmap.height < 1) {
+            throw new Error('OHSP thumbnail encoder did not write an Ultra HDR gain map.');
+          }
+          using decodedThumbnailHdr = encodedThumbnail.uhdr2scRGB();
+          const decodedThumbnailPixels = decodedThumbnailHdr.writeToMemory();
+          let decodedThumbnailPeak = 0;
+          for (let index = 0; index < decodedThumbnailPixels.length; index++) {
+            const value = Number(decodedThumbnailPixels[index]);
+            if (Number.isFinite(value)) decodedThumbnailPeak = Math.max(decodedThumbnailPeak, value);
+          }
+          if (decodedThumbnailPeak <= 1.01) {
+            throw new Error(`OHSP thumbnail Ultra HDR gain map decoded without values above reference white (peak ${decodedThumbnailPeak.toFixed(3)}).`);
+          }
+          console.info(`[ThumbWorker] OHSP Ultra HDR thumbnail verified: ${target}; gainmap=${thumbnailGainmap.width}x${thumbnailGainmap.height}; decoded scRGB peak=${decodedThumbnailPeak.toFixed(3)}`);
           isHdr = true;
         }
       } else if (cameraRawExtensions.has(sourceExtension)) {
