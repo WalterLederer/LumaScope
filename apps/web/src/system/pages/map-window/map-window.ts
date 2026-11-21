@@ -1343,6 +1343,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly lastSavedRouteGpxPath = signal('');
   private routeWaypointMarkers: Array<{ remove(): void }> = [];
   private routeRequestGeneration = 0;
+  protected readonly gpxRestoreBusy = signal(false);
   protected readonly gpxError = signal('');
   protected readonly gpxHoveredTrackPath = signal<string | null>(null);
   protected readonly gpxHoverInfo = signal('');
@@ -5527,7 +5528,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.gpxError.set('Could not restore saved GPX tracks: ' + message);
       return null;
     });
-    if (!settings) return;
+    if (!settings) { this.gpxRestoreBusy.set(false); return; }
     const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
       ? settings['gpx'] as Record<string, unknown> : {};
     const mapView = gpx['mapWindow'] && typeof gpx['mapWindow'] === 'object'
@@ -5588,6 +5589,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private async restoreGpxTrack(): Promise<void> {
     if (!this.desktop) return;
+    this.gpxRestoreBusy.set(true);
     const settings = await this.desktop.ProcessManager.getAppSettings();
     const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
       ? settings['gpx'] as Record<string, unknown> : {};
@@ -5676,6 +5678,7 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.persistGpxTracks(available);
     this.rebuildGpxSegments();
     this.applyGpxTrack();
+    this.gpxRestoreBusy.set(false);
   }
 
   protected readonly changeGpxTrackColor = (path: string, color: string): void => {
