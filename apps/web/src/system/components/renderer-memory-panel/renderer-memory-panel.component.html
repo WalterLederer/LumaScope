@@ -18,7 +18,7 @@
   <section class="memory-panel-section">
     <h3>Process memory</h3>
     <div class="memory-panel-grid">
-      <span>Total working set</span><strong>{{ formatBytes(processMemory().processes.reduce((sum, entry) => sum + entry.workingSetBytes, 0)) }}</strong>
+      <span>Total working set</span><strong>{{ formatBytes(totalProcessMemoryBytes()) }}</strong>
       <span>Last updated</span><strong>{{ updatedAt() || '—' }}</strong>
     </div>
     <table>
