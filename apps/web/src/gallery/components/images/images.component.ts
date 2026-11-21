@@ -1047,7 +1047,7 @@ export class ImagesComponent {
         }
       }, controller.signal, 0, 2);
       total = deletion.total;
-      if (!controller.signal.aborted && deletion.scanned > 0) {
+      if (!controller.signal.aborted && deletion.matched > 0) {
         await this.cacheManager.appendBuildLog('Existing cache entries removed; rebuilding thumbnails and full-size conversions.');
         await this.forEachDisplayedGalleryBatch(async (batch, offset, count) => {
           await this.runCacheForImages(batch, true, controller.signal, {
@@ -1227,7 +1227,7 @@ export class ImagesComponent {
     if (this.cacheRunActive() && !alreadyActive) return;
 
     if (!alreadyActive) this.cacheRunActive.set(true);
-    this.cacheRunProgress.set({ completed: 0, total: images.length });
+    this.cacheRunProgress.set({ completed: batchOptions?.progressOffset ?? 0, total: batchOptions?.progressTotal ?? images.length });
     this.cacheWorkerOperations.clear();
     this.cacheRunCurrentOperation.set('Preparing cache status for files...');
     const buildStartedAt = performance.now();
