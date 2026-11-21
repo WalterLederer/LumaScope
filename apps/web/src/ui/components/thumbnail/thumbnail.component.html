@@ -6,18 +6,8 @@
     <button type="button" class="file-row-menu-trigger detail-row-menu-trigger"
             [cdkMenuTriggerFor]="rowActionsMenu"
             [attr.aria-label]="'File actions for ' + image().name"
-            title="File actions">☰</button>
-    <ng-template #rowActionsMenu>
-      <div class="gpx-row-action-menu detail-row-action-menu" cdkMenu>
-        <button type="button" role="menuitem" cdkMenuItem (click)="copyImagePath()"><span aria-hidden="true">⧉</span> Copy path</button>
-        <button type="button" role="menuitem" cdkMenuItem (click)="openImagePath()"><span aria-hidden="true">📂</span> Open path</button>
-        <button type="button" role="menuitem" cdkMenuItem (click)="openImageFile()"><span aria-hidden="true">↗</span> Open file</button>
-        <div class="gpx-row-action-menu-separator" role="separator"></div>
-        <button type="button" role="menuitem" cdkMenuItem class="gpx-row-action-delete-all" (click)="deleteImageFile()"><span aria-hidden="true">⌫</span> Delete file</button>
-        <div class="gpx-row-action-menu-separator" role="separator"></div>
-        <button type="button" role="menuitem" cdkMenuItem (click)="requestReCacheFile()"><span aria-hidden="true">↻</span> Re-Cache file</button>
-      </div>
-    </ng-template>
+            title="File actions" (click)="$event.stopPropagation()">☰</button>
+
   </td>
     @if (viewMode() === 'details-no-thumbnails') {
     <td class="detail-thumb-empty" aria-hidden="true"></td>
@@ -38,7 +28,19 @@
       }
     </td>
   }
-  <td class="detail-name" [title]="image().name">{{ image().name }}</td>
+  <td class="detail-name" [title]="image().name">{{ image().name }}
+    <ng-template #rowActionsMenu>
+      <div class="gpx-row-action-menu detail-row-action-menu" cdkMenu>
+        <button type="button" role="menuitem" cdkMenuItem (click)="copyImagePath()"><span aria-hidden="true">⧉</span> Copy path</button>
+        <button type="button" role="menuitem" cdkMenuItem (click)="openImagePath()"><span aria-hidden="true">📂</span> Open path</button>
+        <button type="button" role="menuitem" cdkMenuItem (click)="openImageFile()"><span aria-hidden="true">↗</span> Open file</button>
+        <div class="gpx-row-action-menu-separator" role="separator"></div>
+        <button type="button" role="menuitem" cdkMenuItem class="gpx-row-action-delete-all" (click)="deleteImageFile()"><span aria-hidden="true">⌫</span> Delete file</button>
+        <div class="gpx-row-action-menu-separator" role="separator"></div>
+        <button type="button" role="menuitem" cdkMenuItem (click)="requestReCacheFile()"><span aria-hidden="true">↻</span> Re-Cache file</button>
+      </div>
+    </ng-template>
+  </td>
   <td class="detail-date" [style.--detail-progress]="(detailProgress()?.date ?? 0) + '%'">{{ formatDetailDateTime(image().modifiedAt) }}</td>
   <td class="detail-gps-date" [style.--detail-progress]="(detailProgress()?.gpsDate ?? 0) + '%'">{{ gpsDateLabel() }}</td>
   <td class="detail-dimensions" [style.--detail-progress]="(detailProgress()?.dimensions ?? 0) + '%'" [title]="imageInfoError() ?? ''">{{ imageDimensions() }}</td>
