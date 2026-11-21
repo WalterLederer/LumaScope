@@ -1745,3 +1745,15 @@
 .detail-native-table .detail-row-action-menu {
   position: static !important;
 }
+
+/* Final override: legacy actions-column rules below still reference the
+   resizable width variable. Keep both left and right header cells at 44px. */
+.detail-native-table > thead > tr > th.detail-actions-heading,
+.detail-native-table.actions-column-right > thead > tr > th.detail-actions-heading {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+}
+.detail-native-table.actions-column-right > colgroup > col:last-child {
+  width: 44px !important;
+}
