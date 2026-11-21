@@ -83,6 +83,7 @@ export class ThumbnailComponent implements OnDestroy {
   };
 
   readonly viewMode = input<GalleryViewMode>('thumbnails');
+  readonly actionsColumnPosition = input<'left' | 'right'>('left');
 
   readonly cacheStatus = input<CacheImageStatus | null>(null);
 
