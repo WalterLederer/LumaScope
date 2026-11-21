@@ -704,6 +704,7 @@ export class ImageView {
   protected readonly hexStatus = signal('Select a file in the detail list to view its HEX contents.');
   private hexRequestId = 0;
   protected readonly hexRowsPerPage = 256;
+  protected readonly hexMaxBufferedRows = 768;
   protected readonly hexVirtualTopHeight = computed(() => this.hexStartRow() * 22);
   protected readonly hexVirtualBottomHeight = computed(() => Math.max(0, this.hexTotalRows() - this.hexStartRow() - this.hexRows().length) * 22);
   protected readonly hexTotalRows = computed(() => Math.ceil(this.hexFileSize() / 16));
@@ -912,19 +913,36 @@ export class ImageView {
       if (request !== this.hexRequestId || path !== this.hexFilePath()) return;
       if (!result.success) throw new Error(result.errorMessage);
       this.hexFileSize.set(result.data.fileSize);
-      this.hexStartRow.set(boundedStart);
-      this.hexRows.set(result.data.rows);
-      this.hexStatus.set(result.data.rows.length ? '' : 'The selected file is empty.');
-      // The virtual spacer rows preserve the file's full scroll geometry. A range
-      // loaded by scrolling therefore keeps the exact physical scroll position.
-      // Explicit jumps (initial load, slider, cursor) move to the new range start.
-      if (viewport && !preserveScrollPosition) {
-        requestAnimationFrame(() => {
-          if (request === this.hexRequestId && viewport.isConnected) {
-            this.setHexViewportScrollTop(viewport, this.getHexHeaderHeight(viewport) + boundedStart * this.getHexRowHeight(viewport));
+      const currentStart = this.hexStartRow();
+      const currentRows = this.hexRows();
+      if (preserveScrollPosition && currentRows.length) {
+        // Merge the fetched range with the current buffer. Tracking by row.offset
+        // lets Angular retain all existing row elements instead of rebuilding the table.
+        const merged = new Map<number, HexReadRow>();
+        for (const row of currentRows) merged.set(row.offset, row);
+        for (const row of result.data.rows) merged.set(row.offset, row);
+        const mergedRows = [...merged.values()].sort((a, b) => a.offset - b.offset);
+        let retainedRows = mergedRows;
+        let retainedStart = Math.floor((mergedRows[0]?.offset ?? 0) / 16);
+        if (retainedRows.length > this.hexMaxBufferedRows) {
+          if (boundedStart < currentStart) {
+            // Scrolling upward: preserve the newly loaded leading rows.
+            retainedRows = retainedRows.slice(0, this.hexMaxBufferedRows);
+          } else {
+            // Scrolling downward: preserve the newly loaded trailing rows.
+            retainedRows = retainedRows.slice(-this.hexMaxBufferedRows);
           }
-        });
+          retainedStart = Math.floor((retainedRows[0]?.offset ?? 0) / 16);
+        }
+        this.hexStartRow.set(retainedStart);
+        this.hexRows.set(retainedRows);
+      } else {
+        this.hexStartRow.set(boundedStart);
+        this.hexRows.set(result.data.rows);
       }
+      this.hexStatus.set(result.data.rows.length ? '' : 'The selected file is empty.');
+      // Explicit jumps move to the requested row. Incremental scroll loads never
+      // adjust scrollTop: the virtual spacers preserve the absolute file position.
     } catch (error) {
       if (request !== this.hexRequestId) return;
       this.hexRows.set([]);
@@ -948,15 +966,16 @@ export class ImageView {
     const lastVisibleRow = Math.min(total, Math.ceil((element.scrollTop + element.clientHeight - headerHeight) / rowHeight));
     const loadedEnd = start + rows;
     const overlap = 64;
+    const pageStep = Math.floor(this.hexRowsPerPage / 2);
 
-    // Keep a 64-row overlap around the viewport. This also handles dragging the
-    // scrollbar directly to a distant position instead of loading page by page.
+    // Fetch only the missing edge. Existing rows remain in the buffer and keep
+    // their DOM identity; a bounded buffer prevents unbounded memory growth.
     if (firstVisibleRow < start + overlap && start > 0) {
-      const nextStart = Math.max(0, Math.min(start - Math.floor(this.hexRowsPerPage / 2), firstVisibleRow - overlap));
+      const nextStart = Math.max(0, start - pageStep);
       if (nextStart < start) void this.loadHexRange(nextStart, true);
     } else if (lastVisibleRow > loadedEnd - overlap && loadedEnd < total) {
-      const nextStart = Math.min(this.hexMaxStartRow(), Math.max(start + Math.floor(this.hexRowsPerPage / 2), lastVisibleRow - this.hexRowsPerPage + overlap));
-      if (nextStart > start) void this.loadHexRange(nextStart, true);
+      const nextStart = Math.max(start, loadedEnd - pageStep);
+      if (nextStart > start && nextStart < loadedEnd) void this.loadHexRange(nextStart, true);
     }
   };
   protected readonly onHexPositionChange = (event: Event): void => {
