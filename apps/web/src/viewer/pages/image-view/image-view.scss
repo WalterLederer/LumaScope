@@ -21,6 +21,22 @@
     filter: drop-shadow(0 2px 8px rgb(0 0 0 / 35%));
   }
 
+  /* Keep the LumaScope mark visibly emissive over full-size OHSP Ultra HDR charts. */
+  .ohsp-lumascope-hdr-logo {
+    position: absolute;
+    z-index: 27;
+    top: 20px;
+    right: 20px;
+    width: 156px;
+    height: 156px;
+    max-width: min(22vw, calc(100% - 40px));
+    max-height: min(22vw, calc(100% - 40px));
+    object-fit: contain;
+    pointer-events: none;
+    dynamic-range-limit: no-limit;
+    filter: brightness(3.2) drop-shadow(0 2px 12px rgb(0 0 0 / 65%));
+  }
+
   .hdr-image-adjustment-canvas {
     position: fixed;
     z-index: 28;
