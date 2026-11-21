@@ -199,7 +199,7 @@ const histogram = async (params: URLSearchParams, signal?: AbortSignal): Promise
     const extension = extname(fileName).toLowerCase();
     let source = fileName;
 
-    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw', '.jxl', '.png' ].includes(extension)) {
+    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw', '.jxl', '.png', '.ohsp' ].includes(extension)) {
       const injector = Injector.getInstance();
       const cacheManager = injector.inject('CacheManager');
       const thumbManager = injector.inject('ThumbManager');
@@ -313,7 +313,7 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
           signal,
           useSidecar
         );
-        if (generated.success && generated.isHdr !== null) {
+        if (generated.success && generated.isHdr !== null && extname(fileName).toLowerCase() !== '.ohsp') {
           const gps = await injector.inject('Exif').readPhotoMetadata(fileName);
           await cacheManager.updatePhotoMetadata(fileName, generated.isHdr, gps);
         }
@@ -346,7 +346,7 @@ const raw = async (params: URLSearchParams, signal?: AbortSignal): Promise<Globa
   }
 
   try {
-    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw' ].includes(extname(fileName).toLowerCase())) {
+    if ([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw', '.ohsp' ].includes(extname(fileName).toLowerCase())) {
       const injector = Injector.getInstance();
       const cacheManager = injector.inject('CacheManager');
       const thumbManager = injector.inject('ThumbManager');
