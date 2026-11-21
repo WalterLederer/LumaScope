@@ -890,6 +890,9 @@ export class ImageView {
       this.exifState.set(this.imageTags() ?? false);
     }
     if (tab === 'image' && this.activeImageSubTab() === 'histogram' && !this.histogramVisible()) this.toggleHistogram();
+    // The selected file may have changed while another sidebar tab was active.
+    // Start the HEX read when the Image workspace becomes visible as well.
+    if (tab === 'image' && this.activeImageSubTab() === 'hex') void this.loadHexRange(0);
     try { this.document.defaultView?.localStorage.setItem('activeImageSidebarTab', tab); } catch { /* Ignore unavailable storage. */ }
   };
   protected readonly setActiveImageSubTab = (tab: string): void => {
