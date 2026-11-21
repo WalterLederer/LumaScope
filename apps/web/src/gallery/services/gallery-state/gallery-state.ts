@@ -30,6 +30,31 @@ export class GalleryState {
   private readonly images$ = new BehaviorSubject<FileInfo[]>([]);
   private readonly galleryLoading$ = new BehaviorSubject(false);
   private navigationRequest = 0;
+  private readonly navigationHistory: string[] = [];
+  private navigationHistoryIndex = -1;
+  readonly canNavigateBack = signal(false);
+  readonly canNavigateForward = signal(false);
+
+  private readonly updateNavigationHistoryState = (): void => {
+    this.canNavigateBack.set(this.navigationHistoryIndex > 0);
+    this.canNavigateForward.set(this.navigationHistoryIndex >= 0 && this.navigationHistoryIndex < this.navigationHistory.length - 1);
+  };
+
+  readonly navigateBack = (): void => {
+    if (!this.canNavigateBack()) return;
+    this.navigationHistoryIndex--;
+    const path = this.navigationHistory[this.navigationHistoryIndex];
+    this.updateNavigationHistoryState();
+    this.navigateTo(path, false).subscribe();
+  };
+
+  readonly navigateForward = (): void => {
+    if (!this.canNavigateForward()) return;
+    this.navigationHistoryIndex++;
+    const path = this.navigationHistory[this.navigationHistoryIndex];
+    this.updateNavigationHistoryState();
+    this.navigateTo(path, false).subscribe();
+  };
   private readonly galleryPageSize = 250;
   private galleryLoadedCount = 0;
   private galleryTotalCount = 0;
@@ -147,7 +172,13 @@ export class GalleryState {
   readonly sortMode = () => this.sortMode$.asObservable();
 
   /* Modifiers */
-  readonly navigateTo = (path: string): Observable<boolean> => {
+  readonly navigateTo = (path: string, recordHistory = true): Observable<boolean> => {
+    if (recordHistory && this.navigationHistory[this.navigationHistoryIndex] !== path) {
+      this.navigationHistory.splice(this.navigationHistoryIndex + 1);
+      this.navigationHistory.push(path);
+      this.navigationHistoryIndex = this.navigationHistory.length - 1;
+      this.updateNavigationHistoryState();
+    }
     const request = ++this.navigationRequest;
     this.selectedLocation$.next(path);
     this.galleryLoading$.next(true);
