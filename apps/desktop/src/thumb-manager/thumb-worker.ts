@@ -1251,8 +1251,23 @@ if (parentPort) {
             }
           };
 
+          // Make the measured peak guide itself strongly emissive, not just its label.
+          const peakGuideColor: [number, number, number] = [255, 224, 135];
+          for (let y = Math.ceil(peakY); y < top + plotHeight; y += 16) {
+            for (let segmentY = y; segmentY <= Math.min(y + 8, top + plotHeight); segmentY++) {
+              for (let dx = -3; dx <= 3; dx++) {
+                const distance = Math.abs(dx);
+                addHdrLight(Math.round(peakX) + dx, segmentY, peakGuideColor, 7.5 * Math.exp(-0.5 * (distance / 1.5) ** 2), distance === 0 ? 5.0 : 0);
+              }
+            }
+          }
+          for (let offset = -8; offset <= 8; offset++) {
+            addHdrLight(Math.round(peakX) + offset, Math.round(peakY), peakGuideColor, 8.0, 5.0);
+            addHdrLight(Math.round(peakX), Math.round(peakY) + offset, peakGuideColor, 8.0, 5.0);
+          }
+
           // The PEAK annotation is also emissive: retain its gold identity,
-          // but add a bright HDR halo and near-white core for clear visibility.
+          // with a brighter halo and near-white core.
           drawHdrText(
             `PEAK ${peakWavelength.toFixed(2)} NM = ${peakValue.toFixed(6).replace(/\.?0+$/, '')} MW/M2/NM`,
             left,
@@ -1272,7 +1287,7 @@ if (parentPort) {
             const fromY = Math.round(Math.min(curveY, zeroY));
             const toY = Math.round(Math.max(curveY, zeroY));
             for (let y = fromY; y <= toY; y++) {
-              addHdrLight(left + x, y, color, 4.2, 0.18);
+              addHdrLight(left + x, y, color, 6.5, 0.28);
             }
           }
 
@@ -1356,6 +1371,17 @@ if (parentPort) {
             const y = Math.round(logoCenterY + Math.sin(angle) * 10);
             addHdrLight(x, y, logoColor, 4.5, 4.0);
           }
+
+          // Stamp the actual local generation time directly below the logo.
+          // The timestamp changes whenever the cached derivative is regenerated.
+          const generatedAt = new Date();
+          const twoDigits = (value: number) => String(value).padStart(2, '0');
+          const timestamp = `${generatedAt.getFullYear()}-${twoDigits(generatedAt.getMonth() + 1)}-${twoDigits(generatedAt.getDate())} ${twoDigits(generatedAt.getHours())}:${twoDigits(generatedAt.getMinutes())}:${twoDigits(generatedAt.getSeconds())}`;
+          const timestampText = `GENERATED ${timestamp}`;
+          const timestampScale = 2;
+          const timestampWidth = timestampText.split('').reduce((sum, character) => sum + ((glyphs[character] ?? glyphs[' '])[0].length + 1) * timestampScale, 0) - timestampScale;
+          drawHdrText(timestampText, Math.round(logoCenterX - timestampWidth / 2), 174, timestampScale, [255, 248, 225]);
+
           using image = vips.Image.newFromMemory(hdrPixels, outputWidth, outputHeight, 3, vips.BandFormat.float);
           using scrgb = image.copy({ interpretation: vips.Interpretation.scrgb });
           encodeScRgbAsUhdr(scrgb, target, 92);
