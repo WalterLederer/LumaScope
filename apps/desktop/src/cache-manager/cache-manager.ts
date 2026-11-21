@@ -30,7 +30,7 @@ const FULLSIZE_CACHE_VERSION_CODES: Record<string, number> = {
   'tiff-full-hdr-v6': 17,
   'dng-full-raw-v2': 19,
   'camera-raw-full-v1': 20,
-  'ohsp-full-spectrum-v8': 28
+  'ohsp-full-spectrum-v9': 29
 };
 const getFullSizeCacheVersionCode = (tag: string): number | null => FULLSIZE_CACHE_VERSION_CODES[tag] ?? null;
 const getThumbnailCacheVersion = (sourceName: string): number => {
