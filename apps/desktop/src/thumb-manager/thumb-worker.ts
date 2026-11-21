@@ -1335,6 +1335,7 @@ if (parentPort) {
             join(__dirname, 'assets', 'lumascope.ico'),
             join(__dirname, '..', 'assets', 'lumascope.ico'),
             join(__dirname, '..', '..', 'assets', 'lumascope.ico'),
+            join(process.resourcesPath, 'lumascope', 'lumascope.ico'),
             join(process.cwd(), 'apps', 'desktop', 'src', 'assets', 'lumascope.ico')
           ];
           const iconPath = iconCandidates.find(candidate => existsSync(candidate));
