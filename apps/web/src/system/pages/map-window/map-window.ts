@@ -1949,12 +1949,9 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!Number.isFinite(nextLatitude) || !Number.isFinite(nextLongitude)
         || nextLatitude! < -90 || nextLatitude! > 90 || nextLongitude! < -180 || nextLongitude! > 180) {
         this.locationLookupVersion++;
-        this.mapSourceGeneration++;
-        this.mapInitialization = null;
-        // Do not carry the previous image's location marker into a photo without GPS.
-        // Keep the current map viewport so manual crosshair placement remains possible.
-        this.currentLatitude = null;
-        this.currentLongitude = null;
+        // A photo without GPS must not cancel an in-flight map initialization.
+        // Keep the last valid map position so the Track tab and its GPX overlays
+        // remain available while the cache is still processing the current folder.
         this.coordinatesAvailable.set(false);
         this.currentImageHasGps.set(false);
         this.photoCoordinateLabel.set('Photo: GPS coordinates unavailable');
@@ -1963,7 +1960,13 @@ export class MapWindow implements OnInit, OnDestroy {
         this.locationAddress.set('');
         this.marker?.setOpacity(0);
         this.offlineRenderer?.setCurrentOpacity(0);
-        if (!this.map && !this.offlineRenderer) void this.initialize(48.2082, 16.3738);
+        if (!this.map && !this.offlineRenderer && !this.mapInitialization) {
+          const savedLatitude = Number(this.readSetting('lastLatitude', '48.2082'));
+          const savedLongitude = Number(this.readSetting('lastLongitude', '16.3738'));
+          const latitude = Number.isFinite(savedLatitude) && savedLatitude >= -90 && savedLatitude <= 90 ? savedLatitude : 48.2082;
+          const longitude = Number.isFinite(savedLongitude) && savedLongitude >= -180 && savedLongitude <= 180 ? savedLongitude : 16.3738;
+          void this.initialize(latitude, longitude);
+        }
         return;
       }
       this.coordinatesAvailable.set(true);
