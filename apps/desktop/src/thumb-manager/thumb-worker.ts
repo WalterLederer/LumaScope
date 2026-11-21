@@ -1,4 +1,4 @@
-import { closeSync, openSync, readSync } from 'node:fs';
+import { closeSync, existsSync, openSync, readSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { parentPort } from 'node:worker_threads';
@@ -1096,19 +1096,19 @@ if (parentPort) {
         const outputWidth = Math.max(320, width > 0 ? width : 1600);
         const outputHeight = Math.max(180, height > 0 ? height : 900);
         const isFullSize = width === 0 && height === 0;
-        const pixels = Buffer.alloc(outputWidth * outputHeight * 3);
+        const pixels = new Float32Array(outputWidth * outputHeight * 3);
         if (isFullSize) {
           // Keep the full-size HDR canvas genuinely black; a lifted charcoal
           // base is perceived as grey after Ultra HDR display mapping.
           pixels.fill(0);
         } else {
           // Preserve the existing dark SDR thumbnail appearance.
-          for (let i = 0; i < pixels.length; i += 3) { pixels[i] = 16; pixels[i + 1] = 18; pixels[i + 2] = 22; }
+          for (let i = 0; i < pixels.length; i += 3) { pixels[i] = 16 / 255; pixels[i + 1] = 18 / 255; pixels[i + 2] = 22 / 255; }
         }
         const setPixel = (x: number, y: number, color: [number, number, number]) => {
           if (x < 0 || y < 0 || x >= outputWidth || y >= outputHeight) return;
           const p = (Math.floor(y) * outputWidth + Math.floor(x)) * 3;
-          pixels[p] = color[0]; pixels[p + 1] = color[1]; pixels[p + 2] = color[2];
+          pixels[p] = color[0] / 255; pixels[p + 1] = color[1] / 255; pixels[p + 2] = color[2] / 255;
         };
         const line = (x0: number, y0: number, x1: number, y1: number, color: [number, number, number]) => {
           x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
@@ -1210,8 +1210,7 @@ if (parentPort) {
           // The full-size derivative is an Ultra HDR JPEG. The wavelength band
           // below the X axis uses linear scRGB values above reference white so
           // the spectrum visibly emits light on an HDR-capable display.
-          const hdrPixels = new Float32Array(pixels.length);
-          for (let index = 0; index < pixels.length; index++) hdrPixels[index] = pixels[index] / 255;
+          const hdrPixels = pixels;
 
           // Additive scRGB light is intentionally kept separate from the SDR
           // raster drawing so the curve and wavelength band retain real HDR peaks.
@@ -1332,7 +1331,17 @@ if (parentPort) {
           }
           // Use the exact application icon, decoded from the same ICO file
           // used by the Electron window. Composite it into the HDR pixel buffer.
-          const iconPath = join(__dirname, 'assets', 'lumascope.ico');
+          const iconCandidates = [
+            join(__dirname, 'assets', 'lumascope.ico'),
+            join(__dirname, '..', 'assets', 'lumascope.ico'),
+            join(__dirname, '..', '..', 'assets', 'lumascope.ico'),
+            join(process.cwd(), 'apps', 'desktop', 'src', 'assets', 'lumascope.ico')
+          ];
+          const iconPath = iconCandidates.find(candidate => existsSync(candidate));
+          if (!iconPath) {
+            throw new Error(`LumaScope application icon was not found. Checked: ${iconCandidates.join('; ')}`);
+          }
+          console.info(`[ThumbWorker] Embedding application icon: ${iconPath}`);
           using iconImage = vips.Image.newFromFile(iconPath);
           const iconScale = 144 / Math.max(iconImage.width, iconImage.height);
           using scaledIcon = iconImage.resize(iconScale, { kernel: vips.Kernel.lanczos3 });
@@ -1381,8 +1390,7 @@ if (parentPort) {
           // Thumbnail derivatives are Ultra HDR too. Make the wavelength-coloured
           // area beneath the measured curve visibly emissive, while keeping the
           // chart labels, axes and background at normal reference white.
-          const hdrPixels = new Float32Array(pixels.length);
-          for (let index = 0; index < pixels.length; index++) hdrPixels[index] = pixels[index] / 255;
+          const hdrPixels = pixels;
           const addThumbnailHdrLight = (x: number, y: number, color: [number, number, number], intensity: number, whiteCore = 0) => {
             if (x < 0 || y < 0 || x >= outputWidth || y >= outputHeight) return;
             const pixelOffset = (Math.floor(y) * outputWidth + Math.floor(x)) * 3;
