@@ -505,9 +505,12 @@
 /* The final visible metadata column is Path. Remove its right border
    explicitly in both header tiers; the statistics row has no actions TH
    because the actions heading spans both rows. */
-.detail-native-table > thead > tr.detail-header-labels > th.detail-path-heading,
-.detail-native-table > thead > tr.detail-header-statistics > th:last-child {
-  border-right: 0 !important;
+/* The Path header must use the same fixed colgroup track as every data row. */
+.detail-native-table > thead > tr.detail-header-labels > th.detail-path-heading {
+  width: var(--detail-col-12-width, 220px) !important;
+  min-width: var(--detail-col-12-width, 220px) !important;
+  max-width: var(--detail-col-12-width, 220px) !important;
+  box-sizing: border-box !important;
 }
 
 /* The actions track is deliberately fixed to the same compact width on
@@ -1790,10 +1793,19 @@
   outline: 0 !important;
   box-shadow: none !important;
 }
+/* Draw header dividers on the actual cells, not on a row-wide pseudo-element.
+   The row-wide ::after lines extended beyond the final column. */
+.detail-native-table > thead > tr.detail-header-labels::after,
+.detail-native-table > thead > tr.detail-header-statistics::after {
+  content: none !important;
+  display: none !important;
+}
 .detail-native-table > thead > tr.detail-header-labels > th.detail-path-heading,
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]),
 .detail-native-table > thead > tr.detail-header-statistics > th:last-child {
-  border-right: 0 !important;
+  border-right: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) {
+  border-right: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
 }
 
 /* The right-hand actions column uses exactly the same 44px track as the
