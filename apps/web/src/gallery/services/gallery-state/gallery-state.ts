@@ -234,7 +234,7 @@ export class GalleryState {
             console.info('[GalleryDB] DONE first page', {
               rows: page.files.length,
               durationMs: Date.now() - startedAt,
-              morePagesPossible: page.files.length === this.galleryPageSize
+              morePagesPossible: page.files.length === this.galleryWindowSize
             });
             return page;
           });
