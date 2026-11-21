@@ -1221,12 +1221,6 @@ export class ImagesComponent {
 
 
   constructor() {
-    // Close the header menu before another list hamburger handles its pointer event.
-    document.addEventListener('pointerdown', this.closeFolderActionsMenuOnPointerDown, true);
-    this.destroyRef.onDestroy(() => {
-      document.removeEventListener('pointerdown', this.closeFolderActionsMenuOnPointerDown, true);
-    });
-
     try {
       if (typeof localStorage !== 'undefined') {
         const savedWidths = localStorage.getItem('lumascope.thumbnail-list.detail-column-widths');
