@@ -4102,6 +4102,7 @@ export class ImageView {
         if (keydownTarget instanceof HTMLElement && (
           keydownTarget.isContentEditable
           || keydownTarget.matches('input:not([type="checkbox"]):not([type="button"]):not([type="submit"]), textarea, select, [contenteditable="true"]')
+          || !!keydownTarget.closest('.image-hex-table-scroll')
         )) return;
 
         if (this.isPointerOverLocationMap &&
@@ -4142,6 +4143,7 @@ export class ImageView {
         const isTextEntryTarget = target instanceof HTMLElement && (
           target.isContentEditable
           || target.matches('input:not([type="checkbox"]):not([type="button"]):not([type="submit"]), textarea, select, [contenteditable="true"]')
+          || !!target.closest('.image-hex-table-scroll')
         );
         if (isTextEntryTarget) return;
 
