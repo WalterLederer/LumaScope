@@ -35,7 +35,7 @@
     "icon": "./apps/desktop/src/assets/lumascope.ico",
     "extraResources": [
       {
-        "from": "apps/desktop/src/assets/icon.png",
+        "from": "docs/images/lumaScope_icon.png",
         "to": "lumascope/lumascope.png"
       },
       {

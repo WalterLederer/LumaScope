@@ -1332,26 +1332,27 @@ if (parentPort) {
           // wasm-vips does not support decoding Windows ICO containers.
           // Use the PNG application icon (the same LumaScope artwork) for compositing.
           const iconCandidates = [
+            // This is the designed LumaScope camera/aperture logo, not the legacy sun app icon.
+            join(process.resourcesPath, 'lumascope', 'lumascope.png'),
             join(__dirname, 'assets', 'icon.png'),
             join(__dirname, '..', 'assets', 'icon.png'),
             join(__dirname, '..', '..', 'assets', 'icon.png'),
-            join(process.resourcesPath, 'lumascope', 'lumascope.png'),
             join(process.cwd(), 'apps', 'desktop', 'src', 'assets', 'icon.png')
           ];
           const iconPath = iconCandidates.find(candidate => existsSync(candidate));
           if (!iconPath) {
             throw new Error(`LumaScope application icon was not found. Checked: ${iconCandidates.join('; ')}`);
           }
-          console.info(`[ThumbWorker] Embedding application icon: ${iconPath}`);
+          console.info(`[ThumbWorker] Embedding OHSP full-size LumaScope logo: ${iconPath}`);
           using iconImage = vips.Image.newFromFile(iconPath);
-          const iconScale = 144 / Math.max(iconImage.width, iconImage.height);
+          const iconScale = 240 / Math.max(iconImage.width, iconImage.height);
           using scaledIcon = iconImage.resize(iconScale, { kernel: vips.Kernel.lanczos3 });
           const iconBytes = scaledIcon.writeToMemory();
           const iconWidth = scaledIcon.width;
           const iconHeight = scaledIcon.height;
           const iconBands = scaledIcon.bands;
           const logoLeft = outputWidth - right - iconWidth;
-          const logoTop = 16;
+          const logoTop = 24;
           const iconIsFloat = iconBytes instanceof Float32Array;
           for (let y = 0; y < iconHeight; y++) {
             for (let x = 0; x < iconWidth; x++) {
