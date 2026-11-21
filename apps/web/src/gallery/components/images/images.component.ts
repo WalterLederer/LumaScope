@@ -19,6 +19,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { BackgroundReverseGeocodingStatus, CacheDirectoryStats, CacheImageStatus, ExifTags, supportedFileExtensions, formatOsDateTime } from 'internal-api';
 import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
+import { ExifService } from '../../../ipc/exif';
 import { GalleryCacheBuild } from '../../services/gallery-cache-build/gallery-cache-build';
 import { Configuration } from '../../../system/services/configuration/configuration';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
@@ -116,6 +117,7 @@ export class ImagesComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly fileSystem = inject(FileSystem);
   private readonly cacheManager = inject(CacheManager);
+  private readonly exif = inject(ExifService);
   private readonly galleryCacheBuild = inject(GalleryCacheBuild);
   private readonly configuration = inject(Configuration);
   readonly appConfig = toSignal(this.configuration.config(), { initialValue: null });
@@ -1105,6 +1107,27 @@ export class ImagesComponent {
       await this.cacheManager.appendBuildLog('Cache build started: ' + formatOsDateTime(new Date()));
       await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
       const statusPreparationStartedAt = performance.now();
+      let gpsMetadataVerified = 0;
+      const gpsMetadataErrors: string[] = [];
+      if (this.verifyCacheFiles()) {
+        this.cacheRunCurrentOperation.set('Verifying GPS metadata against image files...');
+        let nextGpsIndex = 0;
+        const gpsWorker = async (): Promise<void> => {
+          while (nextGpsIndex < images.length && !signal?.aborted) {
+            const index = nextGpsIndex++;
+            const result = await this.exif.refreshGpsMetadata(images[index].path);
+            if (result.success) gpsMetadataVerified++;
+            else gpsMetadataErrors.push(`${images[index].path}: ${result.errorMessage}`);
+          }
+        };
+        await Promise.all(Array.from({ length: Math.min(8, images.length) }, () => gpsWorker()));
+        await this.cacheManager.appendBuildLog(
+          `GPS metadata verification: synchronized ${gpsMetadataVerified} files, errors ${gpsMetadataErrors.length}`
+        );
+        for (const error of gpsMetadataErrors) {
+          await this.cacheManager.appendBuildLog(`GPS metadata verification failed: ${error}`);
+        }
+      }
       const statuses: CacheImageStatus[] = [];
       const imagePaths = images.map(image => image.path);
       const sourceMetadata = images.map(image => ({ path: image.path, size: image.size, modifiedAt: image.modifiedAt ?? image.createdAt }));
@@ -1126,6 +1149,7 @@ export class ImagesComponent {
           ? `Verified: ${sourceFilesVerified} source, ${thumbnailsVerified} thumbnails, ${fullSizeFilesVerified} full-size files`
           : 'Verification: disabled',
         this.verifyCacheFiles() ? `Missing/invalid cache entries: ${invalidCacheEntries}` : '',
+        this.verifyCacheFiles() ? `GPS metadata synchronized: ${gpsMetadataVerified}, errors: ${gpsMetadataErrors.length}` : '',
         `Verification time: ${verificationTimeMs} ms`
       ].filter(Boolean).join('\n');
       await this.cacheManager.appendBuildLog('Cache verification summary:\n' + verificationSummary);
