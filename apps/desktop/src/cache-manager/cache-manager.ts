@@ -164,6 +164,7 @@ export class CacheManager {
       const databasePath = join(databaseDirectory, 'LumaScope.cache.sqlite');
       db = new DatabaseSync(databasePath);
       try {
+        db.function('reverse', (value: string) => [...String(value ?? '')].reverse().join(''));
         db.exec('PRAGMA busy_timeout = 10000; PRAGMA foreign_keys = ON;');
         this.databases.set(key, db);
         this.init(db, key);
@@ -1720,6 +1721,7 @@ export class CacheManager {
     const folder = this.toRelativeFolderPath(directory, databaseKey) ?? '';
     const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
     const scope = `FROM photos JOIN paths ON paths.id = photos.path_id
+      LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
       WHERE (
         lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
           lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
@@ -1755,7 +1757,13 @@ export class CacheManager {
       ? `paths.relative_folder_path COLLATE NOCASE ${direction}, photos.file_name COLLATE NOCASE ${direction}`
       : sortBy === 'gpsDate'
         ? `photos.gps_timestamp IS NULL ASC, photos.gps_timestamp ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`
-        : `${sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : 'photos.file_name COLLATE NOCASE'} ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`;
+        : sortBy === 'gps'
+          ? `(photos.latitude IS NULL OR photos.longitude IS NULL) ASC, (photos.latitude * 1000 + photos.longitude) ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`
+          : sortBy === 'location'
+            ? `(location_names.display_name IS NULL OR trim(location_names.display_name) = '') ASC, location_names.display_name COLLATE NOCASE ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`
+            : sortBy === 'suffix'
+              ? `lower(substr(photos.file_name, length(photos.file_name) - instr(reverse(photos.file_name), '.') + 2)) ${direction}, photos.file_name COLLATE NOCASE ASC, paths.relative_folder_path COLLATE NOCASE ASC`
+              : `${sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : 'photos.file_name COLLATE NOCASE'} ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`;
     const sql = `SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path
       ${where}
       ORDER BY ${orderBy}
@@ -1813,6 +1821,7 @@ export class CacheManager {
     const folder = this.toRelativeFolderPath(directory, databaseKey) ?? '';
     const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
     const scope = `FROM photos JOIN paths ON paths.id = photos.path_id
+      LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
       WHERE (
         lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
           lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
@@ -1832,7 +1841,13 @@ export class CacheManager {
       ? `paths.relative_folder_path COLLATE NOCASE ${direction}, photos.file_name COLLATE NOCASE ${direction}`
       : sortBy === 'gpsDate'
         ? `photos.gps_timestamp IS NULL ASC, photos.gps_timestamp ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`
-        : `${sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : 'photos.file_name COLLATE NOCASE'} ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`;
+        : sortBy === 'gps'
+          ? `(photos.latitude IS NULL OR photos.longitude IS NULL) ASC, (photos.latitude * 1000 + photos.longitude) ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`
+          : sortBy === 'location'
+            ? `(location_names.display_name IS NULL OR trim(location_names.display_name) = '') ASC, location_names.display_name COLLATE NOCASE ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`
+            : sortBy === 'suffix'
+              ? `lower(substr(photos.file_name, length(photos.file_name) - instr(reverse(photos.file_name), '.') + 2)) ${direction}, photos.file_name COLLATE NOCASE ASC, paths.relative_folder_path COLLATE NOCASE ASC`
+              : `${sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : 'photos.file_name COLLATE NOCASE'} ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`;
     const row = db.prepare(`SELECT position FROM (
         SELECT photos.file_name, paths.relative_folder_path,
           ROW_NUMBER() OVER (ORDER BY ${orderBy}) AS position
