@@ -1146,6 +1146,17 @@
 <div class="settings-tab-panel" data-settings-tab="memory" role="tabpanel" [hidden]="activeSettingsTab() !== 'memory'">
   <div class="settings-tab-content cache-tab">
     <div class="map-cache-section">
+      <div class="map-cache-heading">Renderer diagnostics (Location window)</div>
+      <div class="map-cache-row"><span>DOM elements</span><strong>{{ rendererDiagnostics().domElements.toLocaleString(locale) }}</strong></div>
+      <div class="map-cache-row"><span>Map DOM elements</span><strong>{{ rendererDiagnostics().mapDomElements.toLocaleString(locale) }}</strong></div>
+      <div class="map-cache-row"><span>Map tiles / markers</span><strong>{{ rendererDiagnostics().mapTiles.toLocaleString(locale) }} / {{ rendererDiagnostics().mapMarkers.toLocaleString(locale) }}</strong></div>
+      <div class="map-cache-row"><span>Canvas elements</span><strong>{{ rendererDiagnostics().canvasElements.toLocaleString(locale) }}</strong></div>
+      <div class="map-cache-row"><span>JavaScript heap used</span><strong>{{ rendererDiagnostics().heapUsedBytes === null ? 'Not available' : formatOfflineMapSize(rendererDiagnostics().heapUsedBytes) }}</strong></div>
+      <div class="map-cache-row"><span>JavaScript heap allocated</span><strong>{{ rendererDiagnostics().heapTotalBytes === null ? '—' : formatOfflineMapSize(rendererDiagnostics().heapTotalBytes) }}</strong></div>
+      <div class="map-cache-row"><span>JavaScript heap limit</span><strong>{{ rendererDiagnostics().heapLimitBytes === null ? '—' : formatOfflineMapSize(rendererDiagnostics().heapLimitBytes) }}</strong></div>
+      <p class="offline-map-status">DOM and JavaScript heap values belong to this Location window only. The separate Image / Gallery window is not included in these renderer counters.</p>
+    </div>
+    <div class="map-cache-section">
       <div class="map-cache-heading">Process memory</div>
       <div class="map-cache-row"><span>Total (Working Set)</span><strong>{{ formatOfflineMapSize(totalProcessMemoryBytes()) }}</strong></div>
       <div class="map-cache-row"><span>Last updated</span><strong>{{ memoryUpdatedAt() || '—' }}</strong></div>
