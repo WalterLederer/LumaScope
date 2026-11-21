@@ -1224,6 +1224,43 @@ if (parentPort) {
             }
           };
 
+          const drawHdrText = (text: string, x: number, y: number, scale: number, color: [number, number, number]) => {
+            let cursor = x;
+            for (const rawChar of text.toUpperCase()) {
+              const glyph = glyphs[rawChar] ?? glyphs[' '];
+              for (let gy = 0; gy < glyph.length; gy++) {
+                for (let gx = 0; gx < glyph[gy].length; gx++) {
+                  if (glyph[gy][gx] !== '1') continue;
+                  for (let sy = 0; sy < scale; sy++) {
+                    for (let sx = 0; sx < scale; sx++) {
+                      const px = cursor + gx * scale + sx;
+                      const py = y + gy * scale + sy;
+                      for (let dy = -2; dy <= 2; dy++) {
+                        for (let dx = -2; dx <= 2; dx++) {
+                          const distance = Math.hypot(dx, dy);
+                          if (distance > 2) continue;
+                          addHdrLight(px + dx, py + dy, color, 1.8 * Math.exp(-0.5 * distance * distance), 0);
+                        }
+                      }
+                      addHdrLight(px, py, color, 3.0, 3.0);
+                    }
+                  }
+                }
+              }
+              cursor += (glyph[0].length + 1) * scale;
+            }
+          };
+
+          // The PEAK annotation is also emissive: retain its gold identity,
+          // but add a bright HDR halo and near-white core for clear visibility.
+          drawHdrText(
+            `PEAK ${peakWavelength.toFixed(2)} NM = ${peakValue.toFixed(6).replace(/\.?0+$/, '')} MW/M2/NM`,
+            left,
+            8 + 10 * headerScale,
+            headerScale,
+            peakLabelColor
+          );
+
           // Bright spectral outline with a broad wavelength-coloured halo and
           // a near-white HDR core. Sample every pixel along each segment so
           // the glow remains continuous even at full-size output dimensions.
