@@ -740,7 +740,7 @@ export class ImagesComponent {
     event.stopPropagation();
 
     const handle = event.currentTarget as HTMLElement;
-    const cell = handle.closest('th') as HTMLElement | null;
+    const cell = handle.closest('th') as HTMLTableCellElement | null;
     const table = handle.closest('table.detail-native-table') as HTMLTableElement | null;
     if (!table || !cell) return;
 
