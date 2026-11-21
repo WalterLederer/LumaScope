@@ -35,8 +35,8 @@
     "icon": "./apps/desktop/src/assets/lumascope.ico",
     "extraResources": [
       {
-        "from": "docs/images/lumaScope_icon.png",
-        "to": "lumascope/lumascope.png"
+        "from": "apps/desktop/src/assets/lumaScope_icon.png",
+        "to": "lumascope/lumaScope_icon.png"
       },
       {
         "from": "tools/jxr-wic-prototype/build/Release/jxr-wic-encoder.exe",
