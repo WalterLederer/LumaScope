@@ -705,16 +705,10 @@ export class ImageView {
   private hexRequestId = 0;
   private readonly hexRowsPerPage = 256;
   protected readonly hexTotalRows = computed(() => Math.ceil(this.hexFileSize() / 16));
-  // Browser scroll-height limits are lower than the virtual size of very large files.
-  // Scale the spacer to a safe height while mapping its scroll ratio to the full file.
-  protected readonly hexScrollHeight = computed(() => Math.min(this.hexTotalRows() * 22, 12_000_000));
-  protected readonly hexTopSpacer = computed(() => {
-    const total = this.hexTotalRows();
-    const available = Math.max(0, this.hexScrollHeight() - this.hexRowsPerPage * 22);
-    return total > this.hexRowsPerPage ? this.hexStartRow() / (total - this.hexRowsPerPage) * available : 0;
-  });
-  protected readonly hexBottomSpacer = computed(() =>
-    Math.max(0, this.hexScrollHeight() - this.hexTopSpacer() - this.hexRows().length * 22));
+  protected readonly hexMaxStartRow = computed(() => Math.max(0, this.hexTotalRows() - this.hexRowsPerPage));
+  protected readonly hexPositionLabel = computed(() => this.hexTotalRows()
+    ? `Rows ${(this.hexStartRow() + 1).toLocaleString()}–${Math.min(this.hexTotalRows(), this.hexStartRow() + this.hexRows().length).toLocaleString()} of ${this.hexTotalRows().toLocaleString()}`
+    : '');
   protected readonly formatHexOffset = (offset: number): string => offset.toString(16).toUpperCase().padStart(8, '0');
   protected readonly formatFileSize = (size: number): string => {
     if (size < 1024) return size + ' B';
@@ -724,7 +718,7 @@ export class ImageView {
     while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
     return value.toFixed(1) + ' ' + units[unit];
   };
-  protected readonly loadHexRange = async (startRow = 0): Promise<void> => {
+  protected readonly loadHexRange = async (startRow = 0, scrollAdjustment = 0): Promise<void> => {
     const path = this.hexFilePath();
     if (!path) {
       this.hexRows.set([]);
@@ -743,6 +737,8 @@ export class ImageView {
       this.hexFileSize.set(result.data.fileSize);
       this.hexRows.set(result.data.rows);
       this.hexStatus.set(result.data.rows.length ? '' : 'The selected file is empty.');
+      const viewport = this.hexScrollViewport()?.nativeElement;
+      if (viewport && scrollAdjustment) viewport.scrollTop = Math.max(0, viewport.scrollTop + scrollAdjustment);
     } catch (error) {
       if (request !== this.hexRequestId) return;
       this.hexRows.set([]);
@@ -751,14 +747,24 @@ export class ImageView {
       if (request === this.hexRequestId) this.hexLoading.set(false);
     }
   };
+  protected readonly hexScrollViewport = viewChild<ElementRef<HTMLElement>>('hexScrollViewport');
   protected readonly onHexScroll = (event: Event): void => {
     const element = event.currentTarget as HTMLElement | null;
+    if (!element || this.hexLoading()) return;
+    const start = this.hexStartRow();
     const total = this.hexTotalRows();
-    if (!element || !total || this.hexLoading()) return;
-    const maxScroll = Math.max(1, element.scrollHeight - element.clientHeight);
-    const ratio = Math.max(0, Math.min(1, element.scrollTop / maxScroll));
-    const nextStart = Math.round(ratio * Math.max(0, total - this.hexRowsPerPage));
-    if (Math.abs(nextStart - this.hexStartRow()) >= 96) void this.loadHexRange(nextStart);
+    const rows = this.hexRows().length;
+    if (element.scrollTop + element.clientHeight >= element.scrollHeight - 48 && start + rows < total) {
+      const nextStart = Math.min(this.hexMaxStartRow(), start + Math.floor(this.hexRowsPerPage / 2));
+      if (nextStart > start) void this.loadHexRange(nextStart, -(nextStart - start) * 22);
+    } else if (element.scrollTop <= 24 && start > 0) {
+      const nextStart = Math.max(0, start - Math.floor(this.hexRowsPerPage / 2));
+      if (nextStart < start) void this.loadHexRange(nextStart, (start - nextStart) * 22);
+    }
+  };
+  protected readonly onHexPositionChange = (event: Event): void => {
+    const value = Number((event.currentTarget as HTMLInputElement | null)?.value ?? 0);
+    if (Number.isFinite(value)) void this.loadHexRange(value);
   };
   protected readonly currentImageCacheStatus = signal('Cache status not loaded.');
   protected readonly photoDatabaseRecord = signal<PhotoDatabaseRecord | null>(null);
