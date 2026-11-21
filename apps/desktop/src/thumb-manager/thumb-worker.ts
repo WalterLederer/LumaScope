@@ -1396,7 +1396,7 @@ if (parentPort) {
             if (x < 0 || y < 0 || x >= outputWidth || y >= outputHeight) return;
             const pixelOffset = (Math.floor(y) * outputWidth + Math.floor(x)) * 3;
             for (let channel = 0; channel < 3; channel++) {
-              hdrPixels[pixelOffset + channel] = Math.min(8, hdrPixels[pixelOffset + channel] + color[channel] / 255 * intensity + whiteCore);
+              hdrPixels[pixelOffset + channel] = Math.min(20, hdrPixels[pixelOffset + channel] + color[channel] / 255 * intensity + whiteCore);
             }
           };
           for (let x = 0; x < plotWidth; x++) {
@@ -1407,13 +1407,13 @@ if (parentPort) {
             const fromY = Math.round(Math.min(curveY, zeroY));
             const toY = Math.round(Math.max(curveY, zeroY));
             for (let y = fromY; y <= toY; y++) {
-              addThumbnailHdrLight(left + x, y, color, 5.5, 0.5);
+              addThumbnailHdrLight(left + x, y, color, 11.0, 1.5);
             }
             // Use a stronger emissive curve in the small derivative so its gain
             // map remains clearly visible at gallery thumbnail dimensions.
-            for (let dy = -3; dy <= 3; dy++) {
-              const glow = 4.0 * Math.exp(-0.5 * (dy / 1.8) ** 2);
-              addThumbnailHdrLight(left + x, curveY + dy, color, glow, dy === 0 ? 2.5 : 0);
+            for (let dy = -5; dy <= 5; dy++) {
+              const glow = 8.0 * Math.exp(-0.5 * (dy / 2.6) ** 2);
+              addThumbnailHdrLight(left + x, curveY + dy, color, glow, dy === 0 ? 8.0 : 0);
             }
           }
           using image = vips.Image.newFromMemory(hdrPixels, outputWidth, outputHeight, 3, vips.BandFormat.float);
