@@ -1925,7 +1925,6 @@ export class MapWindow implements OnInit, OnDestroy {
       const previousImagePath = this.currentImagePath;
       const previousFolderPath = this.currentFolderPath;
       const previousFolderRecursive = this.currentFolderRecursive;
-      this.currentLatitude = location.latitude; this.currentLongitude = location.longitude;
       this.currentImagePath = location.imagePath ?? null;
       this.currentFolderPath = location.folderPath ?? null;
       this.currentFolderRecursive = location.recursive === true;
@@ -1969,6 +1968,8 @@ export class MapWindow implements OnInit, OnDestroy {
         }
         return;
       }
+      this.currentLatitude = nextLatitude!;
+      this.currentLongitude = nextLongitude!;
       this.coordinatesAvailable.set(true);
       this.saveSetting('lastLatitude', nextLatitude!);
       this.saveSetting('lastLongitude', nextLongitude!);
