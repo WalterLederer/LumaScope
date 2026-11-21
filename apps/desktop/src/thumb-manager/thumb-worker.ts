@@ -1070,13 +1070,15 @@ if (parentPort) {
         const data = await readFile(source);
         const instrument = data.toString('ascii', 0, 10);
         if (instrument !== 'OHSP-350SF') throw new Error(`Unsupported OHSP instrument layout: ${instrument || 'unknown'}.`);
-        // The supplied OHSP-350SF layout stores the measurement date and time
-        // as ASCII fields in the header (confirmed against its matching CSV export).
-        const captureDate = data.toString('ascii', 0x156, 0x160).trim();
-        const captureTime = data.toString('ascii', 0x163, 0x16b).trim();
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(captureDate) || !/^\d{2}:\d{2}:\d{2}$/.test(captureTime)) {
-          throw new Error('Invalid OHSP file: measurement date or time metadata is missing or invalid.');
-        }
+        // Capture date/time fields are optional: the binary header layout has
+        // not yet been verified across the user's complete OHSP file collection.
+        // Never reject an otherwise valid spectrum because these fields are absent
+        // or encoded differently. Only show a timestamp when both values validate.
+        const rawCaptureDate = data.toString('ascii', 0x156, 0x160).trim();
+        const rawCaptureTime = data.toString('ascii', 0x163, 0x16b).trim();
+        const captureDate = /^\d{4}-\d{2}-\d{2}$/.test(rawCaptureDate) ? rawCaptureDate : '';
+        const captureTime = /^\d{2}:\d{2}:\d{2}$/.test(rawCaptureTime) ? rawCaptureTime : '';
+        const captureTimestamp = captureDate && captureTime ? `${captureDate} ${captureTime}` : '';
         const offset = 0x16c;
         const sampleCount = 601;
         const metadataSize = 8;
@@ -1169,7 +1171,7 @@ if (parentPort) {
         const headerColor: [number, number, number] = [235, 239, 245];
         const peakLabelColor: [number, number, number] = [255, 205, 80];
         if (isFullSize) {
-          drawText(`MODEL ${instrument}  ${captureDate} ${captureTime}`, left, 8, headerScale, headerColor);
+          drawText(`MODEL ${instrument}${captureTimestamp ? `  ${captureTimestamp}` : ''}`, left, 8, headerScale, headerColor);
           drawText(`PEAK ${peakWavelength.toFixed(2)} NM = ${String(peakValue)} MW/M2/NM`, left, 8 + 10 * headerScale, headerScale, peakLabelColor);
         }
         drawText('WAVELENGTH (NM)',Math.max(left,Math.round(outputWidth*.39)),outputHeight-bottom+Math.round(bottom*.48),textScale,[235,235,235]);
