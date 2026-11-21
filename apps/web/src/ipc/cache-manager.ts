@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, CacheSummary, DesktopCacheManager, PhotoLocation, PhotoDatabaseRecord } from 'internal-api';
+import { CacheClearResult, CacheDirectoryStats, CacheImageStatus, CacheInfo, CacheSummary, DesktopCacheManager, FileInfo, PhotoLocation, PhotoDatabaseRecord } from 'internal-api';
 
 @Injectable({ providedIn: 'root' })
 export class CacheManager implements DesktopCacheManager {
