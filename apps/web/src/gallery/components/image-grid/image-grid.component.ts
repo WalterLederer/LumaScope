@@ -508,8 +508,8 @@ export class ImageGridComponent {
   /* Constructor */
   constructor() {
     effect(onCleanup => {
-      const images = this.images();
-      const thumbSize = this.thumbSize();
+      this.images();
+      this.thumbSize();
       const mode = this.viewMode();
       const viewport = this.scrollBox()?.nativeElement;
       if (!viewport || mode === 'details' || mode === 'details-no-thumbnails') return;
