@@ -1332,7 +1332,7 @@ if (parentPort) {
           // wasm-vips does not support decoding Windows ICO containers.
           // Use the PNG application icon (the same LumaScope artwork) for compositing.
           const iconCandidates = [
-            // Prefer the explicitly packaged LumaScope logo over generic app.asar assets.
+            // This is the designed LumaScope camera/aperture logo, not the legacy sun app icon.
             join(process.resourcesPath, 'lumascope', 'lumascope.png'),
             join(__dirname, 'assets', 'icon.png'),
             join(__dirname, '..', 'assets', 'icon.png'),
