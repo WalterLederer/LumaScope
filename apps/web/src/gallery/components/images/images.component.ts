@@ -902,34 +902,53 @@ export class ImagesComponent {
     this.cacheRunActive.set(true);
     this.cacheRunProgress.set({ completed: 0, total: 0 });
     try {
-      let images = (this.images() ?? []).filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace('.', '')));
-      let reconciledRecords = 0;
-      let indexedFilePaths: string[] | null = null;
-      const gpxFiles: string[] = [];
       const folder = directory?.trim() || this.folderPath();
+      let processedImages = 0;
+      let resetLog = true;
+      let reconciledRecords = 0;
       if (folder) {
         this.cacheRunCurrentOperation.set(`Reading images in ${folder}`);
         const entries = await this.fileSystem.readDir(folder);
         const files = entries.filter(entry => !entry.isDirectory);
-        await this.cacheManager.registerGalleryFiles(folder, files);
-        indexedFilePaths = files.map(file => file.path);
-        images = files.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
-        if (importGpx) gpxFiles.push(...files.filter(entry => entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
+        for (let offset = 0; offset < files.length && !controller.signal.aborted; offset += 500) {
+          const batch = files.slice(offset, offset + 500);
+          await this.cacheManager.registerGalleryFiles(folder, batch);
+          const images = batch.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, '')));
+          if (images.length > 0) {
+            await this.runCacheForImages(images, true, controller.signal, {
+              resetLog, progressOffset: processedImages, progressTotal: processedImages + images.length, suppressRefresh: true
+            });
+            processedImages += images.length;
+            resetLog = false;
+          }
+          if (importGpx) {
+            const gpxFiles = batch.filter(file => file.ext.toLowerCase() === '.gpx').map(file => file.path);
+            if (gpxFiles.length > 0) await this.importGpxFilesFoundDuringCacheBuild(gpxFiles, controller.signal, true);
+          }
+        }
         if (this.verifyCacheFiles() && !controller.signal.aborted) {
           this.cacheRunCurrentOperation.set(`Removing stale photo database records in ${folder}`);
-          reconciledRecords = await this.cacheManager.reconcilePhotoRecords(folder, indexedFilePaths ?? images.map(image => image.path), false);
+          reconciledRecords = await this.cacheManager.reconcilePhotoRecordsFromDisk(folder, false);
+          await this.cacheManager.appendBuildLog(`Photo database reconciliation: removed ${reconciledRecords} stale records in ${folder}`);
         }
+      } else {
+        const images = (this.images() ?? []).filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace('.', '')));
+        await this.runCacheForImages(images, true, controller.signal);
+        processedImages = images.length;
       }
-      await this.runCacheForImages(images, true, controller.signal);
-      if (folder && this.verifyCacheFiles() && !controller.signal.aborted) {
-        await this.cacheManager.appendBuildLog(`Photo database reconciliation: removed ${reconciledRecords} stale records in ${folder}`);
+      if (processedImages === 0 && !controller.signal.aborted) {
+        await this.cacheManager.resetBuildLog();
+        await this.cacheManager.appendBuildLog('Cache build completed: no supported images found.');
+        this.cacheRunCurrentOperation.set('No supported images found to cache.');
       }
-      await this.importGpxFilesFoundDuringCacheBuild(gpxFiles, controller.signal, importGpx);
+      if (!controller.signal.aborted) this.cacheRunProgress.set({ completed: processedImages, total: processedImages });
     } catch (error) {
       this.cacheRunCurrentOperation.set(`Cache build failed: ${error instanceof Error ? error.message : String(error)}`);
+      console.error('Failed to cache gallery images', error);
     } finally {
       if (this.cacheAbortController === controller) this.cacheAbortController = null;
       this.cacheRunActive.set(false);
+      this.manualRefresh.update(value => value + 1);
       this.cacheUpdated.emit('');
     }
   };
@@ -1120,66 +1139,75 @@ export class ImagesComponent {
     this.cacheAbortController = controller;
     this.cacheRunActive.set(true);
     this.cacheRunProgress.set({ completed: 0, total: 0 });
+    const visitedDirectories = new Set<string>([rootPath.toLocaleLowerCase()]);
+    const pendingDirectories: string[] = [rootPath];
+    let processedImages = 0;
+    let resetLog = true;
+    let enumerationComplete = true;
+    let reconciledRecords = 0;
+    let pendingGpxFiles: string[] = [];
     try {
-      const rootEntries = await this.fileSystem.readDir(rootPath);
-      const rootFiles = rootEntries.filter(entry => !entry.isDirectory);
-      await this.cacheManager.registerGalleryFiles(rootPath, rootFiles);
-      const allFiles: FileInfo[] = [...rootFiles];
-      const allImages: FileInfo[] = rootFiles.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
-      const gpxFiles: string[] = [];
-      const visitedDirectories = new Set<string>([rootPath]);
-      const pendingDirectories: Array<{ path: string; entries?: FileInfo[] }> = [{ path: rootPath, entries: rootEntries }];
-      let enumerationComplete = true;
-
       while (pendingDirectories.length > 0 && !controller.signal.aborted) {
-        const pendingDirectory = pendingDirectories.shift()!;
-        const directory = pendingDirectory.path;
-        this.cacheRunCurrentOperation.set(`Enumerating files and subfolders in ${directory}`);
+        const directoryPath = pendingDirectories.shift()!;
+        this.cacheRunCurrentOperation.set(`Enumerating files and subfolders in ${directoryPath}`);
         let entries: FileInfo[];
         try {
-          // Reuse the root listing already read above; every child folder is
-          // enumerated exactly once by this same background scan.
-          entries = pendingDirectory.entries ?? await this.fileSystem.readDir(directory);
+          entries = await this.fileSystem.readDir(directoryPath);
         } catch (error) {
-          console.warn('Failed to enumerate gallery folder', directory, error);
+          console.warn('Failed to enumerate gallery folder', directoryPath, error);
           enumerationComplete = false;
           continue;
         }
-        const directoryFiles = entries.filter(entry => !entry.isDirectory);
-        if (directory.toLocaleLowerCase() !== rootPath.toLocaleLowerCase()) {
-          await this.cacheManager.registerGalleryFiles(directory, directoryFiles);
-          allFiles.push(...directoryFiles);
-          allImages.push(...directoryFiles.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, ''))));
-        }
-        if (importGpx) gpxFiles.push(...directoryFiles.filter(entry => entry.ext.toLowerCase() === '.gpx').map(entry => entry.path));
-        if (controller.signal.aborted) break;
-        const childDirectories = entries.filter(entry => entry.isDirectory && !['.cache', '.thumbnails'].includes(entry.name.toLowerCase()));
-
+        const childDirectories = entries.filter(entry =>
+          entry.isDirectory && !['.cache', '.thumbnails'].includes(entry.name.toLowerCase())
+        );
         for (const child of childDirectories) {
-          if (!visitedDirectories.has(child.path)) {
-            visitedDirectories.add(child.path);
-            pendingDirectories.push({ path: child.path });
+          const key = child.path.toLocaleLowerCase();
+          if (!visitedDirectories.has(key)) {
+            visitedDirectories.add(key);
+            pendingDirectories.push(child.path);
           }
         }
 
-
+        const files = entries.filter(entry => !entry.isDirectory);
+        for (let offset = 0; offset < files.length && !controller.signal.aborted; offset += 500) {
+          const batch = files.slice(offset, offset + 500);
+          await this.cacheManager.registerGalleryFiles(directoryPath, batch);
+          const images = batch.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\\./, '')));
+          if (images.length > 0) {
+            await this.runCacheForImages(images, true, controller.signal, {
+              resetLog, progressOffset: processedImages, progressTotal: processedImages + images.length, suppressRefresh: true
+            });
+            processedImages += images.length;
+            resetLog = false;
+          }
+          if (importGpx) {
+            pendingGpxFiles.push(...batch.filter(file => file.ext.toLowerCase() === '.gpx').map(file => file.path));
+            if (pendingGpxFiles.length >= 500) {
+              await this.importGpxFilesFoundDuringCacheBuild(pendingGpxFiles, controller.signal, true);
+              pendingGpxFiles = [];
+            }
+          }
+        }
       }
 
-      if (!controller.signal.aborted) {
-        const uniqueImages = [...new Map(allImages.map(image => [image.path, image])).values()];
-        let reconciledRecords: number | null = null;
-        if (this.verifyCacheFiles() && enumerationComplete) {
-          this.cacheRunCurrentOperation.set(`Removing stale photo database records under ${rootPath}`);
-          reconciledRecords = await this.cacheManager.reconcilePhotoRecords(rootPath, allFiles.map(file => file.path), true);
-        } else if (this.verifyCacheFiles() && !enumerationComplete) {
-          await this.cacheManager.appendBuildLog('Recursive photo database reconciliation skipped because one or more folders could not be fully enumerated.');
-        }
-        await this.runCacheForImages(uniqueImages, true, controller.signal);
-        if (reconciledRecords !== null && !controller.signal.aborted) {
-          await this.cacheManager.appendBuildLog(`Recursive photo database reconciliation: removed ${reconciledRecords} stale records under ${rootPath}`);
-        }
-        await this.importGpxFilesFoundDuringCacheBuild(gpxFiles, controller.signal, importGpx);
+      if (!controller.signal.aborted && this.verifyCacheFiles() && enumerationComplete) {
+        this.cacheRunCurrentOperation.set(`Removing stale photo database records under ${rootPath}`);
+        reconciledRecords = await this.cacheManager.reconcilePhotoRecordsFromDisk(rootPath, true);
+        await this.cacheManager.appendBuildLog(`Recursive photo database reconciliation: removed ${reconciledRecords} stale records under ${rootPath}`);
+      } else if (this.verifyCacheFiles() && !enumerationComplete) {
+        await this.cacheManager.appendBuildLog('Recursive photo database reconciliation skipped because one or more folders could not be fully enumerated.');
       }
+
+      if (pendingGpxFiles.length > 0 && !controller.signal.aborted) {
+        await this.importGpxFilesFoundDuringCacheBuild(pendingGpxFiles, controller.signal, importGpx);
+      }
+      if (processedImages === 0 && !controller.signal.aborted) {
+        await this.cacheManager.resetBuildLog();
+        await this.cacheManager.appendBuildLog('Recursive cache build completed: no supported images found.');
+        this.cacheRunCurrentOperation.set('No supported images found to cache.');
+      }
+      if (!controller.signal.aborted) this.cacheRunProgress.set({ completed: processedImages, total: processedImages });
     } catch (error) {
       console.error('Failed to enumerate recursive gallery cache workload', error);
       this.cacheRunCurrentOperation.set(`Cache build failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -1189,6 +1217,7 @@ export class ImagesComponent {
         this.cacheRunCurrentOperation.set('Cache build cancelled during folder enumeration.');
       }
       this.cacheRunActive.set(false);
+      this.manualRefresh.update(value => value + 1);
       this.cacheUpdated.emit('');
     }
   };
