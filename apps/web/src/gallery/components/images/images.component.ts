@@ -505,9 +505,14 @@ export class ImagesComponent {
   readonly detailVirtualTopSpacer = computed(() =>
     (this.windowStart() + this.detailVirtualStart()) * this.detailVirtualRowHeight()
   );
-  readonly detailVirtualBottomSpacer = computed(() => Math.max(0,
-    this.totalFileCount() - this.windowStart() - this.detailVirtualStart() - this.visibleDetailImages().length
-  ) * this.detailVirtualRowHeight());
+  readonly detailVirtualBottomSpacer = computed(() => {
+    const renderedTotal = this.windowStart() > 0
+      ? this.totalFileCount()
+      : this.sortedDetailImages().length;
+    return Math.max(0,
+      renderedTotal - this.windowStart() - this.detailVirtualStart() - this.visibleDetailImages().length
+    ) * this.detailVirtualRowHeight();
+  });
   readonly thumbnailVirtualTopSpacer = computed(() =>
     Math.floor(this.windowStart() / Math.max(1, this.thumbnailColumns())) * this.thumbnailRowHeight()
   );
