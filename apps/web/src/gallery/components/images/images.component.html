@@ -283,7 +283,7 @@
       </section>
     </div>
   }
-} @else if (isDateSorted()) {
+} @else if (isDateSorted() && totalFileCount() <= imageList.length) {
   <div class="gallery-layout">
     <div class="groups-container">
       @for (yearGroup of groupedImages(); track yearGroup.year) {
@@ -322,11 +322,17 @@
   </div>
 } @else {
   <div class="images" [class.info-tiles]="viewMode() === 'tiles'">
+    @if (thumbnailVirtualTopSpacer() > 0) {
+      <div class="gallery-window-spacer" aria-hidden="true" [style.height.px]="thumbnailVirtualTopSpacer()"></div>
+    }
     @for (image of imageList; track image.path) {
       <app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="selectedImagePath() === image.path" [image]="image" [viewMode]="viewMode()"
                      (hovered)="hovered.emit($event)"
                      (cacheUpdated)="cacheUpdated.emit($event)"
                      (clicked)="this.selected.emit($event)" />
+    }
+    @if (thumbnailVirtualBottomSpacer() > 0) {
+      <div class="gallery-window-spacer" aria-hidden="true" [style.height.px]="thumbnailVirtualBottomSpacer()"></div>
     }
   </div>
 }
