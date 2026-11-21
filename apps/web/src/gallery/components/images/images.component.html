@@ -163,10 +163,10 @@
           <tr class="detail-virtual-spacer" aria-hidden="true" [style.height.px]="detailVirtualTopSpacer()"><td colspan="15"></td></tr>
         }
         @for (image of visibleDetailImages(); track image.path; let rowIndex = $index) {
-          <tr app-thumbnail class="detail-virtual-row" [attr.data-image-path]="image.path" [class.selected-image]="activeSelectionPath() === image.path" [class.detail-virtual-even]="(detailVirtualStart() + rowIndex) % 2 === 1" [class.detail-virtual-odd]="(detailVirtualStart() + rowIndex) % 2 === 0" [class.detail-filter-active]="nameFilterActive()" [class.detail-alternate-rows]="detailPreferenceValues().alternateRows" [class.detail-progress-date-disabled]="!detailPreferenceValues().dateProgressEnabled" [class.detail-progress-gps-date-disabled]="!detailPreferenceValues().gpsDateProgressEnabled" [class.detail-progress-dimensions-disabled]="!detailPreferenceValues().dimensionsProgressEnabled" [class.detail-progress-size-disabled]="!detailPreferenceValues().sizeProgressEnabled" [image]="image" [viewMode]="viewMode()" [actionsColumnPosition]="detailActionsColumnPosition()"
+          <tr app-thumbnail class="detail-virtual-row" [attr.data-image-path]="image.path" [class.selected-image]="activeSelectionPath() === image.path" [class.detail-virtual-even]="(windowStart() + detailVirtualStart() + rowIndex) % 2 === 1" [class.detail-virtual-odd]="(windowStart() + detailVirtualStart() + rowIndex) % 2 === 0" [class.detail-filter-active]="nameFilterActive()" [class.detail-alternate-rows]="detailPreferenceValues().alternateRows" [class.detail-progress-date-disabled]="!detailPreferenceValues().dateProgressEnabled" [class.detail-progress-gps-date-disabled]="!detailPreferenceValues().gpsDateProgressEnabled" [class.detail-progress-dimensions-disabled]="!detailPreferenceValues().dimensionsProgressEnabled" [class.detail-progress-size-disabled]="!detailPreferenceValues().sizeProgressEnabled" [image]="image" [viewMode]="viewMode()" [actionsColumnPosition]="detailActionsColumnPosition()"
               [cacheStatus]="cacheStatuses().get(image.path) ?? null"
                [detailProgress]="detailProgressByPath().get(image.path) ?? null"
-              [rowNumber]="detailVirtualStart() + rowIndex + 1"
+              [rowNumber]="windowStart() + detailVirtualStart() + rowIndex + 1"
               (metadataLoaded)="onDetailMetadataLoaded(image.path, $event)"
               [cacheStatusLoading]="cacheStatusLoading()"
               [locationDisplayName]="locationDisplayNames().get(image.path) ?? null"
