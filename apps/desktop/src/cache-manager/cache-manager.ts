@@ -1674,6 +1674,23 @@ export class CacheManager {
     return { files, totalCount, offset: safeOffset, limit: safeLimit };
   };
 
+  @IpcHandler({ name: 'CacheManager.getGalleryFileAtPosition' })
+  readonly getGalleryFileAtPosition = async (
+    event: IpcMainInvokeEvent,
+    directory: string,
+    recursive = false,
+    includeUnsupported = false,
+    sortBy: SortType = 'name',
+    sortDir: SortDirection = 'asc',
+    position = 1
+  ): Promise<FileInfo | null> => {
+    const safePosition = Number.isFinite(position) ? Math.max(1, Math.trunc(position)) : 1;
+    const page = await this.getGalleryFilesPage(
+      event, directory, recursive, includeUnsupported, sortBy, sortDir, safePosition - 1, 1
+    );
+    return page.files[0] ?? null;
+  };
+
   @IpcHandler({ name: 'CacheManager.getDirectoryCacheStats' })
   readonly getDirectoryCacheStats = async (_event: IpcMainInvokeEvent, sourceNames: string[], verifyCacheFiles = false): Promise<CacheDirectoryStats> => {
     if (!Array.isArray(sourceNames) || sourceNames.length > 10000 || sourceNames.some(path => typeof path !== 'string' || !path.trim())) {
