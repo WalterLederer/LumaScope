@@ -2,7 +2,7 @@
 @let currentMenu = menu();
 
 @if (inlineActions() || (currentMenu !== null && currentNode.hideMenu !== true)) {
-  <span class="tree-row-actions-column">
+  <span class="tree-row-actions-column" [hidden]="actionsColumnPosition() !== 'left'">
     <span class="tree-row-number" aria-hidden="true">{{ rowNumber() ?? '' }}</span>
     @if (currentMenu !== null && ((inlineActions() && level() <= 1) || currentNode.hideMenu !== true)) {
       <button type="button"
@@ -39,4 +39,28 @@
 @if (inlineActions() && level() === 1 && reorderActions()) {
   <button type="button" class="tree-reorder-action" [disabled]="currentNode.canMoveUp === false" aria-label="Move favorite up" title="Move up" (click)="onMove($event, 'up')" uiStopPropagation>↑</button>
   <button type="button" class="tree-reorder-action" [disabled]="currentNode.canMoveDown === false" aria-label="Move favorite down" title="Move down" (click)="onMove($event, 'down')" uiStopPropagation>↓</button>
+}
+
+
+@if (inlineActions() || (currentMenu !== null && currentNode.hideMenu !== true)) {
+  <span class="tree-row-actions-column" [hidden]="actionsColumnPosition() !== 'right'">
+    <span class="tree-row-number" aria-hidden="true">{{ rowNumber() ?? '' }}</span>
+    @if (currentMenu !== null && ((inlineActions() && level() <= 1) || currentNode.hideMenu !== true)) {
+      <button type="button"
+              class="file-row-menu-trigger tree-row-menu-trigger"
+              [cdkMenuTriggerFor]="currentMenu"
+              [cdkMenuTriggerData]="{ data: currentNode }"
+              [attr.aria-label]="isRootNode() ? 'My PC actions' : 'Favourite actions for ' + currentNode.label"
+              aria-haspopup="menu"
+              title="Actions"
+              uiStopPropagation>☰</button>
+    } @else if (inlineActions() && level() <= 1 && currentMenu === null) {
+      <button type="button"
+              class="tree-inline-action"
+              [attr.aria-label]="isRootNode() ? 'Add location' : 'Remove favourite'"
+              [title]="isRootNode() ? 'Add location' : 'Remove favourite'"
+              (click)="onAction($event)"
+              uiStopPropagation>{{ isRootNode() ? '+' : 'x' }}</button>
+    }
+  </span>
 }
