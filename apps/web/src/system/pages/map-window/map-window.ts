@@ -6573,13 +6573,17 @@ export class MapWindow implements OnInit, OnDestroy {
       getComputedStyle(table).getPropertyValue(`--offline-col-${columnIndex}`)
     );
     const widthDeclaration = column?.style.width ?? '';
-    const fallbackMatch = widthDeclaration.match(/var\\([^,]+,\\s*([0-9.]+)px\\s*\\)/);
-    const fallbackWidth = fallbackMatch ? Number.parseFloat(fallbackMatch[1]) : Number.NaN;
+    // Every resizable COL declares its intended fallback in pixels, e.g.
+    // width: var(--offline-col-5,320px). Do not read the computed COL width:
+    // automatic table layout can stretch it to the viewport width before the
+    // first pointer move, which is exactly the resize-start jump being avoided.
+    const declaredWidthMatch = widthDeclaration.match(/([0-9.]+)px/);
+    const declaredWidth = declaredWidthMatch ? Number.parseFloat(declaredWidthMatch[1]) : Number.NaN;
     const startWidth = Number.isFinite(configuredWidth) && configuredWidth > 0
       ? configuredWidth
-      : Number.isFinite(fallbackWidth) && fallbackWidth > 0
-        ? fallbackWidth
-        : Number.parseFloat(column ? getComputedStyle(column).width : '') || cell.getBoundingClientRect().width;
+      : Number.isFinite(declaredWidth) && declaredWidth > 0
+        ? declaredWidth
+        : cell.getBoundingClientRect().width;
     const minimum = columnIndex === 0 ? 44 : columnIndex === 3 ? 64 : columnIndex === 5 ? 180 : 42;
     const pointerId = event.pointerId;
     const document = table.ownerDocument;
