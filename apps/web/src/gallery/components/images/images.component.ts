@@ -745,17 +745,18 @@ export class ImagesComponent {
     if (!table || !cell) return;
 
     const startX = event.clientX;
-    // Read the width from the matching COL element, not from the TH. In a
-    // native table the header cell can report a width affected by adjacent
-    // tracks; the COL is the authoritative width that this resizer changes.
-    // The left actions COL remains in the DOM when hidden, so the physical
-    // COL index is offset by one while the actions column is on the left.
-    // Resize the COL belonging to this logical data column, not the next one.
-    const physicalColumnIndex = columnIndex + (this.detailActionsColumnPosition() === 'left' ? 1 : 0);
-    const columnElement = table.querySelectorAll<HTMLTableColElement>(':scope > colgroup > col').item(physicalColumnIndex);
-    if (!columnElement) return;
-    const measuredColumnWidth = columnElement.getBoundingClientRect().width;
-    const startWidth = measuredColumnWidth > 0 ? measuredColumnWidth : cell.getBoundingClientRect().width;
+    // The table can distribute surplus viewport width across COL tracks.
+    // Neither the rendered COL nor TH width is therefore a reliable resize
+    // baseline. Use the configured width (persisted override or template
+    // default) so the first pointer movement starts without a width jump.
+    const defaultWidths: Record<number, number> = {
+      1: 210, 2: 150, 3: 150, 4: 130, 5: 100, 6: 75,
+      7: 65, 8: 65, 9: 150, 10: 150, 11: 240, 12: 220
+    };
+    const configuredWidth = this.detailColumnWidths()[columnIndex];
+    const startWidth = columnIndex === 0
+      ? Math.max(84, this.detailThumbnailWidth() + 16 + (configuredWidth ?? 0))
+      : configuredWidth ?? defaultWidths[columnIndex] ?? cell.getBoundingClientRect().width;
     const minimumWidth = columnIndex === -1 ? 44 : columnIndex === 0 ? 84 : columnIndex >= 10 ? 80 : 40;
     const pointerId = event.pointerId;
     const document = table.ownerDocument;
