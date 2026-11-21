@@ -264,6 +264,14 @@
     pointer-events: none;
   }
 
+  > .gallery-window-spacer-top {
+    margin-bottom: calc(var(--dim-large) * -1);
+  }
+
+  > .gallery-window-spacer-bottom {
+    margin-top: calc(var(--dim-large) * -1);
+  }
+
   app-thumbnail {
     background: var(--color-surface-default-medium);
     border-radius: var(--border-radius-large);
