@@ -23,6 +23,8 @@ export class FileSystem implements DesktopFileSystem {
 
   readonly readHexRange = (sourcePath: string, startOffset: number, rowCount: number) => window.desktop.FileSystem.readHexRange(sourcePath, startOffset, rowCount);
 
+  readonly searchBytes = (sourcePath: string, bytes: number[], startOffset: number, direction: 1 | -1) => window.desktop.FileSystem.searchBytes(sourcePath, bytes, startOffset, direction);
+
   readonly readJson = <T>(path: string): Promise<ApiResponse<T>> => window.desktop.FileSystem.readJson(path);
 
   readonly writeJson = async <T>(path: string, data: T) => window.desktop.FileSystem.writeJson(path, data);
