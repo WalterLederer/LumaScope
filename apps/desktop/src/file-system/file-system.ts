@@ -128,8 +128,8 @@ export class FileSystem {
   readonly exportHex = async (event: IpcMainInvokeEvent, sourcePath: string): Promise<ApiResponse<undefined>> => {
     try {
       const sourceBytes = await readFile(sourcePath);
-      const sourceName = sourcePath.split(/[\\\\/]/).pop() || 'file';
-      const suggestedName = sourceName.replace(/\\.[^.]*$/, '') + '.hex.txt';
+      const sourceName = sourcePath.split(/[\\/]/).pop() || 'file';
+      const suggestedName = sourceName.replace(/\.[^.]*$/, '') + '.hex.txt';
       const ownerWindow = BrowserWindow.fromWebContents(event.sender) ?? undefined;
       const selection = await dialog.showSaveDialog(ownerWindow, {
         title: 'Export HEX',
@@ -167,7 +167,7 @@ export class FileSystem {
         }
         lines.push(offset.toString(16).toUpperCase().padStart(8, '0') + '  ' + hex + '  ' + ascii + '  ' + utf16 + '  ' + utf16Shifted);
       }
-      await writeFile(selection.filePath, lines.join('\\r\\n') + '\\r\\n', 'utf-8');
+      await writeFile(selection.filePath, lines.join('\r\n') + '\r\n', 'utf-8');
       return { success: true, data: undefined };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
