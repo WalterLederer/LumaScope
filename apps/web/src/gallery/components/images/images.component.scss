@@ -257,6 +257,13 @@
   gap: var(--dim-large);
   container-type: inline-size;
 
+  > .gallery-window-spacer {
+    flex: 0 0 100%;
+    width: 100%;
+    min-height: 0;
+    pointer-events: none;
+  }
+
   app-thumbnail {
     background: var(--color-surface-default-medium);
     border-radius: var(--border-radius-large);
