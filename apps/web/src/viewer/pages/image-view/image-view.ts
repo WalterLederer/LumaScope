@@ -726,6 +726,119 @@ export class ImageView {
   protected readonly isHexReadableCharacter = (value: string, index: number): boolean =>
     /[A-Za-z0-9]/.test(value[index] ?? '') && /[A-Za-z0-9]{4,}/.test(value);
   protected readonly hexByteDisplayMode = signal<'decimal' | 'hex' | 'octal' | 'binary'>('hex');
+  protected readonly hexSearchMode = signal<'ascii' | 'hex'>('ascii');
+  protected readonly hexSearchTerm = signal('');
+  protected readonly hexSearchStatus = signal('');
+  protected readonly hexSearchBusy = signal(false);
+  private hexSearchRequestId = 0;
+  private hexSearchHasMatch = false;
+  protected readonly setHexSearchMode = (value: string): void => {
+    if (value !== 'ascii' && value !== 'hex') return;
+    this.hexSearchMode.set(value);
+    this.hexSearchHasMatch = false;
+    this.hexSearchStatus.set('');
+  };
+  protected readonly onHexSearchTermChange = (value: string): void => {
+    this.hexSearchTerm.set(value);
+    this.hexSearchHasMatch = false;
+    this.hexSearchStatus.set('');
+  };
+  private readonly getHexSearchBytes = (): number[] | null => {
+    const term = this.hexSearchTerm();
+    if (!term.length) return null;
+    if (this.hexSearchMode() === 'ascii') {
+      const bytes = Array.from(term, character => character.charCodeAt(0));
+      return bytes.length && bytes.every(value => value >= 0 && value <= 0x7f) ? bytes : null;
+    }
+    const compact = term.replace(/0x/gi, '').replace(/[\\s,;:_-]/g, '');
+    if (!compact || compact.length % 2 !== 0 || !/^[0-9a-f]+$/i.test(compact)) return null;
+    return compact.match(/.{2}/g)!.map(value => Number.parseInt(value, 16));
+  };
+  protected readonly searchHexFile = async (direction: 1 | -1): Promise<void> => {
+    const path = this.hexFilePath();
+    if (!path || this.hexSearchBusy()) return;
+    const pattern = this.getHexSearchBytes();
+    if (!pattern) {
+      this.hexSearchStatus.set(this.hexSearchMode() === 'ascii'
+        ? 'Enter ASCII text (7-bit characters) to search.'
+        : 'Enter an even number of hexadecimal digits, optionally separated by spaces.');
+      return;
+    }
+    const fileSize = this.hexFileSize();
+    if (pattern.length > fileSize) {
+      this.hexSearchStatus.set('No match found.');
+      return;
+    }
+    const request = ++this.hexSearchRequestId;
+    const initialCursor = this.hexCursorOffset();
+    const startOffset = direction > 0
+      ? (this.hexSearchHasMatch ? initialCursor + 1 : initialCursor)
+      : (this.hexSearchHasMatch ? initialCursor - 1 : fileSize - pattern.length);
+    if (startOffset < 0 || startOffset >= fileSize) {
+      this.hexSearchStatus.set(direction > 0 ? 'No further match found.' : 'No previous match found.');
+      return;
+    }
+    this.hexSearchBusy.set(true);
+    this.hexSearchStatus.set('Searching file…');
+    const matchesAt = (bytes: number[], index: number): boolean =>
+      pattern.every((value, offset) => bytes[index + offset] === value);
+    try {
+      let matchOffset = -1;
+      if (direction > 0) {
+        let blockStart = Math.floor(startOffset / 4096) * 4096;
+        let carry: number[] = [];
+        while (blockStart < fileSize && matchOffset < 0) {
+          const result = await this.fileSystem.readHexRange(path, blockStart, this.hexRowsPerPage);
+          if (request !== this.hexSearchRequestId || path !== this.hexFilePath()) return;
+          if (!result.success) throw new Error(result.errorMessage || 'Could not read file data.');
+          const bytes = result.data.rows.flatMap(row => (row.hex.match(/[0-9a-f]{2}/gi) ?? []).map(value => Number.parseInt(value, 16)));
+          const combined = [...carry, ...bytes];
+          const combinedStart = blockStart - carry.length;
+          const firstIndex = Math.max(0, startOffset - combinedStart);
+          for (let index = firstIndex; index <= combined.length - pattern.length; index++) {
+            if (matchesAt(combined, index)) { matchOffset = combinedStart + index; break; }
+          }
+          carry = pattern.length > 1 ? combined.slice(-(pattern.length - 1)) : [];
+          blockStart += 4096;
+        }
+      } else {
+        let blockStart = Math.floor(startOffset / 4096) * 4096;
+        let upperBound = Math.min(startOffset, fileSize - pattern.length);
+        while (blockStart >= 0 && matchOffset < 0) {
+          const readStart = Math.floor(Math.max(0, blockStart - (pattern.length - 1)) / 16) * 16;
+          const readEnd = Math.min(fileSize, blockStart + 4096);
+          const rowCount = Math.ceil((readEnd - readStart) / 16);
+          const result = await this.fileSystem.readHexRange(path, readStart, rowCount);
+          if (request !== this.hexSearchRequestId || path !== this.hexFilePath()) return;
+          if (!result.success) throw new Error(result.errorMessage || 'Could not read file data.');
+          const bytes = result.data.rows.flatMap(row => (row.hex.match(/[0-9a-f]{2}/gi) ?? []).map(value => Number.parseInt(value, 16)));
+          const lowerBound = Math.max(0, blockStart);
+          for (let offset = upperBound; offset >= lowerBound; offset--) {
+            const index = offset - readStart;
+            if (index >= 0 && index + pattern.length <= bytes.length && matchesAt(bytes, index)) {
+              matchOffset = offset;
+              break;
+            }
+          }
+          upperBound = blockStart - 1;
+          blockStart -= 4096;
+        }
+      }
+      if (request !== this.hexSearchRequestId || path !== this.hexFilePath()) return;
+      if (matchOffset >= 0) {
+        this.hexSearchHasMatch = true;
+        this.hexSearchStatus.set(`Match at 0x${matchOffset.toString(16).toUpperCase().padStart(8, '0')}.`);
+        this.setHexCursor(matchOffset);
+      } else {
+        this.hexSearchHasMatch = false;
+        this.hexSearchStatus.set(direction > 0 ? 'No further match found.' : 'No previous match found.');
+      }
+    } catch (error) {
+      if (request === this.hexSearchRequestId) this.hexSearchStatus.set('Search failed: ' + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      if (request === this.hexSearchRequestId) this.hexSearchBusy.set(false);
+    }
+  };
   protected readonly setHexByteDisplayMode = (value: string): void => {
     if (value === 'decimal' || value === 'hex' || value === 'octal' || value === 'binary') {
       this.hexByteDisplayMode.set(value);
@@ -2228,6 +2341,9 @@ export class ImageView {
       .subscribe(image => {
         this.hexRequestId++;
         this.hexFilePath.set(image?.path ?? null);
+        this.hexSearchRequestId++;
+        this.hexSearchHasMatch = false;
+        this.hexSearchStatus.set('');
         this.hexCursorOffset.set(0);
         this.hexRows.set([]);
         this.hexFileSize.set(0);
