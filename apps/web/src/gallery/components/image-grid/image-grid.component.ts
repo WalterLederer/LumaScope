@@ -210,20 +210,23 @@ export class ImageGridComponent {
   private cacheStatsRequest = 0;
   private cachePathUpdateRevision = 0;
   private cacheStatsFolder: string | null = null;
+  private cacheStatsScope = '';
   private cacheStatsVerifyFiles: boolean | null = null;
-  private cacheStatsPaths = new Set<string>();
+  private cacheStatsProcessedCount = 0;
+  private cacheStatsFirstPath: string | null = null;
+  private cacheStatsThumbnails = 0;
+  private cacheStatsFullSize = 0;
   private cacheStatsGps = 0;
   private cacheStatsHdr = 0;
   private cacheStatsLocation = 0;
   private lastCacheRevision: number | null = null;
-  private readonly thumbnailCachePaths = new Set<string>();
-  private readonly fullSizeCachePaths = new Set<string>();
 
   private readonly resetDirectoryCacheStats = (): void => {
     this.cacheStatsRequest++;
-    this.cacheStatsPaths.clear();
-    this.thumbnailCachePaths.clear();
-    this.fullSizeCachePaths.clear();
+    this.cacheStatsProcessedCount = 0;
+    this.cacheStatsFirstPath = null;
+    this.cacheStatsThumbnails = 0;
+    this.cacheStatsFullSize = 0;
     this.cacheStatsGps = 0;
     this.cacheStatsHdr = 0;
     this.cacheStatsLocation = 0;
@@ -233,16 +236,21 @@ export class ImageGridComponent {
     const images = this.images() ?? [];
     const folder = this.selectedLocation();
     const verifyCacheFiles = this.verifyCacheFiles();
-    const currentPaths = new Set(images.map(image => image.path));
+    const scope = [folder ?? '', this.sortBy(), this.sortDirection(),
+      this.includeUnsupportedFiles(), this.includeFilesRecursive()].join('|');
+    const firstPath = images[0]?.path ?? null;
 
-    // A folder change, verification-mode change, or removal of previously
-    // counted files invalidates the accumulated snapshot. Appending another
-    // gallery page does not: only its not-yet-queried paths are requested.
+    // Keep only scalar progress. Retaining a Set of every path (and separate
+    // thumbnail/full-size path Sets) duplicates hundreds of thousands of
+    // strings in renderer memory.
     const mustReset = this.cacheStatsFolder !== folder
+      || this.cacheStatsScope !== scope
       || this.cacheStatsVerifyFiles !== verifyCacheFiles
-      || [...this.cacheStatsPaths].some(path => !currentPaths.has(path));
+      || images.length < this.cacheStatsProcessedCount
+      || (this.cacheStatsProcessedCount > 0 && firstPath !== this.cacheStatsFirstPath);
     if (mustReset) this.resetDirectoryCacheStats();
     this.cacheStatsFolder = folder;
+    this.cacheStatsScope = scope;
     this.cacheStatsVerifyFiles = verifyCacheFiles;
     const request = ++this.cacheStatsRequest;
     const pathUpdateRevision = this.cachePathUpdateRevision;
@@ -253,7 +261,7 @@ export class ImageGridComponent {
       return;
     }
 
-    const newImages = images.filter(image => !this.cacheStatsPaths.has(image.path));
+    const newImages = images.slice(this.cacheStatsProcessedCount);
     if (newImages.length === 0) {
       this.cacheStats.update(current => ({ ...current, total: this.galleryState.totalFileCount() || images.length }));
       return;
@@ -270,30 +278,18 @@ export class ImageGridComponent {
       for (const paths of filesByParent.values()) {
         for (let offset = 0; offset < paths.length; offset += 500) {
           const batch = paths.slice(offset, offset + 500);
-          console.info('[GalleryDB] WAIT cache stats', {
-            batch: Math.floor(offset / 500) + 1,
-            batchSize: batch.length,
-            verifyCacheFiles
-          });
-          const statsStartedAt = Date.now();
           const stats = await this.cacheManager.getDirectoryCacheStats(batch, verifyCacheFiles);
-          console.info('[GalleryDB] DONE cache stats', {
-            batchSize: batch.length,
-            thumbnails: stats.thumbnails,
-            fullSize: stats.fullSizeConversions,
-            durationMs: Date.now() - statsStartedAt
-          });
           if (request !== this.cacheStatsRequest) return;
           if (pathUpdateRevision !== this.cachePathUpdateRevision) {
             void this.refreshDirectoryCacheStats();
             return;
           }
-          batch.forEach(path => this.cacheStatsPaths.add(path));
+          this.cacheStatsProcessedCount += batch.length;
+          this.cacheStatsThumbnails += stats.thumbnails;
+          this.cacheStatsFullSize += stats.fullSizeConversions;
           this.cacheStatsGps += stats.gps;
           this.cacheStatsHdr += stats.hdr;
           this.cacheStatsLocation += stats.location;
-          stats.thumbnailPaths.forEach(path => this.thumbnailCachePaths.add(path));
-          stats.fullSizePaths.forEach(path => this.fullSizeCachePaths.add(path));
         }
       }
       if (request !== this.cacheStatsRequest) return;
@@ -301,10 +297,11 @@ export class ImageGridComponent {
         void this.refreshDirectoryCacheStats();
         return;
       }
+      if (this.cacheStatsFirstPath === null) this.cacheStatsFirstPath = firstPath;
       this.cacheStats.set({
         total: this.galleryState.totalFileCount() || images.length,
-        thumbnails: this.thumbnailCachePaths.size,
-        fullSizeConversions: this.fullSizeCachePaths.size,
+        thumbnails: this.cacheStatsThumbnails,
+        fullSizeConversions: this.cacheStatsFullSize,
         gps: this.cacheStatsGps,
         hdr: this.cacheStatsHdr,
         location: this.cacheStatsLocation,
