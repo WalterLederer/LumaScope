@@ -431,3 +431,6 @@ ui-side-panel {
 :host-context(html[data-theme='dark']) ::ng-deep .gallery-folder-tree ui-tree-node.selected:hover * {
   color: #fff !important;
 }
+
+.gallery-actions-column-header { display:flex; justify-content:flex-start; min-height:30px; padding:0 0 4px; }
+.gallery-actions-column-header button { width:72px; min-height:28px; border:1px solid var(--color-border-default, #888); border-radius:4px; background:transparent; color:inherit; cursor:pointer; font-size:18px; }
