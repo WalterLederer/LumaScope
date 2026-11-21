@@ -45,6 +45,19 @@ export interface DesktopProcessManager {
   readonly setWindowTitle: (title: string) => Promise<void>;
 }
 
+export interface HexReadRow {
+  offset: number;
+  hex: string;
+  ascii: string;
+  utf16: string;
+  utf16Shifted: string;
+}
+
+export interface HexReadResult {
+  fileSize: number;
+  rows: HexReadRow[];
+}
+
 export interface DesktopFileSystem {
   readonly join: (...paths: string[]) => Promise<string>;
   readonly dirname: (fileName: string) => Promise<string>;
@@ -55,6 +68,7 @@ export interface DesktopFileSystem {
   readonly readDocumentationImage: (fileName: string) => Promise<ApiResponse<string>>;
   readonly writeText: (path: string, content: string) => Promise<ApiResponse<undefined>>;
   readonly exportHex: (sourcePath: string) => Promise<ApiResponse<undefined>>;
+  readonly readHexRange: (sourcePath: string, startOffset: number, rowCount: number) => Promise<ApiResponse<HexReadResult>>;
   readonly readJson: <T>(path: string) => Promise<ApiResponse<T>>;
   readonly writeJson: <T>(path: string, data: T) => Promise<ApiResponse<undefined>>;
   /**
