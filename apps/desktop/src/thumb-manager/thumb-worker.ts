@@ -1261,9 +1261,23 @@ if (parentPort) {
             peakLabelColor
           );
 
-          // Bright spectral outline with a broad wavelength-coloured halo and
-          // a near-white HDR core. Sample every pixel along each segment so
-          // the glow remains continuous even at full-size output dimensions.
+          // Add a vivid, wavelength-coloured HDR gradient beneath the
+          // measured spectrum. This is additive scRGB light (not an SDR tint),
+          // so saturated spectral colours remain bright instead of washing out.
+          for (let x = 0; x < plotWidth; x++) {
+            const sampleIndex = Math.min(sampleCount - 1, Math.round(x / Math.max(1, plotWidth - 1) * (sampleCount - 1)));
+            const curveY = Math.round(yFor(values[sampleIndex]));
+            const wavelength = startWavelength + sampleIndex / (sampleCount - 1) * (endWavelength - startWavelength);
+            const color = spectrumColor(wavelength);
+            const fromY = Math.round(Math.min(curveY, zeroY));
+            const toY = Math.round(Math.max(curveY, zeroY));
+            for (let y = fromY; y <= toY; y++) {
+              addHdrLight(left + x, y, color, 2.2, 0.12);
+            }
+          }
+
+          // Bright spectral outline with a saturated wavelength-coloured halo
+          // and a restrained white core so the spectrum keeps its vivid colour.
           for (let index = 1; index < sampleCount; index++) {
             const x0 = left + (index - 1) / (sampleCount - 1) * plotWidth;
             const x1 = left + index / (sampleCount - 1) * plotWidth;
@@ -1278,8 +1292,8 @@ if (parentPort) {
               const color = spectrumColor(wavelength);
               for (let dy = -7; dy <= 7; dy++) {
                 const distance = Math.abs(dy);
-                const halo = 2.4 * Math.exp(-0.5 * (distance / 3.2) ** 2);
-                const core = distance <= 1 ? 5.0 : 0;
+                const halo = 4.2 * Math.exp(-0.5 * (distance / 3.2) ** 2);
+                const core = distance <= 1 ? 3.2 : 0;
                 addHdrLight(x, y + dy, color, halo, core);
               }
             }
@@ -1294,8 +1308,8 @@ if (parentPort) {
             for (let y = bandCenterY - glowRadius; y <= bandCenterY + glowRadius; y++) {
               if (y < 0 || y >= outputHeight) continue;
               const distance = Math.abs(y - bandCenterY);
-              const halo = 2.4 * Math.exp(-0.5 * (distance / 9) ** 2);
-              const core = distance <= 4 ? 6.0 : 0;
+              const halo = 4.8 * Math.exp(-0.5 * (distance / 9) ** 2);
+              const core = distance <= 4 ? 0.65 : 0;
               addHdrLight(left + x, y, color, halo, core);
             }
           }
