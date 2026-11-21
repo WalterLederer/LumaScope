@@ -1824,3 +1824,19 @@
   padding-right: 0 !important;
   box-sizing: border-box !important;
 }
+
+/* A hidden COL must be removed from the native table layout as well. The
+   generic table-column display rule above otherwise overrides the browser's
+   [hidden] behavior and leaves the unused 44px actions track in the table. */
+.detail-native-table > colgroup > col[hidden] {
+  display: none !important;
+}
+
+/* Keep whichever actions track is visible at exactly 44px. */
+.detail-native-table > colgroup > col:first-child:not([hidden]),
+.detail-native-table > colgroup > col:last-child:not([hidden]) {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+}
+
