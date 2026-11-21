@@ -225,9 +225,9 @@ export class GalleryState {
               recursive: this.includeFilesRecursive$.value,
               includeUnsupported: this.includeUnsupportedFiles$.value,
               sort: `${sortMode.sortBy} ${sortMode.sortDir}`,
-              limit: this.galleryPageSize
+              limit: this.galleryWindowSize
             });
-            return this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, this.galleryPageSize);
+            return this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, this.galleryWindowSize);
           }).then(page => {
             console.info('[GalleryDB] DONE first page', {
               rows: page.files.length,
@@ -239,10 +239,11 @@ export class GalleryState {
         })),
         tap(page => {
           if (request !== this.navigationRequest) return;
+          this.galleryWindowStart.set(0);
           this.galleryLoadedCount = page.files.length;
           this.galleryTotalCount = page.totalCount >= 0
             ? page.totalCount
-            : page.files.length < this.galleryPageSize ? page.files.length : -1;
+            : page.files.length < this.galleryWindowSize ? page.files.length : -1;
           this.totalFileCount.set(this.galleryTotalCount >= 0 ? this.galleryTotalCount : page.files.length);
           this.images$.next(page.files);
         }),
@@ -315,30 +316,19 @@ export class GalleryState {
     const request = ++this.navigationRequest;
     this.galleryPageLoading = false;
     const sort = this.sortMode$.value;
-    const requestedCount = Math.max(this.galleryPageSize, this.galleryLoadedCount);
+    const offset = this.galleryWindowStart();
     try {
-      const pages: FileInfo[] = [];
-      let totalCount = 0;
-      for (let offset = 0; offset < requestedCount; offset += this.galleryPageSize) {
-        const page = await this.cacheManager.getGalleryFilesPage(
-          directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
-          sort.sortBy, sort.sortDir, offset, this.galleryPageSize
-        );
-        if (request !== this.navigationRequest) return;
-        pages.push(...page.files);
-        if (page.totalCount >= 0) totalCount = page.totalCount;
-        else if (page.files.length < this.galleryPageSize) totalCount = pages.length;
-        else totalCount = -1;
-        if (page.files.length < this.galleryPageSize) break;
-      }
+      const page = await this.cacheManager.getGalleryFilesPage(
+        directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
+        sort.sortBy, sort.sortDir, offset, this.galleryWindowSize
+      );
       if (request !== this.navigationRequest) return;
-      if (pages.length < requestedCount) totalCount = pages.length;
-      this.galleryLoadedCount = pages.length;
-      this.galleryTotalCount = totalCount;
-      this.totalFileCount.set(totalCount >= 0 ? totalCount : pages.length);
-      this.images$.next(pages);
+      this.galleryLoadedCount = page.files.length;
+      this.galleryTotalCount = page.totalCount >= 0 ? page.totalCount : offset + page.files.length;
+      this.totalFileCount.set(this.galleryTotalCount);
+      this.images$.next(page.files);
     } catch (error) {
-      console.error('Failed to refresh database-backed gallery files', directory, error);
+      console.error('Failed to refresh the current gallery window', directory, error);
     }
   };
 
