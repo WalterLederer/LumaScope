@@ -19,10 +19,6 @@
       </div>
     </ng-template>
   </td>
-  <td class="detail-actions detail-actions-right" [hidden]="actionsColumnPosition() !== 'right'" [attr.data-row-number]="rowNumber()">
-    <button type="button" class="file-row-menu-trigger detail-row-menu-trigger" [cdkMenuTriggerFor]="rowActionsMenu"
-            [attr.aria-label]="'File actions for ' + image().name" title="File actions">☰</button>
-  </td>
     @if (viewMode() === 'details-no-thumbnails') {
     <td class="detail-thumb-empty" aria-hidden="true"></td>
   } @else {
@@ -54,6 +50,10 @@
   <td class="detail-gps" [title]="gpsCoordinates()">{{ gpsCoordinates() }}</td>
   <td class="detail-location" [title]="locationDisplayName() ?? ''">{{ locationDisplayName() ?? '—' }}</td>
   <td class="detail-path" [title]="detailPath()">{{ detailPath() || '.' }}</td>
+  <td class="detail-actions detail-actions-right" [hidden]="actionsColumnPosition() !== 'right'" [attr.data-row-number]="rowNumber()">
+    <button type="button" class="file-row-menu-trigger detail-row-menu-trigger" [cdkMenuTriggerFor]="rowActionsMenu"
+            [attr.aria-label]="'File actions for ' + image().name" title="File actions">☰</button>
+  </td>
 
 } @else {
   @if (viewMode() !== 'details-no-thumbnails') {
