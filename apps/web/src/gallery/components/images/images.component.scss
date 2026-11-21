@@ -434,11 +434,10 @@
   gap: 8px;
   margin-top: 5px;
 }
-/* The native table header has an opaque Canvas background by default. Override it
-   explicitly while a folder cache run is active so every header cell is highlighted. */
+/* Keep cache activity visible without allowing table rows to show through the header. */
 .detail-native-table thead tr.detail-header.cache-build-active > th {
-  background: rgb(220 65 65 / 14%) !important;
-  background-color: rgb(220 65 65 / 14%) !important;
+  background: color-mix(in srgb, var(--color-surface-default-low, #fff) 86%, #dc4141 14%) !important;
+  background-color: color-mix(in srgb, var(--color-surface-default-low, #fff) 86%, #dc4141 14%) !important;
   background-image: none !important;
 }
 .detail-native-table thead th .column-count,
