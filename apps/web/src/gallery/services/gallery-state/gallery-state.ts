@@ -62,6 +62,7 @@ export class GalleryState {
   private galleryTotalCount = 0;
   readonly totalFileCount = signal(0);
   private galleryPageLoading = false;
+  private pendingGalleryWindowOffset: number | null = null;
   private galleryFilesRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly includeUnsupportedFiles$ = new BehaviorSubject(false);
   private readonly includeFilesRecursive$ = new BehaviorSubject(false);
@@ -210,6 +211,7 @@ export class GalleryState {
     this.galleryTotalCount = 0;
     this.totalFileCount.set(0);
     this.galleryPageLoading = false;
+    this.pendingGalleryWindowOffset = null;
     this.images$.next([]);
     this.configuration.updateGalleryConfig({ selectedLocation: path });
 
@@ -287,10 +289,15 @@ export class GalleryState {
    */
   readonly loadGalleryWindow = (requestedOffset: number): void => {
     const directory = this.selectedLocation$.value;
-    if (!directory || this.galleryPageLoading) return;
+    if (!directory) return;
     const total = this.galleryTotalCount >= 0 ? this.galleryTotalCount : this.totalFileCount();
     const maxOffset = Math.max(0, total - this.galleryWindowSize);
-    const offset = Math.max(0, Math.min(maxOffset, Math.trunc(requestedOffset)));
+    const safeOffset = Number.isFinite(requestedOffset) ? Math.trunc(requestedOffset) : 0;
+    const offset = Math.max(0, Math.min(maxOffset, safeOffset));
+    if (this.galleryPageLoading) {
+      this.pendingGalleryWindowOffset = offset;
+      return;
+    }
     if (offset === this.galleryWindowStart() && this.images$.value.length > 0) return;
     const request = this.navigationRequest;
     const sort = this.sortMode$.value;
@@ -308,7 +315,14 @@ export class GalleryState {
     }).catch(error => {
       console.error('Failed to load a bounded gallery window', { directory, offset, error });
     }).finally(() => {
-      if (request === this.navigationRequest) this.galleryPageLoading = false;
+      if (request === this.navigationRequest) {
+        this.galleryPageLoading = false;
+        const pendingOffset = this.pendingGalleryWindowOffset;
+        this.pendingGalleryWindowOffset = null;
+        if (pendingOffset !== null && pendingOffset !== this.galleryWindowStart()) {
+          this.loadGalleryWindow(pendingOffset);
+        }
+      }
     });
   };
 
