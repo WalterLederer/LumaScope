@@ -4,22 +4,20 @@
 @if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
   <td class="detail-actions" [attr.data-row-number]="rowNumber()">
     <button type="button" class="file-row-menu-trigger detail-row-menu-trigger"
-            (click)="toggleRowActionMenu($event)"
-            [attr.aria-expanded]="rowActionMenuOpen()"
-            aria-haspopup="menu"
+            [cdkMenuTriggerFor]="rowActionsMenu"
             [attr.aria-label]="'File actions for ' + image().name"
             title="File actions">☰</button>
-    @if (rowActionMenuOpen()) {
-      <div class="gpx-row-action-menu detail-row-action-menu" role="menu" [style.top.px]="rowActionMenuPosition().top" [style.left.px]="rowActionMenuPosition().left" (click)="$event.stopPropagation()">
-        <button type="button" role="menuitem" (click)="copyImagePath()"><span aria-hidden="true">⧉</span> Copy path</button>
-        <button type="button" role="menuitem" (click)="openImagePath()"><span aria-hidden="true">📂</span> Open path</button>
-        <button type="button" role="menuitem" (click)="openImageFile()"><span aria-hidden="true">↗</span> Open file</button>
+    <ng-template #rowActionsMenu>
+      <div class="gpx-row-action-menu detail-row-action-menu" cdkMenu>
+        <button type="button" role="menuitem" cdkMenuItem (click)="copyImagePath()"><span aria-hidden="true">⧉</span> Copy path</button>
+        <button type="button" role="menuitem" cdkMenuItem (click)="openImagePath()"><span aria-hidden="true">📂</span> Open path</button>
+        <button type="button" role="menuitem" cdkMenuItem (click)="openImageFile()"><span aria-hidden="true">↗</span> Open file</button>
         <div class="gpx-row-action-menu-separator" role="separator"></div>
-        <button type="button" role="menuitem" class="gpx-row-action-delete-all" (click)="deleteImageFile()"><span aria-hidden="true">⌫</span> Delete file</button>
+        <button type="button" role="menuitem" cdkMenuItem class="gpx-row-action-delete-all" (click)="deleteImageFile()"><span aria-hidden="true">⌫</span> Delete file</button>
         <div class="gpx-row-action-menu-separator" role="separator"></div>
-        <button type="button" role="menuitem" (click)="requestReCacheFile()"><span aria-hidden="true">↻</span> Re-Cache file</button>
+        <button type="button" role="menuitem" cdkMenuItem (click)="requestReCacheFile()"><span aria-hidden="true">↻</span> Re-Cache file</button>
       </div>
-    }
+    </ng-template>
   </td>
     @if (viewMode() === 'details-no-thumbnails') {
     <td class="detail-thumb-empty" aria-hidden="true"></td>
