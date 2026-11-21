@@ -741,8 +741,19 @@ export class ImageView {
     this.hexCursorOffset.set(bounded);
     const row = Math.floor(bounded / 16);
     const start = this.hexStartRow();
+    const viewport = this.hexScrollViewport()?.nativeElement;
+    viewport?.focus({ preventScroll: true });
     if (row < start || row >= start + this.hexRows().length) {
+      if (viewport) viewport.scrollTop = 0;
       void this.loadHexRange(Math.min(row, this.hexMaxStartRow()));
+      return;
+    }
+    if (viewport) {
+      const rowTop = (row - start) * 22;
+      if (rowTop < viewport.scrollTop) viewport.scrollTop = rowTop;
+      else if (rowTop + 22 > viewport.scrollTop + viewport.clientHeight) {
+        viewport.scrollTop = rowTop + 22 - viewport.clientHeight;
+      }
     }
   };
   protected readonly onHexKeyDown = (event: KeyboardEvent): void => {
