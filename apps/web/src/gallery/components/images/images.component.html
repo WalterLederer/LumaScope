@@ -322,7 +322,7 @@
   </div>
 } @else {
   <div class="images" [class.info-tiles]="viewMode() === 'tiles'">
-    @if (thumbnailVirtualTopSpacer() > 0) {
+    @if (viewMode() === 'thumbnails' && thumbnailVirtualTopSpacer() > 0) {
       <div class="gallery-window-spacer" aria-hidden="true" [style.height.px]="thumbnailVirtualTopSpacer()"></div>
     }
     @for (image of imageList; track image.path) {
@@ -331,7 +331,7 @@
                      (cacheUpdated)="cacheUpdated.emit($event)"
                      (clicked)="this.selected.emit($event)" />
     }
-    @if (thumbnailVirtualBottomSpacer() > 0) {
+    @if (viewMode() === 'thumbnails' && thumbnailVirtualBottomSpacer() > 0) {
       <div class="gallery-window-spacer" aria-hidden="true" [style.height.px]="thumbnailVirtualBottomSpacer()"></div>
     }
   </div>
