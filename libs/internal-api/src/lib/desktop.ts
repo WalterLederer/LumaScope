@@ -69,6 +69,7 @@ export interface DesktopFileSystem {
   readonly writeText: (path: string, content: string) => Promise<ApiResponse<undefined>>;
   readonly exportHex: (sourcePath: string) => Promise<ApiResponse<undefined>>;
   readonly readHexRange: (sourcePath: string, startOffset: number, rowCount: number) => Promise<ApiResponse<HexReadResult>>;
+  readonly searchBytes: (sourcePath: string, bytes: number[], startOffset: number, direction: 1 | -1) => Promise<ApiResponse<number | null>>;
   readonly readJson: <T>(path: string) => Promise<ApiResponse<T>>;
   readonly writeJson: <T>(path: string, data: T) => Promise<ApiResponse<undefined>>;
   /**
