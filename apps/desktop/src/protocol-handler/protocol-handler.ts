@@ -233,6 +233,27 @@ const isExistingSidecarThumbnail = (fileName: string): boolean =>
   basename(dirname(fileName)).toLowerCase() === '.cache'
   && /_thumb\\.jpe?g$/i.test(basename(fileName));
 
+const chromiumNativeThumbnailExtensions = new Set([
+  '.jpg', '.jpeg', '.jpe', '.png', '.gif', '.webp', '.bmp', '.svg', '.avif'
+]);
+const chromiumNativeThumbnailMaxDimension = 1024;
+
+const canStreamOriginalThumbnail = async (
+  fileName: string,
+  thumbManager: ThumbManager
+): Promise<boolean> => {
+  if (!chromiumNativeThumbnailExtensions.has(extname(fileName).toLowerCase())) return false;
+  try {
+    const dimensions = await thumbManager.getImageDimensions(fileName);
+    return dimensions !== null
+      && dimensions.width > 0
+      && dimensions.height > 0
+      && Math.max(dimensions.width, dimensions.height) <= chromiumNativeThumbnailMaxDimension;
+  } catch {
+    return false;
+  }
+};
+
 const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<GlobalResponse> => {
   const fileName = params.get('image');
   const width = Number(params.get('width'));
@@ -262,6 +283,22 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
     const injector = Injector.getInstance();
     const cacheManager = injector.inject('CacheManager');
     const thumbManager = injector.inject('ThumbManager');
+
+    // Small Chromium-native images can be displayed directly. Avoid creating a
+    // redundant thumbnail derivative when the longest source edge is <= 1024 px.
+    if (!isOhsp && await canStreamOriginalThumbnail(fileName, thumbManager)) {
+      if (signal?.aborted) return notFound();
+      if (params.get('status') === '1') {
+        return new Response(JSON.stringify({ cached: true, direct: true }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'no-store'
+          }
+        });
+      }
+      return streamFile(fileName);
+    }
 
     // OHSP has one canonical Ultra HDR derivative. Gallery previews stream the
     // same full-size JPEG instead of creating a second, reduced thumbnail file.
