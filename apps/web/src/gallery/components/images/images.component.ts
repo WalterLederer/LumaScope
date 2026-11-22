@@ -889,7 +889,7 @@ export class ImagesComponent {
       await this.cacheManager.resetBuildLog();
       await this.cacheManager.appendBuildLog('Cache build started: ' + formatOsDateTime(new Date()));
       await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
-      this.cacheRunCurrentOperation.set(`Indexing files in ${folder}`);
+      this.cacheRunCurrentOperation.set(`Scanning folder and updating photo database: ${folder}`);
       const scan = await this.cacheManager.scanGalleryDirectory(folder);
       // The scan has now registered the folder's files in SQLite. Refresh the
       // visible gallery immediately, before potentially lengthy thumbnail and
@@ -904,6 +904,7 @@ export class ImagesComponent {
         await this.cacheManager.appendBuildLog(`Folder scan incomplete in ${folder}; stale database records were preserved.`);
       }
       this.cacheRunProgress.set({ completed: 0, total: scan.files });
+      this.cacheRunCurrentOperation.set(`Database updated: ${scan.files.toLocaleString()} files found. Preparing thumbnails and previews…`);
       for (let offset = 0; offset < scan.files && !controller.signal.aborted; offset += 500) {
         const page = await this.cacheManager.getGalleryFilesPage(folder, false, true, 'name', 'asc', offset, 500);
         const images = page.files.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
@@ -1138,7 +1139,7 @@ export class ImagesComponent {
       await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
       while (pendingDirectories.length > 0 && !controller.signal.aborted) {
         const directoryPath = pendingDirectories.shift()!;
-        this.cacheRunCurrentOperation.set(`Indexing files and subfolders in ${directoryPath}`);
+        this.cacheRunCurrentOperation.set(`Scanning folder and updating photo database: ${directoryPath}`);
         let scan: { files: number; directories: string[]; removedStale: number; complete: boolean };
         try {
           scan = await this.cacheManager.scanGalleryDirectory(directoryPath);
@@ -1148,6 +1149,7 @@ export class ImagesComponent {
           await this.cacheManager.appendBuildLog(`Folder indexing failed in ${directoryPath}: ${error instanceof Error ? error.message : String(error)}`);
           continue;
         }
+        this.cacheRunCurrentOperation.set(`Database updated: ${scan.files.toLocaleString()} files found in folder. Preparing thumbnails and previews…`);
         if (!scan.complete) {
           enumerationComplete = false;
           await this.cacheManager.appendBuildLog(`Folder scan incomplete in ${directoryPath}; stale database records were preserved.`);
