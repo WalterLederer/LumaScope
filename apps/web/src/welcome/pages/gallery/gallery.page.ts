@@ -86,7 +86,7 @@ export class GalleryPage {
   protected readonly toggleActionsColumnPosition = (): void => {
     const nextPosition = this.actionsColumnPosition() === 'left' ? 'right' : 'left';
     this.actionsColumnPosition.set(nextPosition);
-    this.configuration.updateSystemConfig({ galleryDetailActionsColumnPosition: nextPosition });
+    this.configuration.updateSystemConfig({ galleryFavoritesActionsColumnPosition: nextPosition });
   };
 
 
@@ -184,7 +184,7 @@ export class GalleryPage {
 
   constructor() {
     this.configuration.config().pipe(take(1)).subscribe(config => {
-      this.actionsColumnPosition.set(config.system.galleryDetailActionsColumnPosition === 'right' ? 'right' : 'left');
+      this.actionsColumnPosition.set(config.system.galleryFavoritesActionsColumnPosition === 'right' ? 'right' : 'left');
     });
 
     // Only the image-grid instance owns window title and cache refresh side effects.
