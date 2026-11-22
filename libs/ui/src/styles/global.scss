@@ -1154,3 +1154,39 @@ html[data-disclosure-style='none'] ui-tree-node .expand-indicator::before { cont
   line-height: 1;
   vertical-align: 1px;
 }
+
+/* GPX track-list hamburger triggers are neutral menu glyphs, not themed action buttons. */
+html body button.gpx-track-menu-icon,
+html body button.gpx-track-menu-icon:hover,
+html body button.gpx-track-menu-icon:active,
+html body button.gpx-track-menu-icon:focus,
+html body button.gpx-track-menu-icon:focus-visible,
+html[data-button-style] body button.gpx-track-menu-icon,
+html[data-button-style] body button.gpx-track-menu-icon:hover,
+html[data-button-style] body button.gpx-track-menu-icon:active,
+html[data-button-style] body button.gpx-track-menu-icon:focus-visible {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  color: inherit !important;
+  text-shadow: none !important;
+  transform: none !important;
+}
+html body button.gpx-track-menu-icon:hover,
+html body button.gpx-track-menu-icon:active,
+html body button.gpx-track-menu-icon:focus,
+html body button.gpx-track-menu-icon:focus-visible {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+html body button.gpx-track-menu-icon:focus-visible {
+  outline: 1px solid var(--color-content-default-low, #666) !important;
+  outline-offset: 1px !important;
+}
