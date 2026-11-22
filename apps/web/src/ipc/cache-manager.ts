@@ -108,8 +108,8 @@ export class CacheManager implements DesktopCacheManager {
 
   readonly registerGalleryFiles = (directory: string, files: import('internal-api').FileInfo[]): Promise<number> =>
     window.desktop.CacheManager.registerGalleryFiles(directory, files);
-  readonly scanGalleryDirectory = (directory: string): Promise<{ files: number; directories: string[]; removedStale: number; complete: boolean }> =>
-    window.desktop.CacheManager.scanGalleryDirectory(directory);
+  readonly scanGalleryDirectory = (directory: string, verifyCacheFiles = false): Promise<{ files: number; directories: string[]; removedStale: number; removedCacheFiles: number; removedCacheBytes: number; complete: boolean }> =>
+    window.desktop.CacheManager.scanGalleryDirectory(directory, verifyCacheFiles);
 
   readonly removeGalleryFile = async (sourceName: string): Promise<boolean> => {
     const removed = await window.desktop.CacheManager.removeGalleryFile(sourceName);
