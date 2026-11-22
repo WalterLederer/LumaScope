@@ -144,11 +144,11 @@ int Run(const std::wstring& filePath, int x, int y) {
             TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_LEFTALIGN | TPM_TOPALIGN,
             x, y, owner, nullptr);
         if (selected >= firstCommand && selected <= lastCommand) {
-            char verb[256]{};
+            wchar_t verb[256]{};
             const bool hasCanonicalVerb =
-                SUCCEEDED(contextMenu->GetCommandString(selected - firstCommand, GCS_VERBA,
-                    nullptr, verb, static_cast<UINT>(sizeof(verb))))
-                && verb[0] != '\0';
+                SUCCEEDED(contextMenu->GetCommandString(selected - firstCommand, GCS_VERBW,
+                    nullptr, reinterpret_cast<LPSTR>(verb), static_cast<UINT>(std::size(verb))))
+                && verb[0] != L'\0';
 
             bool invoked = false;
             if (hasCanonicalVerb) {
@@ -160,16 +160,10 @@ int Run(const std::wstring& filePath, int x, int y) {
                 executeInfo.cbSize = sizeof(executeInfo);
                 executeInfo.fMask = SEE_MASK_INVOKEIDLIST;
                 executeInfo.hwnd = owner;
-                const int verbLength = MultiByteToWideChar(CP_ACP, 0, verb, -1, nullptr, 0);
-                std::wstring wideVerb(static_cast<size_t>(verbLength), L'\0');
-                if (verbLength > 1 &&
-                    MultiByteToWideChar(CP_ACP, 0, verb, -1, wideVerb.data(), verbLength) > 0) {
-                    wideVerb.resize(static_cast<size_t>(verbLength - 1));
-                    executeInfo.lpVerb = wideVerb.c_str();
-                    executeInfo.lpFile = filePath.c_str();
-                    executeInfo.nShow = SW_SHOWNORMAL;
-                    invoked = ShellExecuteExW(&executeInfo) == TRUE;
-                }
+                executeInfo.lpVerb = verb;
+                executeInfo.lpFile = filePath.c_str();
+                executeInfo.nShow = SW_SHOWNORMAL;
+                invoked = ShellExecuteExW(&executeInfo) == TRUE;
             }
 
             if (!invoked) {
