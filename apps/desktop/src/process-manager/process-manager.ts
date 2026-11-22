@@ -200,6 +200,17 @@ export class ProcessManager {
     await updateAppSettingsSection('mapWindow', { zoom: Math.max(1, Math.min(20, Math.round(value))) });
   };
 
+  @IpcHandler({ name: 'ProcessManager.getFileTypeIcon' })
+  readonly getFileTypeIcon = async (_: IpcMainInvokeEvent, filePath: string): Promise<string | null> => {
+    if (typeof filePath !== 'string' || !filePath.trim()) return null;
+    try {
+      const icon = await app.getFileIcon(filePath, { size: 'large' });
+      return icon.isEmpty() ? null : icon.toDataURL();
+    } catch {
+      return null;
+    }
+  };
+
   @IpcHandler({ name: 'ProcessManager.getAppVersion' })
   readonly getAppVersion = async (): Promise<string> => {
     try {
