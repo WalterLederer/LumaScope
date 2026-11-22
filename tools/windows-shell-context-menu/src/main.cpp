@@ -138,7 +138,7 @@ int Run(const std::wstring& filePath, int x, int y) {
                 SUCCEEDED(contextMenu->GetCommandString(selected - firstCommand, GCS_VERBW,
                     nullptr, reinterpret_cast<LPSTR>(canonicalVerb),
                     static_cast<UINT>(sizeof(canonicalVerb) / sizeof(canonicalVerb[0]))))
-                && canonicalVerb[0] != L'\\0';
+                && canonicalVerb[0] != L'\0';
 
             CMINVOKECOMMANDINFOEX invoke{};
             invoke.cbSize = sizeof(invoke);
