@@ -27,7 +27,7 @@
           <ui-caption variant="warn" [title]="thumbnailError() ?? ''">{{ thumbnailError() ?? 'Failed to load an image' }}</ui-caption>
         </div>
       }
-      @if (!loading && !error) {
+      @if (!loading && !error && isSupportedThumbnail()) {
         <img class="detail-thumbnail-image" loading="lazy" [alt]="image().name" [src]="url()" />
       }
     </td>
@@ -81,7 +81,7 @@
           <ui-caption variant="warn" [title]="thumbnailError() ?? ''">{{ thumbnailError() ?? 'Failed to load an image' }}</ui-caption>
         </div>
       }
-      @if (!loading && !error) {
+      @if (!loading && !error && isSupportedThumbnail()) {
         <button class="thumbnail-image-button" [title]="thumbnailError() ? image().name + ' — ' + thumbnailError() : image().name"
                 (click)="$event.stopPropagation(); clicked.emit(image())">
           <img loading="lazy" [alt]="image().name" [src]="url()" style="dynamic-range-limit: no-limit" />
