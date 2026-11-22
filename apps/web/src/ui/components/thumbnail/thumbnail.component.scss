@@ -32,7 +32,7 @@
   height: 100%;
 }
 
-.thumbnail-preview > button {
+:host .thumbnail-preview > button.thumbnail-image-button:not([role='option']):not(.app-disclosure-heading):not([aria-expanded]):not(:disabled) {
   /* This button is only an image hit target, not an application action button.
      Global button theming applies filters/transforms to the whole subtree and
      can flatten Ultra HDR gain-map rendering and desaturate the preview. */
@@ -65,8 +65,8 @@
     content: none !important;
   }
 
-  &:hover,
-  &:active,
+  &:hover:not(:disabled),
+  &:active:not(:disabled),
   &:focus-visible {
     filter: none !important;
     transform: none !important;
