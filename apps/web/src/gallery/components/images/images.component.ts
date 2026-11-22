@@ -35,6 +35,7 @@ import {
 import { ThumbnailComponent } from '../../../ui/components/thumbnail/thumbnail.component';
 import { TimelineIndicatorsComponent } from '../timeline-indicators/timeline-indicators.component';
 import { imageUrl, thumbUrl } from '../../../viewer/utils/image-url';
+import { formatNumber } from '../../../ui/utils/format-number';
 import { GalleryViewMode, groupImagesByYearAndMonth, YearGroup } from './images.component.types';
 
 type DetailSortColumn = 'name' | 'date' | 'gpsDate' | 'size' | 'suffix' | 'gps' | 'location' | 'path';
