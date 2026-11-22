@@ -33,15 +33,46 @@
 }
 
 .thumbnail-preview > button {
+  /* This button is only an image hit target, not an application action button.
+     Global button theming applies filters/transforms to the whole subtree and
+     can flatten Ultra HDR gain-map rendering and desaturate the preview. */
+  appearance: none !important;
+  -webkit-appearance: none !important;
   width: 100%;
   height: 100%;
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  transition: none !important;
+  isolation: auto !important;
   cursor: pointer;
   position: relative;
-  opacity: 1;
+  opacity: 1 !important;
+
+  &::before,
+  &::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  &:hover,
+  &:active,
+  &:focus-visible {
+    filter: none !important;
+    transform: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
 
   img {
     display: block;
