@@ -273,10 +273,21 @@ export class ProcessManager {
     }
 
     const point = screen.dipToScreenPoint({ x: Math.round(screenX), y: Math.round(screenY) });
-    await execFileAsync(helperPath, [filePath, String(point.x), String(point.y)], {
-      windowsHide: true,
-      maxBuffer: 1024 * 1024
-    });
+    try {
+      await execFileAsync(helperPath, [filePath, String(point.x), String(point.y)], {
+        windowsHide: true,
+        maxBuffer: 1024 * 1024
+      });
+    } catch (error) {
+      const failure = error as { code?: number | string; stderr?: string; message?: string };
+      const exitCode = failure.code === undefined ? 'unknown' : String(failure.code);
+      const diagnostic = typeof failure.stderr === 'string' ? failure.stderr.trim().slice(-2000) : '';
+      throw new Error([
+        `Windows Shell context-menu helper failed (exit code: ${exitCode}).`,
+        diagnostic,
+        failure.message
+      ].filter(Boolean).join('\\n'));
+    }
   };
 
   @IpcHandler({ name: 'ProcessManager.openWith' })
