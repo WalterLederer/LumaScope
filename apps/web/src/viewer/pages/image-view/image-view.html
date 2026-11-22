@@ -23,6 +23,7 @@
                  [style.min-width]="'0'"
                  [style.margin-right.px]="0"
                  (imageSelected)="onGalleryImageSelected()"
+                 (activeSelectionChanged)="onGalleryActiveSelectionChanged($event)"
                  (locationSelected)="onGalleryFolderSelected()" />
   @if (controlsSidebarVisible()) {
     <aside class="image-controls-sidebar gallery-shell-sidebar" [class.sidebar-left]="sidebarOnLeft()" aria-label="Image controls" [style.position]="'relative'" [style.width]="'100%'" [style.min-width]="'0'">
