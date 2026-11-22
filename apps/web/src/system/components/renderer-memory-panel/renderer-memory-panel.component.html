@@ -1,27 +1,31 @@
 <div class="memory-panel">
   <section class="memory-panel-section">
     <h3>Renderer diagnostics — {{ windowLabel() }}</h3>
-    <div class="memory-panel-grid">
-      <span>DOM elements</span><strong>{{ diagnostics().domElements.toLocaleString() }}</strong>
-      <span>Map DOM elements</span><strong>{{ diagnostics().mapDomElements.toLocaleString() }}</strong>
-      <span>Map tiles / markers</span><strong>{{ diagnostics().mapTiles.toLocaleString() }} / {{ diagnostics().mapMarkers.toLocaleString() }}</strong>
-      <span>Canvas elements</span><strong>{{ diagnostics().canvasElements.toLocaleString() }}</strong>
-      <span>Thumbnail components</span><strong>{{ diagnostics().thumbnailComponents.toLocaleString() }}</strong>
-      <span>Detail table rows</span><strong>{{ diagnostics().detailRows.toLocaleString() }}</strong>
-      <span>HEX data rows</span><strong>{{ diagnostics().hexRows.toLocaleString() }}</strong>
-      <span>JavaScript heap used</span><strong>{{ formatBytes(diagnostics().heapUsedBytes) }}</strong>
-      <span>JavaScript heap allocated</span><strong>{{ formatBytes(diagnostics().heapTotalBytes) }}</strong>
-      <span>JavaScript heap limit</span><strong>{{ formatBytes(diagnostics().heapLimitBytes) }}</strong>
-    </div>
+    <table class="memory-panel-metrics-table">
+      <tbody>
+        <tr><td>DOM elements</td><td>{{ diagnostics().domElements.toLocaleString() }}</td></tr>
+        <tr><td>Map DOM elements</td><td>{{ diagnostics().mapDomElements.toLocaleString() }}</td></tr>
+        <tr><td>Map tiles / markers</td><td>{{ diagnostics().mapTiles.toLocaleString() }} / {{ diagnostics().mapMarkers.toLocaleString() }}</td></tr>
+        <tr><td>Canvas elements</td><td>{{ diagnostics().canvasElements.toLocaleString() }}</td></tr>
+        <tr><td>Thumbnail components</td><td>{{ diagnostics().thumbnailComponents.toLocaleString() }}</td></tr>
+        <tr><td>Detail table rows</td><td>{{ diagnostics().detailRows.toLocaleString() }}</td></tr>
+        <tr><td>HEX data rows</td><td>{{ diagnostics().hexRows.toLocaleString() }}</td></tr>
+        <tr><td>JavaScript heap used</td><td>{{ formatBytes(diagnostics().heapUsedBytes) }}</td></tr>
+        <tr><td>JavaScript heap allocated</td><td>{{ formatBytes(diagnostics().heapTotalBytes) }}</td></tr>
+        <tr><td>JavaScript heap limit</td><td>{{ formatBytes(diagnostics().heapLimitBytes) }}</td></tr>
+      </tbody>
+    </table>
     <ng-content />
   </section>
   <section class="memory-panel-section">
     <h3>Process memory</h3>
-    <div class="memory-panel-grid">
-      <span>Total working set</span><strong>{{ formatBytes(totalProcessMemoryBytes()) }}</strong>
-      <span>Last updated</span><strong>{{ updatedAt() || '—' }}</strong>
-    </div>
-    <table>
+    <table class="memory-panel-metrics-table">
+      <tbody>
+        <tr><td>Total working set</td><td>{{ formatBytes(totalProcessMemoryBytes()) }}</td></tr>
+        <tr><td>Last updated</td><td>{{ updatedAt() || '—' }}</td></tr>
+      </tbody>
+    </table>
+    <table class="memory-panel-process-table">
       <thead><tr><th>Process</th><th>PID</th><th>Working Set</th><th>Private</th></tr></thead>
       <tbody>
         @for (entry of processMemory().processes; track entry.pid) {
