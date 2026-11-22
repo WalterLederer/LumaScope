@@ -285,6 +285,21 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
     const cacheManager = injector.inject('CacheManager');
     const thumbManager = injector.inject('ThumbManager');
 
+    // A failed decoder attempt is remembered for this exact source revision.
+    // Avoid retrying the same unsupported/corrupt image on every gallery scan.
+    if (await cacheManager.hasThumbnailFailure(fileName)) {
+      if (params.get('status') === '1') {
+        return new Response(JSON.stringify({ cached: true, failed: true }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'no-store'
+          }
+        });
+      }
+      return notFound();
+    }
+
     // Small Chromium-native images can be displayed directly. Avoid creating a
     // redundant thumbnail derivative when the longest source edge is <= 1024 px.
     if (!isOhsp && await canStreamOriginalThumbnail(fileName, thumbManager)) {
@@ -384,11 +399,18 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
           signal,
           useSidecar
         );
-        if (generated.success && generated.isHdr !== null && extname(fileName).toLowerCase() !== '.ohsp') {
+        if (!generated.success) {
+          if (!signal?.aborted && generated.error) {
+            await cacheManager.markThumbnailFailure(fileName);
+          }
+          return false;
+        }
+        cacheManager.clearThumbnailFailure(fileName);
+        if (generated.isHdr !== null && extname(fileName).toLowerCase() !== '.ohsp') {
           const gps = await injector.inject('Exif').readPhotoMetadata(fileName);
           await cacheManager.updatePhotoMetadata(fileName, generated.isHdr, gps);
         }
-        return generated.success;
+        return true;
       },
       useSidecar || isJxr || isAvif || isHeif || isExr || isRadiance || isTiff ? '.jpg' : undefined
     );
