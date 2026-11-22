@@ -76,6 +76,8 @@ export class GalleryPage {
 
   readonly imageSelected = output<FileInfo>();
 
+  readonly activeSelectionChanged = output<string | null>();
+
   readonly locationSelected = output<void>();
 
   readonly showFolderTree = input(true);
