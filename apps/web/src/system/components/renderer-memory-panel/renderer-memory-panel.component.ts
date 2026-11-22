@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, signal } from '@angular/core';
 import { ProcessMemorySnapshot } from 'internal-api';
 import { ProcessManager } from '../../../ipc/process-manager';
+import { formatNumber } from '../../../ui/utils/format-number';
 
 interface RendererDiagnosticsSnapshot {
   domElements: number;
@@ -24,6 +25,7 @@ interface RendererDiagnosticsSnapshot {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RendererMemoryPanelComponent {
+  protected readonly formatNumber = formatNumber;
   readonly enabled = input(true);
   readonly windowLabel = input('Current window');
   protected readonly diagnostics = signal<RendererDiagnosticsSnapshot>({
