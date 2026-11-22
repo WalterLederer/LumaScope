@@ -38,7 +38,7 @@ export class GalleryCacheBuild {
 
   private readonly executeBuild = async (
     controller: GalleryCacheBuildController,
-    request: { directory: string; importGpx: boolean }
+    request: { directory: string; importGpx: boolean; recursive: boolean }
   ): Promise<void> => {
     this.activeDirectory = request.directory;
     try {
