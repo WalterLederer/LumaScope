@@ -915,13 +915,13 @@ export class ImagesComponent {
         });
       }
       if (scan.removedCacheFiles > 0) {
-        await this.cacheManager.appendBuildLog(`Verify cleanup: removed ${scan.removedCacheFiles} stale cache files (${scan.removedCacheBytes.toLocaleString()} bytes) for deleted source files in ${folder}`);
+        await this.cacheManager.appendBuildLog(`Verify cleanup: removed ${scan.removedCacheFiles} stale cache files (${formatNumber(scan.removedCacheBytes)} bytes) for deleted source files in ${folder}`);
       }
       if (!scan.complete) {
         await this.cacheManager.appendBuildLog(`Folder scan incomplete in ${folder}; stale database records were preserved.`);
       }
       this.cacheRunProgress.set({ completed: 0, total: scan.files });
-      this.cacheRunCurrentOperation.set(`Database updated: ${scan.files.toLocaleString()} files found. Preparing thumbnails and previews…`);
+      this.cacheRunCurrentOperation.set(`Database updated: ${formatNumber(scan.files)} files found. Preparing thumbnails and previews…`);
       for (let offset = 0; offset < scan.files && !controller.signal.aborted; offset += 500) {
         const page = await this.cacheManager.getGalleryFilesPage(folder, false, true, 'name', 'asc', offset, 500);
         const images = page.files.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
@@ -1173,7 +1173,7 @@ export class ImagesComponent {
           await this.cacheManager.appendBuildLog(`Folder indexing failed in ${directoryPath}: ${error instanceof Error ? error.message : String(error)}`);
           continue;
         }
-        this.cacheRunCurrentOperation.set(`Database updated: ${scan.files.toLocaleString()} files found in folder. Preparing thumbnails and previews…`);
+        this.cacheRunCurrentOperation.set(`Database updated: ${formatNumber(scan.files)} files found in folder. Preparing thumbnails and previews…`);
         if (!scan.complete) {
           enumerationComplete = false;
           await this.cacheManager.appendBuildLog(`Folder scan incomplete in ${directoryPath}; stale database records were preserved.`);
@@ -1215,7 +1215,7 @@ export class ImagesComponent {
       if (!controller.signal.aborted) {
         await this.cacheManager.appendBuildLog(`Recursive photo database reconciliation: removed ${removedStaleRecords} stale records under ${rootPath}`);
         if (removedStaleCacheFiles > 0) {
-          await this.cacheManager.appendBuildLog(`Verify cleanup: removed ${removedStaleCacheFiles} stale cache files (${removedStaleCacheBytes.toLocaleString()} bytes) for deleted source files under ${rootPath}`);
+          await this.cacheManager.appendBuildLog(`Verify cleanup: removed ${removedStaleCacheFiles} stale cache files (${formatNumber(removedStaleCacheBytes)} bytes) for deleted source files under ${rootPath}`);
         }
         if (!enumerationComplete) {
           await this.cacheManager.appendBuildLog('Recursive database cleanup was incomplete; stale records in folders that could not be scanned were preserved.');
