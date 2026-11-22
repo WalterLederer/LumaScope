@@ -1,6 +1,7 @@
 :host {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* Toolbar and optional loading status keep their intrinsic heights; the file list owns the remaining space. */
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   height: 100%;
   min-height: 0;
   min-width: 0;
