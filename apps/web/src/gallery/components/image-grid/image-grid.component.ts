@@ -268,7 +268,7 @@ export class ImageGridComponent {
   };
   private readonly processManager = inject(ProcessManager);
 
-  readonly cacheStats = signal<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
+  readonly cacheStats = signal<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, fullSizeConversionTotal: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
 
   private cacheStatsRequest = 0;
   private cachePathUpdateRevision = 0;
