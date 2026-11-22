@@ -327,7 +327,7 @@ export class ImageGridComponent {
       for (let offset = 0; offset < total || (offset === 0 && total === 0); offset += 1000) {
         const page = await this.cacheManager.getGalleryFilesPage(
           folder, this.includeFilesRecursive(), this.includeUnsupportedFiles(),
-          this.sortBy(), this.sortDirection(), offset, 1000
+          this.sortBy(), this.sortDirection(), offset, 1000, '', 'ImageGrid.refreshDirectoryCacheStats'
         );
         if (request !== this.cacheStatsRequest) return;
         if (page.totalCount >= 0) total = page.totalCount;
@@ -341,7 +341,7 @@ export class ImageGridComponent {
         }
         for (const paths of filesByParent.values()) {
           for (let index = 0; index < paths.length; index += 500) {
-            const stats = await this.cacheManager.getDirectoryCacheStats(paths.slice(index, index + 500), verifyCacheFiles);
+            const stats = await this.cacheManager.getDirectoryCacheStats(paths.slice(index, index + 500), verifyCacheFiles, 'ImageGrid.refreshDirectoryCacheStats');
             if (request !== this.cacheStatsRequest) return;
             if (pathUpdateRevision !== this.cachePathUpdateRevision) {
               this.resetDirectoryCacheStats();
