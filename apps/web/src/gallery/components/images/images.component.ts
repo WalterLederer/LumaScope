@@ -576,7 +576,14 @@ export class ImagesComponent {
     this.detailPreferencesOpen.set(true);
     requestAnimationFrame(() => {
       const host = this.elementRef.nativeElement as HTMLElement;
-      const dialog = host.querySelector<HTMLElement>('.detail-preferences-dialog');
+      const backdrop = host.querySelector<HTMLElement>('.detail-preferences-backdrop');
+      // The gallery table lives inside clipped/scrollable containers. Move the
+      // modal backdrop to the document body so its fixed viewport layer covers
+      // the entire window and is not clipped by the table's ancestors.
+      if (backdrop && backdrop.parentElement !== host.ownerDocument.body) {
+        host.ownerDocument.body.appendChild(backdrop);
+      }
+      const dialog = backdrop?.querySelector<HTMLElement>('.detail-preferences-dialog');
       const okButton = dialog?.querySelector<HTMLButtonElement>('.detail-preferences-ok');
       okButton?.focus();
     });
