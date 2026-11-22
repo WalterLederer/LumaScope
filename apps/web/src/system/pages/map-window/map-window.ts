@@ -4300,7 +4300,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const result = await this.desktop.CacheManager.clearAllGpxDatabaseEntries();
       this.gpxDatabaseClearStatus.set(
-        `Deleted ${result.files.toLocaleString(this.locale)} GPX file(s), ${formatNumber(result.segments)} segment(s) and ${formatNumber(result.points)} point(s) from ${formatNumber(result.databases)} cache database(s).`
+        `Deleted ${formatNumber(result.files)} GPX file(s), ${formatNumber(result.segments)} segment(s) and ${formatNumber(result.points)} point(s) from ${formatNumber(result.databases)} cache database(s).`
       );
       this.gpxElevationProfileRequestId++;
       this.gpxElevationProfiles.set([]);
