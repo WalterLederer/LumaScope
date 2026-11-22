@@ -2491,6 +2491,7 @@
   display: flex;
   align-items: center;
   flex: 0 0 auto;
+  padding: 5px 7px;
   gap: 5px;
   color: var(--color-text-secondary);
   font-size: 10px;
@@ -2510,9 +2511,16 @@
   color: var(--color-text-secondary);
   font-size: 10px;
 }
-:host .image-hex-font-control {
+:host .image-hex-search-toolbar {
   display: flex;
   flex: 0 0 auto;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+}
+:host .image-hex-font-control {
+  display: flex;
+  flex: 0 1 118px;
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -2532,12 +2540,9 @@
   font-variant-numeric: tabular-nums;
 }
 :host .image-hex-search-box {
-  flex: 0 0 auto;
+  flex: 1 1 0;
   min-width: 0;
-  padding: 6px;
-  border: 1px solid var(--color-border-default);
-  border-radius: 8px;
-  background: var(--color-surface-default);
+  padding: 5px;
 }
 :host .image-hex-search {
   display: flex;
@@ -2559,7 +2564,7 @@
   font: 11px Arial, sans-serif;
 }
 :host .image-hex-search select { flex: 0 0 88px; padding: 3px; }
-:host .image-hex-search input { flex: 1 1 auto; width: 40px; padding: 4px 6px; }
+:host .image-hex-search input { flex: 1 1 auto; width: 24px; min-width: 0; padding: 4px 6px; border: 1px solid var(--color-border-default, #888) !important; }
 :host .image-hex-search button { flex: 0 0 27px; padding: 0; cursor: pointer; }
 :host .image-hex-search button:disabled { opacity: .45; cursor: default; }
 :host .image-hex-search-status {
@@ -2575,6 +2580,7 @@
   margin: 0;
   accent-color: var(--color-accent, #287fc1);
 }
+:host .image-hex-cursor-decimal { color: var(--color-text-secondary); font-weight: 400; }
 :host .image-hex-position-label {
   flex: 0 0 auto;
   color: var(--color-text-secondary);
