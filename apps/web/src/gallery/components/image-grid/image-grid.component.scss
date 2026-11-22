@@ -524,6 +524,7 @@ ui-toolbar {
   margin-top: -4px !important;
   margin-bottom: -4px !important;
   border-radius: var(--border-radius-small, 6px) !important;
+  box-shadow: var(--lumascope-surface-shadow) !important;
   background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
 }
 .thumbnail-size-control label.thumbnail-name-filter:not(:has(input[type="checkbox"]:checked)) {
