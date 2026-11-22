@@ -962,18 +962,18 @@
         <tbody>
           <tr>
             <th scope="row">Rendered</th>
-            <td>{{ totalRenderTileCounts().rendered.toLocaleString(locale) }}</td>
-            <td>{{ lastRenderTileCounts().rendered.toLocaleString(locale) }}</td>
+            <td>{{ formatNumber(totalRenderTileCounts().rendered) }}</td>
+            <td>{{ formatNumber(lastRenderTileCounts().rendered) }}</td>
           </tr>
           <tr>
             <th scope="row">From cache</th>
-            <td>{{ totalRenderTileCounts().cached.toLocaleString(locale) }}</td>
-            <td>{{ lastRenderTileCounts().cached.toLocaleString(locale) }}</td>
+            <td>{{ formatNumber(totalRenderTileCounts().cached) }}</td>
+            <td>{{ formatNumber(lastRenderTileCounts().cached) }}</td>
           </tr>
           <tr>
             <th scope="row">Errors</th>
-            <td>{{ totalRenderTileCounts().failed.toLocaleString(locale) }}</td>
-            <td>{{ lastRenderTileCounts().failed.toLocaleString(locale) }}</td>
+            <td>{{ formatNumber(totalRenderTileCounts().failed) }}</td>
+            <td>{{ formatNumber(lastRenderTileCounts().failed) }}</td>
           </tr>
           <tr>
             <th scope="row" title="End-to-end time from Atlas IPC submission until the RGBA tile is ready, including renderer queue wait.">Avg. total time</th>
@@ -992,8 +992,8 @@
           </tr>
           <tr>
             <th scope="row">Timing samples</th>
-            <td>{{ totalRenderTiming().count.toLocaleString(locale) }}</td>
-            <td>{{ lastRenderTiming().count.toLocaleString(locale) }}</td>
+            <td>{{ formatNumber(totalRenderTiming().count) }}</td>
+            <td>{{ formatNumber(lastRenderTiming().count) }}</td>
           </tr>
           <tr>
             <th scope="row" title="Time spent waiting in the selected Atlas worker queue before native rendering can start.">Avg. queue wait</th>
@@ -1028,8 +1028,8 @@
         <tbody>
           <tr>
             <th scope="row">Rendered</th>
-            <td>{{ totalHillshadeTileCounts().rendered.toLocaleString(locale) }}</td>
-            <td>{{ lastHillshadeTileCounts().rendered.toLocaleString(locale) }}</td>
+            <td>{{ formatNumber(totalHillshadeTileCounts().rendered) }}</td>
+            <td>{{ formatNumber(lastHillshadeTileCounts().rendered) }}</td>
           </tr>
           <tr>
             <th scope="row">From cache</th>
@@ -1038,8 +1038,8 @@
           </tr>
           <tr>
             <th scope="row">Errors</th>
-            <td>{{ totalHillshadeTileCounts().failed.toLocaleString(locale) }}</td>
-            <td>{{ lastHillshadeTileCounts().failed.toLocaleString(locale) }}</td>
+            <td>{{ formatNumber(totalHillshadeTileCounts().failed) }}</td>
+            <td>{{ formatNumber(lastHillshadeTileCounts().failed) }}</td>
           </tr>
         </tbody>
       </table>
@@ -1128,7 +1128,7 @@
     <div class="map-cache-section">
       <div class="map-cache-heading">OsmAnd map tiles</div>
       <div class="map-cache-row"><span>Location</span><code>{{ osmAndTileCache().path }}</code></div>
-      <div class="map-cache-row"><span>PNG tiles</span><strong>{{ osmAndTileCache().entries.toLocaleString(locale) }}</strong></div>
+      <div class="map-cache-row"><span>PNG tiles</span><strong>{{ formatNumber(osmAndTileCache().entries) }}</strong></div>
       <div class="map-cache-row"><span>Storage used</span><strong>{{ formatOfflineMapSize(osmAndTileCache().bytes) }}</strong></div>
       <div class="map-cache-actions">
         <span class="offline-map-status">{{ osmAndTileCache().available ? 'Persistent cache' : 'Cache will be created on first render' }}</span>
