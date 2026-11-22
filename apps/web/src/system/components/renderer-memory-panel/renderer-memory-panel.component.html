@@ -3,13 +3,13 @@
     <h3>Renderer diagnostics — {{ windowLabel() }}</h3>
     <table class="memory-panel-metrics-table">
       <tbody>
-        <tr><td>DOM elements</td><td>{{ diagnostics().domElements.toLocaleString() }}</td></tr>
-        <tr><td>Map DOM elements</td><td>{{ diagnostics().mapDomElements.toLocaleString() }}</td></tr>
-        <tr><td>Map tiles / markers</td><td>{{ diagnostics().mapTiles.toLocaleString() }} / {{ diagnostics().mapMarkers.toLocaleString() }}</td></tr>
-        <tr><td>Canvas elements</td><td>{{ diagnostics().canvasElements.toLocaleString() }}</td></tr>
-        <tr><td>Thumbnail components</td><td>{{ diagnostics().thumbnailComponents.toLocaleString() }}</td></tr>
-        <tr><td>Detail table rows</td><td>{{ diagnostics().detailRows.toLocaleString() }}</td></tr>
-        <tr><td>HEX data rows</td><td>{{ diagnostics().hexRows.toLocaleString() }}</td></tr>
+        <tr><td>DOM elements</td><td>{{ formatNumber(diagnostics().domElements) }}</td></tr>
+        <tr><td>Map DOM elements</td><td>{{ formatNumber(diagnostics().mapDomElements) }}</td></tr>
+        <tr><td>Map tiles / markers</td><td>{{ formatNumber(diagnostics().mapTiles) }} / {{ formatNumber(diagnostics().mapMarkers) }}</td></tr>
+        <tr><td>Canvas elements</td><td>{{ formatNumber(diagnostics().canvasElements) }}</td></tr>
+        <tr><td>Thumbnail components</td><td>{{ formatNumber(diagnostics().thumbnailComponents) }}</td></tr>
+        <tr><td>Detail table rows</td><td>{{ formatNumber(diagnostics().detailRows) }}</td></tr>
+        <tr><td>HEX data rows</td><td>{{ formatNumber(diagnostics().hexRows) }}</td></tr>
         <tr><td>JavaScript heap used</td><td>{{ formatBytes(diagnostics().heapUsedBytes) }}</td></tr>
         <tr><td>JavaScript heap allocated</td><td>{{ formatBytes(diagnostics().heapTotalBytes) }}</td></tr>
         <tr><td>JavaScript heap limit</td><td>{{ formatBytes(diagnostics().heapLimitBytes) }}</td></tr>
