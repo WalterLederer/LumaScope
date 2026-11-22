@@ -130,11 +130,6 @@
   z-index: 6;
 }
 
-:host(.view-tiles) .thumbnail-row-menu-trigger {
-  top: calc(var(--thumb-height, 128px) + 6px);
-  right: 7px;
-}
-
   .thumbnail-name {
     color: var(--color-content-primary-high);
     font-size: 12px;
