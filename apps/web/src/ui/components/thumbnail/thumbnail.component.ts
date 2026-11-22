@@ -58,6 +58,7 @@ const supportedThumbnailExtensions = new Set([
 })
 export class ThumbnailComponent implements OnDestroy {
   private static startupConstructionCount = 0;
+  private static windowsPlatformPromise: Promise<boolean> | null = null;
 
   /* DI */
   private readonly devicePixelRatioService = inject(DevicePixelRatioService);
@@ -348,7 +349,10 @@ export class ThumbnailComponent implements OnDestroy {
 
   /* Constructor */
   constructor() {
-    void this.processManager.getPlatform().then(platform => this.isWindows.set(platform === 'win32'));
+    ThumbnailComponent.windowsPlatformPromise ??= this.processManager.getPlatform()
+      .then(platform => platform === 'win32')
+      .catch(() => false);
+    void ThumbnailComponent.windowsPlatformPromise.then(isWindows => this.isWindows.set(isWindows));
     const startupCount = ++ThumbnailComponent.startupConstructionCount;
     if (startupCount === 1 || startupCount % 50 === 0) {
       console.warn('[Thumbnail] CONSTRUCTOR PROGRESS', { count: startupCount });
