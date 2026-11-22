@@ -907,6 +907,9 @@ export class ImagesComponent {
           error: error => console.error('Failed to refresh gallery after folder indexing', folder, error)
         });
       }
+      if (scan.removedCacheFiles > 0) {
+        await this.cacheManager.appendBuildLog(`Verify cleanup: removed ${scan.removedCacheFiles} stale cache files (${scan.removedCacheBytes.toLocaleString()} bytes) for deleted source files in ${folder}`);
+      }
       if (!scan.complete) {
         await this.cacheManager.appendBuildLog(`Folder scan incomplete in ${folder}; stale database records were preserved.`);
       }
@@ -1141,6 +1144,8 @@ export class ImagesComponent {
     let processedFiles = 0;
     let processedImages = 0;
     let removedStaleRecords = 0;
+    let removedStaleCacheFiles = 0;
+    let removedStaleCacheBytes = 0;
     let enumerationComplete = true;
     const resetLog = false;
     try {
@@ -1150,7 +1155,7 @@ export class ImagesComponent {
       while (pendingDirectories.length > 0 && !controller.signal.aborted) {
         const directoryPath = pendingDirectories.shift()!;
         this.cacheRunCurrentOperation.set(`Scanning folder and updating photo database: ${directoryPath}`);
-        let scan: { files: number; directories: string[]; removedStale: number; complete: boolean };
+        let scan: { files: number; directories: string[]; removedStale: number; removedCacheFiles: number; removedCacheBytes: number; complete: boolean };
         try {
           scan = await this.cacheManager.scanGalleryDirectory(directoryPath, this.verifyCacheFiles());
         } catch (error) {
@@ -1165,6 +1170,8 @@ export class ImagesComponent {
           await this.cacheManager.appendBuildLog(`Folder scan incomplete in ${directoryPath}; stale database records were preserved.`);
         }
         removedStaleRecords += scan.removedStale;
+        removedStaleCacheFiles += scan.removedCacheFiles;
+        removedStaleCacheBytes += scan.removedCacheBytes;
         for (const childPath of scan.directories) {
           const key = childPath.toLocaleLowerCase();
           if (!visitedDirectories.has(key)) {
@@ -1198,6 +1205,9 @@ export class ImagesComponent {
 
       if (!controller.signal.aborted) {
         await this.cacheManager.appendBuildLog(`Recursive photo database reconciliation: removed ${removedStaleRecords} stale records under ${rootPath}`);
+        if (removedStaleCacheFiles > 0) {
+          await this.cacheManager.appendBuildLog(`Verify cleanup: removed ${removedStaleCacheFiles} stale cache files (${removedStaleCacheBytes.toLocaleString()} bytes) for deleted source files under ${rootPath}`);
+        }
         if (!enumerationComplete) {
           await this.cacheManager.appendBuildLog('Recursive database cleanup was incomplete; stale records in folders that could not be scanned were preserved.');
         }
