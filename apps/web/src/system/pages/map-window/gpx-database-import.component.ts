@@ -119,7 +119,7 @@ export class GpxDatabaseImportComponent implements OnInit, OnChanges {
       if (this.effectiveDatabaseKey) this.imported.emit(this.effectiveDatabaseKey.toUpperCase());
       await this.refreshStats();
       this.status.set(
-        `Imported ${result.imported.toLocaleString()} · unchanged ${result.unchanged.toLocaleString()} · duplicates ${result.duplicates.toLocaleString()} · errors ${result.errors.toLocaleString()}`
+        `Imported ${formatNumber(result.imported)} · unchanged ${formatNumber(result.unchanged)} · duplicates ${formatNumber(result.duplicates)} · errors ${formatNumber(result.errors)}`
       );
     } catch (error) {
       this.status.set(error instanceof Error ? error.message : String(error));
