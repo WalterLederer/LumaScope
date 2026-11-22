@@ -98,7 +98,7 @@
             <tr>
               <th scope="row" class="gallery-cache-folder-action-label">Cache folder action</th>
               <td class="gallery-cache-folder-action-path" [title]="cacheRunDirectory() || ''">{{ cacheRunDirectory() || 'Current folder' }}</td>
-              <td class="gallery-cache-folder-action-count">{{ cacheRunProgress().completed.toLocaleString() }} / {{ cacheRunProgress().total.toLocaleString() }}</td>
+              <td class="gallery-cache-folder-action-count">{{ formatNumber(cacheRunProgress().completed) }} / {{ formatNumber(cacheRunProgress().total) }}</td>
             </tr>
             <tr>
               <td class="gallery-cache-current-operation" colspan="3">{{ cacheRunCurrentOperation() || 'Indexing folder contents…' }}</td>
