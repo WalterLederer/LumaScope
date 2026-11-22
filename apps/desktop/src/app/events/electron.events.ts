@@ -384,8 +384,9 @@ const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame>
 };
 
 const getForegroundWindowHandle = () => {
-  // The detached capture preview is raised by the global shortcut and must
-  // never capture itself. Other LumaScope windows remain valid capture targets.
+  // Exclude only the detached preview from the implicit Top Window source.
+  // It remains in Capture.listSources and can be selected explicitly like
+  // every other LumaScope window.
   const previewWindow = App.capturePreviewWindow;
   const previewHandle = previewWindow && !previewWindow.isDestroyed()
     ? Number(previewWindow.getNativeWindowHandle().readBigUInt64LE(0))
