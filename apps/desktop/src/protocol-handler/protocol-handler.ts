@@ -1,5 +1,6 @@
 import { appPaths } from 'internal-api';
 import { createReadStream, existsSync, statSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import * as url from 'node:url';
@@ -400,6 +401,7 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
           useSidecar
         );
         if (!generated.success) {
+          await rm(target, { force: true }).catch(() => undefined);
           if (!signal?.aborted && generated.error) {
             await cacheManager.markThumbnailFailure(fileName);
           }
