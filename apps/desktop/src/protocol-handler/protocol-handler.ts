@@ -258,22 +258,52 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
   }
 
   try {
+    const isOhsp = extname(fileName).toLowerCase() === '.ohsp';
+    const injector = Injector.getInstance();
+    const cacheManager = injector.inject('CacheManager');
+    const thumbManager = injector.inject('ThumbManager');
+
+    // OHSP has one canonical Ultra HDR derivative. Gallery previews stream the
+    // same full-size JPEG instead of creating a second, reduced thumbnail file.
+    if (isOhsp) {
+      const cacheTag = 'ohsp-full-spectrum-v15';
+      await cacheManager.clearThumbnailCache(fileName);
+      if (params.get('status') === '1') {
+        let cached = false;
+        const cacheEntry = cacheManager.exists(fileName, cacheTag);
+        if (cacheEntry && typeof cacheEntry['target_path'] === 'string') {
+          try {
+            const sourceStats = statSync(fileName);
+            const targetStats = statSync(cacheEntry['target_path']);
+            cached = targetStats.isFile()
+              && cacheEntry['source_size'] === sourceStats.size
+              && cacheEntry['updated_at'] === sourceStats.mtimeMs;
+          } catch {
+            cached = false;
+          }
+        }
+        return new Response(JSON.stringify({ cached }), {
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'no-store'
+          }
+        });
+      }
+      const fullSizePath = await getFullSizeDerivative(fileName, cacheTag, cacheManager, thumbManager);
+      return fullSizePath ? streamFile(fullSizePath) : notFound();
+    }
+
     const isJxr = extname(fileName).toLowerCase() === '.jxr';
     const isAvif = extname(fileName).toLowerCase() === '.avif';
     const isHeif = [ '.heif', '.heic' ].includes(extname(fileName).toLowerCase());
     const isExr = extname(fileName).toLowerCase() === '.exr';
     const isRadiance = extname(fileName).toLowerCase() === '.hdr';
     const isTiff = [ '.tif', '.tiff' ].includes(extname(fileName).toLowerCase());
-    const injector = Injector.getInstance();
-    const cacheManager = injector.inject('CacheManager');
-    const thumbManager = injector.inject('ThumbManager');
     const useSidecar = cacheManager.usesSidecarStorage(fileName);
-    const isOhsp = extname(fileName).toLowerCase() === '.ohsp';
-    const tag = isOhsp
-      ? `${useSidecar ? 'sidecar' : `${width}x${height}`}-ohsp-uhdr-v7`
-      : useSidecar
-        ? 'sidecar-thumbnail-v2'
-        : `${width}x${height}${isJxr ? '-jxr-uhdr' : isAvif ? '-avif' : isHeif ? '-heif' : isExr ? '-exr-uhdr-v2' : isRadiance ? '-radiance-hdr' : isTiff ? '-tiff-hdr-v6' : ''}`;
+    const tag = useSidecar
+      ? 'sidecar-thumbnail-v2'
+      : `${width}x${height}${isJxr ? '-jxr-uhdr' : isAvif ? '-avif' : isHeif ? '-heif' : isExr ? '-exr-uhdr-v2' : isRadiance ? '-radiance-hdr' : isTiff ? '-tiff-hdr-v6' : ''}`;
 
     // Lightweight preflight used by the gallery to distinguish cache reads from generation.
     if (params.get('status') === '1') {
