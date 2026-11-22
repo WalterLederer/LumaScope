@@ -68,6 +68,7 @@ export class GalleryState {
   private readonly includeUnsupportedFiles$ = new BehaviorSubject(false);
   private readonly includeFilesRecursive$ = new BehaviorSubject(false);
   private readonly nameFilter$ = new BehaviorSubject('');
+  private readonly nameFilterActive$ = new BehaviorSubject(false);
 
   private readonly sortMode$ = new BehaviorSubject<SortMode>(defaultSortMode());
 
@@ -183,8 +184,18 @@ export class GalleryState {
 
   readonly setNameFilter = (value: string): void => {
     const normalized = typeof value === 'string' ? value.trim() : '';
-    if (this.nameFilter$.value === normalized) return;
+    const valueChanged = this.nameFilter$.value !== normalized;
+    const activeChanged = this.nameFilterActive$.value !== (normalized.length > 0);
+    if (!valueChanged && !activeChanged) return;
     this.nameFilter$.next(normalized);
+    this.nameFilterActive$.next(normalized.length > 0);
+    const path = this.selectedLocation$.value;
+    if (path) this.navigateTo(path, false).subscribe();
+  };
+
+  readonly setNameFilterActive = (active: boolean): void => {
+    if (this.nameFilterActive$.value === active) return;
+    this.nameFilterActive$.next(active);
     const path = this.selectedLocation$.value;
     if (path) this.navigateTo(path, false).subscribe();
   };
@@ -246,7 +257,7 @@ export class GalleryState {
               sort: `${sortMode.sortBy} ${sortMode.sortDir}`,
               limit: this.galleryWindowSize
             });
-            return this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, this.galleryWindowSize, this.nameFilter$.value);
+            return this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : ''));
           }).then(page => {
             console.info('[GalleryDB] DONE first page', {
               rows: page.files.length,
@@ -283,7 +294,7 @@ export class GalleryState {
     console.info('[GalleryDB] WAIT next page', { offset, limit: this.galleryPageSize });
     void this.cacheManager.getGalleryFilesPage(
       directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
-      sort.sortBy, sort.sortDir, offset, this.galleryPageSize, this.nameFilter$.value
+      sort.sortBy, sort.sortDir, offset, this.galleryPageSize, (this.nameFilterActive$.value ? this.nameFilter$.value : '')
     ).then(page => {
       console.info('[GalleryDB] DONE next page', { offset, rows: page.files.length });
       if (request !== this.navigationRequest || directory !== this.selectedLocation$.value) return;
@@ -321,7 +332,7 @@ export class GalleryState {
     this.galleryPageLoading = true;
     void this.cacheManager.getGalleryFilesPage(
       directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
-      sort.sortBy, sort.sortDir, offset, this.galleryWindowSize, this.nameFilter$.value
+      sort.sortBy, sort.sortDir, offset, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : '')
     ).then(page => {
       if (request !== this.navigationRequest || directory !== this.selectedLocation$.value) return;
       this.galleryWindowStart.set(offset);
@@ -353,7 +364,7 @@ export class GalleryState {
     try {
       const page = await this.cacheManager.getGalleryFilesPage(
         directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
-        sort.sortBy, sort.sortDir, offset, this.galleryWindowSize, this.nameFilter$.value
+        sort.sortBy, sort.sortDir, offset, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : '')
       );
       if (request !== this.navigationRequest) return;
       this.galleryLoadedCount = page.files.length;
