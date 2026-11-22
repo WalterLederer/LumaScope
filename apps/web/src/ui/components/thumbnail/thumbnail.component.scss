@@ -562,3 +562,15 @@
 :host(.view-details-no-thumbnails) > .detail-actions .detail-row-action-menu {
   position: static !important;
 }
+
+
+/* The movable hamburger action cell has its own alternating/selection
+   background rules. Give it the same filtered-row fill as every other cell,
+   regardless of whether the actions column is at the left or right edge. */
+:host(.view-details.detail-filter-active) > td.detail-actions,
+:host(.view-details-no-thumbnails.detail-filter-active) > td.detail-actions {
+  background: var(--detail-filtered-row-color, #e8f1fb) !important;
+  background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
