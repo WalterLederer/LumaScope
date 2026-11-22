@@ -288,7 +288,8 @@ export class ThumbnailComponent implements OnDestroy {
 
   private infoRequest = 0;
 
-  protected readonly fit = signal('cover');
+  // Preserve the complete source image in thumbnail and tile previews.
+  protected readonly fit = signal('contain');
 
   private loaderSubscription: Subscription | null = null;
 
