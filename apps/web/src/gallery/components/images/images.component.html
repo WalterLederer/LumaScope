@@ -45,10 +45,10 @@
             <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger"
                     [cdkMenuTriggerFor]="folderActionsMenu"
                     aria-label="Folder actions" title="Folder actions">☰</button>
-            <button type="button" class="detail-actions-column-toggle" (click)="toggleDetailActionsColumnPosition()" [attr.aria-label]="detailActionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'" [title]="detailActionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'">⇄</button>
                         <ng-template #folderActionsMenu>
               <div class="gpx-row-action-menu detail-row-action-menu folder-actions-menu" cdkMenu>
                 <button type="button" class="gallery-menu-item" cdkMenuItem aria-label="Autofit all column widths" (click)="autofitDetailColumns()"><span aria-hidden="true">↔</span> Autofit column width</button>
+                <button type="button" class="gallery-menu-item" cdkMenuItem (click)="toggleDetailActionsColumnPosition()" [attr.aria-label]="detailActionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'"><span aria-hidden="true">⇄</span> {{ detailActionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left' }}</button>
                 <button type="button" class="gallery-menu-item" cdkMenuItem (click)="requestRefreshFolder()"><span aria-hidden="true">↻</span> Refresh</button>
                 <div class="gpx-row-action-menu-separator" role="separator"></div>
                 <button type="button" class="gallery-menu-item" cdkMenuItem [disabled]="!folderPath()" (click)="requestOpenFolderPath()"><span aria-hidden="true">📂</span> Open path</button>
@@ -115,7 +115,6 @@
           </th>
           <th class="detail-actions-heading folder-actions-heading detail-actions-heading-right" scope="col" rowspan="2" [hidden]="detailActionsColumnPosition() !== 'right'" aria-label="Folder actions">
             <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger" [cdkMenuTriggerFor]="folderActionsMenu" aria-label="Folder actions" title="Folder actions">☰</button>
-            <button type="button" class="detail-actions-column-toggle" (click)="toggleDetailActionsColumnPosition()" [attr.aria-label]="detailActionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'" [title]="detailActionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'">⇄</button>
           </th>
         </tr>
         <tr class="detail-header detail-header-statistics" [class.cache-build-active]="cacheRunActive()">
