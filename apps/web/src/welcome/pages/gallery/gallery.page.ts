@@ -352,6 +352,17 @@ export class GalleryPage {
     }
   };
 
+  protected readonly openFavoriteWindowsContextMenu = async (data: TreeNode<string>, event: MouseEvent): Promise<void> => {
+    if (!this.isWindows() || !data.id) return;
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      await this.processManager.showWindowsContextMenu(data.id, event.screenX, event.screenY);
+    } catch (error) {
+      this.document.defaultView?.alert(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   protected readonly onOpenLocationPath = async (data: TreeNode<string>): Promise<void> => {
     const error = await this.processManager.openPath(data.id);
     if (error) this.document.defaultView?.alert(error);
