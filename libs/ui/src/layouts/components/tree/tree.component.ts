@@ -92,7 +92,8 @@ export class TreeComponent<T> {
     this.resetNodeSelection([root]);
     target.isSelected = true;
     this.treeRoot.set(root);
-    this.selected.emit(target);
+    // Context-menu selection must not trigger the normal folder-navigation
+    // output; it only updates the visual selection before opening the menu.
     this.contextMenuRequested.emit({ node: target, event: request.event });
   };
 
