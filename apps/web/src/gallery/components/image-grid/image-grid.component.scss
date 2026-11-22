@@ -173,16 +173,28 @@ ui-toolbar {
     }
   }
 
-  .thumbnail-name-filter {
+    .thumbnail-size-control.name-filter-active > .thumbnail-name-filter {
+    padding: 4px 7px !important;
+    margin-top: -4px !important;
+    margin-bottom: -4px !important;
+    border-radius: var(--border-radius-small, 6px) !important;
+    box-shadow: var(--lumascope-surface-shadow, 0 2px 6px rgb(0 0 0 / 14%)) !important;
+    background: var(--detail-filtered-row-color, #e8f1fb) !important;
+    background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
+  }
+
+.thumbnail-name-filter {
     display: inline-flex;
     transition: background-color 120ms ease;
 
     &.filter-active {
-      padding: 4px 7px;
-      margin-top: -4px;
-      margin-bottom: -4px;
-      border-radius: var(--border-radius-small, 6px);
-      background: var(--detail-filtered-row-color, #e8f1fb);
+      padding: 4px 7px !important;
+      margin-top: -4px !important;
+      margin-bottom: -4px !important;
+      border-radius: var(--border-radius-small, 6px) !important;
+      box-shadow: var(--lumascope-surface-shadow, 0 2px 6px rgb(0 0 0 / 14%)) !important;
+      background: var(--detail-filtered-row-color, #e8f1fb) !important;
+      background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
     }
 
     flex: 0 1 auto;
