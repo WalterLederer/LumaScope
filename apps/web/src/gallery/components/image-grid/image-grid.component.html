@@ -64,17 +64,6 @@
                    aria-label="Thumbnail size" />
         <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
       </div>
-      @if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
-        <button type="button" class="thumbnail-preferences-button"
-                title="Preferences" aria-label="Preferences"
-                (click)="openDetailPreferences()">
-          <ui-icon icon="settings" [inherit]="true" />
-        </button>
-      }
-      <button type="button" class="thumbnail-preferences-button"
-              title="Refresh thumbnails and cache status"
-              aria-label="Refresh thumbnails and cache status"
-              (click)="refreshGallery()">↻</button>
       <label class="gallery-file-option" title="Show files with unsupported formats">
         <input type="checkbox" [checked]="includeUnsupportedFiles()" (change)="setIncludeUnsupportedFiles($any($event.target).checked)" />
         <span>+ Unsupported</span>
