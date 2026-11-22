@@ -32,6 +32,7 @@ export class GalleryCacheBuild {
   private readonly activity = signal<GalleryCacheBuildActivity | null>(null);
   private readonly pendingStarts: Array<{ directory: string; importGpx: boolean; recursive: boolean }> = [];
   private activeDirectory: string | null = null;
+  private readonly queuedRequest = signal<{ directory: string; recursive: boolean } | null>(null);
 
   private readonly normalizeDirectory = (directory: string): string =>
     directory.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
@@ -57,7 +58,7 @@ export class GalleryCacheBuild {
   readonly verifyCacheFiles = signal(this.readVerifyCacheFiles());
   readonly cacheRunActive = computed(() => {
     const activity = this.activity();
-    return activity?.active() ?? this.controller()?.cacheRunActive() ?? false;
+    return (activity?.active() ?? this.controller()?.cacheRunActive() ?? false) || this.queuedRequest() !== null;
   });
   readonly cacheRunProgress = computed(() => {
     const activity = this.activity();
@@ -65,7 +66,10 @@ export class GalleryCacheBuild {
   });
   readonly cacheRunCurrentOperation = computed(() => {
     const activity = this.activity();
-    return activity?.active() ? activity.currentOperation() : this.controller()?.cacheRunCurrentOperation() ?? '';
+    if (activity?.active()) return activity.currentOperation();
+    const queued = this.queuedRequest();
+    if (queued) return `Preparing database scan for ${queued.directory}…`;
+    return this.controller()?.cacheRunCurrentOperation() ?? '';
   });
   readonly cacheRunErrorCount = computed(() => {
     const output = this.cacheRunCurrentOperation();
@@ -95,6 +99,7 @@ export class GalleryCacheBuild {
       const ready = this.controller();
       if (!ready || this.cacheRunActive() || this.pendingStarts.length === 0) return;
       const next = this.pendingStarts.shift()!;
+      this.queuedRequest.set(this.pendingStarts[0] ? { directory: this.pendingStarts[0].directory, recursive: this.pendingStarts[0].recursive } : null);
       void this.executeBuild(ready, next).catch(error =>
         console.error('Queued favorite-folder cache build failed', next.directory, error)
       );
@@ -117,6 +122,7 @@ export class GalleryCacheBuild {
     // its controller. Queue the request instead of silently losing the build.
     if (!controller || this.cacheRunActive()) {
       this.pendingStarts.push({ directory, importGpx, recursive });
+      if (!this.queuedRequest()) this.queuedRequest.set({ directory, recursive });
       return;
     }
 
@@ -130,6 +136,7 @@ export class GalleryCacheBuild {
     this.queueCacheBuild(directory, importGpx, true);
   readonly cancelCacheBuild = (): void => {
     this.pendingStarts.length = 0;
+    this.queuedRequest.set(null);
     const activity = this.activity();
     if (activity?.active()) activity.cancel();
     else this.controller()?.cancel();
