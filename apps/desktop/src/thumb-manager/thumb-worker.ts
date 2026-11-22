@@ -1051,11 +1051,22 @@ if (parentPort) {
       try {
         const vips = await getVips();
         using image = vips.Image.newFromFile(request.source, { access: 'sequential', failOn: 'none' });
+        const extension = extname(request.source).toLowerCase();
+        let isHdr = hasUltraHdrGainMap(vips, request.source);
+        if (extension === '.png') {
+          const profile = getPngColorProfile(request.source);
+          isHdr = isHdr || (profile?.primaries === 9 && (profile.transfer === 16 || profile.transfer === 18))
+            || hasComfyUiPqVae(request.source);
+        } else if (extension === '.avif') {
+          const profile = getHeifColorProfile(await readFile(request.source));
+          isHdr = isHdr || profile?.primaries === 9 && (profile.transfer === 16 || profile.transfer === 18);
+        }
         parentPort?.postMessage({
           id: request.id,
           success: true,
           width: image.width,
-          height: image.height
+          height: image.height,
+          isHdr
         } satisfies ThumbWorkerResponse);
       } catch (err: unknown) {
         const errorMessage = getWorkerErrorMessage(err);
