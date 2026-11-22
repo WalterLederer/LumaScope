@@ -426,5 +426,14 @@ CREATE INDEX IF NOT EXISTS idx_photos_gps_reference_timestamp
   WHERE gps_timestamp IS NOT NULL AND latitude IS NOT NULL AND longitude IS NOT NULL;
 `
   }
+  ,
+  {
+    name: 'rememberFailedThumbnailDecodesV22',
+    query: `
+ALTER TABLE photos ADD COLUMN thumbnail_failure_size INTEGER;
+ALTER TABLE photos ADD COLUMN thumbnail_failure_modified_at REAL;
+ALTER TABLE photos ADD COLUMN thumbnail_failure_version INTEGER;
+`
+  }
 ];
 // @formatter:on
