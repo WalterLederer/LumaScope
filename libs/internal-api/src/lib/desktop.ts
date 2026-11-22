@@ -300,7 +300,14 @@ export interface CacheImageStatus {
   latitude: number | null;
   longitude: number | null;
   gpsTimestamp: number | null;
-  verification?: { sourceChecked: boolean; thumbnailChecked: boolean; fullSizeChecked: boolean; invalidEntries: number };
+  thumbnailDirect?: boolean;
+  verification?: {
+    sourceChecked: boolean;
+    thumbnailChecked: boolean;
+    fullSizeChecked: boolean;
+    invalidEntries: number;
+    redundantThumbnailRemoved?: boolean;
+  };
 }
 
 export interface DesktopLoupe {
