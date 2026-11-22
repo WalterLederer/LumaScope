@@ -55,6 +55,7 @@ const supportedThumbnailExtensions = new Set([
 })
 export class ThumbnailComponent implements OnDestroy {
   private static startupConstructionCount = 0;
+  private static readonly fileTypeIconCache = new Map<string, Promise<string | null>>();
 
   /* DI */
   private readonly devicePixelRatioService = inject(DevicePixelRatioService);
@@ -238,6 +239,25 @@ export class ThumbnailComponent implements OnDestroy {
   });
 
   readonly isSupportedThumbnail = computed(() => supportedThumbnailExtensions.has(this.imageSuffix()));
+
+  readonly fileTypeIcon = signal<string | null>(null);
+
+  private readonly loadFileTypeIcon = effect(() => {
+    const file = this.image();
+    if (this.isSupportedThumbnail()) {
+      this.fileTypeIcon.set(null);
+      return;
+    }
+    const key = this.imageSuffix() || '(no-extension)';
+    let request = ThumbnailComponent.fileTypeIconCache.get(key);
+    if (!request) {
+      request = this.processManager.getFileTypeIcon(file.path).catch(() => null);
+      ThumbnailComponent.fileTypeIconCache.set(key, request);
+    }
+    void request.then(icon => {
+      if (this.image().path === file.path) this.fileTypeIcon.set(icon);
+    });
+  });
 
   readonly formattedFileSize = computed(() => {
     const bytes = Math.max(0, Number(this.image().size) || 0);
