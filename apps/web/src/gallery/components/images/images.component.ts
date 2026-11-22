@@ -258,7 +258,11 @@ export class ImagesComponent {
     const details = suffixes.map(([suffix, fileCount]) =>
       `${suffix} (${fileCount} ${fileCount === 1 ? 'file' : 'files'})`
     );
-    return `${count} suffix${count === 1 ? '' : 'es'} found: ${details.join(', ')}`;
+    const unsupportedCount = this.unsupportedSuffixCount();
+    const unsupported = unsupportedCount > 0
+      ? `\nUnsupported: ${unsupportedCount} (${this.unsupportedSuffixes().join(', ')})`
+      : '';
+    return `${count} suffix${count === 1 ? '' : 'es'} found: ${details.join(', ')}${unsupported}`;
   });
   readonly unsupportedSuffixCount = signal(0);
   readonly unsupportedSuffixes = signal<string[]>([]);
