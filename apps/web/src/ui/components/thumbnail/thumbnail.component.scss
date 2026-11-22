@@ -81,17 +81,6 @@
     object-fit: var(--fit);
   }
 
-  &::after {
-    position: absolute;
-    content: "";
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    transition: box-shadow 250ms ease-in-out;
-    box-shadow: inset 0 0 16px 4px rgba(255, 255, 240, 0);
-  }
-
 }
 
 :host(.view-tiles) {
