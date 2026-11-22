@@ -58,9 +58,8 @@ export default class App {
 
   private static triggerCaptureHotkey(channel: string): void {
     if (App.isCapturePreviewWindowOpen()) {
-      if (App.capturePreviewWindow.isMinimized()) App.capturePreviewWindow.restore();
-      // Keep the previously active external window as the foreground capture target.
-      App.capturePreviewWindow.showInactive();
+      // A global shortcut must not restore, show, activate, or raise the
+      // capture preview. It only forwards the action to its renderer.
       if (App.capturePreviewWindow.webContents.isLoading()) {
         App.pendingCaptureHotkey = channel;
       } else {
@@ -69,7 +68,8 @@ export default class App {
       return;
     }
 
-    // Preserve the action until the detached capture renderer has finished loading.
+    // Create the renderer in the background and preserve the action until it
+    // has loaded. The hotkey must not show or raise the capture preview.
     App.pendingCaptureHotkey = channel;
     App.openCapturePreviewWindow();
   }
@@ -487,9 +487,9 @@ export default class App {
       const pendingHotkey = App.pendingCaptureHotkey;
       App.pendingCaptureHotkey = null;
       if (pendingHotkey) App.capturePreviewWindow.webContents.send(pendingHotkey);
-      // A hotkey-opened preview must not steal focus before Top Window is resolved.
-      if (pendingHotkey) App.capturePreviewWindow.showInactive();
-      else App.capturePreviewWindow.show();
+      // Keep a hotkey-opened preview hidden. The shortcut should not alter
+      // foreground activation or Z-order; users can open it explicitly later.
+      if (!pendingHotkey) App.capturePreviewWindow.show();
     });
     App.capturePreviewWindow.on('closed', () => {
       App.logShutdown('window-closed', { window: 'capture-preview' });
