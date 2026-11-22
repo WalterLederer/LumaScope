@@ -171,6 +171,7 @@ export class ThumbnailComponent implements OnDestroy {
     if (!this.isWindows()) return;
     event.preventDefault();
     event.stopPropagation();
+    this.rowSelected.emit(this.image());
     try {
       await this.processManager.showWindowsContextMenu(this.image().path, event.screenX, event.screenY);
     } catch (error) {
