@@ -1373,7 +1373,7 @@ export class CacheManager {
       // performed when GPS metadata is written, independently of gallery status.
       const extension = extname(sourceName).toLowerCase();
       const fullSizeRequired = FULL_SIZE_EXTENSIONS.has(extension);
-      const expectedFullSizeTag = (extension === '.ohsp' ? 'ohsp-full-spectrum-v14' : `${['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`}`);
+      const expectedFullSizeTag = (extension === '.ohsp' ? 'ohsp-full-spectrum-v15' : `${['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`}`);
       const metadata = metadataByPath.get(sourceName);
       const sourceMatches = !metadata || (!!row && row.file_size === metadata.size && row.modified_at === metadata.modifiedAt);
       const getStatus = (kind: 'thumbnail' | 'fullsize') => {
@@ -1930,7 +1930,7 @@ export class CacheManager {
       const extension = extname(sourceName).toLowerCase();
       const thumbnailValid = row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR
         && row.thumbnail_cache_version === getThumbnailCacheVersion(sourceName);
-      const fullSizeTag = extension === '.ohsp' ? 'ohsp-full-spectrum-v14' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+      const fullSizeTag = extension === '.ohsp' ? 'ohsp-full-spectrum-v15' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
       const fullSizeValid = FULL_SIZE_EXTENSIONS.has(extension) && row.fullsize_cache_id !== null
         && row.fullsize_cache_version === getFullSizeCacheVersionCode(fullSizeTag);
       if (!verifyCacheFiles) {
@@ -2298,6 +2298,18 @@ export class CacheManager {
   };
 
   readonly usesSidecarStorage = (_sourceName: string): boolean => true;
+
+  /** Remove legacy per-thumbnail OHSP files; the full-size derivative is the sole cache. */
+  readonly clearThumbnailCache = async (sourceName: string): Promise<void> => {
+    const db = this.databaseForPath(sourceName);
+    const row = this.getPhoto(sourceName, db);
+    if (!row || row.thumbnail_cache_id === null) return;
+    if (row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR) {
+      await rm(this.getSidecarPath(sourceName, false), { force: true });
+    }
+    db.prepare('UPDATE photos SET thumbnail_cache_id = NULL, thumbnail_cache_version = NULL WHERE id = :id')
+      .run({ id: row.id });
+  };
 
   readonly exists = (sourceName: string, sourceTag: string): Record<string, SQLOutputValue> | null => {
     const row = this.getPhoto(sourceName);
