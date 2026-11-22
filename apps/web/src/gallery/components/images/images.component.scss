@@ -1565,8 +1565,9 @@
   color: var(--color-content-default-highest, #202020) !important;
 }
 .detail-native-table > thead > tr.detail-header-labels.cache-build-active > th.detail-actions-heading {
-  background: var(--color-surface-default-low, #fff) !important;
-  background-color: var(--color-surface-default-low, #fff) !important;
+  background: color-mix(in srgb, var(--color-surface-default-low, #fff) 86%, #dc4141 14%) !important;
+  background-color: color-mix(in srgb, var(--color-surface-default-low, #fff) 86%, #dc4141 14%) !important;
+  background-image: none !important;
 }
 /* Header cells must remain native table-cells. Earlier legacy Grid styling
    assigns display:flex !important to each TH; that overrides table-row layout
