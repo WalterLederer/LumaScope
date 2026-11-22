@@ -124,7 +124,7 @@
         </button>
       }
       @if (isWindows()) {
-        <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="openFavoriteWindowsContextMenu(data)">
+        <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="openFavoriteWindowsContextMenu(data, $event)">
           <span aria-hidden="true">▤</span>
           <ui-text [inherit]="true">Windows context menu</ui-text>
         </button>
