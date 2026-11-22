@@ -1062,8 +1062,8 @@ label:has(input[type="checkbox"]) > * {
   color: #000 !important;
 }
 
-/* Thumbnail name filter: mirror the Thumb size surface exactly and use
-   the same filtered-row color whenever the name filter is active. */
+/* Thumbnail name filter: white when inactive, filtered-row color when active.
+   Match the Thumb size control's border radius and shadow exactly. */
 html body .thumbnail-size-control > label.thumbnail-name-filter {
   display: inline-flex !important;
   flex: 0 0 auto !important;
@@ -1075,8 +1075,9 @@ html body .thumbnail-size-control > label.thumbnail-name-filter {
   margin: 0 0 0 4px !important;
   border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%)) !important;
   border-radius: 9px !important;
-  background: var(--color-surface-default-low) !important;
-  color: var(--color-content-default-highest) !important;
+  background: #fff !important;
+  background-color: #fff !important;
+  color: #000 !important;
   box-shadow: var(--lumascope-surface-shadow, 0 2px 7px rgb(0 0 0 / 15%)) !important;
   visibility: visible !important;
   opacity: 1 !important;
