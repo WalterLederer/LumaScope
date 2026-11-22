@@ -181,6 +181,13 @@ ui-toolbar {
     gap: 8px;
     margin-left: 4px;
 
+    .thumbnail-name-filter-label {
+      flex: 0 0 auto;
+      white-space: nowrap;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
     input[type="checkbox"] {
       width: 16px;
       min-width: 16px;
