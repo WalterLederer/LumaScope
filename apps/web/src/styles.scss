@@ -187,3 +187,33 @@ html body :is(table, .detail-table, .details-mode, .gpx-database-table, .shortcu
 html body :is(table, .detail-table, .details-mode, .gpx-database-table, .shortcut-table-scroll, [class*="table-wrap"])::after {
   border-radius: 0 !important;
 }
+
+/* Track-list hamburger buttons (header and rows) never use the blue action-button
+   state styling, regardless of the configured button theme or interaction state. */
+html body button.gpx-track-menu-icon,
+html body button.gpx-track-menu-icon:hover,
+html body button.gpx-track-menu-icon:active,
+html body button.gpx-track-menu-icon:focus,
+html body button.gpx-track-menu-icon:focus-visible,
+html body button.gpx-track-menu-icon[aria-expanded="true"],
+html[data-button-style] body button.gpx-track-menu-icon,
+html[data-button-style] body button.gpx-track-menu-icon:hover,
+html[data-button-style] body button.gpx-track-menu-icon:active,
+html[data-button-style] body button.gpx-track-menu-icon:focus,
+html[data-button-style] body button.gpx-track-menu-icon:focus-visible,
+html[data-button-style] body button.gpx-track-menu-icon[aria-expanded="true"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  background-image: none !important;
+  border: 0 !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  text-shadow: none !important;
+  transform: none !important;
+  outline: none !important;
+}
