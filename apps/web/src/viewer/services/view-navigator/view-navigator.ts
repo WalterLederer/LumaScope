@@ -36,7 +36,10 @@ export class ViewNavigator {
             console.error('Failed to resolve selected gallery file position', path, error);
             return of(-1);
           })
-        ))
+        )),
+    // imagePosition, hasPrevious and hasNext all consume this same index.
+    // Share the database lookup instead of running one per subscriber.
+    shareReplay({ bufferSize: 1, refCount: true })
   );
 
   // Resolve the selected file only when the selection changes. Cache revisions
