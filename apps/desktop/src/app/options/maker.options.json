@@ -59,6 +59,10 @@
         "to": "valhalla/helpers"
       },
       {
+        "from": "tools/windows-shell-context-menu/stage/lumascope_windows_shell_context_menu.exe",
+        "to": "windows-shell-context-menu/lumascope_windows_shell_context_menu.exe"
+      },
+      {
         "from": "README.md",
         "to": "docs/README.md"
       },
