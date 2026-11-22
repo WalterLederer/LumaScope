@@ -102,13 +102,12 @@ export class GalleryState {
         this.includeFilesRecursive$.next(config.gallery.includeFilesRecursive ?? false);
         this.includeUnsupportedFiles$.next(config.gallery.includeUnsupportedFiles ?? false);
 
-        const savedLocation = config.gallery.selectedLocation;
-        if (savedLocation) this.selectedLocation$.next(savedLocation);
-
-        const selectedLocation = this.selectedLocation$.value;
-        if (selectedLocation !== null) {
-          this.navigateTo(selectedLocation).subscribe({
-          });
+        // Resolve the initial gallery location exactly once, after the
+        // persisted configuration (including favorites) has been loaded.
+        // galleryRoot$ is deliberately side-effect free; it only builds the tree.
+        const initialLocation = config.gallery.selectedLocation || config.gallery.locations[0] || null;
+        if (initialLocation !== null) {
+          this.navigateTo(initialLocation).subscribe();
         }
       });
   }
@@ -139,11 +138,6 @@ export class GalleryState {
           node.isSelected = location === selectedLocation;
           return node;
         });
-
-        if (this.selectedLocation$.value === null && locations[0] !== undefined) {
-          this.navigateTo(locations[0]).subscribe({
-          });
-        }
 
         return root;
       }),
