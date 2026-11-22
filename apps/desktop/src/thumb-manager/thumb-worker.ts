@@ -26,13 +26,21 @@ export interface ThumbWorkerHistogramRequest {
   source: string;
 }
 
-export type ThumbWorkerRequest = ThumbWorkerGenerateRequest | ThumbWorkerCancelRequest | ThumbWorkerHistogramRequest;
+export interface ThumbWorkerMetadataRequest {
+  type: 'metadata';
+  id: string;
+  source: string;
+}
+
+export type ThumbWorkerRequest = ThumbWorkerGenerateRequest | ThumbWorkerCancelRequest | ThumbWorkerHistogramRequest | ThumbWorkerMetadataRequest;
 
 export interface ThumbWorkerResponse {
   id: string;
   success: boolean;
   error?: string;
   histogram?: ImageHistogram;
+  width?: number;
+  height?: number;
   isHdr?: boolean;
 }
 
@@ -1032,6 +1040,23 @@ if (parentPort) {
       try {
         const histogram = await histogramForImage(await getVips(), request.source);
         parentPort?.postMessage({ id: request.id, success: true, histogram } satisfies ThumbWorkerResponse);
+      } catch (err: unknown) {
+        const errorMessage = getWorkerErrorMessage(err);
+        parentPort?.postMessage({ id: request.id, success: false, error: errorMessage } satisfies ThumbWorkerResponse);
+      }
+      return;
+    }
+
+    if (request.type === 'metadata') {
+      try {
+        const vips = await getVips();
+        using image = vips.Image.newFromFile(request.source, { access: 'sequential', failOn: 'none' });
+        parentPort?.postMessage({
+          id: request.id,
+          success: true,
+          width: image.width,
+          height: image.height
+        } satisfies ThumbWorkerResponse);
       } catch (err: unknown) {
         const errorMessage = getWorkerErrorMessage(err);
         parentPort?.postMessage({ id: request.id, success: false, error: errorMessage } satisfies ThumbWorkerResponse);
