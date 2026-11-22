@@ -6,6 +6,7 @@ import type {
   ThumbWorkerCancelRequest,
   ThumbWorkerGenerateRequest,
   ThumbWorkerHistogramRequest,
+  ThumbWorkerMetadataRequest,
   ThumbWorkerResponse
 } from './thumb-worker';
 
@@ -159,6 +160,32 @@ export class ThumbManager {
         this.pendingRequests.delete(id);
         cleanup();
         resolve({ success: false, error: err instanceof Error ? err.message : String(err) });
+      }
+    });
+  };
+
+  readonly getImageDimensions = (source: string): Promise<{ width: number; height: number } | null> =>
+    this.enqueue(() => this.runWorkerOperation(source, () => this.metadataQueued(source)));
+
+  private readonly metadataQueued = async (source: string): Promise<{ width: number; height: number } | null> => {
+    if (!this.worker) this.initWorker();
+    if (!this.worker) return null;
+
+    return new Promise(resolve => {
+      const id = randomUUID();
+      this.pendingRequests.set(id, response => {
+        resolve(response.success && Number.isFinite(response.width) && Number.isFinite(response.height)
+          ? { width: response.width!, height: response.height! }
+          : null);
+      });
+
+      const request: ThumbWorkerMetadataRequest = { type: 'metadata', id, source };
+      try {
+        this.worker?.postMessage(request);
+      } catch (error) {
+        console.error('[ThumbManager] Failed to read image dimensions:', error);
+        this.pendingRequests.delete(id);
+        resolve(null);
       }
     });
   };
