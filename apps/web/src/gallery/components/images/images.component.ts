@@ -1000,6 +1000,7 @@ export class ImagesComponent {
       active: this.cacheRunActive,
       progress: this.cacheRunProgress,
       currentOperation: this.cacheRunCurrentOperation,
+      directory: this.folderPath()!,
       cancel: this.cancelCacheRun
     });
     try {
@@ -1041,6 +1042,7 @@ export class ImagesComponent {
       active: this.cacheRunActive,
       progress: this.cacheRunProgress,
       currentOperation: this.cacheRunCurrentOperation,
+      directory: this.folderPath()!,
       cancel: this.cancelCacheRun
     });
     let total = 0;
@@ -1091,6 +1093,7 @@ export class ImagesComponent {
       active: this.cacheRunActive,
       progress: this.cacheRunProgress,
       currentOperation: this.cacheRunCurrentOperation,
+      directory: cacheImages[0]?.parent ?? this.folderPath() ?? '',
       cancel: this.cancelCacheRun
     });
     let cacheBuildStarted = false;
