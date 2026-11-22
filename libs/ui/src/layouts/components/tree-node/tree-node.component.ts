@@ -21,7 +21,8 @@ import { TreeNode } from './tree-node.component.types';
     '[class.group-start]': 'node().groupStart === true',
     '(click)': 'onClick()',
     '(mouseenter)': 'hovered.emit(node())',
-    '(mouseleave)': 'hovered.emit(null)'
+    '(mouseleave)': 'hovered.emit(null)',
+    '(contextmenu)': 'onContextMenu($event)'
   }
 })
 export class TreeNodeComponent<T> {
@@ -42,6 +43,7 @@ export class TreeNodeComponent<T> {
 
   readonly action = output<TreeNode<T>>();
   readonly move = output<{ node: TreeNode<T>; direction: 'up' | 'down' }>();
+  readonly contextMenuRequested = output<{ node: TreeNode<T>; event: MouseEvent }>();
 
   protected readonly offset = computed(() => `calc(${this.level()} * var(--dim-medium) * 3 + var(--dim-medium))`);
 
@@ -60,6 +62,11 @@ export class TreeNodeComponent<T> {
   protected readonly isRootNode = (): boolean => String(this.node().id) === ''; 
 
   protected readonly onClick = () => this.pressed.emit(this.node());
+
+  protected readonly onContextMenu = (event: MouseEvent): void => {
+    if (this.isRootNode()) return;
+    this.contextMenuRequested.emit({ node: this.node(), event });
+  };
 
   protected readonly onAction = (event: Event) => {
     event.stopPropagation();
