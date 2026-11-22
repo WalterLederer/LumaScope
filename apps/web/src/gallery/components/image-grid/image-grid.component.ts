@@ -431,10 +431,6 @@ export class ImageGridComponent {
   readonly cacheRunCurrentOperation = computed(() => this.imagesComponent()?.cacheRunActive() ? this.imagesComponent()!.cacheRunCurrentOperation() : this.galleryCacheBuild.cacheRunCurrentOperation());
   readonly cacheRunDirectory = computed(() => this.galleryCacheBuild.cacheRunDirectory());
 
-  readonly cancelCacheRun = (): void => {
-    this.imagesComponent()?.cancelCacheRun();
-  };
-
   readonly refreshGallery = (): void => {
     this.imagesComponent()?.refreshGallery();
   };
