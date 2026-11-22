@@ -1064,6 +1064,10 @@ label:has(input[type="checkbox"]) > * {
 
 /* Thumbnail name filter: white when inactive, filtered-row color when active.
    Match the Thumb size control's border radius and shadow exactly. */
+html body .thumbnail-size-control > .thumbnail-zoom-box,
+html body .thumbnail-size-control > label.thumbnail-name-filter {
+  border-radius: 12px !important;
+}
 html body .thumbnail-size-control > label.thumbnail-name-filter {
   display: inline-flex !important;
   flex: 0 0 auto !important;
@@ -1074,7 +1078,6 @@ html body .thumbnail-size-control > label.thumbnail-name-filter {
   padding: 4px 8px !important;
   margin: 0 0 0 4px !important;
   border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%)) !important;
-  border-radius: 9px !important;
   background: #fff !important;
   background-color: #fff !important;
   color: #000 !important;
