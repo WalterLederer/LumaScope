@@ -1041,6 +1041,15 @@ input[type="checkbox"]:disabled:checked {
   filter: grayscale(.55) brightness(.8);
 }
 
+/* Shared framed surface for compact UI containers that hold controls/content.
+   Apply this class in markup instead of duplicating radius, border and shadow. */
+html body .lumascope-surface-box {
+  box-sizing: border-box;
+  border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%));
+  border-radius: var(--lumascope-surface-radius, 12px) !important;
+  box-shadow: var(--lumascope-surface-shadow, 0 2px 6px rgb(0 0 0 / 14%)) !important;
+}
+
 /* Checkbox labels use a consistent high-contrast, single-line surface. */
 label:has(.ui-checkbox),
 label:has(input[type="checkbox"]) {
@@ -1064,10 +1073,6 @@ label:has(input[type="checkbox"]) > * {
 
 /* Thumbnail name filter: white when inactive, filtered-row color when active.
    Match the Thumb size control's border radius and shadow exactly. */
-html body .thumbnail-size-control > .thumbnail-zoom-box,
-html body .thumbnail-size-control > label.thumbnail-name-filter {
-  border-radius: var(--lumascope-surface-radius, 12px) !important;
-}
 html body .thumbnail-size-control > label.thumbnail-name-filter {
   display: inline-flex !important;
   flex: 0 0 auto !important;
@@ -1077,11 +1082,9 @@ html body .thumbnail-size-control > label.thumbnail-name-filter {
   box-sizing: border-box !important;
   padding: 4px 8px !important;
   margin: 0 0 0 4px !important;
-  border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%)) !important;
   background: #fff !important;
   background-color: #fff !important;
   color: #000 !important;
-  box-shadow: var(--lumascope-surface-shadow, 0 2px 7px rgb(0 0 0 / 15%)) !important;
   visibility: visible !important;
   opacity: 1 !important;
 }
