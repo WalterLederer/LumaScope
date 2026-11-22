@@ -188,11 +188,22 @@ export class GalleryPage {
     });
 
     // Only the image-grid instance owns window title and cache refresh side effects.
+    let previousLocation: string | null = null;
     if (this.showImageGrid()) this.selectedLocation$.pipe(takeUntilDestroyed()).subscribe(location => {
       this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
-      // Selecting a gallery folder also selects its drive-local cache database.
       if (location) {
-        void this.desktopApi?.CacheManager.selectDatabaseForDirectory(location).catch(() => undefined);
+        // A cache build belongs to the folder that started it. Cancel that run
+        // before scheduling work for a newly selected favorite, so the old
+        // folder cannot keep the shared cache worker occupied or queue stale work.
+        const activeDirectory = this.galleryCacheBuild.cacheRunDirectory();
+        const normalizePath = (value: string): string =>
+          value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
+        if (this.galleryCacheBuild.cacheRunActive()
+          && activeDirectory
+          && normalizePath(activeDirectory) !== normalizePath(location)) {
+          this.galleryCacheBuild.cancelCacheBuild();
+        }
+        previousLocation = location;
         // The restored favorite folder must receive the same automatic cache build
         // as a folder selected manually. The service queues this until ImageGrid
         // has registered its cache-build controller after the first render.
