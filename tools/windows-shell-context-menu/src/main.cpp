@@ -35,7 +35,7 @@ bool ParseInteger(const wchar_t* value, int& result) {
     if (!value || !*value) return false;
     wchar_t* end = nullptr;
     const long parsed = wcstol(value, &end, 10);
-    if (!end || *end != L'\\0' || parsed < -100000 || parsed > 100000) return false;
+    if (!end || *end != L'\u005c0' || parsed < -100000 || parsed > 100000) return false;
     result = static_cast<int>(parsed);
     return true;
 }
