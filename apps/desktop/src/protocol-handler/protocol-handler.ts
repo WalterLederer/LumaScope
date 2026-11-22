@@ -402,7 +402,7 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
         );
         if (!generated.success) {
           await rm(target, { force: true }).catch(() => undefined);
-          if (!signal?.aborted && generated.error) {
+          if (!signal?.aborted && generated.error && isPermanentThumbnailDecodeFailure(generated.error)) {
             await cacheManager.markThumbnailFailure(fileName);
           }
           return false;
@@ -485,5 +485,8 @@ const raw = async (params: URLSearchParams, signal?: AbortSignal): Promise<Globa
     });
   }
 };
+
+const isPermanentThumbnailDecodeFailure = (error: string): boolean =>
+  /not a known file format|no loader for|unsupported (?:image|file|format)|invalid image format/i.test(error);
 
 const notFound = () => new Response('Not found', { status: 404 });
