@@ -452,7 +452,7 @@
   position: relative;
   background: var(--color-surface-default-low, #fff);
 }
-.detail-native-table thead th {
+.detail-native-table thead tr:not(.cache-build-active) > th {
   position: relative;
   z-index: 31;
   height: 100%;
@@ -1033,7 +1033,7 @@
 
 
 /* Folder-wide actions share the first column with the row action menus. */
-.detail-header-labels > .folder-actions-heading {
+.detail-header-labels:not(.cache-build-active) > .folder-actions-heading {
   position: relative;
   left: auto;
   z-index: 45;
