@@ -101,6 +101,13 @@
 
 }
 
+:host .thumbnail-preview > .thumbnail-row-menu-trigger {
+  position: absolute !important;
+  top: 5px !important;
+  right: 5px !important;
+  z-index: 6 !important;
+}
+
 :host(.view-tiles) {
   height: auto;
   display: flex;
@@ -122,13 +129,6 @@
     line-height: 1.35;
     color: var(--color-content-default-medium);
   }
-
-.thumbnail-row-menu-trigger {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  z-index: 6;
-}
 
   .thumbnail-name {
     color: var(--color-content-primary-high);
