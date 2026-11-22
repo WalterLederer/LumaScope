@@ -1481,8 +1481,9 @@ export class CacheManager {
   @IpcHandler({ name: 'CacheManager.scanGalleryDirectory' })
   readonly scanGalleryDirectory = async (
     _event: IpcMainInvokeEvent,
-    directory: string
-  ): Promise<{ files: number; directories: string[]; removedStale: number; complete: boolean }> => {
+    directory: string,
+    verifyCacheFiles = false
+  ): Promise<{ files: number; directories: string[]; removedStale: number; removedCacheFiles: number; removedCacheBytes: number; complete: boolean }> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
     const root = resolve(directory);
     const db = this.databaseForPath(root);
@@ -1514,12 +1515,18 @@ export class CacheManager {
         file_name = excluded.file_name,
         file_size = excluded.file_size,
         modified_at = excluded.modified_at`);
+    const selectStale = db.prepare(`SELECT id, file_name, thumbnail_cache_id, fullsize_cache_id
+      FROM photos
+      WHERE path_id = :pathId
+        AND lower(file_name) NOT IN (SELECT lower(file_name) FROM temp.lumascope_seen_gallery_files)`);
     const deleteStale = db.prepare(`DELETE FROM photos
       WHERE path_id = :pathId
         AND lower(file_name) NOT IN (SELECT lower(file_name) FROM temp.lumascope_seen_gallery_files)`);
     const directories: string[] = [];
     let files = 0;
     let removedStale = 0;
+    let removedCacheFiles = 0;
+    let removedCacheBytes = 0;
     let scanComplete = true;
     let batch: Array<{ name: string; size: number; modifiedAt: number }> = [];
     const flushBatch = (): void => {
@@ -1577,6 +1584,34 @@ export class CacheManager {
     }
 
     if (scanComplete) {
+      if (verifyCacheFiles) {
+        // A Verify cache pass also removes cache files belonging to source files
+        // that are no longer present in this completely scanned folder.
+        const staleRows = selectStale.all({ pathId: pathRow.id }) as Array<{
+          id: number; file_name: string; thumbnail_cache_id: number | null; fullsize_cache_id: number | null
+        }>;
+        for (const row of staleRows) {
+          const sourceName = join(root, row.file_name);
+          const cachePaths: string[] = [];
+          if (row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR) {
+            cachePaths.push(this.getSidecarPath(sourceName, false));
+          }
+          if (row.fullsize_cache_id === CACHE_STORAGE_TYPE.SIDECAR) {
+            cachePaths.push(this.getSidecarPath(sourceName, true));
+          } else if (row.fullsize_cache_id === CACHE_STORAGE_TYPE.PARALLEL) {
+            cachePaths.push(this.getParallelPath(sourceName));
+          }
+          for (const cachePath of cachePaths) {
+            try {
+              const info = await stat(cachePath);
+              if (!info.isFile()) continue;
+              await rm(cachePath, { force: true });
+              removedCacheFiles++;
+              removedCacheBytes += info.size;
+            } catch { /* Missing or inaccessible cache file; preserve scan completion. */ }
+          }
+        }
+      }
       db.exec('BEGIN IMMEDIATE;');
       try {
         removedStale = Number(deleteStale.run({ pathId: pathRow.id }).changes);
@@ -1589,7 +1624,7 @@ export class CacheManager {
     }
     db.exec('DELETE FROM temp.lumascope_seen_gallery_files;');
     this.notifyGalleryFilesChanged(root);
-    return { files, directories, removedStale, complete: scanComplete };
+    return { files, directories, removedStale, removedCacheFiles, removedCacheBytes, complete: scanComplete };
   };
 
   @IpcHandler({ name: 'CacheManager.registerGalleryFiles' })
