@@ -25,6 +25,7 @@ import { ThumbnailLoaderService } from '../../../system/services/thumbnail-loade
 import { thumbUrl } from '../../../viewer/utils/image-url';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import { getCachedFileTypeIcon } from '../../utils/file-type-icon-cache';
+import { formatDecimalNumber } from '../../utils/format-number';
 
 const supportedThumbnailExtensions = new Set([
   'avif', 'bmp', 'gif', 'heic', 'heif', 'jpe', 'jpeg', 'jpg',
@@ -269,7 +270,7 @@ export class ThumbnailComponent implements OnDestroy {
       unitIndex++;
     }
 
-    return `${value.toLocaleString('de-AT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${units[unitIndex]}`;
+    return `${formatDecimalNumber(value)} ${units[unitIndex]}`;
   });
 
   private cacheEntryLabel(entry: CacheImageStatus['thumbnail']): string {
