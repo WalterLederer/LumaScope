@@ -1,3 +1,21 @@
+.unsupported-thumbnail-placeholder {
+  background: var(--color-surface-default-medium);
+}
+
+.file-type-shell-icon {
+  display: block;
+  width: min(64%, 96px);
+  height: min(64%, 96px);
+  object-fit: contain;
+}
+
+.file-type-icon-fallback {
+  display: block;
+  color: var(--color-content-default-medium);
+  font-size: 42px;
+  line-height: 1;
+}
+
 :host {
   display: block;
   width: 100%;
