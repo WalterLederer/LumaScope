@@ -74,6 +74,7 @@
       </label>
 
       <label class="thumbnail-name-filter" title="Filter the file list by name">
+        <span class="thumbnail-name-filter-label">Filter</span>
         <input type="checkbox" [checked]="nameFilterActive()" [disabled]="!nameFilter().trim()" (change)="setNameFilterEnabled($any($event.target).checked)" aria-label="Enable name filter" />
         <input type="search" [value]="nameFilter()" (input)="updateNameFilter($any($event.target).value)" aria-label="Filter by file name" placeholder="Filter names..." />
       </label>
