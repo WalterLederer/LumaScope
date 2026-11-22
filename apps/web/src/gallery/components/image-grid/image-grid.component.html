@@ -93,19 +93,15 @@
             <col class="cache-status-label-column" />
             <col class="cache-status-path-column" />
             <col class="cache-status-progress-column" />
-            <col class="cache-status-stop-column" />
           </colgroup>
           <tbody>
             <tr>
               <th scope="row" class="gallery-cache-folder-action-label">Cache folder action</th>
               <td class="gallery-cache-folder-action-path" [title]="cacheRunDirectory() || ''">{{ cacheRunDirectory() || 'Current folder' }}</td>
               <td class="gallery-cache-folder-action-count">{{ cacheRunProgress().completed.toLocaleString() }} / {{ cacheRunProgress().total.toLocaleString() }}</td>
-              <td class="gallery-cache-folder-action-stop-cell">
-                <button type="button" class="gallery-cache-folder-action-stop" (click)="cancelCacheRun()" aria-label="Stop cache folder action" title="Stop cache folder action">Stop</button>
-              </td>
             </tr>
             <tr>
-              <td class="gallery-cache-current-operation" colspan="4">{{ cacheRunCurrentOperation() || 'Indexing folder contents…' }}</td>
+              <td class="gallery-cache-current-operation" colspan="3">{{ cacheRunCurrentOperation() || 'Indexing folder contents…' }}</td>
             </tr>
           </tbody>
         </table>
