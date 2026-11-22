@@ -286,7 +286,7 @@ export class ProcessManager {
         `Windows Shell context-menu helper failed (exit code: ${exitCode}).`,
         diagnostic,
         failure.message
-      ].filter(Boolean).join('\\n'));
+      ].filter(Boolean).join('\n'));
     }
   };
 
