@@ -19,6 +19,7 @@ The production build combines several independently compiled components:
 | Valhalla routing engine | Separate local Valhalla checkout | CMake, Visual Studio, vcpkg | Valhalla libraries and routing helper |
 | Mapsforge renderer | `tools/mapsforge-renderer/` | Maven, Java | Self-contained Java renderer JAR |
 | JPEG XR WIC encoder | `tools/jxr-wic-prototype/` | CMake, MSVC | Windows FP16-to-JPEG-XR encoder |
+| Windows Shell context-menu helper | `tools/windows-shell-context-menu/` | CMake, Visual Studio 2022 C++ | Native Shell context-menu executable for files and folders |
 | OsmAnd map resources | Separate upstream data repository | No compilation | Rendering styles and other runtime resources |
 | Mapsforge map/theme files | External user-provided data | No compilation | Map data and XML rendering themes |
 | Valhalla routing tiles/configuration | External routing data/configuration | No compilation by LumaScope | Graph data and routing profiles |
@@ -277,7 +278,36 @@ tools/jxr-wic-prototype/build/Release/jxr-wic-encoder.exe
 
 The production build invokes this npm script automatically. See [JPEG XR encoder README](../tools/jxr-wic-prototype/README.md) for the raw FP16 input layout and standalone encoding example.
 
-## 7. Main Angular/Electron application
+## 7. Windows Shell context-menu helper
+
+The Windows Shell context-menu bridge is a native C++ executable. It asks the Windows Shell for the selected file or folder's classic context menu through the COM `IContextMenu`, `IContextMenu2` and `IContextMenu3` interfaces. This allows Windows and installed Shell extensions to contribute their normal commands and submenus.
+
+### Requirements
+
+- Windows 10/11.
+- PowerShell 7.
+- CMake 3.24 or newer.
+- Visual Studio 2022 C++ build tools and a Windows SDK.
+
+### Compile
+
+From the repository root:
+
+```powershell
+npm run build:windows-shell-context-menu
+```
+
+This runs `tools/windows-shell-context-menu/build.ps1`, configures a Visual Studio x64 CMake build and compiles the Release executable. The staged development executable is:
+
+```text
+tools/windows-shell-context-menu/stage/lumascope_windows_shell_context_menu.exe
+```
+
+The script is also invoked automatically by the Windows backend build and Windows production packaging scripts, including `npm run make:prod`, `npm run make:prod-nsis` and `npm run make:prod-appx`. In packaged applications the executable is copied to `resources/windows-shell-context-menu/`; during development the desktop process loads it from the staging directory above.
+
+The helper is only used on Windows. In Browse, it is available from the thumbnail context menu and the favorites folder tree (right-click or the folder action menu). It displays the native Windows Shell menu for the selected file or directory.
+
+## 8. Main Angular/Electron application
 
 The renderer and desktop application are built through the Nx workspace. The root `package.json` defines the scripts:
 
@@ -285,6 +315,7 @@ The renderer and desktop application are built through the Nx workspace. The roo
 - `npm run build:mapsforge-renderer` — Maven build of the Mapsforge JAR.
 - `npm run stage:mapsforge-runtime` — creates the minimized Java runtime under `tools/mapsforge-renderer/stage/runtime/`.
 - `npm run build:jxr-wic-encoder` — CMake build of the WIC encoder.
+- `npm run build:windows-shell-context-menu` — CMake/Visual Studio build of the native Windows Shell context-menu helper.
 - `nx run desktop:make` — desktop packaging after the helper staging steps.
 - `npm run make:prod` — complete production sequence.
 
@@ -308,7 +339,7 @@ npm run make:prod
 
 The root `build.ps1` adds repository-branch checking, process cleanup, output cleanup, staged OsmAnd file verification and application startup. It is the preferred entry point for the established local Windows build workflow.
 
-## 8. Components that do not need compilation
+## 9. Components that do not need compilation
 
 The following are external data inputs, not native application projects:
 
@@ -322,7 +353,7 @@ The following are external data inputs, not native application projects:
 
 They are downloaded or prepared separately and selected in LumaScope's Offline Files or map settings. Packaging the application does not convert or bundle these regional datasets.
 
-## 9. Troubleshooting and clean rebuilds
+## 10. Troubleshooting and clean rebuilds
 
 - **CMake uses the wrong compiler:** use a fresh build directory after changing the CMake generator, compiler, Qt kit or architecture. CMake caches compiler paths.
 - **OsmAnd source missing:** verify that both `vendor/osmand/core/CMakeLists.txt` and `vendor/osmand/core-legacy/CMakeLists.txt` exist.
@@ -333,5 +364,6 @@ They are downloaded or prepared separately and selected in LumaScope's Offline F
 - **Mapsforge JAR missing:** install JDK/Maven, run the Maven command from the repository root and check `tools/mapsforge-renderer/target/`.
 - **Mapsforge runtime staging fails:** set `JAVA_HOME` to a full JDK 17+ installation (not a JRE), then run `npm run stage:mapsforge-runtime`.
 - **WIC encoder missing:** use an x64 Visual Studio developer environment and rerun `npm run build:jxr-wic-encoder`.
+- **Windows Shell context-menu helper missing:** run `npm run build:windows-shell-context-menu` from PowerShell 7 and verify that `tools/windows-shell-context-menu/stage/lumascope_windows_shell_context_menu.exe` exists. The helper must be built before starting the desktop app in development.
 
 For component-specific implementation details, consult the README files next to each tool's source code. This document explains the repository build workflow; upstream projects remain authoritative for their own source acquisition, licensing and dependency setup.
