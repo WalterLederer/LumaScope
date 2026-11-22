@@ -124,6 +124,7 @@ interface MapErrorEntry {
 })
 export class MapWindow implements OnInit, OnDestroy {
   readonly locale = navigator.language;
+  protected readonly formatNumber = formatNumber;
   protected readonly offlineMapTypeLabels = {
     mbtiles: 'MBTiles (.mbtiles)',
     obf: 'OsmAnd (.obf)',
