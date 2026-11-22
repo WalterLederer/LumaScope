@@ -924,6 +924,13 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTrackSettingsDraft = signal<GpxTrackSettingsDraft>({ colorMode: 'fixed', color: '#3388ff', speedPalette: 'spectrum', customColor1: '#2878ff', customColor2: '#18c99a', customColor3: '#f04444', speedMinKmh: 0, speedMaxKmh: 120, elevationMinM: 0, elevationMaxM: 3000, lineStyle: 'solid', lineWidth: 3, showDirection: false, directionIntervalPx: 120, directionArrowSizePx: 16, directionArrowOutlineWidthPx: 2, trackShadowStrength: 0, arrowShadowStrength: 0, trackOutlineStrength: 0, directionStyle: 'classic' });
   protected readonly routePointActionMenuOpen = signal<number | null>(null);
   protected readonly routePointActionMenuPosition = signal({ top: 8, left: 8 });
+  protected readonly offlineHeaderActionMenuOpen = signal(false);
+  protected readonly offlineHeaderActionMenuPosition = signal({ top: 8, left: 8 });
+  protected readonly toggleOfflineHeaderActionMenu = (event: MouseEvent): void => {
+    if (this.offlineHeaderActionMenuOpen()) { this.offlineHeaderActionMenuOpen.set(false); return; }
+    this.offlineHeaderActionMenuPosition.set(this.getRowActionMenuPosition(event, 270, 52, true));
+    this.offlineHeaderActionMenuOpen.set(true);
+  };
   protected readonly offlineRowActionMenuOpen = signal<string | null>(null);
   protected readonly offlineRowActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly toggleOfflineRowActionMenu = (path: string, event: MouseEvent): void => {
@@ -1531,6 +1538,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxRowActionMenuOpen.set(null);
     this.gpxRowActionTrack.set(null);
     this.gpxHeaderActionMenuOpen.set(false);
+    this.offlineHeaderActionMenuOpen.set(false);
     this.offlineRowActionMenuOpen.set(null);
     this.colorMenuOpen.set(false);
     this.markerColorMenuOpen.set(false);
