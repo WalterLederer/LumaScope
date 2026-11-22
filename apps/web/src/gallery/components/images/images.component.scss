@@ -28,7 +28,7 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  padding: var(--dim-small) 0;
+  padding: var(--dim-small) 0 var(--dim-small) 12px;
   background: var(--color-surface-default-low);
 }
 
@@ -39,7 +39,7 @@
 }
 
 .month-header {
-  padding: var(--dim-small) 0;
+  padding: var(--dim-small) 0 var(--dim-small) 12px;
 }
 
 .detail-table {
