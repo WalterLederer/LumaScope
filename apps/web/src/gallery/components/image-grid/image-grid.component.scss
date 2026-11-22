@@ -412,3 +412,44 @@ ui-toolbar {
 @media (prefers-reduced-motion: reduce) {
   .gallery-loading-spinner { animation: none; }
 }
+
+.gallery-cache-folder-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: 8px;
+  padding: 3px 8px;
+  border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%));
+  border-radius: 5px;
+  background: var(--color-surface-default-medium);
+  color: var(--color-content-default-highest);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.gallery-cache-folder-action-label {
+  white-space: nowrap;
+}
+
+.gallery-cache-folder-action-count {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.gallery-cache-folder-action-stop {
+  min-height: 24px;
+  padding: 2px 10px;
+  border: 1px solid var(--color-border-default, rgb(128 128 128 / 45%));
+  border-radius: 4px;
+  background: var(--color-surface-default-low);
+  color: var(--color-content-primary-high);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.gallery-cache-folder-action-stop:hover {
+  background: var(--color-surface-default-high);
+}
