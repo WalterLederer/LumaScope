@@ -1,9 +1,6 @@
 @let imageList = images();
 
-@if (imageList === null || imageList.length === 0) {
-  @if (!loading()) {
-    <p>{{ includeFilesRecursive() ? 'No files found in this folder and subfolders.' : 'No files found in this folder.' }}</p>
-  }
+@if ((imageList === null || imageList.length === 0) && loading()) {
 } @else if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
   <div class="detail-table" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
     <table class="detail-native-table" [class.actions-column-right]="detailActionsColumnPosition() === 'right'" aria-label="Image details"
@@ -150,7 +147,9 @@
         </tr>
       </thead>
       <tbody class="images details-list" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
-        @if (detailVirtualTopSpacer() > 0) {
+        @if (imageList === null || imageList.length === 0) {
+          <tr class="detail-empty-state"><td colspan="14">{{ includeFilesRecursive() ? 'No files found in this folder and subfolders.' : 'No files found in this folder.' }}</td></tr>
+        } @else if (detailVirtualTopSpacer() > 0) {
           <tr class="detail-virtual-spacer" aria-hidden="true" [style.height.px]="detailVirtualTopSpacer()"><td colspan="14"></td></tr>
         }
         @for (image of visibleDetailImages(); track image.path; let rowIndex = $index) {
@@ -313,6 +312,9 @@
   </div>
 } @else {
   <div class="images" [class.info-tiles]="viewMode() === 'tiles'">
+    @if (imageList === null || imageList.length === 0) {
+      <p class="gallery-empty-state">{{ includeFilesRecursive() ? 'No files found in this folder and subfolders.' : 'No files found in this folder.' }}</p>
+    } @else {
     @if ((viewMode() === 'thumbnails' || viewMode() === 'tiles') && thumbnailVirtualTopSpacer() > 0) {
       <div class="gallery-window-spacer gallery-window-spacer-top" aria-hidden="true" [style.height.px]="thumbnailVirtualTopSpacer()"></div>
     }
@@ -324,6 +326,7 @@
     }
     @if ((viewMode() === 'thumbnails' || viewMode() === 'tiles') && thumbnailVirtualBottomSpacer() > 0) {
       <div class="gallery-window-spacer gallery-window-spacer-bottom" aria-hidden="true" [style.height.px]="thumbnailVirtualBottomSpacer()"></div>
+    }
     }
   </div>
 }
