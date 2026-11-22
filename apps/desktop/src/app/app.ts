@@ -290,7 +290,6 @@ export default class App {
 
     // Show the window once Chromium reports that the first frame is ready.
     App.mainWindow.once('ready-to-show', () => {
-      clearInterval(startupProbe);
       logRendererStartup('Renderer ready-to-show');
       if (App.mainWindow && !App.mainWindow.isDestroyed()) App.mainWindow.show();
 
@@ -298,53 +297,6 @@ export default class App {
         App.mainWindow.minimize();
       }
     });
-
-    // Capture renderer state while startup is waiting for the first visible frame.
-    // This diagnostic runs in the main process, so it remains useful when DevTools is blank.
-    let startupProbeCount = 0;
-    const startupProbe = setInterval(() => {
-      if (!App.mainWindow || App.mainWindow.isDestroyed() || App.mainWindow.webContents.isDestroyed()) {
-        clearInterval(startupProbe);
-        return;
-      }
-      startupProbeCount++;
-      const webContents = App.mainWindow.webContents;
-      const probeStartedAt = Date.now();
-      const probeDetails = {
-        probe: startupProbeCount,
-        elapsedMs: Date.now() - startupStartedAt,
-        loading: webContents.isLoading(),
-        crashed: webContents.isCrashed(),
-        rendererUnresponsive
-      };
-      // Log before contacting the renderer: executeJavaScript itself can be
-      // blocked when the renderer main thread is stuck during Angular startup.
-      console.warn('[StartupProbe] Main process heartbeat', probeDetails);
-      let timeoutHandle: NodeJS.Timeout | null = null;
-      const rendererProbe = webContents.executeJavaScript(
-        `({ readyState: document.readyState, bodyChildCount: document.body?.children.length ?? 0, bodyTextLength: document.body?.innerText?.length ?? 0, appRootCount: document.querySelectorAll('app-root').length, imageViewCount: document.querySelectorAll('app-image-view').length, galleryCount: document.querySelectorAll('app-gallery').length, imageGridCount: document.querySelectorAll('app-image-grid').length, imageCount: document.querySelectorAll('app-thumbnail').length })`,
-        true
-      );
-      const rendererTimeout = new Promise<never>((_, reject) => {
-        timeoutHandle = setTimeout(() => reject(new Error('Renderer did not answer within 1200 ms')), 1200);
-      });
-      void Promise.race([rendererProbe, rendererTimeout]).then(state => {
-        console.warn('[StartupProbe] Renderer responded', {
-          ...probeDetails,
-          responseMs: Date.now() - probeStartedAt,
-          state
-        });
-      }).catch(error => {
-        console.error('[StartupProbe] Renderer probe failed', {
-          ...probeDetails,
-          responseMs: Date.now() - probeStartedAt,
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }).finally(() => {
-        if (timeoutHandle) clearTimeout(timeoutHandle);
-      });
-      if (startupProbeCount >= 8) clearInterval(startupProbe);
-    }, 1500);
 
     // Avoid leaving the application running invisibly if ready-to-show never arrives.
     setTimeout(() => {
