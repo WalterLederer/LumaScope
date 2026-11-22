@@ -422,9 +422,9 @@ export class ImageGridComponent {
 
   private readonly galleryCacheBuild = inject(GalleryCacheBuild);
 
-  readonly cacheRunActive = computed(() => this.imagesComponent()?.cacheRunActive() ?? false);
-  readonly cacheRunProgress = computed(() => this.imagesComponent()?.cacheRunProgress() ?? { completed: 0, total: 0 });
-  readonly cacheRunCurrentOperation = computed(() => this.imagesComponent()?.cacheRunCurrentOperation() ?? '');
+  readonly cacheRunActive = computed(() => this.galleryCacheBuild.cacheRunActive() || (this.imagesComponent()?.cacheRunActive() ?? false));
+  readonly cacheRunProgress = computed(() => this.imagesComponent()?.cacheRunActive() ? this.imagesComponent()!.cacheRunProgress() : this.galleryCacheBuild.cacheRunProgress());
+  readonly cacheRunCurrentOperation = computed(() => this.imagesComponent()?.cacheRunActive() ? this.imagesComponent()!.cacheRunCurrentOperation() : this.galleryCacheBuild.cacheRunCurrentOperation());
 
   readonly cancelCacheRun = (): void => {
     this.imagesComponent()?.cancelCacheRun();
