@@ -238,6 +238,15 @@
   vertical-align: middle;
 }
 
+:host(.view-details) > .detail-suffix.unsupported-suffix small,
+:host(.view-details-no-thumbnails) > .detail-suffix.unsupported-suffix small {
+  display: block;
+  margin-top: 2px;
+  font-size: 9px;
+  line-height: 1.1;
+  font-weight: 500;
+  color: var(--color-content-default-medium);
+}
 :host(.view-details) > .detail-date,
 :host(.view-details-no-thumbnails) > .detail-date,
 :host(.view-details) > .detail-gps-date,
