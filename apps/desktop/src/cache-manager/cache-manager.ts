@@ -38,6 +38,8 @@ const getThumbnailCacheVersion = (sourceName: string): number => {
   return extension === '.dng' ? DNG_THUMBNAIL_CACHE_VERSION : extension === '.ohsp' ? OHSP_THUMBNAIL_CACHE_VERSION : THUMBNAIL_CACHE_VERSION;
 };
 const FULL_SIZE_EXTENSIONS = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw', '.ohsp' ]);
+const CHROMIUM_NATIVE_IMAGE_EXTENSIONS = new Set([ '.jpg', '.jpeg', '.jpe', '.png', '.gif', '.webp', '.bmp', '.svg', '.avif' ]);
+const DIRECT_IMAGE_MAX_DIMENSION = 1024;
 
 export interface CacheSummary {
   total: CacheClearResult;
@@ -1392,7 +1394,14 @@ export class CacheManager {
       };
       let thumbnail = getStatus('thumbnail');
       let fullSize = fullSizeRequired ? getStatus('fullsize') : null;
-      const verification = { sourceChecked: false, thumbnailChecked: false, fullSizeChecked: false, invalidEntries: 0 };
+      const verification = {
+        sourceChecked: false,
+        thumbnailChecked: false,
+        fullSizeChecked: false,
+        invalidEntries: 0,
+        redundantThumbnailRemoved: false
+      };
+      let thumbnailDirect = false;
       if (verifyCacheFiles && row && sourceMatches && (thumbnail || fullSize)) {
         verification.sourceChecked = true;
         try {
@@ -1419,7 +1428,53 @@ export class CacheManager {
           fullSize = null;
         }
       }
-      return { sourceName, thumbnail, fullSize, fullSizeRequired, latitude: row?.latitude ?? null, longitude: row?.longitude ?? null, gpsTimestamp: sourceMatches ? row?.gps_timestamp ?? null : null, verification };
+      // Only an explicit Build cache > Verify pass may remove redundant
+      // thumbnail sidecars. Normal gallery scans and non-verify cache builds
+      // never perform this cleanup.
+      if (verifyCacheFiles && sourceMatches && CHROMIUM_NATIVE_IMAGE_EXTENSIONS.has(extension)) {
+        try {
+          const sourceStats = await stat(sourceName);
+          if ((!row || (sourceStats.size === row.file_size && sourceStats.mtimeMs === row.modified_at))
+            && sourceStats.isFile()) {
+            const { Injector } = await import('../injector/injector');
+            const thumbManager = Injector.getInstance().inject('ThumbManager');
+            const dimensions = await thumbManager.getImageDimensions(sourceName);
+            if (dimensions
+              && dimensions.width > 0
+              && dimensions.height > 0
+              && Math.max(dimensions.width, dimensions.height) <= DIRECT_IMAGE_MAX_DIMENSION) {
+              const thumbnailPath = this.getSidecarPath(sourceName, false);
+              try {
+                const thumbnailStats = await stat(thumbnailPath);
+                if (thumbnailStats.isFile()) {
+                  await rm(thumbnailPath, { force: true });
+                  verification.redundantThumbnailRemoved = true;
+                }
+              } catch { /* No existing sidecar to remove. */ }
+              if (row?.thumbnail_cache_id !== null && row?.thumbnail_cache_id !== undefined) {
+                db.prepare('UPDATE photos SET thumbnail_cache_id = NULL, thumbnail_cache_version = NULL WHERE id = :id')
+                  .run({ id: row.id });
+                verification.redundantThumbnailRemoved = true;
+              }
+              thumbnail = null;
+              thumbnailDirect = true;
+            }
+          }
+        } catch (error) {
+          console.warn('[CacheManager] Could not verify direct-thumbnail eligibility:', sourceName, error);
+        }
+      }
+      return {
+        sourceName,
+        thumbnail,
+        thumbnailDirect,
+        fullSize,
+        fullSizeRequired,
+        latitude: row?.latitude ?? null,
+        longitude: row?.longitude ?? null,
+        gpsTimestamp: sourceMatches ? row?.gps_timestamp ?? null : null,
+        verification
+      };
     }));
   };
 
