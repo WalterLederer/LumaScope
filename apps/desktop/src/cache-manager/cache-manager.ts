@@ -2490,11 +2490,11 @@ export class CacheManager {
   readonly clearThumbnailCache = async (sourceName: string): Promise<void> => {
     const db = this.databaseForPath(sourceName);
     const row = this.getPhoto(sourceName, db);
-    if (!row || row.thumbnail_cache_id === null) return;
+    if (!row) return;
     if (row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR) {
       await rm(this.getSidecarPath(sourceName, false), { force: true });
     }
-    db.prepare('UPDATE photos SET thumbnail_cache_id = NULL, thumbnail_cache_version = NULL WHERE id = :id')
+    db.prepare('UPDATE photos SET thumbnail_cache_id = NULL, thumbnail_cache_version = NULL, thumbnail_failure_size = NULL, thumbnail_failure_modified_at = NULL, thumbnail_failure_version = NULL WHERE id = :id')
       .run({ id: row.id });
   };
 
