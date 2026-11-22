@@ -1502,6 +1502,7 @@ export class CacheManager {
     verifyCacheFiles = false
   ): Promise<{ files: number; directories: string[]; removedStale: number; removedCacheFiles: number; removedCacheBytes: number; complete: boolean }> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
+    const scanStartedAt = performance.now();
     const root = resolve(directory);
     const db = this.databaseForPath(root);
     const databaseKey = this.databaseKeyForPath(root);
@@ -1548,9 +1549,18 @@ export class CacheManager {
     let removedCacheFiles = 0;
     let removedCacheBytes = 0;
     let scanComplete = true;
+    let entryCount = 0;
+    let statCalls = 0;
+    let statErrors = 0;
+    let statDurationMs = 0;
+    let sqliteDurationMs = 0;
+    let batchCount = 0;
+    let directoryReadDurationMs = 0;
+    let cleanupDurationMs = 0;
     let batch: Array<{ name: string; size: number; modifiedAt: number }> = [];
     const flushBatch = (): void => {
       if (batch.length === 0) return;
+      const batchStartedAt = performance.now();
       db.exec('BEGIN IMMEDIATE;');
       try {
         for (const file of batch) {
@@ -1567,17 +1577,26 @@ export class CacheManager {
         try { db.exec('ROLLBACK;'); } catch { /* Preserve the original registration error. */ }
         throw error;
       }
+      batchCount++;
+      sqliteDurationMs += performance.now() - batchStartedAt;
       batch = [];
     };
 
+    const directoryReadStartedAt = performance.now();
     const handle = await opendir(root);
     try {
       for await (const entry of handle) {
+        entryCount++;
         const entryPath = join(root, entry.name);
         let metadata: Awaited<ReturnType<typeof stat>>;
+        const statStartedAt = performance.now();
+        statCalls++;
         try {
           metadata = await stat(entryPath);
+          statDurationMs += performance.now() - statStartedAt;
         } catch {
+          statDurationMs += performance.now() - statStartedAt;
+          statErrors++;
           scanComplete = false;
           continue;
         }
@@ -1601,8 +1620,10 @@ export class CacheManager {
       throw error;
     } finally {
       await handle.close().catch(() => undefined);
+      directoryReadDurationMs = performance.now() - directoryReadStartedAt;
     }
 
+    const cleanupStartedAt = performance.now();
     if (scanComplete) {
       if (verifyCacheFiles) {
         // A Verify cache pass also removes cache files belonging to source files
@@ -1676,6 +1697,9 @@ export class CacheManager {
       }
     }
     db.exec('DELETE FROM temp.lumascope_seen_gallery_files;');
+    cleanupDurationMs = performance.now() - cleanupStartedAt;
+    const totalDurationMs = performance.now() - scanStartedAt;
+    console.info(`[CACHE-SCAN] folder=${root} entries=${entryCount} files=${files} directories=${directories.length} statCalls=${statCalls} statErrors=${statErrors} batches=${batchCount} directoryReadMs=${directoryReadDurationMs.toFixed(1)} statMs=${statDurationMs.toFixed(1)} sqliteMs=${sqliteDurationMs.toFixed(1)} cleanupMs=${cleanupDurationMs.toFixed(1)} totalMs=${totalDurationMs.toFixed(1)} complete=${scanComplete}`);
     this.notifyGalleryFilesChanged(root);
     return { files, directories, removedStale, removedCacheFiles, removedCacheBytes, complete: scanComplete };
   };
