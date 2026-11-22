@@ -1,3 +1,5 @@
+import { allSortDirections, allSortTypes, SortDirection, SortType } from '../lib/desktop';
+
 export type ThumbnailSize = 'extraSmallMinus' | 'zoom108' | 'zoom120' | 'zoom132' | 'extraSmall' | 'zoom156' | 'extraSmallPlus' | 'zoom180' | 'small' | 'zoom204' | 'smallPlus' | 'zoom228' | 'smallMedium' | 'zoom252' | 'smallMediumPlus' | 'zoom276' | 'medium' | 'zoom300' | 'mediumPlus' | 'zoom324' | 'mediumLarge' | 'zoom348' | 'mediumLargePlus' | 'zoom372' | 'zoom384' | 'zoom396' | 'zoom408' | 'zoom420' | 'zoom432' | 'zoom444' | 'zoom456' | 'zoom468' | 'zoom480' | 'zoom492' | 'zoom504' | 'large';
 export const allThumbnailSizes = [ 'extraSmallMinus', 'zoom108', 'zoom120', 'zoom132', 'extraSmall', 'zoom156', 'extraSmallPlus', 'zoom180', 'small', 'zoom204', 'smallPlus', 'zoom228', 'smallMedium', 'zoom252', 'smallMediumPlus', 'zoom276', 'medium', 'zoom300', 'mediumPlus', 'zoom324', 'mediumLarge', 'zoom348', 'mediumLargePlus', 'zoom372', 'zoom384', 'zoom396', 'zoom408', 'zoom420', 'zoom432', 'zoom444', 'zoom456', 'zoom468', 'zoom480', 'zoom492', 'zoom504', 'large' ] as const;
 export const defaultThumbnailSize: ThumbnailSize = 'small';
@@ -60,8 +62,8 @@ export interface AppConfigV1Gallery {
   autoSortFavorites?: boolean;
   thumbWidth?: number;
   thumbHeight?: number;
-  sortBy?: 'date' | 'gpsDate' | 'gps' | 'location' | 'name' | 'path' | 'size' | 'suffix';
-  sortDir?: 'asc' | 'desc';
+  sortBy?: SortType;
+  sortDir?: SortDirection;
   selectedLocation?: string;
   /** Include files from subfolders in the gallery. Defaults to false. */
   includeFilesRecursive?: boolean;
@@ -171,8 +173,8 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.autoSortFavorites || 'boolean' === typeof input.autoSortFavorites)
     && (undefined === input.thumbWidth || 'number' === typeof input.thumbWidth)
     && (undefined === input.thumbHeight || 'number' === typeof input.thumbHeight)
-    && (undefined === input.sortBy || 'date' === input.sortBy || 'gpsDate' === input.sortBy || 'gps' === input.sortBy || 'location' === input.sortBy || 'name' === input.sortBy || 'path' === input.sortBy || 'size' === input.sortBy || 'suffix' === input.sortBy)
-    && (undefined === input.sortDir || 'asc' === input.sortDir || 'desc' === input.sortDir)
+    && (undefined === input.sortBy || allSortTypes.includes(input.sortBy))
+    && (undefined === input.sortDir || allSortDirections.includes(input.sortDir))
     && (undefined === input.selectedLocation || 'string' === typeof input.selectedLocation)
     && (undefined === input.includeFilesRecursive || 'boolean' === typeof input.includeFilesRecursive)
     && (undefined === input.includeUnsupportedFiles || 'boolean' === typeof input.includeUnsupportedFiles);
