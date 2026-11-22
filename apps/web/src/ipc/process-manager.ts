@@ -8,6 +8,8 @@ export class ProcessManager implements DesktopProcessManager {
 
   readonly getAppVersion = (): Promise<string> => window.desktop.ProcessManager.getAppVersion();
 
+  readonly getFileTypeIcon = (filePath: string): Promise<string | null> => window.desktop.ProcessManager.getFileTypeIcon(filePath);
+
   readonly getAppSettings = (): Promise<Record<string, unknown>> => window.desktop.ProcessManager.getAppSettings();
 
   readonly setAppSettingsSection = (section: string, values: Record<string, unknown>): Promise<void> =>
