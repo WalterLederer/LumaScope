@@ -1894,3 +1894,13 @@
 .detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
   border-bottom: 3px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
 }
+
+/* The explicit table-cell layout above must never resurrect the unused
+   actions cells. When actions are on the right, the left header cells are
+   hidden; when actions are on the left, the right header cells are hidden.
+   Keep this override after every display:table-cell rule so only the chosen
+   hamburger column participates in either header grid row. */
+.detail-native-table > thead > tr > th.detail-actions-heading[hidden],
+.detail-native-table > thead > tr > th.detail-actions-statistics[hidden] {
+  display: none !important;
+}
