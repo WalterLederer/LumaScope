@@ -2035,7 +2035,7 @@ export class CacheManager {
         OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))
       )`;
     const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `lower(photos.file_name) LIKE :extension${index}`).join(' OR ')})`;
-    const terms = typeof nameFilter === 'string' ? nameFilter.trim().toLocaleLowerCase().split(/\\s+/).filter(Boolean) : [];
+    const terms = typeof nameFilter === 'string' ? nameFilter.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean) : [];
     const parameters: Record<string, string | number> = { folder, recursive: recursive ? 1 : 0, folderPrefix };
     if (!includeUnsupported) supportedFileExtensions.forEach((extension, index) => { parameters[`extension${index}`] = `%.${extension.toLowerCase()}`; });
     const nameFilterSql = terms.map((term, index) => {
@@ -2044,7 +2044,6 @@ export class CacheManager {
     });
     const where = scope + supportedFilter + (nameFilterSql.length ? ` AND (${nameFilterSql.join(' AND ')})` : '');
     const extensionSql = "lower(substr(photos.file_name, length(photos.file_name) - instr(reverse(photos.file_name), '.') + 2))";
-    const thumbnailVersions = new Map<string, number>();
     const fullSizeVersions = new Map<string, number>();
     for (const extension of FULL_SIZE_EXTENSIONS) {
       const normalized = extension.slice(1);
@@ -2055,16 +2054,14 @@ export class CacheManager {
       );
       if (version !== null) fullSizeVersions.set(normalized, version);
     }
-    for (const extension of supportedFileExtensions) {
-      const normalized = extension.toLowerCase();
-      thumbnailVersions.set(normalized, getThumbnailCacheVersion(`file.${normalized}`));
-    }
     const fullSizeCases = [...fullSizeVersions].map(([extension, version]) =>
       `(${extensionSql} = '${extension}' AND photos.fullsize_cache_id IS NOT NULL AND photos.fullsize_cache_version = ${version})`);
-    const thumbnailCases = [...thumbnailVersions].map(([extension, version]) =>
-      `(${extensionSql} = '${extension}' AND photos.thumbnail_cache_id = ${CACHE_STORAGE_TYPE.SIDECAR} AND photos.thumbnail_cache_version = ${version})`);
     const ohspThumbnail = `(${extensionSql} = 'ohsp' AND (${fullSizeCases.find(value => value.includes("= 'ohsp'")) ?? '0'}))`;
-    const thumbnailValid = `(${thumbnailCases.join(' OR ')} OR ${ohspThumbnail})`;
+    const thumbnailValid = `(
+      (${extensionSql} = 'dng' AND photos.thumbnail_cache_id = ${CACHE_STORAGE_TYPE.SIDECAR} AND photos.thumbnail_cache_version = ${DNG_THUMBNAIL_CACHE_VERSION})
+      OR (${extensionSql} <> 'dng' AND ${extensionSql} <> 'ohsp' AND photos.thumbnail_cache_id = ${CACHE_STORAGE_TYPE.SIDECAR} AND photos.thumbnail_cache_version = ${THUMBNAIL_CACHE_VERSION})
+      OR ${ohspThumbnail}
+    )`;
     const fullSizeValid = fullSizeCases.length ? `(${fullSizeCases.join(' OR ')})` : '0';
     const sql = `SELECT COUNT(*) AS total,
         COALESCE(SUM(CASE WHEN ${thumbnailValid} THEN 1 ELSE 0 END), 0) AS thumbnails,
