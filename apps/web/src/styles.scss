@@ -77,16 +77,16 @@ html body app-map-window .map-window .offline-row-action-menu {
   z-index: 2147483005 !important;
 }
 
-/* Track-list hamburger buttons use the same framed, shadowed surface as
-   every other table row/header menu trigger, without the global blue styling. */
-html body button.gpx-track-menu-icon {
-  all: unset !important;
+/* Track-list hamburger buttons use exactly the same framed, shadowed
+   control surface as the other table menu triggers. Keep this selector more
+   specific than the map-window button defaults and global button variants. */
+html body app-map-window .map-window button.gpx-track-menu-icon:not(:disabled) {
   appearance: none !important;
   -webkit-appearance: none !important;
-  box-sizing: border-box !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  box-sizing: border-box !important;
   flex: 0 0 22px !important;
   width: 22px !important;
   min-width: 22px !important;
@@ -104,13 +104,18 @@ html body button.gpx-track-menu-icon {
   -webkit-text-fill-color: var(--color-content-default-high, #111) !important;
   box-shadow: var(--lumascope-surface-shadow, 0 2px 6px rgb(0 0 0 / 14%)) !important;
   text-shadow: none !important;
-  font: 14px/1 "Segoe UI Symbol", "Arial Unicode MS", sans-serif !important;
+  font-family: "Segoe UI Symbol", "Arial Unicode MS", sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+  text-indent: 0 !important;
   cursor: pointer !important;
   opacity: 1 !important;
 }
-html body button.gpx-track-menu-icon:hover,
-html body button.gpx-track-menu-icon:focus-visible,
-html body button.gpx-track-menu-icon[aria-expanded="true"] {
+html body app-map-window .map-window button.gpx-track-menu-icon:not(:disabled):hover,
+html body app-map-window .map-window button.gpx-track-menu-icon:not(:disabled):focus-visible,
+html body app-map-window .map-window button.gpx-track-menu-icon:not(:disabled)[aria-expanded="true"] {
   background: var(--color-surface-default-medium, #444) !important;
   border-color: var(--color-content-default-medium, #999) !important;
   box-shadow: var(--lumascope-surface-shadow, 0 2px 6px rgb(0 0 0 / 14%)) !important;
