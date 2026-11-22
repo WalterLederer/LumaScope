@@ -1882,7 +1882,7 @@ export class CacheManager {
     if (!Array.isArray(sourceNames) || sourceNames.length > 10000 || sourceNames.some(path => typeof path !== 'string' || !path.trim())) {
       throw new Error('A list of valid image paths is required.');
     }
-    if (sourceNames.length === 0) return { total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] };
+    if (sourceNames.length === 0) return { total: 0, thumbnails: 0, fullSizeConversions: 0, fullSizeConversionTotal: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] };
     const folder = dirname(sourceNames[0]);
     const databaseKey = this.databaseKeyForPath(folder);
     const db = this.databaseForPath(sourceNames[0]);
@@ -1890,7 +1890,7 @@ export class CacheManager {
       .filter(sourceName => dirname(sourceName) === folder)
       .map(sourceName => basename(sourceName).toLowerCase()))];
     if (requestedNames.length === 0) {
-      return { total: sourceNames.length, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] };
+      return { total: sourceNames.length, thumbnails: 0, fullSizeConversions: 0, fullSizeConversionTotal: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] };
     }
     const nameParameters = requestedNames.map((_, index) => `:name${index}`).join(', ');
     const parameters: Record<string, string> = {
@@ -1920,6 +1920,7 @@ export class CacheManager {
       matchedRows: matching.length,
       durationMs: Date.now() - queryStartedAt
     });
+    const fullSizeConversionTotal = matching.filter(row => FULL_SIZE_EXTENSIONS.has(extname(row.file_name).toLowerCase())).length;
     const gps = matching.filter(row => row.latitude !== null && row.longitude !== null).length;
     const hdr = matching.filter(row => row.is_hdr === 1).length;
     const location = matching.filter(row => !!row.location_display_name?.trim()).length;
@@ -1960,7 +1961,7 @@ export class CacheManager {
         catch { /* Missing full-size cache file. */ }
       }
     }));
-    return { total: sourceNames.length, thumbnails: thumbnailPaths.length, fullSizeConversions: fullSizePaths.length, gps, hdr, location, thumbnailPaths, fullSizePaths };
+    return { total: sourceNames.length, thumbnails: thumbnailPaths.length, fullSizeConversions: fullSizePaths.length, fullSizeConversionTotal, gps, hdr, location, thumbnailPaths, fullSizePaths };
   };
 
   @IpcHandler({ name: 'CacheManager.selectDatabaseForDirectory' })
