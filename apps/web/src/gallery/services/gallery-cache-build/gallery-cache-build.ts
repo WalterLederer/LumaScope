@@ -10,6 +10,7 @@ interface GalleryCacheBuildActivity {
   readonly active: Signal<boolean>;
   readonly progress: Signal<CacheBuildProgress>;
   readonly currentOperation: Signal<string>;
+  readonly directory: string;
   readonly cancel: () => void;
 }
 
@@ -31,7 +32,10 @@ export class GalleryCacheBuild {
   private readonly retiredController = signal(false);
   private readonly activity = signal<GalleryCacheBuildActivity | null>(null);
   private readonly pendingStarts: Array<{ directory: string; importGpx: boolean; recursive: boolean }> = [];
-  private activeDirectory: string | null = null;
+  private readonly activeDirectory = signal<string | null>(null);
+  readonly cacheRunDirectory = computed(() =>
+    this.activeDirectory() ?? this.activity()?.directory ?? this.queuedRequest()?.directory ?? null
+  );
   private readonly queuedRequest = signal<{ directory: string; recursive: boolean } | null>(null);
 
   private readonly normalizeDirectory = (directory: string): string =>
@@ -41,12 +45,12 @@ export class GalleryCacheBuild {
     controller: GalleryCacheBuildController,
     request: { directory: string; importGpx: boolean; recursive: boolean }
   ): Promise<void> => {
-    this.activeDirectory = request.directory;
+    this.activeDirectory.set(request.directory);
     try {
       if (request.recursive) await controller.startRecursive(request.directory, request.importGpx);
       else await controller.start(request.directory, request.importGpx);
     } finally {
-      if (this.activeDirectory === request.directory) this.activeDirectory = null;
+      if (this.activeDirectory() === request.directory) this.activeDirectory.set(null);
     }
   };
 
@@ -115,7 +119,7 @@ export class GalleryCacheBuild {
   private readonly queueCacheBuild = async (directory: string, importGpx: boolean, recursive: boolean): Promise<void> => {
     const controller = this.controller();
     const normalizedDirectory = this.normalizeDirectory(directory);
-    if (this.activeDirectory && this.normalizeDirectory(this.activeDirectory) === normalizedDirectory) return;
+    if (this.activeDirectory() && this.normalizeDirectory(this.activeDirectory()!) === normalizedDirectory) return;
     if (this.pendingStarts.some(item => this.normalizeDirectory(item.directory) === normalizedDirectory)) return;
 
     // Startup can restore a folder before ImageGrid has mounted and registered
