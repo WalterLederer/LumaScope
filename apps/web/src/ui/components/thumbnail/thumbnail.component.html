@@ -104,7 +104,9 @@
     <button type="button" role="menuitem" cdkMenuItem (click)="copyImagePath()"><span aria-hidden="true">⧉</span> Copy path</button>
     <button type="button" role="menuitem" cdkMenuItem (click)="openImagePath()"><span aria-hidden="true">📂</span> Open path</button>
     <button type="button" role="menuitem" cdkMenuItem (click)="openImageFile()"><span aria-hidden="true">↗</span> Open file</button>
-    <button type="button" role="menuitem" cdkMenuItem (click)="openWindowsContextMenu($event)"><span aria-hidden="true">▤</span> Windows context menu</button>
+    @if (isWindows()) {
+      <button type="button" role="menuitem" cdkMenuItem (click)="openWindowsContextMenu($event)"><span aria-hidden="true">▤</span> Windows context menu</button>
+    }
     <button type="button" role="menuitem" cdkMenuItem (click)="exportHex()"><span aria-hidden="true">▦</span> Export HEX...</button>
     <div class="gpx-row-action-menu-separator" role="separator"></div>
     <button type="button" role="menuitem" cdkMenuItem class="gpx-row-action-delete-all" (click)="deleteImageFile()"><span aria-hidden="true">⌫</span> Delete file</button>
