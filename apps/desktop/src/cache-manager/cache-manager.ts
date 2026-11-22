@@ -1856,7 +1856,8 @@ export class CacheManager {
     sortDir: SortDirection = 'asc',
     offset = 0,
     limit = 250,
-    nameFilter = ''
+    nameFilter = '',
+    sourceId = 'unknown'
   ): Promise<{ files: FileInfo[]; totalCount: number; offset: number; limit: number }> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
     const safeOffset = Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : 0;
@@ -1893,7 +1894,7 @@ export class CacheManager {
     if (totalCount === undefined) {
       const countStartedAt = Date.now();
       const countLogId = nextSqlLogId();
-      console.info(`[SQL] ${sqlLogTimestamp()} START #${countLogId} COUNT | folder=${directory} | recursive=${recursive} | unsupported=${includeUnsupported}`);
+      console.info(`[SQL] ${sqlLogTimestamp()} START #${countLogId} COUNT | source=${sourceId} | folder=${directory} | recursive=${recursive} | unsupported=${includeUnsupported}`);
       const totalCountRow = db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number };
       totalCount = Number(totalCountRow.totalCount) || 0;
       console.info(`[SQL] ${sqlLogTimestamp()} END   #${countLogId} COUNT | ${Date.now() - countStartedAt}ms | total=${totalCount}`);
@@ -1904,7 +1905,7 @@ export class CacheManager {
         if (oldestKey !== undefined) this.galleryCountCache.delete(oldestKey);
       }
     } else {
-      console.info(`[SQL] ${sqlLogTimestamp()} CACHE COUNT | folder=${directory} | total=${totalCount}`);
+      console.info(`[SQL] ${sqlLogTimestamp()} CACHE COUNT | source=${sourceId} | folder=${directory} | total=${totalCount}`);
     }
     const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
     const orderBy = sortBy === 'path'
@@ -1925,7 +1926,7 @@ export class CacheManager {
     const queryParameters = { ...filterParams, limit: safeLimit, offset: safeOffset };
     const queryStartedAt = Date.now();
     const queryLogId = nextSqlLogId();
-    console.info(`[SQL] ${sqlLogTimestamp()} START #${queryLogId} getGalleryFilesPage | folder=${directory} | recursive=${recursive} | unsupported=${includeUnsupported} | sort=${sortBy} ${sortDir} | offset=${safeOffset} | limit=${safeLimit}${nameFilterTerms.length ? ` | terms=${nameFilterTerms.join(' ')}` : ''}`);
+    console.info(`[SQL] ${sqlLogTimestamp()} START #${queryLogId} getGalleryFilesPage | source=${sourceId} | folder=${directory} | recursive=${recursive} | unsupported=${includeUnsupported} | sort=${sortBy} ${sortDir} | offset=${safeOffset} | limit=${safeLimit}${nameFilterTerms.length ? ` | terms=${nameFilterTerms.join(' ')}` : ''}`);
     const rows = db.prepare(sql).all(queryParameters) as Array<{
       file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
     }>;
@@ -2007,13 +2008,13 @@ export class CacheManager {
   ): Promise<FileInfo | null> => {
     const safePosition = Number.isFinite(position) ? Math.max(1, Math.trunc(position)) : 1;
     const page = await this.getGalleryFilesPage(
-      event, directory, recursive, includeUnsupported, sortBy, sortDir, safePosition - 1, 1
+      event, directory, recursive, includeUnsupported, sortBy, sortDir, safePosition - 1, 1, '', 'CacheManager.getGalleryFileAtPosition'
     );
     return page.files[0] ?? null;
   };
 
   @IpcHandler({ name: 'CacheManager.getDirectoryCacheStats' })
-  readonly getDirectoryCacheStats = async (_event: IpcMainInvokeEvent, sourceNames: string[], verifyCacheFiles = false): Promise<CacheDirectoryStats> => {
+  readonly getDirectoryCacheStats = async (_event: IpcMainInvokeEvent, sourceNames: string[], verifyCacheFiles = false, sourceId = 'unknown'): Promise<CacheDirectoryStats> => {
     if (!Array.isArray(sourceNames) || sourceNames.length > 10000 || sourceNames.some(path => typeof path !== 'string' || !path.trim())) {
       throw new Error('A list of valid image paths is required.');
     }
@@ -2040,7 +2041,7 @@ export class CacheManager {
         AND photos.file_name COLLATE NOCASE IN (${nameParameters})`;
     const queryStartedAt = Date.now();
     const queryLogId = nextSqlLogId();
-    console.info(`[SQL] ${sqlLogTimestamp()} START #${queryLogId} getDirectoryCacheStats | folder=${folder} | files=${requestedNames.length} | verify=${verifyCacheFiles}`);
+    console.info(`[SQL] ${sqlLogTimestamp()} START #${queryLogId} getDirectoryCacheStats | source=${sourceId} | folder=${folder} | files=${requestedNames.length} | verify=${verifyCacheFiles}`);
     const matching = db.prepare(sql).all(parameters) as unknown as Array<PhotoRow & {
       relative_folder_path: string; location_display_name: string | null
     }>;
