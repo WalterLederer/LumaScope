@@ -569,7 +569,15 @@ export class ImageGridComponent {
         cacheRunActive: images.cacheRunActive,
         cacheRunProgress: images.cacheRunProgress,
         cacheRunCurrentOperation: images.cacheRunCurrentOperation,
-        start: (directory, importGpx) => images.cacheAllImages(directory, importGpx),
+        start: async (directory, importGpx) => {
+          await images.cacheAllImages(directory, importGpx);
+          // A direct folder scan can finish after the initial database page was
+          // read. Reload once indexing is complete so unsupported-only folders
+          // are displayed even if the change notification raced navigation.
+          if (this.selectedLocation() === directory) {
+            await firstValueFrom(this.galleryState.navigateTo(directory, false));
+          }
+        },
         startRecursive: async (directory, importGpx) => {
           await images.cacheAllImagesRecursive(directory, importGpx);
           // Recursive indexing writes files folder by folder. Do one definitive
