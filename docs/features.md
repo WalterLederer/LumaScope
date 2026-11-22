@@ -15,6 +15,9 @@ Browse is the folder-based image collection view embedded in the main Image View
 - Inspect thumbnail and full-size conversion cache states.
 - Use keyboard zoom controls to change thumbnail size.
 - Keep the browser component mounted while switching to other Image View tabs, preserving its state and cache activity.
+- On Windows, open the native Windows Shell context menu for a file by right-clicking its thumbnail or using **Windows context menu** in the thumbnail's action menu.
+- In the Browse favorites folder tree, right-click a folder or choose **Windows context menu** from its action menu to open that folder's native Windows Shell context menu.
+- The native menu exposes the commands registered by Windows and installed Shell extensions for the selected file or folder. The feature uses the classic Shell context menu; it does not implement a separate custom LumaScope menu.
 
 ### Filename filter
 
