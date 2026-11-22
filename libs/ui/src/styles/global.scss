@@ -1062,8 +1062,8 @@ label:has(input[type="checkbox"]) > * {
   color: #000 !important;
 }
 
-/* Thumbnail name filter: retain a visible surface even when disabled;
-   when enabled, use exactly the same corner radius and shadow as Thumb size. */
+/* Thumbnail name filter: mirror the Thumb size surface exactly and use
+   the same filtered-row color whenever the name filter is active. */
 html body .thumbnail-size-control > label.thumbnail-name-filter {
   display: inline-flex !important;
   flex: 0 0 auto !important;
@@ -1081,11 +1081,10 @@ html body .thumbnail-size-control > label.thumbnail-name-filter {
   visibility: visible !important;
   opacity: 1 !important;
 }
-html body .thumbnail-size-control > label.thumbnail-name-filter:has(input[type="checkbox"]:checked) {
+html body .thumbnail-size-control > label.thumbnail-name-filter.filter-active {
   background: var(--detail-filtered-row-color, #e8f1fb) !important;
   background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
 }
-
 @media (prefers-reduced-motion: reduce) {
   .ui-checkbox,
   input[type="checkbox"],
