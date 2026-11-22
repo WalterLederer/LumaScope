@@ -425,8 +425,7 @@ CREATE INDEX IF NOT EXISTS idx_photos_gps_reference_timestamp
   ON photos(gps_timestamp, id)
   WHERE gps_timestamp IS NOT NULL AND latitude IS NOT NULL AND longitude IS NOT NULL;
 `
-  }
-  ,
+  },
   {
     name: 'rememberFailedThumbnailDecodesV22',
     query: `
