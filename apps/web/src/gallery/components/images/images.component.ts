@@ -455,9 +455,10 @@ export class ImagesComponent {
     (this.windowStart() + this.detailVirtualStart()) * this.detailVirtualRowHeight()
   );
   readonly detailVirtualBottomSpacer = computed(() => {
-    const renderedTotal = this.windowStart() > 0
-      ? this.totalFileCount()
-      : this.sortedDetailImages().length;
+    // The first database window is also bounded (1,000 rows), but the scroll
+    // surface must represent the complete result set from the very beginning.
+    // Otherwise the scrollbar ends at row 1,000 and cannot request later windows.
+    const renderedTotal = Math.max(this.totalFileCount(), this.windowStart() + this.sortedDetailImages().length);
     return Math.max(0,
       renderedTotal - this.windowStart() - this.detailVirtualStart() - this.visibleDetailImages().length
     ) * this.detailVirtualRowHeight();
