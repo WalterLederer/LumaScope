@@ -975,7 +975,7 @@ export class ImagesComponent {
     const sortDir = this.sortDirection();
     const filterTerms = (this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails')
       && this.nameFilterActive()
-      ? this.nameFilter().trim().toLocaleLowerCase().split(/\\s+/).filter(Boolean)
+      ? this.nameFilter().trim().toLocaleLowerCase().split(/\s+/).filter(Boolean)
       : [];
     let offset = 0;
     let total = this.totalFileCount();
