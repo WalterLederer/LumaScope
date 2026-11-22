@@ -15,7 +15,7 @@ The Help reference lists **15 shortcuts**. Global shortcuts are registered throu
 | `- / _` | Zoom out; in Browse, decrease thumbnail size; over the location map, zoom the map out. | No |
 | `V` | Cycle image comparison modes. | No |
 | `L` | Open the Location window. | No |
-| `C / F8` | Copy the current image to the clipboard. | No |
+| `F8` | Copy the current image to the clipboard. | No |
 | `S` | Open the Screen Capture window. | No |
 | `M` | Toggle the magnifier (loupe). | No |
 | `H` | Toggle the histogram. | No |
