@@ -1169,7 +1169,7 @@ export class ImagesComponent {
         this.cacheRunCurrentOperation.set(`Scanning folder and updating photo database: ${directoryPath}`);
         let scan: { files: number; directories: string[]; removedStale: number; removedCacheFiles: number; removedCacheBytes: number; complete: boolean };
         try {
-          scan = await this.cacheManager.scanGalleryDirectory(directoryPath, false);
+          scan = await this.cacheManager.scanGalleryDirectory(directoryPath, false, false);
         } catch (error) {
           enumerationComplete = false;
           console.warn('Failed to index gallery folder', directoryPath, error);
@@ -1237,6 +1237,10 @@ export class ImagesComponent {
       if (controller.signal.aborted && !this.cacheRunCurrentOperation().startsWith('Cache build ')) {
         this.cacheRunCurrentOperation.set('Cache build cancelled during folder enumeration.');
       }
+      // Defer gallery reloads until the recursive build has finished (or been cancelled).
+      await this.cacheManager.notifyGalleryFilesChanged(rootPath).catch(error =>
+        console.warn('Failed to notify the gallery after recursive cache build', error)
+      );
       this.cacheRunActive.set(false);
       this.manualRefresh.update(value => value + 1);
       this.cacheUpdated.emit('');
