@@ -746,7 +746,7 @@ export class ImageView {
   protected readonly hexLoading = signal(false);
   protected readonly hexStatus = signal('Select a file in the detail list to view its HEX contents.');
   private hexRequestId = 0;
-  protected readonly hexRowsPerPage = 256;
+  protected readonly hexRowsPerPage = 512;
   protected readonly hexMaxBufferedRows = 768;
   protected readonly hexMeasuredRowHeight = signal(22);
   protected readonly hexHeaderHeight = signal(25);
@@ -903,6 +903,11 @@ export class ImageView {
   protected readonly hexShiftedUtfIndex = (byteIndex: number): number => Math.floor((byteIndex - 1) / 2);
   protected readonly hexByteIndices = Array.from({ length: 16 }, (_, index) => index);
   protected readonly hexCursorOffset = signal(0);
+  protected readonly hexPositionSliderValue = signal(0);
+  protected readonly onHexPositionInput = (event: Event): void => {
+    const value = Number((event.currentTarget as HTMLInputElement | null)?.value ?? 0);
+    if (Number.isFinite(value)) this.hexPositionSliderValue.set(Math.max(0, Math.min(this.hexMaxStartRow(), Math.floor(value))));
+  };
   protected readonly hexCursorRowActive = (rowOffset: number): boolean =>
     Math.floor(this.hexCursorOffset() / 16) === Math.floor(rowOffset / 16);
   protected readonly hexCursorByteIndex = (rowOffset: number): number =>
@@ -1016,6 +1021,7 @@ export class ImageView {
         this.hexRows.set(retainedRows);
       } else {
         this.hexStartRow.set(boundedStart);
+        this.hexPositionSliderValue.set(boundedStart);
         this.hexRows.set(result.data.rows);
       }
       this.hexStatus.set(result.data.rows.length ? '' : 'The selected file is empty.');
@@ -1082,6 +1088,7 @@ export class ImageView {
     const value = Number((event.currentTarget as HTMLInputElement | null)?.value ?? 0);
     if (!Number.isFinite(value)) return;
     const targetRow = Math.max(0, Math.min(this.hexMaxStartRow(), Math.floor(value)));
+    this.hexPositionSliderValue.set(targetRow);
     void this.loadHexRange(targetRow).then(() => {
       const viewport = this.hexScrollViewport()?.nativeElement;
       if (!viewport) return;
