@@ -1,7 +1,7 @@
 import { CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import { Dialog } from '@angular/cdk/dialog';
 import { AsyncPipe, DOCUMENT } from '@angular/common';
-import { afterNextRender, ChangeDetectionStrategy, Component, HostListener, inject, input, output, signal, viewChild } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, effect, HostListener, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
@@ -190,35 +190,43 @@ export class GalleryPage {
       this.actionsColumnPosition.set(config.system.galleryFavoritesActionsColumnPosition === 'right' ? 'right' : 'left');
     });
 
-    // Only the image-grid instance owns window title and cache refresh side effects.
-    if (this.showImageGrid()) this.selectedLocation$.pipe(takeUntilDestroyed()).subscribe(location => {
-      this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
-      if (location) {
-        // A cache build belongs to the folder that started it. Cancel that run
-        // before scheduling work for a newly selected favorite, so the old
-        // folder cannot keep the shared cache worker occupied or queue stale work.
-        const activeDirectory = this.galleryCacheBuild.cacheRunDirectory();
-        const normalizePath = (value: string): string =>
-          value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
-        if (this.galleryCacheBuild.cacheRunActive()
-          && activeDirectory
-          && normalizePath(activeDirectory) !== normalizePath(location)) {
-          this.galleryCacheBuild.cancelCacheBuild();
+    // Signal inputs are not initialized until after the constructor. Use an
+    // effect so the tree-only GalleryPage instance cannot accidentally start a
+    // second cache build or refresh the image-grid cache statistics.
+    effect(onCleanup => {
+      if (!this.showImageGrid()) return;
+      const subscription = this.selectedLocation$.pipe(takeUntilDestroyed()).subscribe(location => {
+        this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
+        if (location) {
+          // A cache build belongs to the folder that started it. Cancel that run
+          // before scheduling work for a newly selected favorite, so the old
+          // folder cannot keep the shared cache worker occupied or queue stale work.
+          const activeDirectory = this.galleryCacheBuild.cacheRunDirectory();
+          const normalizePath = (value: string): string =>
+            value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
+          if (this.galleryCacheBuild.cacheRunActive()
+            && activeDirectory
+            && normalizePath(activeDirectory) !== normalizePath(location)) {
+            this.galleryCacheBuild.cancelCacheBuild();
+          }
+          // The restored favorite folder must receive the same automatic cache build
+          // as a folder selected manually. The service queues this until ImageGrid
+          // has registered its cache-build controller after the first render.
+          const startCacheBuild = this.galleryState.includeFilesRecursiveValue()
+            ? this.galleryCacheBuild.startRecursiveCacheBuild(location, true)
+            : this.galleryCacheBuild.startCacheBuild(location, true);
+          void startCacheBuild.catch(error => {
+            const message = error instanceof Error ? error.message : String(error);
+            this.galleryLocationError.set(`Cache folder action failed: ${message}`);
+          });
         }
-        // The restored favorite folder must receive the same automatic cache build
-        // as a folder selected manually. The service queues this until ImageGrid
-        // has registered its cache-build controller after the first render.
-        const startCacheBuild = this.galleryState.includeFilesRecursiveValue()
-          ? this.galleryCacheBuild.startRecursiveCacheBuild(location, true)
-          : this.galleryCacheBuild.startCacheBuild(location, true);
-        void startCacheBuild.catch(error => {
-          const message = error instanceof Error ? error.message : String(error);
-          this.galleryLocationError.set(`Cache folder action failed: ${message}`);
-        });
-      }
+      });
+      onCleanup(() => subscription.unsubscribe());
     });
 
-    if (this.showImageGrid()) afterNextRender(() => this.galleryCacheBuild.refreshDetailCacheStatus());
+    afterNextRender(() => {
+      if (this.showImageGrid()) this.galleryCacheBuild.refreshDetailCacheStatus();
+    });
 
   }
 
