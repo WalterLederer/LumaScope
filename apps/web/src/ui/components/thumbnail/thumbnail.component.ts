@@ -25,6 +25,12 @@ import { ThumbnailLoaderService } from '../../../system/services/thumbnail-loade
 import { thumbUrl } from '../../../viewer/utils/image-url';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 
+const supportedThumbnailExtensions = new Set([
+  'avif', 'bmp', 'gif', 'heic', 'heif', 'jpe', 'jpeg', 'jpg',
+  'jxl', 'jxr', 'exr', 'ohsp', 'png', 'raw', 'dng', 'rw2',
+  'hdr', 'svg', 'tif', 'tiff', 'webp'
+]);
+
 @Component({
   selector: 'app-thumbnail, tr[app-thumbnail]',
   imports: [
@@ -231,6 +237,8 @@ export class ThumbnailComponent implements OnDestroy {
       : '—';
   });
 
+  readonly isSupportedThumbnail = computed(() => supportedThumbnailExtensions.has(this.imageSuffix()));
+
   readonly formattedFileSize = computed(() => {
     const bytes = Math.max(0, Number(this.image().size) || 0);
     const units = ['KB', 'MB', 'GB'];
@@ -347,6 +355,12 @@ export class ThumbnailComponent implements OnDestroy {
       this.isLoading.set(true);
       this.isCaching.set(true);
       this.isCacheStatusReady.set(false);
+      if (!this.isSupportedThumbnail()) {
+        this.isCaching.set(false);
+        this.isCacheStatusReady.set(true);
+        this.isLoading.set(false);
+        return;
+      }
       if (!this.isVisible()) return;
 
       let cancelled = false;
