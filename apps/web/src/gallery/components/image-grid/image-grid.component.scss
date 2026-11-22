@@ -514,3 +514,18 @@ ui-toolbar {
 .gallery-cache-folder-action-stop:hover {
   background: var(--color-surface-default-high);
 }
+
+
+/* Keep the filter highlight tied directly to the checkbox's live checked
+   state. This also restores the highlight immediately after toggling off and
+   on, independently of Angular's cached class binding. */
+.thumbnail-size-control label.thumbnail-name-filter:has(input[type="checkbox"]:checked) {
+  padding: 4px 7px !important;
+  margin-top: -4px !important;
+  margin-bottom: -4px !important;
+  border-radius: var(--border-radius-small, 6px) !important;
+  background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
+}
+.thumbnail-size-control label.thumbnail-name-filter:not(:has(input[type="checkbox"]:checked)) {
+  background-color: transparent !important;
+}
