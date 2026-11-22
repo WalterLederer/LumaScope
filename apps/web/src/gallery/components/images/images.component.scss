@@ -644,8 +644,6 @@
   position: relative;
   left: auto;
   z-index: 45;
-  background: var(--color-surface-default-low, #fff) !important;
-  background-color: var(--color-surface-default-low, #fff) !important;
   box-shadow: none;
 }
 .detail-native-table .without-thumbnails .thumb-column-heading { visibility: hidden; }
@@ -944,7 +942,6 @@
   left: auto;
   z-index: 45;
   padding: 0 !important;
-  background: var(--color-surface-default-low, #fff) !important;
 }
 
 
@@ -1416,7 +1413,6 @@
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading,
 .detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
   opacity: 1 !important;
-  background-color: var(--color-surface-default-low, #fff) !important;
   isolation: isolate;
 }
 
