@@ -387,6 +387,10 @@
   min-width: 100%;
 }
 
+.detail-native-table > thead > tr > th {
+  border-bottom: 3px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
+}
+
 .detail-native-table th,
 .detail-native-table td {
   position: relative;
