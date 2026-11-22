@@ -28,7 +28,7 @@ This README describes the current LumaScope application, its present feature set
 | **Location** | Read image GPS metadata, show image positions on a map, inspect location information, import GPX tracks and display them with photos. |
 | **Maps and routing** | Combine online maps and offline MBTiles, OsmAnd, Mapsforge and hillshade sources; calculate routes with Valhalla. |
 | **Cache and database** | Build local thumbnails and full-size conversions in sidecar cache folders, track image metadata in SQLite and inspect cache status. |
-| **Windows integration** | Open supported image files from Explorer, use global capture shortcuts, enumerate capture windows and detect display/HDR capabilities. |
+| **Windows integration** | Open supported image files from Explorer, display native Windows Shell context menus for files and favorite folders, use global capture shortcuts, enumerate capture windows and detect display/HDR capabilities. |
 
 ## Image viewing
 
@@ -55,6 +55,8 @@ The **Browse** area is the folder-oriented entry point to the image collection. 
 - dragging an image file into the application.
 
 When LumaScope is already running, a second launch with an image path is forwarded to the existing application window. The folder containing the image is opened and the image is selected in the viewer.
+
+On Windows, the Browse thumbnail action menu and right-click gesture, as well as the favorites folder tree, can open the classic native Windows Shell context menu for a file or folder. This exposes commands provided by Windows and installed Shell extensions. The helper is built automatically by the Windows production build; see [Build from source](docs/build-from-source.md) and [External programs](docs/external-programs.md).
 
 ## Screen Capture
 
