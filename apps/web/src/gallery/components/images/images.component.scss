@@ -1906,6 +1906,34 @@
 }
 
 
+.gallery-loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 84px;
+  padding: 18px 12px;
+  color: var(--color-content-default-medium);
+  font-size: 0.95rem;
+}
+
+.gallery-loading-spinner {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border: 2px solid var(--color-border-default, rgb(128 128 128 / 30%));
+  border-top-color: var(--color-accent-default, #2688e8);
+  border-radius: 50%;
+  animation: gallery-loading-spin 0.8s linear infinite;
+}
+
+@keyframes gallery-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Keep the detail-table header visible when the selected folder has no files. */
 .detail-native-table > tbody.images.details-list > tr.detail-empty-state > td {
   height: 44px;
