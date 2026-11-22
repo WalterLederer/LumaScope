@@ -388,6 +388,12 @@ ui-toolbar {
   color: var(--color-content-default-medium, #666);
   background: var(--color-surface-default-low, #f5f5f5);
   border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 25%));
+  &.cache-build-active {
+    color: var(--color-content-default-highest, #202020);
+    background: color-mix(in srgb, var(--color-surface-default-low, #fff) 86%, #dc4141 14%);
+    background-color: color-mix(in srgb, var(--color-surface-default-low, #fff) 86%, #dc4141 14%);
+    border-bottom-color: var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%)));
+  }
   font-size: 13px;
 }
 
