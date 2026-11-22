@@ -1204,8 +1204,23 @@ export class ImageView {
       }).catch(error => this.currentImageCacheStatus.set(`Could not read cache status: ${error instanceof Error ? error.message : String(error)}`));
     });
   };
+  private readonly galleryActiveSelectionPath = signal<string | null>(null);
+
+  protected readonly onGalleryActiveSelectionChanged = (path: string | null): void => {
+    this.galleryActiveSelectionPath.set(path);
+  };
+
   protected readonly setActiveImageSidebarTab = (tab: string): void => {
     if (!this.imageSidebarTabs.some(item => item.id === tab)) return;
+    if (tab === 'image') {
+      const markedPath = this.galleryActiveSelectionPath();
+      const currentlyOpenedPath = this.selectedImageSignal()?.path ?? null;
+      if (markedPath && markedPath !== currentlyOpenedPath) {
+        this.viewNavigator.selectImage(markedPath).pipe(take(1)).subscribe(found => {
+          if (!found) console.warn('[GalleryNavigation] Marked file is not present in the current gallery:', markedPath);
+        });
+      }
+    }
     if (tab === 'gallery') this.browseWorkspaceInitialized.set(true);
     this.activeImageSidebarTab.set(tab);
     // Browse stays mounted after first use; its cache statistics already react to
