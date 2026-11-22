@@ -120,8 +120,8 @@ export class CacheManager implements DesktopCacheManager {
   readonly getGalleryFiles = (directory: string, recursive = false, includeUnsupported = false, sortBy: import('internal-api').SortType = 'name', sortDir: import('internal-api').SortDirection = 'asc') =>
     window.desktop.CacheManager.getGalleryFiles(directory, recursive, includeUnsupported, sortBy, sortDir);
 
-  readonly getGalleryFilesPage = (directory: string, recursive = false, includeUnsupported = false, sortBy: import('internal-api').SortType = 'name', sortDir: import('internal-api').SortDirection = 'asc', offset = 0, limit = 250, nameFilter = '') =>
-    window.desktop.CacheManager.getGalleryFilesPage(directory, recursive, includeUnsupported, sortBy, sortDir, offset, limit, nameFilter);
+  readonly getGalleryFilesPage = (directory: string, recursive = false, includeUnsupported = false, sortBy: import('internal-api').SortType = 'name', sortDir: import('internal-api').SortDirection = 'asc', offset = 0, limit = 250, nameFilter = '', sourceId = 'GalleryState') =>
+    window.desktop.CacheManager.getGalleryFilesPage(directory, recursive, includeUnsupported, sortBy, sortDir, offset, limit, nameFilter, sourceId);
 
   readonly getGalleryFileAtPosition = (directory: string, recursive = false, includeUnsupported = false, sortBy: import('internal-api').SortType = 'name', sortDir: import('internal-api').SortDirection = 'asc', position = 1): Promise<FileInfo | null> =>
     window.desktop.CacheManager.getGalleryFileAtPosition(directory, recursive, includeUnsupported, sortBy, sortDir, position);
@@ -135,8 +135,8 @@ export class CacheManager implements DesktopCacheManager {
   readonly onGalleryFilesChanged = (callback: (directory: string) => void): (() => void) =>
     window.desktop.CacheManager.onGalleryFilesChanged(callback);
 
-  readonly getDirectoryCacheStats = (sourceNames: string[], verifyCacheFiles = false): Promise<CacheDirectoryStats> =>
-    window.desktop.CacheManager.getDirectoryCacheStats(sourceNames, verifyCacheFiles);
+  readonly getDirectoryCacheStats = (sourceNames: string[], verifyCacheFiles = false, sourceId = 'ImageGrid'): Promise<CacheDirectoryStats> =>
+    window.desktop.CacheManager.getDirectoryCacheStats(sourceNames, verifyCacheFiles, sourceId);
 
   readonly reconcilePhotoRecords = (directory: string, sourceNames: string[], recursive = false): Promise<number> =>
     window.desktop.CacheManager.reconcilePhotoRecords(directory, sourceNames, recursive);
