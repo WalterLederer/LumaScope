@@ -27,7 +27,8 @@
                      (action)="onTreeAction($event)"
                      (move)="onMoveFavorite($event)"
                      (locationSelected)="locationSelected.emit()"
-                     (hovered)="onTreeNodeHovered($event)" />
+                     (hovered)="onTreeNodeHovered($event)"
+                     (contextMenuRequested)="onTreeContextMenu($event)" />
           }
         </section>
       </ui-vertical-stack>
@@ -68,7 +69,8 @@
                      (selected)="selectLocation($event)"
                      (action)="onTreeAction($event)"
                      (move)="onMoveFavorite($event)"
-                     (hovered)="onTreeNodeHovered($event)" />
+                     (hovered)="onTreeNodeHovered($event)"
+                     (contextMenuRequested)="onTreeContextMenu($event)" />
           }
         </section>
       </ui-vertical-stack>
@@ -119,6 +121,12 @@
         <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="onRemoveLocation(data)">
           <ui-icon icon="folderProhibited" [inherit]="true" />
           <ui-text [inherit]="true">Remove favorite</ui-text>
+        </button>
+      }
+      @if (isWindows()) {
+        <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="openFavoriteWindowsContextMenu(data)">
+          <span aria-hidden="true">▤</span>
+          <ui-text [inherit]="true">Windows context menu</ui-text>
         </button>
       }
       <button type="button" class="gallery-location-menu-action" cdkMenuItem (click)="onOpenLocationPath(data)">
