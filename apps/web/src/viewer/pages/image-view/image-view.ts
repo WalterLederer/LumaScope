@@ -386,8 +386,11 @@ export class ImageView {
   protected readonly selectedFileTypeIcon = signal<string | null>(null);
   private readonly selectedFileTypeIconEffect = effect(onCleanup => {
     const image = this.selectedImageSignal();
+    // Clear the previous file's icon immediately. Native Windows icon lookup
+    // is asynchronous, so retaining the old value can briefly show (for
+    // example) a ZIP icon while a newly selected MP4's VLC icon is loading.
+    this.selectedFileTypeIcon.set(null);
     if (!image || this.isSelectedFilePreviewSupported()) {
-      this.selectedFileTypeIcon.set(null);
       return;
     }
     let cancelled = false;
