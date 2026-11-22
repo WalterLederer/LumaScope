@@ -418,6 +418,7 @@ export class ThumbnailComponent implements OnDestroy {
       const imageUrl = this.url();
       void (async () => {
         let cached = false;
+        let cacheCheckFailed = false;
         try {
           const statusUrl = new URL(imageUrl);
           statusUrl.searchParams.set('status', '1');
@@ -427,17 +428,22 @@ export class ThumbnailComponent implements OnDestroy {
           const status = await response.json() as { cached?: boolean };
           cached = status.cached === true;
         } catch (error) {
+          // The cache-status preflight is only an optimization. A failed status
+          // request must not be shown as an image error while the actual image
+          // request can still succeed.
+          cacheCheckFailed = true;
           if (!cancelled) {
-            this.thumbnailError.set(error instanceof Error && error.name === 'AbortError'
-              ? 'Thumbnail cache check timed out after 8 seconds.'
-              : `Thumbnail cache check failed: ${error instanceof Error ? error.message : String(error)}`);
+            console.warn('[Thumbnail] Cache status check failed; continuing with image request:', {
+              path: image.path,
+              error: error instanceof Error ? error.message : String(error)
+            });
           }
         } finally {
           if (preflightTimer) clearTimeout(preflightTimer);
         }
         if (cancelled) return;
 
-        this.isCaching.set(!cached);
+        this.isCaching.set(!cached && !cacheCheckFailed);
         this.isCacheStatusReady.set(true);
         this.loaderSubscription = this.thumbnailLoader.add(imageUrl, () => {
           // Queue wait time is not image-loading time; start the timeout only
