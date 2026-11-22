@@ -11,6 +11,7 @@ import { HistogramService } from '../../../ipc/histogram';
 import { ProcessManager } from '../../../ipc/process-manager';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { FileSystem } from '../../../ipc/file-system';
+import { formatNumber } from '../../../ui/utils/format-number';
 import { SettingsPanelComponent } from '../../../settings/components/settings-dialog/settings-dialog.component';
 import { Configuration } from '../../../system/services/configuration/configuration';
 import { ThemeService } from '../../../system/services/theme/theme.service';
@@ -774,7 +775,7 @@ export class ImageView {
   protected readonly hexTotalRows = computed(() => Math.ceil(this.hexFileSize() / 16));
   protected readonly hexMaxStartRow = computed(() => Math.max(0, this.hexTotalRows() - this.hexRowsPerPage));
   protected readonly hexPositionLabel = computed(() => this.hexTotalRows()
-    ? `Rows ${(this.hexStartRow() + 1).toLocaleString()}–${Math.min(this.hexTotalRows(), this.hexStartRow() + this.hexRows().length).toLocaleString()} of ${this.hexTotalRows().toLocaleString()}`
+    ? `Rows ${formatNumber(this.hexStartRow() + 1)}–${formatNumber(Math.min(this.hexTotalRows(), this.hexStartRow() + this.hexRows().length))} of ${formatNumber(this.hexTotalRows())}`
     : '');
   protected readonly formatHexOffset = (offset: number): string => offset.toString(16).toUpperCase().padStart(8, '0');
   protected readonly hexStringSegments = (value: string): Array<{ text: string; isString: boolean }> => {
