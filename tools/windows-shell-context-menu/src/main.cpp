@@ -144,40 +144,28 @@ int Run(const std::wstring& filePath, int x, int y) {
             TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_LEFTALIGN | TPM_TOPALIGN,
             x, y, owner, nullptr);
         if (selected >= firstCommand && selected <= lastCommand) {
-            wchar_t verb[256]{};
-            const bool hasCanonicalVerb =
-                SUCCEEDED(contextMenu->GetCommandString(selected - firstCommand, GCS_VERBW,
-                    nullptr, reinterpret_cast<LPSTR>(verb), static_cast<UINT>(sizeof(verb) / sizeof(verb[0]))))
-                && verb[0] != L'\0';
-
-            bool invoked = false;
-            if (hasCanonicalVerb) {
-                // Use ShellExecuteEx for canonical context-menu verbs. This is
-                // the Shell's supported invocation path for both built-in verbs
-                // (Properties, Print) and verbs supplied by context-menu
-                // extensions (for example Advanced Security).
-                SHELLEXECUTEINFOW executeInfo{};
-                executeInfo.cbSize = sizeof(executeInfo);
-                executeInfo.fMask = SEE_MASK_INVOKEIDLIST;
-                executeInfo.hwnd = owner;
-                executeInfo.lpVerb = verb;
-                executeInfo.lpFile = filePath.c_str();
-                executeInfo.nShow = SW_SHOWNORMAL;
-                invoked = ShellExecuteExW(&executeInfo) == TRUE;
-            }
-
-            if (!invoked) {
-                // Some third-party handlers expose menu commands without a
-                // canonical verb. Preserve support for those via IContextMenu.
-                CMINVOKECOMMANDINFOEX invoke{};
-                invoke.cbSize = sizeof(invoke);
-                invoke.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE;
-                invoke.hwnd = owner;
-                invoke.lpVerb = MAKEINTRESOURCEA(selected - firstCommand);
-                invoke.lpVerbW = MAKEINTRESOURCEW(selected - firstCommand);
-                invoke.nShow = SW_SHOWNORMAL;
-                invoke.ptInvoke = POINT{ x, y };
+            // Invoke the exact command supplied by the IContextMenu instance
+            // that populated this menu. Re-resolving a canonical verb through
+            // ShellExecuteEx can select a different handler (or no handler),
+            // which breaks extension commands such as Advanced Security.
+            CMINVOKECOMMANDINFOEX invoke{};
+            invoke.cbSize = sizeof(invoke);
+            invoke.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE;
+            invoke.hwnd = owner;
+            invoke.lpVerb = MAKEINTRESOURCEA(selected - firstCommand);
+            invoke.lpVerbW = MAKEINTRESOURCEW(selected - firstCommand);
+            invoke.nShow = SW_SHOWNORMAL;
+            invoke.ptInvoke = POINT{ x, y };
+            const HRESULT invokeResult =
                 contextMenu->InvokeCommand(reinterpret_cast<LPCMINVOKECOMMANDINFO>(&invoke));
+            if (FAILED(invokeResult)) {
+                DestroyMenu(menu);
+                if (g_contextMenu3) { g_contextMenu3->Release(); g_contextMenu3 = nullptr; }
+                if (g_contextMenu2) { g_contextMenu2->Release(); g_contextMenu2 = nullptr; }
+                contextMenu->Release();
+                DestroyWindow(owner);
+                CoUninitialize();
+                return 17;
             }
 
             // This covers native dialogs opened by shell verbs such as
