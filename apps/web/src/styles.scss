@@ -211,18 +211,19 @@ html body app-images .detail-native-table > tbody.images.details-list > tr.detai
   background-image: none !important;
 }
 
-/* The filter control lives inside a toolbar with global label/button styling.
-   Apply the shared radius and shadow centrally, keyed to the checkbox state. */
-html body app-image-grid .thumbnail-size-control > label.thumbnail-name-filter:has(> input[type="checkbox"]:checked) {
+/* Use the state class rendered by ImageGrid as the source of truth.
+   Avoid relying on the host/toolbar ancestry or :has(), both of which made
+   the active filter styling fragile across the toolbar's rendered structure. */
+html body label.thumbnail-name-filter.filter-active {
   padding: 4px 7px !important;
   margin-top: -4px !important;
   margin-bottom: -4px !important;
   border-radius: var(--border-radius-small, 6px) !important;
-  box-shadow: var(--lumascope-surface-shadow) !important;
+  box-shadow: var(--lumascope-surface-shadow, 0 2px 7px rgb(0 0 0 / 15%)) !important;
   background: var(--detail-filtered-row-color, #e8f1fb) !important;
   background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
 }
-html body app-image-grid .thumbnail-size-control > label.thumbnail-name-filter:not(:has(> input[type="checkbox"]:checked)) {
+html body label.thumbnail-name-filter:not(.filter-active) {
   background: transparent !important;
   background-color: transparent !important;
   box-shadow: none !important;
