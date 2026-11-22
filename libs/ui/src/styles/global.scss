@@ -1066,7 +1066,7 @@ label:has(input[type="checkbox"]) > * {
    Match the Thumb size control's border radius and shadow exactly. */
 html body .thumbnail-size-control > .thumbnail-zoom-box,
 html body .thumbnail-size-control > label.thumbnail-name-filter {
-  border-radius: 12px !important;
+  border-radius: var(--lumascope-surface-radius, 12px) !important;
 }
 html body .thumbnail-size-control > label.thumbnail-name-filter {
   display: inline-flex !important;
