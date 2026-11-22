@@ -267,7 +267,7 @@
             <col style="width:74px" [hidden]="actionsColumnPosition() !== 'right'">
           </colgroup>
           <thead>
-            <tr class="gpx-database-header"><th scope="col" [hidden]="actionsColumnPosition() !== 'left'"><button type="button" class="actions-column-position-toggle" (click)="toggleActionsColumnPosition()" [attr.aria-label]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'" title="Switch actions column position">⇄</button></th>
+            <tr class="gpx-database-header"><th scope="col" class="gpx-row-actions" [hidden]="actionsColumnPosition() !== 'left'"><button type="button" class="gpx-track-menu-icon" (click)="toggleGpxHeaderActionMenu($event); $event.stopPropagation()" aria-label="Track list options" title="Track list options">☰</button></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('active')">Active <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('active') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'active')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('name')">File <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('name') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'name')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('points')">Points <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('points') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'points')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
@@ -276,7 +276,7 @@
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('size')">Size <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('size') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'size')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('path')">Path <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('path') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'path')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col">Track preview</th>
-              <th scope="col" [hidden]="actionsColumnPosition() !== 'right'"><button type="button" class="actions-column-position-toggle" (click)="toggleActionsColumnPosition()" [attr.aria-label]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'" title="Switch actions column position">⇄</button></th>
+              <th scope="col" class="gpx-row-actions" [hidden]="actionsColumnPosition() !== 'right'"><button type="button" class="gpx-track-menu-icon" (click)="toggleGpxHeaderActionMenu($event); $event.stopPropagation()" aria-label="Track list options" title="Track list options">☰</button></th>
             </tr>
           </thead>
           <tbody class="gpx-database-file-list">
@@ -299,6 +299,15 @@
             }
           </tbody>
         </table>
+        @if (gpxHeaderActionMenuOpen()) {
+          <div class="gpx-row-action-menu gpx-row-action-menu-floating" role="menu" aria-label="Track list options"
+               [style.top.px]="gpxHeaderActionMenuPosition().top" [style.left.px]="gpxHeaderActionMenuPosition().left"
+               (click)="$event.stopPropagation()">
+            <button type="button" role="menuitem" (click)="toggleActionsColumnPosition(); gpxHeaderActionMenuOpen.set(false)">
+              <span aria-hidden="true">⇄</span> {{ actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left' }}
+            </button>
+          </div>
+        }
         @if (gpxRowActionTrack(); as actionTrack) {
           <div class="gpx-row-action-menu gpx-row-action-menu-floating" role="menu" [attr.aria-label]="'Actions for ' + actionTrack.name"
                [style.top.px]="gpxRowActionMenuPosition().top" [style.left.px]="gpxRowActionMenuPosition().left" (click)="$event.stopPropagation()">
