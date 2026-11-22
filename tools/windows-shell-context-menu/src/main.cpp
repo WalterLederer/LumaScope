@@ -163,7 +163,7 @@ int Run(const std::wstring& filePath, int x, int y) {
                 // Some third-party shell extensions reject the extended Unicode /
                 // point-invocation structure even when the verb is valid. Retry
                 // with the classic, ordinal-based structure used by Explorer.
-                fwprintf(stderr, L"[LumaScope] Extended InvokeCommand failed: HRESULT=0x%08lX, verb=%ls; retrying ordinal %u\\n",
+                fwprintf(stderr, L"[LumaScope] Extended InvokeCommand failed: HRESULT=0x%08lX, verb=%ls; retrying ordinal %u\n",
                     static_cast<unsigned long>(invokeResult), hasCanonicalVerb ? canonicalVerb : L"<numeric-command>",
                     selected - firstCommand);
                 CMINVOKECOMMANDINFO retry{};
@@ -174,7 +174,7 @@ int Run(const std::wstring& filePath, int x, int y) {
                 invokeResult = contextMenu->InvokeCommand(&retry);
             }
             if (FAILED(invokeResult)) {
-                fwprintf(stderr, L"[LumaScope] IContextMenu::InvokeCommand retry failed: HRESULT=0x%08lX\\n",
+                fwprintf(stderr, L"[LumaScope] IContextMenu::InvokeCommand retry failed: HRESULT=0x%08lX\n",
                     static_cast<unsigned long>(invokeResult));
                 DestroyMenu(menu);
                 if (g_contextMenu3) { g_contextMenu3->Release(); g_contextMenu3 = nullptr; }
