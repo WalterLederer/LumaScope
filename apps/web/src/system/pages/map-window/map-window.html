@@ -304,7 +304,7 @@
                [style.top.px]="gpxHeaderActionMenuPosition().top" [style.left.px]="gpxHeaderActionMenuPosition().left"
                (click)="$event.stopPropagation()">
             <button type="button" role="menuitem" (click)="toggleActionsColumnPosition(); gpxHeaderActionMenuOpen.set(false)">
-              <span aria-hidden="true">⇄</span> {{ actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left' }}
+              <span aria-hidden="true">↔</span> {{ actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left' }}
             </button>
           </div>
         }
@@ -1248,7 +1248,7 @@
            [style.top.px]="offlineHeaderActionMenuPosition().top" [style.left.px]="offlineHeaderActionMenuPosition().left"
            (click)="$event.stopPropagation()">
         <button type="button" role="menuitem" (click)="toggleActionsColumnPosition(); offlineHeaderActionMenuOpen.set(false)">
-          <span aria-hidden="true">⇄</span> {{ actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left' }}
+          <span aria-hidden="true">↔</span> {{ actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left' }}
         </button>
       </div>
     }
