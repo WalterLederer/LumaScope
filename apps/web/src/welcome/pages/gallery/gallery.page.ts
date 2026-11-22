@@ -173,6 +173,7 @@ export class GalleryPage {
   readonly hoveredFolderPath = signal<string | null>(null);
 
   protected readonly galleryLocationError = signal<string | null>(null);
+  protected readonly isWindows = signal(false);
 
   protected readonly onTreeNodeHovered = (node: TreeNode<string> | null): void => {
     this.hoveredFolderPath.set(node?.id || null);
@@ -185,6 +186,7 @@ export class GalleryPage {
   readonly thumbSize$ = this.galleryState.thumbSize();
 
   constructor() {
+    void this.processManager.getPlatform().then(platform => this.isWindows.set(platform === 'win32')).catch(() => this.isWindows.set(false));
     this.configuration.config().pipe(take(1)).subscribe(config => {
       this.actionsColumnPosition.set(config.system.galleryFavoritesActionsColumnPosition === 'right' ? 'right' : 'left');
     });
@@ -338,6 +340,17 @@ export class GalleryPage {
         }
       )
       .subscribe(() => this.galleryLocations.removeLocation(data.id));
+
+  protected readonly onTreeContextMenu = async (request: { node: TreeNode<string>; event: MouseEvent }): Promise<void> => {
+    if (!this.isWindows() || !request.node.id) return;
+    request.event.preventDefault();
+    request.event.stopPropagation();
+    try {
+      await this.processManager.showWindowsContextMenu(request.node.id, request.event.screenX, request.event.screenY);
+    } catch (error) {
+      this.document.defaultView?.alert(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   protected readonly onOpenLocationPath = async (data: TreeNode<string>): Promise<void> => {
     const error = await this.processManager.openPath(data.id);
