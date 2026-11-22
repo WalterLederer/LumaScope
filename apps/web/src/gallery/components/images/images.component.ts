@@ -717,7 +717,11 @@ export class ImagesComponent {
     const headers = Array.from(table.querySelectorAll<HTMLTableCellElement>('thead tr.detail-header-labels > th'));
     const rows = Array.from(table.querySelectorAll<HTMLElement>('tbody.images > tr'));
     let maximum = 40;
-    const cells = [headers[column], ...rows.map(row => row.children.item(column) as HTMLElement | null)];
+    // Logical column 0 is the thumbnail column. The DOM has an additional
+    // leading actions cell (hidden when actions are on the right), so shift
+    // logical column indexes by one when reading header and row cells.
+    const domColumn = column + 1;
+    const cells = [headers[domColumn], ...rows.map(row => row.children.item(domColumn) as HTMLElement | null)];
     for (const cell of cells) {
       if (!cell) continue;
       const style = table.ownerDocument.defaultView?.getComputedStyle(cell);
@@ -725,7 +729,7 @@ export class ImagesComponent {
       // Measure visible cell content only. Tooltip titles can contain entire
       // inventories (for example every suffix in the folder) and must not
       // dictate the actual column width.
-      const text = (cell.textContent ?? '').replace(/\\s+/g, ' ').trim();
+      const text = (cell.textContent ?? '').replace(/\s+/g, ' ').trim();
       if (text) maximum = Math.max(maximum, context.measureText(text).width + 24);
     }
 
