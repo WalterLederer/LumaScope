@@ -188,7 +188,6 @@ export class GalleryPage {
     });
 
     // Only the image-grid instance owns window title and cache refresh side effects.
-    let previousLocation: string | null = null;
     if (this.showImageGrid()) this.selectedLocation$.pipe(takeUntilDestroyed()).subscribe(location => {
       this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
       if (location) {
@@ -203,7 +202,6 @@ export class GalleryPage {
           && normalizePath(activeDirectory) !== normalizePath(location)) {
           this.galleryCacheBuild.cancelCacheBuild();
         }
-        previousLocation = location;
         // The restored favorite folder must receive the same automatic cache build
         // as a folder selected manually. The service queues this until ImageGrid
         // has registered its cache-build controller after the first render.
