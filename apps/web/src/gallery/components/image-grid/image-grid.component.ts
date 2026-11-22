@@ -530,6 +530,13 @@ export class ImageGridComponent {
     if (viewport) viewport.scrollTop = 0;
   };
 
+  protected readonly setNameFilterEnabled = (active: boolean): void => {
+    this.nameFilterActive.set(active);
+    this.galleryState.setNameFilterActive(active);
+    const viewport = this.scrollBox()?.nativeElement;
+    if (viewport) viewport.scrollTop = 0;
+  };
+
   /* Constructor */
   constructor() {
     effect(onCleanup => {
