@@ -1827,3 +1827,25 @@
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
   border-bottom: 3px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
 }
+
+/* The hamburger header cell spans both header rows. Its bottom border can be
+   suppressed by the table's mixed grid/native-header layout, so draw the
+   shared 3px divider as an explicit overlay at the bottom of that spanning
+   cell. This covers both the left and right actions-column positions. */
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) {
+  position: relative !important;
+  overflow: visible !important;
+  border-bottom: 0 !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden])::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  height: 3px !important;
+  background: var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
+  pointer-events: none !important;
+  z-index: 80 !important;
+}
