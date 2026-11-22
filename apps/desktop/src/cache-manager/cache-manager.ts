@@ -1852,7 +1852,7 @@ export class CacheManager {
       )`;
     const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `lower(photos.file_name) LIKE :extension${index}`).join(' OR ')})`;
     const normalizedNameFilter = typeof nameFilter === 'string' ? nameFilter.trim().toLocaleLowerCase() : '';
-    const nameFilterTerms = normalizedNameFilter.split(/\\s+/).filter(Boolean);
+    const nameFilterTerms = normalizedNameFilter.split(/\s+/).filter(Boolean);
     const filterParams: Record<string, string | number> = {
       folder, recursive: recursive ? 1 : 0, folderPrefix
     };
