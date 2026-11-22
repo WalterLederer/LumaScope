@@ -200,3 +200,12 @@ html body :is(table, .detail-table, .details-mode, .gpx-database-table, .shortcu
 
 /* Keep track-list menu triggers outside the shared blue action-button states;
    their compact neutral frame and shadow are defined above. */
+
+/* Filtered detail rows are thumbnail-component hosts (native <tr> elements).
+   Paint their cells globally so component view encapsulation and table-cell
+   backgrounds cannot hide the configured filtered-row color. */
+html body app-images .detail-native-table > tbody.images.details-list > tr.detail-filter-active:not(.detail-virtual-spacer) > td {
+  background: var(--detail-filtered-row-color, #e8f1fb) !important;
+  background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
+  background-image: none !important;
+}
