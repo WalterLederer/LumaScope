@@ -2492,6 +2492,7 @@ export class ImageView {
         this.hexRows.set([]);
         this.hexFileSize.set(0);
         this.hexStartRow.set(0);
+        this.hexPositionSliderValue.set(0);
         this.hexViewportScrollTop.set(0);
         const hexViewport = this.hexScrollViewport()?.nativeElement;
         if (hexViewport) {
