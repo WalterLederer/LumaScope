@@ -1192,7 +1192,7 @@ export class ImagesComponent {
         }
 
         for (let offset = 0; offset < scan.files && !controller.signal.aborted; offset += 500) {
-          const page = await this.cacheManager.getGalleryFilesPage(directoryPath, false, true, 'name', 'asc', offset, 500);
+          const page = await this.cacheManager.getGalleryFilesPage(directoryPath, false, true, 'name', 'asc', offset, 500, '', 'ImagesComponent.cacheAllImagesInDirectory');
           const images = page.files.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
           if (images.length > 0) {
             await this.runCacheForImages(images, true, controller.signal, {
