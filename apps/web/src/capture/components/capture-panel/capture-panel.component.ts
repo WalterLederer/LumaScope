@@ -10,6 +10,7 @@ import { CaptureHotkeyService } from '../../capture-hotkey.service';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
 import { ThemeService } from '../../../system/services/theme/theme.service';
+import { formatNumber } from '../../../ui/utils/format-number';
 
 // Half-float lookup used to convert the captured FP16/scRGB frame directly to SDR.
 const halfFloatLookup = (() => {
@@ -54,6 +55,7 @@ type CaptureSourceRow = {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CapturePanelComponent {
+  protected readonly formatNumber = formatNumber;
   protected readonly themeService = inject(ThemeService);
   private readonly captureService = inject(CaptureService);
   private readonly capturePreviewStore = inject(CapturePreviewStore);
