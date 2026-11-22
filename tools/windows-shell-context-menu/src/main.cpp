@@ -157,11 +157,25 @@ int Run(const std::wstring& filePath, int x, int y) {
                 : MAKEINTRESOURCEW(selected - firstCommand);
             invoke.nShow = SW_SHOWNORMAL;
             invoke.ptInvoke = POINT{ x, y };
-            const HRESULT invokeResult =
+            HRESULT invokeResult =
                 contextMenu->InvokeCommand(reinterpret_cast<LPCMINVOKECOMMANDINFO>(&invoke));
             if (FAILED(invokeResult)) {
-                fwprintf(stderr, L"[LumaScope] IContextMenu::InvokeCommand failed: HRESULT=0x%08lX, verb=%ls\n",
-                    static_cast<unsigned long>(invokeResult), hasCanonicalVerb ? canonicalVerb : L"<numeric-command>");
+                // Some third-party shell extensions reject the extended Unicode /
+                // point-invocation structure even when the verb is valid. Retry
+                // with the classic, ordinal-based structure used by Explorer.
+                fwprintf(stderr, L"[LumaScope] Extended InvokeCommand failed: HRESULT=0x%08lX, verb=%ls; retrying ordinal %u\\n",
+                    static_cast<unsigned long>(invokeResult), hasCanonicalVerb ? canonicalVerb : L"<numeric-command>",
+                    selected - firstCommand);
+                CMINVOKECOMMANDINFO retry{};
+                retry.cbSize = sizeof(retry);
+                retry.hwnd = owner;
+                retry.lpVerb = MAKEINTRESOURCEA(selected - firstCommand);
+                retry.nShow = SW_SHOWNORMAL;
+                invokeResult = contextMenu->InvokeCommand(&retry);
+            }
+            if (FAILED(invokeResult)) {
+                fwprintf(stderr, L"[LumaScope] IContextMenu::InvokeCommand retry failed: HRESULT=0x%08lX\\n",
+                    static_cast<unsigned long>(invokeResult));
                 DestroyMenu(menu);
                 if (g_contextMenu3) { g_contextMenu3->Release(); g_contextMenu3 = nullptr; }
                 if (g_contextMenu2) { g_contextMenu2->Release(); g_contextMenu2 = nullptr; }
