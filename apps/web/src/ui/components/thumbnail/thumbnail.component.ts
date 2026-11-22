@@ -426,7 +426,15 @@ export class ThumbnailComponent implements OnDestroy {
           preflightTimer = setTimeout(() => controller.abort(), 8000);
           const response = await fetch(statusUrl.toString(), { cache: 'no-store', signal: controller.signal });
           if (!response.ok) throw new Error(`Cache check failed: HTTP ${response.status} ${response.statusText}`.trim());
-          const status = await response.json() as { cached?: boolean };
+          const status = await response.json() as { cached?: boolean; failed?: boolean };
+          if (status.failed) {
+            this.hasError.set(true);
+            this.thumbnailError.set('Thumbnail decoding previously failed for this unchanged file. Use Re-Cache file to retry.');
+            this.isCaching.set(false);
+            this.isLoading.set(false);
+            this.isCacheStatusReady.set(true);
+            return;
+          }
           cached = status.cached === true;
         } catch (error) {
           // The cache-status preflight is only an optimization. A failed status
