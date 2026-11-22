@@ -43,7 +43,7 @@
       </colgroup>
       <thead>
         <tr class="detail-header detail-header-labels" [class.cache-build-active]="cacheRunActive()">
-          <th class="detail-actions-heading folder-actions-heading" scope="col" rowspan="2" [hidden]="detailActionsColumnPosition() !== 'left'" aria-label="Folder actions">
+          <th class="detail-actions-heading folder-actions-heading" scope="col" [hidden]="detailActionsColumnPosition() !== 'left'" aria-label="Folder actions">
             <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger"
                     [cdkMenuTriggerFor]="folderActionsMenu"
                     aria-label="Folder actions" title="Folder actions">☰</button>
@@ -115,11 +115,12 @@
             <button type="button" (click)="sortDetailBy('path')">@if (detailSortAriaSort('path') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('path') }}</span>}<span class="sort-label">Path</span></button>
             <button type="button" class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize path column" (pointerdown)="startColumnResize($event, 12)" (dblclick)="autofitDetailColumn($event, 12)"></button>
           </th>
-          <th class="detail-actions-heading folder-actions-heading detail-actions-heading-right" scope="col" rowspan="2" [hidden]="detailActionsColumnPosition() !== 'right'" aria-label="Folder actions">
+          <th class="detail-actions-heading folder-actions-heading detail-actions-heading-right" scope="col" [hidden]="detailActionsColumnPosition() !== 'right'" aria-label="Folder actions">
             <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger" [cdkMenuTriggerFor]="folderActionsMenu" aria-label="Folder actions" title="Folder actions">☰</button>
           </th>
         </tr>
         <tr class="detail-header detail-header-statistics" [class.cache-build-active]="cacheRunActive()">
+          <th class="detail-actions-statistics" scope="col" [hidden]="detailActionsColumnPosition() !== 'left'" aria-label="Folder actions statistics"></th>
           <th class="thumb-statistics" scope="col"><small>{{ dimensions().width }} × {{ dimensions().height }}</small></th>
           <th scope="col" class="name-filter-header">
             <small class="column-count" [class.incomplete]="nameFilterActive()">{{ nameFilterActive() ? totalFileCount() + ' / ' + cacheStats().total : cacheStats().total }}</small>
@@ -145,6 +146,7 @@
             }
           </th>
           <th scope="col"></th>
+          <th class="detail-actions-statistics" scope="col" [hidden]="detailActionsColumnPosition() !== 'right'" aria-label="Folder actions statistics"></th>
         </tr>
       </thead>
       <tbody class="images details-list" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
