@@ -1,6 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { toObservable } from '@angular/core/rxjs-interop';
-import { BehaviorSubject, combineLatest, firstValueFrom, from, map, Observable, of, switchMap, take, tap, catchError } from 'rxjs';
+import { BehaviorSubject, combineLatest, distinctUntilChanged, firstValueFrom, from, map, Observable, of, shareReplay, switchMap, take, tap, catchError } from 'rxjs';
 import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { imageUrl } from '../../utils/image-url';
@@ -39,28 +39,36 @@ export class ViewNavigator {
         ))
   );
 
-  private readonly selectedImage$: Observable<SelectedImage | null> = combineLatest([
-    this.selectedPath$,
-    this.cacheRevision$
-  ]).pipe(
-    switchMap(([path, cacheRevision]) => {
+  // Resolve the selected file only when the selection changes. Cache revisions
+  // only invalidate the image URL; they must not repeat the database position
+  // lookup and page query for the same selected file.
+  private readonly selectedFile$ = this.selectedPath$.pipe(
+    distinctUntilChanged(),
+    switchMap(path => {
       if (path === null) return of(null);
       return from(this.galleryState.getGalleryFilePosition(path)).pipe(
         switchMap(position => position > 0
           ? from(this.galleryState.getGalleryFileAtPosition(position))
           : of(null)),
-        map(image => image ? {
-          path: image.path,
-          url: imageUrl(image.path, cacheRevision),
-          size: image.size,
-          modifiedAt: image.modifiedAt
-        } : null),
         catchError(error => {
           console.error('Failed to load selected gallery file', path, error);
           return of(null);
         })
       );
-    })
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+
+  private readonly selectedImage$: Observable<SelectedImage | null> = combineLatest([
+    this.selectedFile$,
+    this.cacheRevision$
+  ]).pipe(
+    map(([image, cacheRevision]) => image ? {
+      path: image.path,
+      url: imageUrl(image.path, cacheRevision),
+      size: image.size,
+      modifiedAt: image.modifiedAt
+    } : null)
   );
 
   /* Getters */
