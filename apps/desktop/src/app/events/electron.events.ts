@@ -384,15 +384,17 @@ const captureHdrFrame = async (target: CaptureTarget): Promise<CapturedHdrFrame>
 };
 
 const getForegroundWindowHandle = () => {
-  // The capture preview may be raised in the Z-order by the global shortcut,
-  // even when showInactive() is used. Never let a LumaScope window become
-  // the implicit Top Window source: resolve the first eligible external
-  // application window underneath the capture UI instead.
+  // The detached capture preview is raised by the global shortcut and must
+  // never capture itself. Other LumaScope windows remain valid capture targets.
+  const previewWindow = App.capturePreviewWindow;
+  const previewHandle = previewWindow && !previewWindow.isDestroyed()
+    ? Number(previewWindow.getNativeWindowHandle().readBigUInt64LE(0))
+    : 0;
   const candidate = enumerateTopLevelWindows().find(window =>
-    window.isTopWindowCandidate && window.processId !== process.pid
+    window.isTopWindowCandidate && window.handle !== previewHandle
   );
   if (!candidate) {
-    throw new Error('No eligible external application window was found. Refresh the source list and inspect the window sizes and minimized states.');
+    throw new Error('No eligible Top Window was found. Refresh the source list and inspect the window sizes and minimized states.');
   }
   return candidate;
 };
