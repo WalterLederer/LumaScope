@@ -255,13 +255,18 @@ export class ThumbnailComponent implements OnDestroy {
   readonly thumbCacheLabel = computed(() => {
     if (this.cacheStatusLoading()) return 'Checking…';
     const status = this.cacheStatus();
-    return status ? this.cacheEntryLabel(status.thumbnail ?? null) : 'Unknown';
+    if (!status) return 'Unknown';
+    return this.image().path.toLowerCase().endsWith('.ohsp')
+      ? this.cacheEntryLabel(status.fullSize ?? null)
+      : this.cacheEntryLabel(status.thumbnail ?? null);
   });
 
   readonly cacheLocationTitle = computed(() => {
     const status = this.cacheStatus();
     return [
-      status?.thumbnail ? `Thumbnail: ${status.thumbnail.path}` : 'Thumbnail: no DB entry',
+      this.image().path.toLowerCase().endsWith('.ohsp')
+        ? 'Thumbnail: uses the full-size OHSP image'
+        : status?.thumbnail ? `Thumbnail: ${status.thumbnail.path}` : 'Thumbnail: no DB entry',
       status?.fullSize ? `Full-size: ${status.fullSize.path}` : status?.fullSizeRequired ? 'Full-size: no DB entry' : 'Full-size: not required'
     ].join('\\n');
   });
