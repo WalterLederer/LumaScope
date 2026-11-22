@@ -435,6 +435,7 @@ ui-toolbar {
   width: 0;
   max-width: 100%;
   min-width: 0;
+  overflow: hidden;
   box-sizing: border-box;
 }
 
@@ -454,10 +455,10 @@ ui-toolbar {
   font-size: 12px;
   font-weight: 600;
 
-  .cache-status-label-column { width: 132px; }
-  .cache-status-path-column { width: auto; }
-  .cache-status-progress-column { width: 104px; }
-  .cache-status-stop-column { width: 58px; }
+  .cache-status-label-column { width: 24%; }
+  .cache-status-path-column { width: 48%; }
+  .cache-status-progress-column { width: 18%; }
+  .cache-status-stop-column { width: 10%; }
 
   th,
   td {
