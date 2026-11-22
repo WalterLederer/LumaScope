@@ -262,7 +262,7 @@ export class ProcessManager {
     if (!Number.isFinite(screenX) || !Number.isFinite(screenY)) throw new Error('A valid screen position is required.');
 
     const file = await stat(filePath);
-    if (!file.isFile()) throw new Error('The Windows Shell context menu can only be opened for files.');
+    if (!file.isFile() && !file.isDirectory()) throw new Error('The Windows Shell context menu requires a file or folder.');
 
     const helperName = 'lumascope_windows_shell_context_menu.exe';
     const helperPath = app.isPackaged
