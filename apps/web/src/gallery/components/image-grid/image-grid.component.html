@@ -93,6 +93,9 @@
     <span class="gallery-loading-spinner" aria-hidden="true"></span>
     @if (cacheRunActive()) {
       <span>{{ cacheRunCurrentOperation() || 'Indexing folder contents…' }}</span>
+      @if (cacheRunDirectory()) {
+        <span class="gallery-loading-folder">Cache and thumbnails: {{ cacheRunDirectory() }}</span>
+      }
       @if (cacheRunProgress().total > 0) {
         <span>{{ cacheRunProgress().completed.toLocaleString() }} / {{ cacheRunProgress().total.toLocaleString() }} files</span>
       }
