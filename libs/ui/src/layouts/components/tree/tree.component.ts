@@ -84,6 +84,18 @@ export class TreeComponent<T> {
     this.treeRoot.set(root);
   };
 
+  protected readonly nodeContextMenu = (request: { node: TreeNode<T>; event: MouseEvent }): void => {
+    const root = structuredClone(this.treeRoot());
+    if (root === null) return;
+    const target = this.findTreeNode([root], request.node.id);
+    if (target === null || String(target.id) === '') return;
+    this.resetNodeSelection([root]);
+    target.isSelected = true;
+    this.treeRoot.set(root);
+    this.selected.emit(target);
+    this.contextMenuRequested.emit({ node: target, event: request.event });
+  };
+
   private readonly findTreeNode = (nodes: TreeNode<T>[], id: T): TreeNode<T> | null => {
     for (const node of nodes) {
       if (node.id === id) return node;
