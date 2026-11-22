@@ -173,35 +173,14 @@ ui-toolbar {
     }
   }
 
-    .thumbnail-size-control.name-filter-active > .thumbnail-name-filter {
-    padding: 4px 7px !important;
-    margin-top: -4px !important;
-    margin-bottom: -4px !important;
-    border-radius: var(--border-radius-small, 6px) !important;
-    box-shadow: var(--lumascope-surface-shadow, 0 2px 6px rgb(0 0 0 / 14%)) !important;
-    background: var(--detail-filtered-row-color, #e8f1fb) !important;
-    background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
-  }
-
-.thumbnail-name-filter {
+  .thumbnail-name-filter {
     display: inline-flex;
-    transition: background-color 120ms ease;
-
-    &.filter-active {
-      padding: 4px 7px !important;
-      margin-top: -4px !important;
-      margin-bottom: -4px !important;
-      border-radius: var(--border-radius-small, 6px) !important;
-      box-shadow: var(--lumascope-surface-shadow, 0 2px 6px rgb(0 0 0 / 14%)) !important;
-      background: var(--detail-filtered-row-color, #e8f1fb) !important;
-      background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
-    }
-
     flex: 0 1 auto;
     min-width: 190px;
     align-items: center;
     gap: 8px;
     margin-left: 4px;
+    transition: background-color 120ms ease;
 
     .thumbnail-name-filter-label {
       flex: 0 0 auto;
@@ -537,17 +516,7 @@ ui-toolbar {
 }
 
 
-/* Keep the filter highlight tied directly to the checkbox's live checked
-   state. This also restores the highlight immediately after toggling off and
-   on, independently of Angular's cached class binding. */
-.thumbnail-size-control label.thumbnail-name-filter:has(input[type="checkbox"]:checked) {
-  padding: 4px 7px !important;
-  margin-top: -4px !important;
-  margin-bottom: -4px !important;
-  border-radius: var(--border-radius-small, 6px) !important;
-  box-shadow: var(--lumascope-surface-shadow) !important;
-  background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
-}
+
 .thumbnail-size-control label.thumbnail-name-filter:not(:has(input[type="checkbox"]:checked)) {
   background-color: transparent !important;
 }
