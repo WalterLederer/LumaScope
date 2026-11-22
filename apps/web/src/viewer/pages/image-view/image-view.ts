@@ -37,6 +37,12 @@ import { RendererMemoryPanelComponent } from '../../../system/components/rendere
 
 const HDR_WEBGPU_BRIGHTNESS_CORRECTION = 0.4;
 
+const imagePreviewExtensions = new Set([
+  'avif', 'bmp', 'gif', 'heic', 'heif', 'jpe', 'jpeg', 'jpg',
+  'jxl', 'jxr', 'exr', 'ohsp', 'png', 'raw', 'dng', 'rw2',
+  'hdr', 'svg', 'tif', 'tiff', 'webp'
+]);
+
 // A global key event can be observed by more than one mounted image-view instance.
 // Claim each navigation keyup once so one physical press advances only one image.
 const handledImageNavigationKeyEvents = new WeakSet<KeyboardEvent>();
@@ -367,6 +373,31 @@ export class ImageView {
 
   /* State */
   protected readonly selectedImage$ = this.viewNavigator.selectedImage();
+  private readonly selectedImageSignal = toSignal(this.selectedImage$, { initialValue: null });
+  protected readonly selectedFileExtension = computed(() => {
+    const path = this.selectedImageSignal()?.path ?? '';
+    const name = path.split(/[\\/]/).pop() ?? path;
+    const dot = name.lastIndexOf('.');
+    return dot > 0 && dot < name.length - 1 ? name.slice(dot + 1).toLowerCase() : '';
+  });
+  protected readonly isSelectedFilePreviewSupported = computed(() =>
+    imagePreviewExtensions.has(this.selectedFileExtension())
+  );
+  protected readonly selectedFileTypeIcon = signal<string | null>(null);
+  private readonly selectedFileTypeIconEffect = effect(onCleanup => {
+    const image = this.selectedImageSignal();
+    if (!image || this.isSelectedFilePreviewSupported()) {
+      this.selectedFileTypeIcon.set(null);
+      return;
+    }
+    let cancelled = false;
+    onCleanup(() => { cancelled = true; });
+    void this.processManager.getFileTypeIcon(image.path).then(icon => {
+      if (!cancelled) this.selectedFileTypeIcon.set(icon);
+    }).catch(() => {
+      if (!cancelled) this.selectedFileTypeIcon.set(null);
+    });
+  });
 
   protected readonly hasPrevious$ = this.viewNavigator.hasPrevious();
 
