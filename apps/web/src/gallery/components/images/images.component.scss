@@ -496,12 +496,6 @@
 .detail-native-table thead .detail-header-statistics .worker-progress {
   margin-top: 3px;
 }
-.detail-native-table thead .detail-header-statistics .cache-folder-action-progress {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 5px;
-}
 /* Keep cache activity visible without allowing table rows to show through the header. */
 .detail-native-table thead tr.detail-header.cache-build-active > th {
   background: color-mix(in srgb, var(--color-surface-default-low, #fff) 86%, #dc4141 14%) !important;
@@ -616,43 +610,6 @@
   font-weight: 700;
   line-height: 1.25;
   white-space: nowrap;
-}
-.detail-native-table .cache-folder-action-progress {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 5px;
-  padding: 5px 8px;
-  border: 1px solid rgb(255 255 255 / 45%);
-  border-radius: 5px;
-  background: rgb(0 0 0 / 24%);
-  color: #fff !important;
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1.3;
-  letter-spacing: 0.1px;
-  text-align: center;
-}
-.detail-native-table .cache-folder-action-progress > .cache-folder-action-label {
-  flex: 0 0 100%;
-}
-.detail-native-table .cache-folder-action-stop {
-  flex: 0 0 auto;
-  min-height: 28px;
-  padding: 3px 12px;
-  border: 1px solid rgb(255 255 255 / 75%);
-  border-radius: 4px;
-  background: #8b1e1e;
-  color: #fff !important;
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.2;
-  cursor: pointer;
-}
-.detail-native-table .cache-folder-action-stop:hover {
-  background: #b32626;
 }
 .detail-native-table thead tr.detail-header-labels > th {
   overflow: visible;
