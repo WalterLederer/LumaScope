@@ -75,6 +75,8 @@ export class ThumbnailComponent implements OnDestroy {
   private readonly imageFileActions = inject(ImageFileActions);
 
   /* Inputs/outputs */
+  readonly isWindows = signal(false);
+
   readonly image = input.required<FileInfo>();
   readonly rowNumber = input<number | null>(null);
   readonly detailProgress = input<{ date: number | null; gpsDate: number | null; dimensions: number | null; size: number | null } | null>(null);
@@ -165,6 +167,7 @@ export class ThumbnailComponent implements OnDestroy {
   };
 
   readonly openWindowsContextMenu = async (event: MouseEvent): Promise<void> => {
+    if (!this.isWindows()) return;
     event.preventDefault();
     event.stopPropagation();
     try {
@@ -345,6 +348,7 @@ export class ThumbnailComponent implements OnDestroy {
 
   /* Constructor */
   constructor() {
+    void this.processManager.getPlatform().then(platform => this.isWindows.set(platform === 'win32'));
     const startupCount = ++ThumbnailComponent.startupConstructionCount;
     if (startupCount === 1 || startupCount % 50 === 0) {
       console.warn('[Thumbnail] CONSTRUCTOR PROGRESS', { count: startupCount });
