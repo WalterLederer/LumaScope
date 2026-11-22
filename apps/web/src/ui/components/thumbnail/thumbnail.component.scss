@@ -263,7 +263,7 @@
   box-sizing: border-box;
   border-right: var(--lumascope-table-line-width, 1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 42%)));
   border-bottom: var(--lumascope-table-line-width, 1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 25%)));
-  padding: 5px 8px 5px 12px;
+  padding: 0 8px 0 12px;
   overflow: visible;
   text-overflow: clip;
   white-space: normal;
@@ -273,11 +273,11 @@
 :host(.view-details) > .thumbnail-preview {
   width: var(--detail-thumb-width, 36px);
   min-width: 36px;
-  height: calc(var(--detail-thumb-height, 27px) + 8px);
-  padding: 3px 0;
+  height: var(--detail-row-height, var(--detail-thumb-height, 27px));
+  padding: 0;
   text-align: center;
   vertical-align: middle;
-  overflow: visible;
+  overflow: hidden;
   background: color-mix(in srgb, var(--color-surface-default-low) 78%, var(--color-content-default-high) 22%);
 }
 :host(.view-details) > .thumbnail-preview .message { min-height: var(--detail-thumb-height, 27px); }
@@ -286,8 +286,8 @@
   display: block;
   width: 100%;
   max-width: none;
-  height: var(--detail-thumb-height, 27px);
-  max-height: none;
+  height: 100%;
+  max-height: 100%;
   object-fit: contain;
   margin: 0 auto;
 }
