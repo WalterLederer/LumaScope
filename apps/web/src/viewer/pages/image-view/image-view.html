@@ -140,9 +140,9 @@
       @if (activeImageSidebarTab() === 'memory') {
         <app-renderer-memory-panel [enabled]="activeImageSidebarTab() === 'memory'" windowLabel="Main window">
           <div class="memory-panel-grid">
-            <span>Gallery files in data window</span><strong>{{ galleryDiagnosticLoadedCount().toLocaleString() }}</strong>
-            <span>Gallery total files</span><strong>{{ galleryDiagnosticTotalCount().toLocaleString() }}</strong>
-            <span>Gallery data-window offset</span><strong>{{ galleryDiagnosticWindowStart().toLocaleString() }}</strong>
+            <span>Gallery files in data window</span><strong>{{ formatNumber(galleryDiagnosticLoadedCount()) }}</strong>
+            <span>Gallery total files</span><strong>{{ formatNumber(galleryDiagnosticTotalCount()) }}</strong>
+            <span>Gallery data-window offset</span><strong>{{ formatNumber(galleryDiagnosticWindowStart()) }}</strong>
           </div>
         </app-renderer-memory-panel>
       }
@@ -187,7 +187,7 @@
           }
           @if (hexPositionLabel()) { <div class="image-hex-position-label">{{hexPositionLabel()}}</div> }
           @if (hexFilePath() && hexTotalRows() > 0) {
-            <div class="image-hex-cursor-offset" aria-live="polite">Cursor offset: <strong>{{formatHexOffset(hexCursorOffset())}}</strong> <span class="image-hex-cursor-decimal">({{hexCursorOffset().toLocaleString()}} dec)</span></div>
+            <div class="image-hex-cursor-offset" aria-live="polite">Cursor offset: <strong>{{formatHexOffset(hexCursorOffset())}}</strong> <span class="image-hex-cursor-decimal">({{formatNumber(hexCursorOffset())}} dec)</span></div>
           }
           @if (hexStatus()) {
             <div class="image-hex-status" role="status">{{hexStatus()}}</div>
@@ -299,7 +299,7 @@
           <label class="hdr-highlight-toggle"><input type="checkbox" [checked]="highlightHdrPixels()" (change)="setHdrPixelHighlight($any($event.target).checked)"/> Highlight HDR pixels</label>
           @if (highlightHdrPixels()) {
             <label class="hdr-threshold-control">
-              <span><b>Threshold</b><span>{{hdrHighlightThreshold().toFixed(1)}} scRGB · {{hdrHighlightThresholdNits().toLocaleString()}} nits</span></span>
+              <span><b>Threshold</b><span>{{hdrHighlightThreshold().toFixed(1)}} scRGB · {{formatNumber(hdrHighlightThresholdNits())}} nits</span></span>
               <ui-slider [min]="1" [max]="125" [step]="0.1" [value]="hdrHighlightThreshold()" [color]="'#ff35df'" (valueChange)="setHdrHighlightThreshold($event)" aria-label="HDR highlight threshold from 80 to 10000 nits" />
             </label>
           }
@@ -738,9 +738,9 @@
       @if (activeImageSidebarTab() === 'memory') {
         <app-renderer-memory-panel [enabled]="activeImageSidebarTab() === 'memory'" windowLabel="Main window">
           <div class="memory-panel-grid">
-            <span>Gallery files in data window</span><strong>{{ galleryDiagnosticLoadedCount().toLocaleString() }}</strong>
-            <span>Gallery total files</span><strong>{{ galleryDiagnosticTotalCount().toLocaleString() }}</strong>
-            <span>Gallery data-window offset</span><strong>{{ galleryDiagnosticWindowStart().toLocaleString() }}</strong>
+            <span>Gallery files in data window</span><strong>{{ formatNumber(galleryDiagnosticLoadedCount()) }}</strong>
+            <span>Gallery total files</span><strong>{{ formatNumber(galleryDiagnosticTotalCount()) }}</strong>
+            <span>Gallery data-window offset</span><strong>{{ formatNumber(galleryDiagnosticWindowStart()) }}</strong>
           </div>
         </app-renderer-memory-panel>
       }
