@@ -19,7 +19,7 @@ set_target_properties(lumascope_windows_shell_context_menu PROPERTIES
   OUTPUT_NAME "lumascope_windows_shell_context_menu"
   RUNTIME_OUTPUT_DIRECTORY "${LUMASCOPE_CONTEXT_MENU_OUTPUT_DIRECTORY}"
 )
-foreach(config Debug Release RelWithDebInfo MinSizeRel)
+foreach(config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
   set_target_properties(lumascope_windows_shell_context_menu PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_${config} "${LUMASCOPE_CONTEXT_MENU_OUTPUT_DIRECTORY}"
   )
