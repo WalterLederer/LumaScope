@@ -448,15 +448,16 @@ ui-toolbar {
   border-collapse: collapse;
   border: 1px solid var(--color-border-default, rgb(128 128 128 / 35%));
   border-radius: 5px;
+  overflow: hidden;
   background: var(--color-surface-default-medium);
   color: var(--color-content-default-highest);
   font-size: 12px;
   font-weight: 600;
 
-  .cache-status-label-column { width: 150px; }
+  .cache-status-label-column { width: 132px; }
   .cache-status-path-column { width: auto; }
-  .cache-status-progress-column { width: 116px; }
-  .cache-status-stop-column { width: 66px; }
+  .cache-status-progress-column { width: 104px; }
+  .cache-status-stop-column { width: 58px; }
 
   th,
   td {
@@ -474,6 +475,7 @@ ui-toolbar {
 }
 
 .gallery-cache-folder-action-path {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
