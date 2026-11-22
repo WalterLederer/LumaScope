@@ -422,6 +422,7 @@ export class ImageGridComponent {
   private readonly scrollBox = viewChild<ElementRef<HTMLDivElement>>('scrollBox');
 
   private readonly imagesComponent = viewChild(ImagesComponent);
+  readonly filteredRowColor = computed(() => this.imagesComponent()?.detailPreferenceValues().filteredRow ?? '#e8f1fb');
 
   private readonly galleryCacheBuild = inject(GalleryCacheBuild);
 
