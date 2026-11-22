@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, signal } from '@angular/core';
 import { Desktop } from 'internal-api';
+import { formatNumber } from '../../../ui/utils/format-number';
 
 @Component({
   selector: 'app-gpx-database-import',
@@ -19,7 +20,7 @@ import { Desktop } from 'internal-api';
           } @else {
           @for (item of databaseStats(); track item.key) {
             <span class="gpx-database-statistics" title="GPX data and cache summary for this favorite drive">
-              {{ item.key }} · {{ item.path }} · DB {{ item.databaseBytes.toLocaleString() }} bytes · Cache {{ item.cacheEntries.toLocaleString() }} files / {{ item.cacheBytes.toLocaleString() }} bytes · Full-size {{ item.fullSizeEntries.toLocaleString() }} / {{ item.fullSizeBytes.toLocaleString() }} bytes · Thumbnails {{ item.thumbnailEntries.toLocaleString() }} / {{ item.thumbnailBytes.toLocaleString() }} bytes · Sidecar {{ item.sidecarEntries.toLocaleString() }} / {{ item.sidecarBytes.toLocaleString() }} bytes · GPS {{ item.gpsEntries.toLocaleString() }} / {{ item.gpsBytes.toLocaleString() }} bytes · GPX {{ item.files.toLocaleString() }} files / {{ item.segments.toLocaleString() }} segments / {{ item.points.toLocaleString() }} points / {{ item.timestampedPoints.toLocaleString() }} timestamped
+              {{ item.key }} · {{ item.path }} · DB {{ formatNumber(item.databaseBytes) }} bytes · Cache {{ formatNumber(item.cacheEntries) }} files / {{ formatNumber(item.cacheBytes) }} bytes · Full-size {{ formatNumber(item.fullSizeEntries) }} / {{ formatNumber(item.fullSizeBytes) }} bytes · Thumbnails {{ formatNumber(item.thumbnailEntries) }} / {{ formatNumber(item.thumbnailBytes) }} bytes · Sidecar {{ formatNumber(item.sidecarEntries) }} / {{ formatNumber(item.sidecarBytes) }} bytes · GPS {{ formatNumber(item.gpsEntries) }} / {{ formatNumber(item.gpsBytes) }} bytes · GPX {{ formatNumber(item.files) }} files / {{ formatNumber(item.segments) }} segments / {{ formatNumber(item.points) }} points / {{ formatNumber(item.timestampedPoints) }} timestamped
             </span>
           } @empty {
             <span class="gpx-database-statistics">No favorite cache databases found.</span>
@@ -35,6 +36,7 @@ import { Desktop } from 'internal-api';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class GpxDatabaseImportComponent implements OnInit, OnChanges {
+  protected readonly formatNumber = formatNumber;
   @Input() databaseKey: string | undefined;
   @Input() databaseKeys: string[] = [];
   @Input() databaseKeysReady = false;
