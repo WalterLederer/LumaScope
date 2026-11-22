@@ -682,8 +682,8 @@ export class ImageView {
     view.addEventListener('pointercancel', onUp);
     this.sidebarResizeCleanup = onUp;
   };
-  protected readonly imageSidebarTabs = [{"id":"gallery","label":"Browse"},{"id":"image","label":"Image"},{"id":"location","label":"Location"},{"id":"capture","label":"Capture"},{"id":"general","label":"General"},{"id":"cache","label":"Cache"},{"id":"help","label":"Help"}];
-  protected readonly imageSubTabs = [{"id":"summary","label":"Summary"},{"id":"actions","label":"Actions"},{"id":"histogram","label":"Histogram"},{"id":"view","label":"View"},{"id":"highlight","label":"Highlight"},{"id":"zoom","label":"Zoom"},{"id":"corrections","label":"Corrections"},{"id":"memory","label":"Memory"},{"id":"hex","label":"Hex"},{"id":"cache","label":"Cache"}];
+  protected readonly imageSidebarTabs = [{"id":"gallery","label":"Browse"},{"id":"image","label":"Image"},{"id":"location","label":"Location"},{"id":"capture","label":"Capture"},{"id":"general","label":"General"},{"id":"cache","label":"Cache"},{"id":"memory","label":"Memory"},{"id":"help","label":"Help"}];
+  protected readonly imageSubTabs = [{"id":"summary","label":"Summary"},{"id":"actions","label":"Actions"},{"id":"histogram","label":"Histogram"},{"id":"view","label":"View"},{"id":"highlight","label":"Highlight"},{"id":"zoom","label":"Zoom"},{"id":"corrections","label":"Corrections"},{"id":"hex","label":"Hex"},{"id":"cache","label":"Cache"}];
   private readActiveImageSidebarTab(): string {
     try { const saved = this.document.defaultView?.localStorage.getItem('activeImageSidebarTab'); return this.imageSubTabs.some(tab => tab.id === saved) ? 'image' : this.imageSidebarTabs.some(tab => tab.id === saved) ? saved! : 'gallery'; }
     catch { return 'gallery'; }
