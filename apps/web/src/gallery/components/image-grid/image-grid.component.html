@@ -99,6 +99,9 @@
     } @else if (galleryRefreshing()) {
       <span>Updating the file list after background folder indexing…</span>
       <span>{{ images()?.length ?? 0 }} files currently displayed</span>
+    } @else if (includeFilesRecursive()) {
+      <span>Scanning favorite folder and all subfolders…</span>
+      <span>Counting files and preparing the thumbnail list. The total appears when the database scan completes.</span>
     } @else {
       <span>Loading folder contents from the photo database…</span>
     }
