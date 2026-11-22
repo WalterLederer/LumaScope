@@ -143,7 +143,10 @@ export class ImageGridComponent {
     const viewMode = this.viewMode();
 
     if (viewMode === 'details' || viewMode === 'details-no-thumbnails') {
-      const firstRow = viewport.querySelector<HTMLElement>('.detail-native-table tbody tr');
+      // Ignore the virtual spacer rows: their height can represent thousands of files.
+      // Measuring one as a data row corrupts the scroll-to-index calculation and
+      // prevents the next 1,000-file window from being requested.
+      const firstRow = viewport.querySelector<HTMLElement>('.detail-native-table tbody tr.detail-virtual-row');
       const rowHeight = firstRow?.getBoundingClientRect().height ?? 36;
       const globalIndex = Math.max(0, Math.floor(Math.max(0, viewport.scrollTop - this.detailHeaderHeight()) / Math.max(1, rowHeight)));
       const threshold = Math.max(80, Math.floor(images.length * 0.2));
