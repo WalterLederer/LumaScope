@@ -2,7 +2,6 @@ import { CdkMenu, CdkMenuItem } from '@angular/cdk/menu';
 import { Dialog } from '@angular/cdk/dialog';
 import { AsyncPipe, DOCUMENT } from '@angular/common';
 import { afterNextRender, ChangeDetectionStrategy, Component, effect, HostListener, inject, input, output, signal, viewChild } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import {
   ConfirmationDialogComponent,
@@ -195,7 +194,7 @@ export class GalleryPage {
     // second cache build or refresh the image-grid cache statistics.
     effect(onCleanup => {
       if (!this.showImageGrid()) return;
-      const subscription = this.selectedLocation$.pipe(takeUntilDestroyed()).subscribe(location => {
+      const subscription = this.selectedLocation$.subscribe(location => {
         this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
         if (location) {
           // A cache build belongs to the folder that started it. Cancel that run
