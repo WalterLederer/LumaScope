@@ -326,7 +326,7 @@ export class GalleryState {
     this.galleryPageLoading = true;
     void this.cacheManager.getGalleryFilesPage(
       directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
-      sort.sortBy, sort.sortDir, offset, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : ''), 'GalleryState.refreshLoadedPages', 'GalleryState.loadGalleryWindow'
+      sort.sortBy, sort.sortDir, offset, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : ''), 'GalleryState.loadGalleryWindow'
     ).then(page => {
       if (request !== this.navigationRequest || directory !== this.selectedLocation$.value) return;
       this.galleryWindowStart.set(offset);
@@ -358,7 +358,7 @@ export class GalleryState {
     try {
       const page = await this.cacheManager.getGalleryFilesPage(
         directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
-        sort.sortBy, sort.sortDir, offset, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : '')
+        sort.sortBy, sort.sortDir, offset, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : ''), 'GalleryState.refreshLoadedPages'
       );
       if (request !== this.navigationRequest) return;
       this.galleryLoadedCount = page.files.length;
