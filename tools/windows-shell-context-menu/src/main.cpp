@@ -31,29 +31,15 @@ LRESULT CALLBACK MenuOwnerProc(HWND window, UINT message, WPARAM wParam, LPARAM 
     return DefWindowProcW(window, message, wParam, lParam);
 }
 
-bool HasVisibleOwnedWindow(HWND owner) {
-    struct SearchState {
-        HWND owner;
-        bool found;
-    } state{ owner, false };
+void PumpForegroundOwnedDialogMessages(HWND owner) {
+    // Keep the COM context-menu handler alive only when the selected verb has
+    // actually activated a dialog owned by this helper. Do not wait for hidden
+    // or unrelated shell windows: they can otherwise hold focus in the helper
+    // for several seconds without displaying any useful UI.
+    HWND dialog = GetForegroundWindow();
+    if (!dialog || dialog == owner || GetAncestor(dialog, GA_ROOTOWNER) != owner) return;
 
-    EnumWindows([](HWND window, LPARAM parameter) -> BOOL {
-        auto* search = reinterpret_cast<SearchState*>(parameter);
-        if (GetWindow(window, GW_OWNER) == search->owner && IsWindowVisible(window)) {
-            search->found = true;
-            return FALSE;
-        }
-        return TRUE;
-    }, reinterpret_cast<LPARAM>(&state));
-
-    return state.found;
-}
-
-void PumpOwnedDialogMessages(HWND owner) {
-    // Some shell verbs return as soon as they create a modeless dialog.
-    // Keep the helper's owner window and its COM context-menu handler alive
-    // until all visible top-level dialogs owned by it have been closed.
-    while (HasVisibleOwnedWindow(owner)) {
+    while (IsWindow(dialog)) {
         MSG message{};
         const BOOL result = GetMessageW(&message, nullptr, 0, 0);
         if (result <= 0) break;
@@ -144,16 +130,26 @@ int Run(const std::wstring& filePath, int x, int y) {
             TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_LEFTALIGN | TPM_TOPALIGN,
             x, y, owner, nullptr);
         if (selected >= firstCommand && selected <= lastCommand) {
-            // Invoke the exact command supplied by the IContextMenu instance
-            // that populated this menu. Re-resolving a canonical verb through
-            // ShellExecuteEx can select a different handler (or no handler),
-            // which breaks extension commands such as Advanced Security.
+            // Resolve the canonical verb from this exact handler and invoke
+            // it on the same IContextMenu instance. Fall back to its command
+            // offset only for extensions that do not expose a canonical verb.
+            wchar_t canonicalVerb[256]{};
+            const bool hasCanonicalVerb =
+                SUCCEEDED(contextMenu->GetCommandString(selected - firstCommand, GCS_VERBW,
+                    nullptr, reinterpret_cast<LPSTR>(canonicalVerb),
+                    static_cast<UINT>(sizeof(canonicalVerb) / sizeof(canonicalVerb[0]))))
+                && canonicalVerb[0] != L'\\0';
+
             CMINVOKECOMMANDINFOEX invoke{};
             invoke.cbSize = sizeof(invoke);
             invoke.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE;
             invoke.hwnd = owner;
-            invoke.lpVerb = MAKEINTRESOURCEA(selected - firstCommand);
-            invoke.lpVerbW = MAKEINTRESOURCEW(selected - firstCommand);
+            invoke.lpVerb = hasCanonicalVerb
+                ? nullptr
+                : MAKEINTRESOURCEA(selected - firstCommand);
+            invoke.lpVerbW = hasCanonicalVerb
+                ? canonicalVerb
+                : MAKEINTRESOURCEW(selected - firstCommand);
             invoke.nShow = SW_SHOWNORMAL;
             invoke.ptInvoke = POINT{ x, y };
             const HRESULT invokeResult =
@@ -170,7 +166,7 @@ int Run(const std::wstring& filePath, int x, int y) {
 
             // This covers native dialogs opened by shell verbs such as
             // Advanced Security, as well as the Properties dialog above.
-            PumpOwnedDialogMessages(owner);
+            PumpForegroundOwnedDialogMessages(owner);
             PostMessageW(owner, WM_NULL, 0, 0);
         } else {
             PostMessageW(owner, WM_NULL, 0, 0);
