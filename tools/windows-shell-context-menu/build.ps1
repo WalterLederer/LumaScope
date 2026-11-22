@@ -12,7 +12,8 @@ $source = $PSScriptRoot
 $build = [IO.Path]::GetFullPath($BuildDirectory)
 $destination = [IO.Path]::GetFullPath($Destination)
 
-& cmake -S $source -B $build -A x64
+New-Item -ItemType Directory -Path $destination -Force | Out-Null
+& cmake -S $source -B $build -A x64 "-DLUMASCOPE_CONTEXT_MENU_OUTPUT_DIRECTORY=$destination"
 if ($LASTEXITCODE -ne 0) { throw "Windows Shell context-menu CMake configuration failed ($LASTEXITCODE)." }
 
 & cmake --build $build --config Release --parallel 8
