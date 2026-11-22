@@ -397,7 +397,7 @@ export class SettingsPanelComponent {
     { keys: '- / _', action: 'Zoom out; in Browse, decrease thumbnail size; over the location map, zoom the map out', global: false, id: null },
     { keys: 'V', action: 'Cycle image comparison modes', global: false, id: null },
     { keys: 'L', action: 'Open the location window', global: false, id: null },
-    { keys: 'C / F8', action: 'Copy the current image to the clipboard', global: false, id: null },
+    { keys: 'F8', action: 'Copy the current image to the clipboard', global: false, id: null },
     { keys: 'S', action: 'Open the Screen Capture window', global: false, id: null },
     { keys: 'M', action: 'Toggle the magnifier (loupe)', global: false, id: null },
     { keys: 'H', action: 'Toggle the histogram', global: false, id: null },
