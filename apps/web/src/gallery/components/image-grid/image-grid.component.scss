@@ -187,11 +187,13 @@ ui-toolbar {
     }
 
     input[type="checkbox"] {
-      width: 16px;
-      min-width: 16px;
-      height: 16px;
+      width: 22px;
+      min-width: 22px;
+      height: 22px;
+      min-height: 22px;
       margin: 0;
-      flex: 0 0 16px;
+      flex: 0 0 22px;
+      box-sizing: border-box;
       accent-color: var(--color-accent-default, #287fc4);
       cursor: pointer;
     }
