@@ -15,7 +15,11 @@
     <td class="thumbnail-preview detail-thumb" [title]="image().name" (click)="$event.stopPropagation(); clicked.emit(image())">
       @if (!isSupportedThumbnail()) {
         <div class="message unsupported-thumbnail-placeholder">
-          <ui-caption title="Unsupported file type">Unsupported</ui-caption>
+          @if (fileTypeIcon(); as icon) {
+            <img class="file-type-shell-icon" [src]="icon" [alt]="imageSuffix() + ' file'" />
+          } @else {
+            <span class="file-type-icon-fallback" aria-hidden="true">▧</span>
+          }
         </div>
       } @else if (loading) {
         <div class="message">
@@ -51,7 +55,7 @@
   <td class="detail-dimensions" [style.--detail-progress]="(detailProgress()?.dimensions ?? 0) + '%'" [title]="imageInfoError() ?? ''">{{ imageDimensions() }}</td>
   <td class="detail-size" [style.--detail-progress]="(detailProgress()?.size ?? 0) + '%'">{{ formattedFileSize() }}</td>
   <td class="detail-suffix" [class.unsupported-suffix]="!isSupportedThumbnail()" [title]="!isSupportedThumbnail() ? 'Unsupported file type' : imageSuffix()">
-    {{ imageSuffix() }}@if (!isSupportedThumbnail()) { <small>Unsupported</small> }
+    {{ imageSuffix() }}
   </td>
   <td class="detail-dynamic-range" [class.hdr]="dynamicRange() === 'HDR'" [title]="imageInfoError() ?? ''">{{ dynamicRangeLabel() }}</td>
   <td class="detail-thumb-status" [class.cache-valid]="thumbCacheLabel() === '✓'" [title]="cacheLocationTitle()">{{ thumbCacheLabel() }}</td>
@@ -69,7 +73,11 @@
     <div class="thumbnail-preview">
       @if (!isSupportedThumbnail()) {
         <div class="message unsupported-thumbnail-placeholder">
-          <ui-caption title="Unsupported file type">Unsupported</ui-caption>
+          @if (fileTypeIcon(); as icon) {
+            <img class="file-type-shell-icon" [src]="icon" [alt]="imageSuffix() + ' file'" />
+          } @else {
+            <span class="file-type-icon-fallback" aria-hidden="true">▧</span>
+          }
         </div>
       } @else if (loading) {
         <div class="message">
