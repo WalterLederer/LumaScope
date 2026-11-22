@@ -96,9 +96,6 @@
       @if (cacheRunDirectory()) {
         <span class="gallery-loading-folder">Cache and thumbnails: {{ cacheRunDirectory() }}</span>
       }
-      @if (cacheRunProgress().total > 0) {
-        <span>{{ cacheRunProgress().completed.toLocaleString() }} / {{ cacheRunProgress().total.toLocaleString() }} files</span>
-      }
       <div class="gallery-cache-folder-action" aria-live="polite">
         <span class="gallery-cache-folder-action-label">Cache folder action is running</span>
         <span class="gallery-cache-folder-action-count">{{ cacheRunProgress().completed.toLocaleString() }} / {{ cacheRunProgress().total.toLocaleString() }}</span>
