@@ -113,6 +113,17 @@ int Run(const std::wstring& filePath, int x, int y) {
             TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_LEFTALIGN | TPM_TOPALIGN,
             x, y, owner, nullptr);
         if (selected >= firstCommand && selected <= lastCommand) {
+            // The shell Properties verb may create a modeless property sheet.
+            // Invoke it through SHObjectProperties so the dialog is correctly
+            // owned and remains alive independently of this temporary menu.
+            char verb[128]{};
+            const bool isPropertiesVerb =
+                SUCCEEDED(contextMenu->GetCommandString(selected - firstCommand, GCS_VERBA,
+                    nullptr, verb, static_cast<UINT>(sizeof(verb))))
+                && _stricmp(verb, "properties") == 0;
+            if (isPropertiesVerb) {
+                SHObjectProperties(owner, SHOP_FILEPATH, filePath.c_str(), nullptr);
+            } else {
             CMINVOKECOMMANDINFOEX invoke{};
             invoke.cbSize = sizeof(invoke);
             invoke.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE;
@@ -122,6 +133,7 @@ int Run(const std::wstring& filePath, int x, int y) {
             invoke.nShow = SW_SHOWNORMAL;
             invoke.ptInvoke = POINT{ x, y };
             contextMenu->InvokeCommand(reinterpret_cast<LPCMINVOKECOMMANDINFO>(&invoke));
+            }
         }
         PostMessageW(owner, WM_NULL, 0, 0);
     }
