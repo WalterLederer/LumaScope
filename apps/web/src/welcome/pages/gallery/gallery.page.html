@@ -13,9 +13,6 @@
 <div class="gallery-actions-column-header" [class.actions-column-right]="actionsColumnPosition() === 'right'">
             <button type="button" (click)="navigateBack()" [disabled]="!canNavigateBack()" aria-label="Go to previous folder" title="Back">←</button>
             <button type="button" (click)="navigateForward()" [disabled]="!canNavigateForward()" aria-label="Go to next folder" title="Forward">→</button>
-            <button type="button" (click)="toggleActionsColumnPosition()"
-                    [attr.aria-label]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'"
-                    [title]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'">⇄</button>
           </div>
           @if (galleryRoot !== null) {
             <ui-tree #tree
@@ -56,9 +53,6 @@
 <div class="gallery-actions-column-header" [class.actions-column-right]="actionsColumnPosition() === 'right'">
             <button type="button" (click)="navigateBack()" [disabled]="!canNavigateBack()" aria-label="Go to previous folder" title="Back">←</button>
             <button type="button" (click)="navigateForward()" [disabled]="!canNavigateForward()" aria-label="Go to next folder" title="Forward">→</button>
-            <button type="button" (click)="toggleActionsColumnPosition()"
-                    [attr.aria-label]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'"
-                    [title]="actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'">⇄</button>
           </div>
           @if (galleryRoot !== null) {
             <ui-tree #tree
@@ -106,6 +100,11 @@
         <ui-text [inherit]="true">Add</ui-text>
       </button>
       <div class="gallery-location-menu-separator" role="separator"></div>
+      <button type="button" class="gallery-location-menu-action" cdkMenuItem
+              (click)="toggleActionsColumnPosition()">
+        <ui-icon icon="arrowLeftRight" [inherit]="true" />
+        <ui-text [inherit]="true">{{ actionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left' }}</ui-text>
+      </button>
       <button type="button" class="gallery-location-menu-action" cdkMenuItem [disabled]="autoSortFavorites ?? true" (click)="onSortFavoritesByPath()">
         <ui-text [inherit]="true">Sort favorites by full path</ui-text>
       </button>
