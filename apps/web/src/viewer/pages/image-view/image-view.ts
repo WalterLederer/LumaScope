@@ -4410,7 +4410,7 @@ export class ImageView {
           return;
         }
 
-        if (event.key === 'c' || event.key === 'C' || event.key === 'F8') {
+        if (event.key === 'F8') {
           event.preventDefault();
           this.copyPhoto();
           return;
