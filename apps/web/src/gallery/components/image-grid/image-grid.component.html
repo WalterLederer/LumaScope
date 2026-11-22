@@ -149,6 +149,7 @@
               (hovered)="onThumbnailHovered($event)"
               (cacheUpdated)="onCacheUpdated($event)"
               (selected)="selected.emit($event)"
+              (activeSelectionChanged)="activeSelectionChanged.emit($event)"
               (folderRefreshRequested)="folderRefreshRequested.emit($event)"
               (openFolderPathRequested)="openSelectedFolderPath()"
               (copyFolderPathRequested)="copySelectedFolderPath()" />
