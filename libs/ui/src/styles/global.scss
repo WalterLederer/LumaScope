@@ -1061,6 +1061,19 @@ label:has(.ui-checkbox) > *,
 label:has(input[type="checkbox"]) > * {
   color: #000 !important;
 }
+
+/* The thumbnail name-filter is an active filter surface, not a generic
+   checkbox label. Keep its enabled highlight, rounded corners and shadow
+   centralized here so the generic white checkbox-label rule cannot override it. */
+.thumbnail-size-control > label.thumbnail-name-filter:has(input[type="checkbox"]:checked) {
+  padding: 4px 7px !important;
+  margin-top: -4px !important;
+  margin-bottom: -4px !important;
+  border-radius: var(--border-radius-small, 6px) !important;
+  background: var(--detail-filtered-row-color, #e8f1fb) !important;
+  background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
+  box-shadow: var(--lumascope-surface-shadow, 0 2px 6px rgb(0 0 0 / 14%)) !important;
+}
 @media (prefers-reduced-motion: reduce) {
   .ui-checkbox,
   input[type="checkbox"],
