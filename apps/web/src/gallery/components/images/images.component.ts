@@ -166,7 +166,6 @@ export class ImagesComponent {
     this.cacheRunActive() ? this.cacheRunProgress() : this.galleryCacheBuild.cacheRunProgress()
   );
   readonly stopCacheFolderAction = (): void => this.galleryCacheBuild.cancelCacheBuild();
-  readonly verifyCacheFiles = input(false);
   private readonly cacheWorkerOperations = new Map<number, string>();
   private readonly setCacheWorkerOperation = (workerId: number, operation: string | null): void => {
     if (operation) this.cacheWorkerOperations.set(workerId, operation);
@@ -891,7 +890,7 @@ export class ImagesComponent {
     }
   };
 
-  readonly cacheAllImages = async (directory?: string, importGpx = true): Promise<void> => {
+  readonly cacheAllImages = async (directory?: string, importGpx = true, verifyCacheFiles = false): Promise<void> => {
     if (this.cacheRunActive()) return;
     const folder = directory?.trim() || this.folderPath();
     if (!folder) return;
@@ -904,9 +903,11 @@ export class ImagesComponent {
     try {
       await this.cacheManager.resetBuildLog();
       await this.cacheManager.appendBuildLog('Cache build started: ' + formatOsDateTime(new Date()));
-      await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
+      await this.cacheManager.appendBuildLog('Verify cache files: ' + (verifyCacheFiles ? 'enabled' : 'disabled'));
       this.cacheRunCurrentOperation.set(`Scanning folder and updating photo database: ${folder}`);
-      const scan = await this.cacheManager.scanGalleryDirectory(folder, this.verifyCacheFiles());
+      // Directory indexing is always a single registration scan. Physical cache verification
+      // happens only in the existing per-image status preparation below.
+      const scan = await this.cacheManager.scanGalleryDirectory(folder, false);
       // The scan has now registered the folder's files in SQLite. Refresh the
       // visible gallery immediately, before potentially lengthy thumbnail and
       // full-size conversions start, so a previously unindexed favorite folder
@@ -929,7 +930,7 @@ export class ImagesComponent {
         const images = page.files.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
         if (images.length > 0) {
           await this.runCacheForImages(images, true, controller.signal, {
-            resetLog, progressOffset: offset, progressTotal: scan.files, suppressRefresh: true
+            resetLog, progressOffset: offset, progressTotal: scan.files, suppressRefresh: true, verifyCacheFiles
           });
           processedImages += images.length;
         }
@@ -1141,7 +1142,7 @@ export class ImagesComponent {
     }
   };
 
-  readonly cacheAllImagesRecursive = async (directory?: string, importGpx = true): Promise<void> => {
+  readonly cacheAllImagesRecursive = async (directory?: string, importGpx = true, verifyCacheFiles = false): Promise<void> => {
     if (this.cacheRunActive()) return;
     const rootPath = directory?.trim() || this.folderPath() || this.images()?.[0]?.parent || null;
     if (!rootPath) return;
@@ -1162,13 +1163,13 @@ export class ImagesComponent {
     try {
       await this.cacheManager.resetBuildLog();
       await this.cacheManager.appendBuildLog('Recursive cache build started: ' + formatOsDateTime(new Date()));
-      await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
+      await this.cacheManager.appendBuildLog('Verify cache files: ' + (verifyCacheFiles ? 'enabled' : 'disabled'));
       while (pendingDirectories.length > 0 && !controller.signal.aborted) {
         const directoryPath = pendingDirectories.shift()!;
         this.cacheRunCurrentOperation.set(`Scanning folder and updating photo database: ${directoryPath}`);
         let scan: { files: number; directories: string[]; removedStale: number; removedCacheFiles: number; removedCacheBytes: number; complete: boolean };
         try {
-          scan = await this.cacheManager.scanGalleryDirectory(directoryPath, this.verifyCacheFiles());
+          scan = await this.cacheManager.scanGalleryDirectory(directoryPath, false);
         } catch (error) {
           enumerationComplete = false;
           console.warn('Failed to index gallery folder', directoryPath, error);
@@ -1197,7 +1198,7 @@ export class ImagesComponent {
           if (images.length > 0) {
             await this.runCacheForImages(images, true, controller.signal, {
               resetLog, progressOffset: processedFiles + offset,
-              progressTotal: processedFiles + scan.files, suppressRefresh: true
+              progressTotal: processedFiles + scan.files, suppressRefresh: true, verifyCacheFiles
             });
             processedImages += images.length;
           }
@@ -1267,7 +1268,7 @@ export class ImagesComponent {
     images: FileInfo[],
     alreadyActive = false,
     signal?: AbortSignal,
-    batchOptions?: { resetLog?: boolean; progressOffset?: number; progressTotal?: number; suppressRefresh?: boolean }
+    batchOptions?: { resetLog?: boolean; progressOffset?: number; progressTotal?: number; suppressRefresh?: boolean; verifyCacheFiles?: boolean }
   ): Promise<void> => {
     if (images.length === 0) {
       this.cacheRunCurrentOperation.set('No images found to cache.');
@@ -1287,14 +1288,14 @@ export class ImagesComponent {
       if (batchOptions?.resetLog !== false) {
         await this.cacheManager.resetBuildLog();
         await this.cacheManager.appendBuildLog('Cache build started: ' + formatOsDateTime(new Date()));
-        await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
+        await this.cacheManager.appendBuildLog('Verify cache files: ' + ((batchOptions?.verifyCacheFiles ?? false) ? 'enabled' : 'disabled'));
       } else {
         await this.cacheManager.appendBuildLog('Cache batch started: ' + formatOsDateTime(new Date()));
       }
       const statusPreparationStartedAt = performance.now();
       let gpsMetadataVerified = 0;
       const gpsMetadataErrors: string[] = [];
-      if (this.verifyCacheFiles()) {
+      if ((batchOptions?.verifyCacheFiles ?? false)) {
         this.cacheRunCurrentOperation.set('Verifying GPS metadata against image files...');
         let nextGpsIndex = 0;
         const gpsWorker = async (): Promise<void> => {
@@ -1319,7 +1320,7 @@ export class ImagesComponent {
       for (let offset = 0; offset < imagePaths.length; offset += 500) {
         statuses.push(...await this.cacheManager.getImageCacheStatuses(
           imagePaths.slice(offset, offset + 500),
-          this.verifyCacheFiles(),
+          (batchOptions?.verifyCacheFiles ?? false),
           sourceMetadata.slice(offset, offset + 500)
         ));
       }
@@ -1330,15 +1331,15 @@ export class ImagesComponent {
       const invalidCacheEntries = statuses.reduce((total, status) => total + (status.verification?.invalidEntries ?? 0), 0);
       verificationSummary = [
         `Files: ${images.length}`,
-        this.verifyCacheFiles()
+        (batchOptions?.verifyCacheFiles ?? false)
           ? `Verified: ${sourceFilesVerified} source, ${thumbnailsVerified} thumbnails, ${fullSizeFilesVerified} full-size files`
           : 'Verification: disabled',
-        this.verifyCacheFiles() ? `Missing/invalid cache entries: ${invalidCacheEntries}` : '',
-        this.verifyCacheFiles()
+        (batchOptions?.verifyCacheFiles ?? false) ? `Missing/invalid cache entries: ${invalidCacheEntries}` : '',
+        (batchOptions?.verifyCacheFiles ?? false)
           ? `Redundant thumbnails removed: ${statuses.filter(status => status.verification?.redundantThumbnailRemoved).length}`
           : '',
-        this.verifyCacheFiles() ? `Direct original images: ${statuses.filter(status => status.thumbnailDirect).length}` : '',
-        this.verifyCacheFiles() ? `GPS metadata synchronized: ${gpsMetadataVerified}, errors: ${gpsMetadataErrors.length}` : '',
+        (batchOptions?.verifyCacheFiles ?? false) ? `Direct original images: ${statuses.filter(status => status.thumbnailDirect).length}` : '',
+        (batchOptions?.verifyCacheFiles ?? false) ? `GPS metadata synchronized: ${gpsMetadataVerified}, errors: ${gpsMetadataErrors.length}` : '',
         `Verification time: ${verificationTimeMs} ms`
       ].filter(Boolean).join('\n');
       await this.cacheManager.appendBuildLog('Cache verification summary:\n' + verificationSummary);

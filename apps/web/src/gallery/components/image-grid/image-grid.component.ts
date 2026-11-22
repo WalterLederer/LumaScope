@@ -73,8 +73,6 @@ export class ImageGridComponent {
 
   readonly thumbSize = input<ThumbnailSize>(defaultThumbnailSize);
 
-  readonly verifyCacheFiles = input(false);
-
   private readonly document = inject(DOCUMENT);
 
   private readonly readStoredViewMode = (): GalleryViewMode => {
@@ -280,102 +278,43 @@ export class ImageGridComponent {
   private cachePathUpdateRevision = 0;
   private cacheStatsFolder: string | null = null;
   private cacheStatsScope = '';
-  private cacheStatsVerifyFiles: boolean | null = null;
   private cacheStatsScanActive = false;
   private cacheStatsScanComplete = false;
-  private cacheStatsThumbnails = 0;
-  private cacheStatsFullSize = 0;
-  private cacheStatsFullSizeTotal = 0;
-  private cacheStatsGps = 0;
-  private cacheStatsHdr = 0;
-  private cacheStatsLocation = 0;
   private lastCacheRevision: number | null = null;
 
   private readonly resetDirectoryCacheStats = (): void => {
     this.cacheStatsRequest++;
     this.cacheStatsScanActive = false;
     this.cacheStatsScanComplete = false;
-    this.cacheStatsThumbnails = 0;
-    this.cacheStatsFullSize = 0;
-    this.cacheStatsFullSizeTotal = 0;
-    this.cacheStatsGps = 0;
-    this.cacheStatsHdr = 0;
-    this.cacheStatsLocation = 0;
   };
 
   readonly refreshDirectoryCacheStats = async (): Promise<void> => {
     const folder = this.selectedLocation();
-    const verifyCacheFiles = this.verifyCacheFiles();
-    const scope = [folder ?? '', this.sortBy(), this.sortDirection(),
-      this.includeUnsupportedFiles(), this.includeFilesRecursive()].join('|');
-    if (this.cacheStatsFolder !== folder || this.cacheStatsScope !== scope
-      || this.cacheStatsVerifyFiles !== verifyCacheFiles) {
+    const scope = [folder ?? '', this.includeUnsupportedFiles(), this.includeFilesRecursive(),
+      this.nameFilterActive(), this.nameFilter()].join('|');
+    if (this.cacheStatsFolder !== folder || this.cacheStatsScope !== scope) {
       this.resetDirectoryCacheStats();
     }
     this.cacheStatsFolder = folder;
     this.cacheStatsScope = scope;
-    this.cacheStatsVerifyFiles = verifyCacheFiles;
 
     if (!folder || this.galleryLoading() || this.cacheStatsScanActive || this.cacheStatsScanComplete) return;
     const request = ++this.cacheStatsRequest;
     const pathUpdateRevision = this.cachePathUpdateRevision;
     this.cacheStatsScanActive = true;
-    let total = this.totalFileCount();
     try {
-      // Cache counters must describe the whole database result, not only the
-      // currently visible renderer window. Read one bounded page at a time.
-      for (let offset = 0; offset < total || (offset === 0 && total === 0); offset += 1000) {
-        const page = await this.cacheManager.getGalleryFilesPage(
-          folder, this.includeFilesRecursive(), this.includeUnsupportedFiles(),
-          this.sortBy(), this.sortDirection(), offset, 1000, '', 'ImageGrid.refreshDirectoryCacheStats'
-        );
-        if (request !== this.cacheStatsRequest) return;
-        if (page.totalCount >= 0) total = page.totalCount;
-        if (page.files.length === 0) break;
-
-        const filesByParent = new Map<string, string[]>();
-        for (const image of page.files) {
-          const paths = filesByParent.get(image.parent) ?? [];
-          paths.push(image.path);
-          filesByParent.set(image.parent, paths);
-        }
-        for (const paths of filesByParent.values()) {
-          for (let index = 0; index < paths.length; index += 500) {
-            const stats = await this.cacheManager.getDirectoryCacheStats(paths.slice(index, index + 500), verifyCacheFiles, 'ImageGrid.refreshDirectoryCacheStats');
-            if (request !== this.cacheStatsRequest) return;
-            if (pathUpdateRevision !== this.cachePathUpdateRevision) {
-              this.resetDirectoryCacheStats();
-              void this.refreshDirectoryCacheStats();
-              return;
-            }
-            this.cacheStatsThumbnails += stats.thumbnails;
-            this.cacheStatsFullSize += stats.fullSizeConversions;
-            this.cacheStatsFullSizeTotal += stats.fullSizeConversionTotal;
-            this.cacheStatsGps += stats.gps;
-            this.cacheStatsHdr += stats.hdr;
-            this.cacheStatsLocation += stats.location;
-          }
-        }
-        if (page.files.length < 1000) break;
-      }
+      const stats = await this.cacheManager.getGalleryCacheStats(
+        folder, this.includeFilesRecursive(), this.includeUnsupportedFiles(),
+        this.nameFilterActive() ? this.nameFilter() : '', 'ImageGrid.refreshDirectoryCacheStats'
+      );
       if (request !== this.cacheStatsRequest) return;
       if (pathUpdateRevision !== this.cachePathUpdateRevision) {
         this.resetDirectoryCacheStats();
         void this.refreshDirectoryCacheStats();
         return;
       }
+      this.cacheStats.set(stats);
       this.cacheStatsScanComplete = true;
-      this.cacheStats.set({
-        total,
-        thumbnails: this.cacheStatsThumbnails,
-        fullSizeConversions: this.cacheStatsFullSize,
-        fullSizeConversionTotal: this.cacheStatsFullSizeTotal,
-        gps: this.cacheStatsGps,
-        hdr: this.cacheStatsHdr,
-        location: this.cacheStatsLocation,
-        thumbnailPaths: [],
-        fullSizePaths: []
-      });
     } catch (error) {
       console.error('Failed to refresh gallery cache statistics', error);
     } finally {
@@ -580,8 +519,8 @@ export class ImageGridComponent {
         cacheRunActive: images.cacheRunActive,
         cacheRunProgress: images.cacheRunProgress,
         cacheRunCurrentOperation: images.cacheRunCurrentOperation,
-        start: async (directory, importGpx) => {
-          await images.cacheAllImages(directory, importGpx);
+        start: async (directory, importGpx, verifyCacheFiles) => {
+          await images.cacheAllImages(directory, importGpx, verifyCacheFiles);
           // A direct folder scan can finish after the initial database page was
           // read. Reload once indexing is complete so unsupported-only folders
           // are displayed even if the change notification raced navigation.
@@ -589,8 +528,8 @@ export class ImageGridComponent {
             await firstValueFrom(this.galleryState.navigateTo(directory, false));
           }
         },
-        startRecursive: async (directory, importGpx) => {
-          await images.cacheAllImagesRecursive(directory, importGpx);
+        startRecursive: async (directory, importGpx, verifyCacheFiles) => {
+          await images.cacheAllImagesRecursive(directory, importGpx, verifyCacheFiles);
           // Recursive indexing writes files folder by folder. Do one definitive
           // reload after the scan so the list cannot remain stuck on the empty
           // first page if an intermediate change notification was missed.
@@ -618,7 +557,6 @@ export class ImageGridComponent {
       this.selectedLocation();
       this.totalFileCount();
       this.galleryLoading();
-      this.verifyCacheFiles();
       void this.refreshDirectoryCacheStats();
     });
 

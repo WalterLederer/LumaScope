@@ -18,8 +18,8 @@ interface GalleryCacheBuildController {
   readonly cacheRunActive: Signal<boolean>;
   readonly cacheRunProgress: Signal<CacheBuildProgress>;
   readonly cacheRunCurrentOperation: Signal<string>;
-  readonly start: (directory: string, importGpx: boolean) => Promise<void>;
-  readonly startRecursive: (directory: string, importGpx: boolean) => Promise<void>;
+  readonly start: (directory: string, importGpx: boolean, verifyCacheFiles: boolean) => Promise<void>;
+  readonly startRecursive: (directory: string, importGpx: boolean, verifyCacheFiles: boolean) => Promise<void>;
   readonly cancel: () => void;
   readonly refreshDetailCacheStatus: () => void;
 }
@@ -31,7 +31,7 @@ export class GalleryCacheBuild {
   private readonly pendingController = signal<GalleryCacheBuildController | null>(null);
   private readonly retiredController = signal(false);
   private readonly activity = signal<GalleryCacheBuildActivity | null>(null);
-  private readonly pendingStarts: Array<{ directory: string; importGpx: boolean; recursive: boolean }> = [];
+  private readonly pendingStarts: Array<{ directory: string; importGpx: boolean; recursive: boolean; verifyCacheFiles: boolean }> = [];
   private readonly activeDirectory = signal<string | null>(null);
   readonly cacheRunDirectory = computed(() =>
     this.activeDirectory() ?? this.activity()?.directory ?? this.queuedRequest()?.directory ?? null
@@ -43,12 +43,12 @@ export class GalleryCacheBuild {
 
   private readonly executeBuild = async (
     controller: GalleryCacheBuildController,
-    request: { directory: string; importGpx: boolean; recursive: boolean }
+    request: { directory: string; importGpx: boolean; recursive: boolean; verifyCacheFiles: boolean }
   ): Promise<void> => {
     this.activeDirectory.set(request.directory);
     try {
-      if (request.recursive) await controller.startRecursive(request.directory, request.importGpx);
-      else await controller.start(request.directory, request.importGpx);
+      if (request.recursive) await controller.startRecursive(request.directory, request.importGpx, request.verifyCacheFiles);
+      else await controller.start(request.directory, request.importGpx, request.verifyCacheFiles);
     } finally {
       if (this.activeDirectory() === request.directory) this.activeDirectory.set(null);
     }
@@ -116,7 +116,7 @@ export class GalleryCacheBuild {
     catch { /* Keep the session setting. */ }
   };
 
-  private readonly queueCacheBuild = async (directory: string, importGpx: boolean, recursive: boolean): Promise<void> => {
+  private readonly queueCacheBuild = async (directory: string, importGpx: boolean, recursive: boolean, verifyCacheFiles = false): Promise<void> => {
     const controller = this.controller();
     const normalizedDirectory = this.normalizeDirectory(directory);
     if (this.activeDirectory() && this.normalizeDirectory(this.activeDirectory()!) === normalizedDirectory) return;
@@ -125,12 +125,12 @@ export class GalleryCacheBuild {
     // Startup can restore a folder before ImageGrid has mounted and registered
     // its controller. Queue the request instead of silently losing the build.
     if (!controller || this.cacheRunActive()) {
-      this.pendingStarts.push({ directory, importGpx, recursive });
+      this.pendingStarts.push({ directory, importGpx, recursive, verifyCacheFiles });
       if (!this.queuedRequest()) this.queuedRequest.set({ directory, recursive });
       return;
     }
 
-    await this.executeBuild(controller, { directory, importGpx, recursive });
+    await this.executeBuild(controller, { directory, importGpx, recursive, verifyCacheFiles });
   };
 
   readonly startCacheBuild = async (directory: string, importGpx = true): Promise<void> =>
@@ -138,6 +138,13 @@ export class GalleryCacheBuild {
 
   readonly startRecursiveCacheBuild = async (directory: string, importGpx: boolean): Promise<void> =>
     this.queueCacheBuild(directory, importGpx, true);
+
+  /** Used only by the explicit Build cache button; automatic builds never verify physical cache files. */
+  readonly startManualCacheBuild = async (directory: string, importGpx = true): Promise<void> =>
+    this.queueCacheBuild(directory, importGpx, false, this.verifyCacheFiles());
+
+  readonly startManualRecursiveCacheBuild = async (directory: string, importGpx: boolean): Promise<void> =>
+    this.queueCacheBuild(directory, importGpx, true, this.verifyCacheFiles());
   readonly cancelCacheBuild = (): void => {
     this.pendingStarts.length = 0;
     this.queuedRequest.set(null);

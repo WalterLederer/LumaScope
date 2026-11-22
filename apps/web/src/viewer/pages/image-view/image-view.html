@@ -560,8 +560,8 @@
                             [currentFolderPath]="imageFolderPath(cacheSelectedImage?.path ?? '') || (gallerySelectedLocation() ?? '')"
                             [verifyCacheFiles]="galleryCacheBuild.verifyCacheFiles()"
                             (verifyCacheFilesChange)="galleryCacheBuild.setVerifyCacheFiles($event)"
-                            [startCacheBuild]="galleryCacheBuild.startCacheBuild"
-                            [startRecursiveCacheBuild]="galleryCacheBuild.startRecursiveCacheBuild"
+                            [startCacheBuild]="galleryCacheBuild.startManualCacheBuild"
+                            [startRecursiveCacheBuild]="galleryCacheBuild.startManualRecursiveCacheBuild"
                             [cancelCacheBuild]="galleryCacheBuild.cancelCacheBuild" />
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'summary') {
@@ -784,8 +784,8 @@
                             [currentFolderPath]="gallerySelectedLocation() ?? ''"
                             [verifyCacheFiles]="galleryCacheBuild.verifyCacheFiles()"
                             (verifyCacheFilesChange)="galleryCacheBuild.setVerifyCacheFiles($event)"
-                            [startCacheBuild]="galleryCacheBuild.startCacheBuild"
-                            [startRecursiveCacheBuild]="galleryCacheBuild.startRecursiveCacheBuild"
+                            [startCacheBuild]="galleryCacheBuild.startManualCacheBuild"
+                            [startRecursiveCacheBuild]="galleryCacheBuild.startManualRecursiveCacheBuild"
                             [cancelCacheBuild]="galleryCacheBuild.cancelCacheBuild" />
       }
       @if (activeImageSidebarTab() === 'help') {

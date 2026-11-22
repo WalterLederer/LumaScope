@@ -1887,7 +1887,6 @@ export class CacheManager {
       filterParams[`nameFilter${index}`] = term;
       return `instr(lower(photos.file_name), :nameFilter${index}) > 0`;
     });
-    const where = scope + supportedFilter + (nameFilterSql.length ? ` AND (${nameFilterSql.join(' AND ')})` : '');
     // Counts are independent of sorting and are reused across page requests.
     const countCacheKey = [databaseKey, folder.toLocaleLowerCase(), recursive ? '1' : '0', includeUnsupported ? '1' : '0', ...nameFilterTerms].join('|');
     let totalCount = this.galleryCountCache.get(countCacheKey);
@@ -2011,6 +2010,81 @@ export class CacheManager {
       event, directory, recursive, includeUnsupported, sortBy, sortDir, safePosition - 1, 1, '', 'CacheManager.getGalleryFileAtPosition'
     );
     return page.files[0] ?? null;
+  };
+
+  @IpcHandler({ name: 'CacheManager.getGalleryCacheStats' })
+  readonly getGalleryCacheStats = async (
+    _event: IpcMainInvokeEvent,
+    directory: string,
+    recursive = false,
+    includeUnsupported = false,
+    nameFilter = '',
+    sourceId = 'ImageGrid.refreshDirectoryCacheStats'
+  ): Promise<CacheDirectoryStats> => {
+    if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
+    const databaseKey = this.databaseKeyForPath(directory);
+    const db = this.databaseForPath(directory);
+    const folder = this.toRelativeFolderPath(directory, databaseKey) ?? '';
+    const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
+    const scope = `FROM photos JOIN paths ON paths.id = photos.path_id
+      LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
+      WHERE (
+        lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
+          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
+        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))
+      )`;
+    const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `lower(photos.file_name) LIKE :extension${index}`).join(' OR ')})`;
+    const terms = typeof nameFilter === 'string' ? nameFilter.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean) : [];
+    const parameters: Record<string, string | number> = { folder, recursive: recursive ? 1 : 0, folderPrefix };
+    if (!includeUnsupported) supportedFileExtensions.forEach((extension, index) => { parameters[`extension${index}`] = `%.${extension.toLowerCase()}`; });
+    const nameFilterSql = terms.map((term, index) => {
+      parameters[`nameFilter${index}`] = term;
+      return `instr(lower(photos.file_name), :nameFilter${index}) > 0`;
+    });
+    const where = scope + supportedFilter + (nameFilterSql.length ? ` AND (${nameFilterSql.join(' AND ')})` : '');
+    const extensionSql = "lower(substr(photos.file_name, length(photos.file_name) - instr(reverse(photos.file_name), '.') + 2))";
+    const fullSizeVersions = new Map<string, number>();
+    for (const extension of FULL_SIZE_EXTENSIONS) {
+      const normalized = extension.slice(1);
+      const version = getFullSizeCacheVersionCode(
+        normalized === 'ohsp' ? 'ohsp-full-spectrum-v15' :
+        ['dng', 'rw2', 'raw'].includes(normalized) ? (normalized === 'dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') :
+        `${normalized}${['tif', 'tiff'].includes(normalized) ? '-full-hdr-v6' : normalized === 'exr' ? '-full-uhdr-v2' : '-full-uhdr'}`
+      );
+      if (version !== null) fullSizeVersions.set(normalized, version);
+    }
+    const fullSizeCases = [...fullSizeVersions].map(([extension, version]) =>
+      `(${extensionSql} = '${extension}' AND photos.fullsize_cache_id IS NOT NULL AND photos.fullsize_cache_version = ${version})`);
+    const ohspThumbnail = `(${extensionSql} = 'ohsp' AND (${fullSizeCases.find(value => value.includes("= 'ohsp'")) ?? '0'}))`;
+    const thumbnailValid = `(
+      (${extensionSql} = 'dng' AND photos.thumbnail_cache_id = ${CACHE_STORAGE_TYPE.SIDECAR} AND photos.thumbnail_cache_version = ${DNG_THUMBNAIL_CACHE_VERSION})
+      OR (${extensionSql} <> 'dng' AND ${extensionSql} <> 'ohsp' AND photos.thumbnail_cache_id = ${CACHE_STORAGE_TYPE.SIDECAR} AND photos.thumbnail_cache_version = ${THUMBNAIL_CACHE_VERSION})
+      OR ${ohspThumbnail}
+    )`;
+    const fullSizeValid = fullSizeCases.length ? `(${fullSizeCases.join(' OR ')})` : '0';
+    const sql = `SELECT COUNT(*) AS total,
+        COALESCE(SUM(CASE WHEN ${thumbnailValid} THEN 1 ELSE 0 END), 0) AS thumbnails,
+        COALESCE(SUM(CASE WHEN ${fullSizeValid} THEN 1 ELSE 0 END), 0) AS fullSizeConversions,
+        COALESCE(SUM(CASE WHEN ${[...fullSizeVersions.keys()].map(extension => `${extensionSql} = '${extension}'`).join(' OR ') || '0'} THEN 1 ELSE 0 END), 0) AS fullSizeConversionTotal,
+        COALESCE(SUM(CASE WHEN photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL THEN 1 ELSE 0 END), 0) AS gps,
+        COALESCE(SUM(CASE WHEN photos.is_hdr = 1 THEN 1 ELSE 0 END), 0) AS hdr,
+        COALESCE(SUM(CASE WHEN trim(COALESCE(location_names.display_name, '')) <> '' THEN 1 ELSE 0 END), 0) AS location
+      ${scope + supportedFilter + (nameFilterSql.length ? ` AND (${nameFilterSql.join(' AND ')})` : '')}`;
+    const startedAt = Date.now();
+    const logId = nextSqlLogId();
+    console.info(`[SQL] ${sqlLogTimestamp()} START #${logId} getGalleryCacheStats | source=${sourceId} | folder=${directory} | recursive=${recursive} | unsupported=${includeUnsupported}`);
+    const row = db.prepare(sql).get(parameters) as {
+      total: number; thumbnails: number; fullSizeConversions: number; fullSizeConversionTotal: number;
+      gps: number; hdr: number; location: number;
+    };
+    console.info(`[SQL] ${sqlLogTimestamp()} END   #${logId} getGalleryCacheStats | ${Date.now() - startedAt}ms | total=${row.total}`);
+    return {
+      total: Number(row.total) || 0, thumbnails: Number(row.thumbnails) || 0,
+      fullSizeConversions: Number(row.fullSizeConversions) || 0,
+      fullSizeConversionTotal: Number(row.fullSizeConversionTotal) || 0,
+      gps: Number(row.gps) || 0, hdr: Number(row.hdr) || 0, location: Number(row.location) || 0,
+      thumbnailPaths: [], fullSizePaths: []
+    };
   };
 
   @IpcHandler({ name: 'CacheManager.getDirectoryCacheStats' })

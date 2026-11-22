@@ -147,6 +147,7 @@ const api: Desktop = {
       ipcRenderer.on('CacheManager.galleryFilesChanged', listener);
       return () => ipcRenderer.removeListener('CacheManager.galleryFilesChanged', listener);
     },
+    getGalleryCacheStats: (directory: string, recursive?: boolean, includeUnsupported?: boolean, nameFilter?: string, sourceId?: string) => ipcRenderer.invoke('CacheManager.getGalleryCacheStats', directory, recursive, includeUnsupported, nameFilter, sourceId),
     getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean, sourceId?: string) => ipcRenderer.invoke('CacheManager.getDirectoryCacheStats', sourceNames, verifyCacheFiles, sourceId),
     reconcilePhotoRecords: (directory: string, sourceNames: string[], recursive?: boolean) => ipcRenderer.invoke('CacheManager.reconcilePhotoRecords', directory, sourceNames, recursive),
     reconcilePhotoRecordsFromDisk: (directory: string, recursive?: boolean) => ipcRenderer.invoke('CacheManager.reconcilePhotoRecordsFromDisk', directory, recursive),
