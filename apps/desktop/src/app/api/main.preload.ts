@@ -28,6 +28,7 @@ const api: Desktop = {
   ProcessManager: {
     getProcessMemoryUsage: () => ipcRenderer.invoke('ProcessManager.getProcessMemoryUsage'),
     getAppVersion: () => ipcRenderer.invoke('ProcessManager.getAppVersion'),
+    getFileTypeIcon: (filePath: string) => ipcRenderer.invoke('ProcessManager.getFileTypeIcon', filePath) as Promise<string | null>,
     getAppSettings: () => ipcRenderer.invoke('ProcessManager.getAppSettings'),
     setAppSettingsSection: (section: string, values: Record<string, unknown>) => ipcRenderer.invoke('ProcessManager.setAppSettingsSection', section, values),
     onAppSettingsChanged: callback => {
