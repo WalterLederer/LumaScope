@@ -114,6 +114,7 @@
               [folderPath]="selectedLocation()"
               [includeUnsupportedFiles]="includeUnsupportedFiles()"
               [includeFilesRecursive]="includeFilesRecursive()"
+              [loading]="galleryLoading() || galleryRefreshing() || cacheRunActive()"
               [sortBy]="sortBy()"
               [sortDirection]="sortDirection()"
               [thumbSize]="thumbSize()"
