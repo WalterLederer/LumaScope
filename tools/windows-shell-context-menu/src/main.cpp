@@ -31,6 +31,37 @@ LRESULT CALLBACK MenuOwnerProc(HWND window, UINT message, WPARAM wParam, LPARAM 
     return DefWindowProcW(window, message, wParam, lParam);
 }
 
+bool HasVisibleOwnedWindow(HWND owner) {
+    struct SearchState {
+        HWND owner;
+        bool found;
+    } state{ owner, false };
+
+    EnumWindows([](HWND window, LPARAM parameter) -> BOOL {
+        auto* search = reinterpret_cast<SearchState*>(parameter);
+        if (GetWindow(window, GW_OWNER) == search->owner && IsWindowVisible(window)) {
+            search->found = true;
+            return FALSE;
+        }
+        return TRUE;
+    }, reinterpret_cast<LPARAM>(&state));
+
+    return state.found;
+}
+
+void PumpOwnedDialogMessages(HWND owner) {
+    // Some shell verbs return as soon as they create a modeless dialog.
+    // Keep the helper's owner window and its COM context-menu handler alive
+    // until all visible top-level dialogs owned by it have been closed.
+    while (HasVisibleOwnedWindow(owner)) {
+        MSG message{};
+        const BOOL result = GetMessageW(&message, nullptr, 0, 0);
+        if (result <= 0) break;
+        TranslateMessage(&message);
+        DispatchMessageW(&message);
+    }
+}
+
 bool ParseInteger(const wchar_t* value, int& result) {
     if (!value || !*value) return false;
     wchar_t* end = nullptr;
@@ -113,29 +144,33 @@ int Run(const std::wstring& filePath, int x, int y) {
             TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_LEFTALIGN | TPM_TOPALIGN,
             x, y, owner, nullptr);
         if (selected >= firstCommand && selected <= lastCommand) {
-            // The shell Properties verb may create a modeless property sheet.
-            // Invoke it through SHObjectProperties so the dialog is correctly
-            // owned and remains alive independently of this temporary menu.
             char verb[128]{};
             const bool isPropertiesVerb =
                 SUCCEEDED(contextMenu->GetCommandString(selected - firstCommand, GCS_VERBA,
                     nullptr, verb, static_cast<UINT>(sizeof(verb))))
                 && std::string(verb) == "properties";
+
             if (isPropertiesVerb) {
                 SHObjectProperties(owner, SHOP_FILEPATH, filePath.c_str(), nullptr);
             } else {
-            CMINVOKECOMMANDINFOEX invoke{};
-            invoke.cbSize = sizeof(invoke);
-            invoke.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE;
-            invoke.hwnd = owner;
-            invoke.lpVerb = MAKEINTRESOURCEA(selected - firstCommand);
-            invoke.lpVerbW = MAKEINTRESOURCEW(selected - firstCommand);
-            invoke.nShow = SW_SHOWNORMAL;
-            invoke.ptInvoke = POINT{ x, y };
-            contextMenu->InvokeCommand(reinterpret_cast<LPCMINVOKECOMMANDINFO>(&invoke));
+                CMINVOKECOMMANDINFOEX invoke{};
+                invoke.cbSize = sizeof(invoke);
+                invoke.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE;
+                invoke.hwnd = owner;
+                invoke.lpVerb = MAKEINTRESOURCEA(selected - firstCommand);
+                invoke.lpVerbW = MAKEINTRESOURCEW(selected - firstCommand);
+                invoke.nShow = SW_SHOWNORMAL;
+                invoke.ptInvoke = POINT{ x, y };
+                contextMenu->InvokeCommand(reinterpret_cast<LPCMINVOKECOMMANDINFO>(&invoke));
             }
+
+            // This covers native dialogs opened by shell verbs such as
+            // Advanced Security, as well as the Properties dialog above.
+            PumpOwnedDialogMessages(owner);
+            PostMessageW(owner, WM_NULL, 0, 0);
+        } else {
+            PostMessageW(owner, WM_NULL, 0, 0);
         }
-        PostMessageW(owner, WM_NULL, 0, 0);
     }
 
     DestroyMenu(menu);
