@@ -1313,6 +1313,10 @@ export class ImagesComponent {
           ? `Verified: ${sourceFilesVerified} source, ${thumbnailsVerified} thumbnails, ${fullSizeFilesVerified} full-size files`
           : 'Verification: disabled',
         this.verifyCacheFiles() ? `Missing/invalid cache entries: ${invalidCacheEntries}` : '',
+        this.verifyCacheFiles()
+          ? `Redundant thumbnails removed: ${statuses.filter(status => status.verification?.redundantThumbnailRemoved).length}`
+          : '',
+        this.verifyCacheFiles() ? `Direct original images: ${statuses.filter(status => status.thumbnailDirect).length}` : '',
         this.verifyCacheFiles() ? `GPS metadata synchronized: ${gpsMetadataVerified}, errors: ${gpsMetadataErrors.length}` : '',
         `Verification time: ${verificationTimeMs} ms`
       ].filter(Boolean).join('\n');
@@ -1341,7 +1345,7 @@ export class ImagesComponent {
           const image = images[index];
           try {
             const status = statusByPath.get(image.path);
-            const thumbnailValid = status?.thumbnail?.status === 'valid';
+            const thumbnailValid = status?.thumbnail?.status === 'valid' || status?.thumbnailDirect === true;
             const fullSizeValid = !status?.fullSizeRequired || status.fullSize?.status === 'valid';
             if (thumbnailValid && fullSizeValid) {
               await appendLog(`[${index + 1}/${images.length}] SKIP (cache status complete): ${image.path}`);
