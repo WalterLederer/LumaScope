@@ -148,7 +148,7 @@ int Run(const std::wstring& filePath, int x, int y) {
             const bool hasCanonicalVerb =
                 SUCCEEDED(contextMenu->GetCommandString(selected - firstCommand, GCS_VERBA,
                     nullptr, verb, static_cast<UINT>(sizeof(verb))))
-                && verb[0] != '\\0';
+                && verb[0] != '\0';
 
             bool invoked = false;
             if (hasCanonicalVerb) {
@@ -161,7 +161,7 @@ int Run(const std::wstring& filePath, int x, int y) {
                 executeInfo.fMask = SEE_MASK_INVOKEIDLIST;
                 executeInfo.hwnd = owner;
                 const int verbLength = MultiByteToWideChar(CP_ACP, 0, verb, -1, nullptr, 0);
-                std::wstring wideVerb(static_cast<size_t>(verbLength), L'\\0');
+                std::wstring wideVerb(static_cast<size_t>(verbLength), L'\0');
                 if (verbLength > 1 &&
                     MultiByteToWideChar(CP_ACP, 0, verb, -1, wideVerb.data(), verbLength) > 0) {
                     wideVerb.resize(static_cast<size_t>(verbLength - 1));
