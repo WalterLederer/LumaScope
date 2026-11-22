@@ -1112,6 +1112,7 @@ if (parentPort) {
         const outputWidth = Math.max(320, width > 0 ? width : 1600);
         const outputHeight = Math.max(180, height > 0 ? height : 900);
         const isFullSize = width === 0 && height === 0;
+        if (!isFullSize) throw new Error('OHSP supports only the canonical full-size derivative; thumbnail-sized cache files are disabled.');
         const pixels = new Float32Array(outputWidth * outputHeight * 3);
         if (isFullSize) {
           // Keep the full-size HDR canvas genuinely black; a lifted charcoal
