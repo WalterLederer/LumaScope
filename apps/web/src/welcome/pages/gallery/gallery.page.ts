@@ -151,14 +151,13 @@ export class GalleryPage {
     this.selectedLocation$
   ]).pipe(
     switchMap(async ([root, selectedLocation]) => {
-      const children = await Promise.all((root.children ?? []).map(async node => {
-        const response = await this.galleryState.getDirContents(node.id);
-        return {
-          ...node,
-          // Only show the expand indicator when the directory actually contains subdirectories.
-          // Leave the value undefined on read failure so the user can still try to expand it.
-          hasChildren: response.success ? response.data.length > 0 : undefined
-        };
+      // Do not enumerate every favourite folder while the application starts.
+      // The tree loads a folder's children only when that node is expanded. Mark
+      // favourites as expandable optimistically; loadTreeNode corrects this to
+      // false when the folder is empty.
+      const children = (root.children ?? []).map(node => ({
+        ...node,
+        hasChildren: true
       }));
 
       const restoredRoot = { ...root, children };
