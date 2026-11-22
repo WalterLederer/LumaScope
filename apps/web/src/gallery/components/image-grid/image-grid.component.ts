@@ -33,6 +33,7 @@ import { GalleryCacheBuild } from '../../services/gallery-cache-build/gallery-ca
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import { GalleryViewMode } from '../images/images.component.types';
 import { GalleryState } from '../../services/gallery-state/gallery-state';
+import { formatNumber } from '../../../ui/utils/format-number';
 
 @Component({
   selector: 'app-image-grid',
@@ -90,6 +91,7 @@ export class ImageGridComponent {
     } catch { return 12; }
   };
 
+  readonly formatNumber = formatNumber;
   readonly viewMode = signal<GalleryViewMode>(this.readStoredViewMode());
   readonly detailScrollTop = signal(0);
   readonly detailViewportHeight = signal(1200);
