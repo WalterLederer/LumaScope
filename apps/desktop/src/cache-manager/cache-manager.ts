@@ -16,6 +16,8 @@ import { createMigrationTable, dbMigrations, getMigrationRecords, insertMigratio
 const execFileAsync = promisify(execFile);
 const CACHE_STORAGE_TYPE = { SIDECAR: 2, PARALLEL: 3 } as const;
 const THUMBNAIL_CACHE_VERSION = 2;
+// Bump when the bundled thumbnail decoder support changes so failed files are retried.
+const THUMBNAIL_FAILURE_VERSION = 1;
 const DNG_THUMBNAIL_CACHE_VERSION = 3;
 const OHSP_THUMBNAIL_CACHE_VERSION = 13;
 const THUMBNAIL_CACHE_TAG = 'sidecar-thumbnail-v2';
@@ -61,6 +63,9 @@ interface PhotoRow {
   is_hdr: number;
   thumbnail_cache_id: number | null;
   thumbnail_cache_version: number | null;
+  thumbnail_failure_size: number | null;
+  thumbnail_failure_modified_at: number | null;
+  thumbnail_failure_version: number | null;
   fullsize_cache_id: number | null;
   fullsize_cache_version: number | null;
   latitude: number | null;
@@ -276,7 +281,7 @@ export class CacheManager {
       try { bytes += (await stat(target)).size; await rm(target, { force: true }); } catch { /* Missing cache file. */ }
       entries++;
     }
-    db.prepare('UPDATE photos SET thumbnail_cache_id = NULL, thumbnail_cache_version = NULL, fullsize_cache_id = NULL, fullsize_cache_version = NULL WHERE id = :id').run({ id: row.id });
+    db.prepare('UPDATE photos SET thumbnail_cache_id = NULL, thumbnail_cache_version = NULL, thumbnail_failure_size = NULL, thumbnail_failure_modified_at = NULL, thumbnail_failure_version = NULL, fullsize_cache_id = NULL, fullsize_cache_version = NULL WHERE id = :id').run({ id: row.id });
     return { entries, bytes };
   };
 
@@ -323,7 +328,7 @@ export class CacheManager {
 
     const db = this.databaseForDirectoryOrActive(directory);
     const column = kind === 'thumbnail' ? 'thumbnail' : 'fullsize';
-    const allRows = db.prepare('SELECT photos.*, paths.relative_folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId')
+    const allRows = db.prepare('SELECT photos.*, paths.relative_folder_path FROM photos JOIN paths ON paths.id = photos.path_id WHERE photos.' + column + '_cache_id = :cacheId' + (kind === 'thumbnail' ? ' OR photos.thumbnail_failure_version IS NOT NULL' : ''))
       .all({ cacheId: CACHE_STORAGE_TYPE.SIDECAR }) as unknown as Array<PhotoRow & { relative_folder_path: string }>;
     const root = directory ? resolve(directory) : null;
     const rows = root === null ? allRows : allRows.filter(row => {
@@ -338,7 +343,13 @@ export class CacheManager {
       const source = join(this.resolveStoredFolderPath(row.relative_folder_path, directory ? this.databaseKeyForPath(directory) : this.activeDatabaseKey!), row.file_name);
       const target = this.getSidecarPath(source, kind === 'fullsize');
       try { bytes += (await stat(target)).size; await rm(target, { force: true }); } catch { /* Missing cache file. */ }
-      db.prepare('UPDATE photos SET ' + column + '_cache_id = NULL, ' + column + '_cache_version = NULL WHERE id = :id').run({ id: row.id });
+      if (kind === 'thumbnail') {
+        db.prepare('UPDATE photos SET thumbnail_cache_id = NULL, thumbnail_cache_version = NULL, thumbnail_failure_size = NULL, thumbnail_failure_modified_at = NULL, thumbnail_failure_version = NULL WHERE id = :id')
+          .run({ id: row.id });
+      } else {
+        db.prepare('UPDATE photos SET fullsize_cache_id = NULL, fullsize_cache_version = NULL WHERE id = :id')
+          .run({ id: row.id });
+      }
       entries++;
     }
     return { entries, bytes, cancelled: this.isClearCancelled(operationId) };
@@ -1452,7 +1463,7 @@ export class CacheManager {
                 }
               } catch { /* No existing sidecar to remove. */ }
               if (row?.thumbnail_cache_id !== null && row?.thumbnail_cache_id !== undefined) {
-                db.prepare('UPDATE photos SET thumbnail_cache_id = NULL, thumbnail_cache_version = NULL WHERE id = :id')
+                db.prepare('UPDATE photos SET thumbnail_cache_id = NULL, thumbnail_cache_version = NULL, thumbnail_failure_size = NULL, thumbnail_failure_modified_at = NULL, thumbnail_failure_version = NULL WHERE id = :id')
                   .run({ id: row.id });
                 verification.redundantThumbnailRemoved = true;
               }
@@ -1501,6 +1512,9 @@ export class CacheManager {
         is_hdr = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN 0 ELSE photos.is_hdr END,
         thumbnail_cache_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_cache_id END,
         thumbnail_cache_version = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_cache_version END,
+        thumbnail_failure_size = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_failure_size END,
+        thumbnail_failure_modified_at = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_failure_modified_at END,
+        thumbnail_failure_version = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_failure_version END,
         fullsize_cache_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.fullsize_cache_id END,
         fullsize_cache_version = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.fullsize_cache_version END,
         latitude = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.latitude END,
@@ -1702,6 +1716,9 @@ export class CacheManager {
         is_hdr = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN 0 ELSE photos.is_hdr END,
         thumbnail_cache_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_cache_id END,
         thumbnail_cache_version = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_cache_version END,
+        thumbnail_failure_size = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_failure_size END,
+        thumbnail_failure_modified_at = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_failure_modified_at END,
+        thumbnail_failure_version = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_failure_version END,
         fullsize_cache_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.fullsize_cache_id END,
         fullsize_cache_version = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.fullsize_cache_version END,
         latitude = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.latitude END,
@@ -2433,6 +2450,42 @@ export class CacheManager {
 
   readonly usesSidecarStorage = (_sourceName: string): boolean => true;
 
+  readonly hasThumbnailFailure = async (sourceName: string): Promise<boolean> => {
+    try {
+      const sourceStats = await stat(sourceName);
+      const row = this.getPhoto(sourceName);
+      return !!row
+        && row.thumbnail_failure_version === THUMBNAIL_FAILURE_VERSION
+        && row.thumbnail_failure_size === sourceStats.size
+        && row.thumbnail_failure_modified_at === sourceStats.mtimeMs;
+    } catch {
+      return false;
+    }
+  };
+
+  readonly markThumbnailFailure = async (sourceName: string): Promise<void> => {
+    const sourceStats = await stat(sourceName);
+    const db = this.databaseForPath(sourceName);
+    const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs), db);
+    db.prepare(`UPDATE photos SET thumbnail_failure_size = :size,
+      thumbnail_failure_modified_at = :modifiedAt,
+      thumbnail_failure_version = :version
+      WHERE id = :id`).run({
+        size: sourceStats.size,
+        modifiedAt: sourceStats.mtimeMs,
+        version: THUMBNAIL_FAILURE_VERSION,
+        id: row.id
+      });
+  };
+
+  readonly clearThumbnailFailure = (sourceName: string): void => {
+    const row = this.getPhoto(sourceName);
+    if (!row) return;
+    const db = this.databaseForPath(sourceName);
+    db.prepare('UPDATE photos SET thumbnail_failure_size = NULL, thumbnail_failure_modified_at = NULL, thumbnail_failure_version = NULL WHERE id = :id')
+      .run({ id: row.id });
+  };
+
   /** Remove legacy per-thumbnail OHSP files; the full-size derivative is the sole cache. */
   readonly clearThumbnailCache = async (sourceName: string): Promise<void> => {
     const db = this.databaseForPath(sourceName);
@@ -2553,6 +2606,9 @@ export class CacheManager {
         is_hdr = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN 0 ELSE photos.is_hdr END,
         thumbnail_cache_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_cache_id END,
         thumbnail_cache_version = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_cache_version END,
+        thumbnail_failure_size = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_failure_size END,
+        thumbnail_failure_modified_at = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_failure_modified_at END,
+        thumbnail_failure_version = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.thumbnail_failure_version END,
         fullsize_cache_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.fullsize_cache_id END,
         fullsize_cache_version = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.fullsize_cache_version END,
         latitude = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.latitude END,
