@@ -144,15 +144,37 @@ int Run(const std::wstring& filePath, int x, int y) {
             TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_LEFTALIGN | TPM_TOPALIGN,
             x, y, owner, nullptr);
         if (selected >= firstCommand && selected <= lastCommand) {
-            char verb[128]{};
-            const bool isPropertiesVerb =
+            char verb[256]{};
+            const bool hasCanonicalVerb =
                 SUCCEEDED(contextMenu->GetCommandString(selected - firstCommand, GCS_VERBA,
                     nullptr, verb, static_cast<UINT>(sizeof(verb))))
-                && std::string(verb) == "properties";
+                && verb[0] != '\\0';
 
-            if (isPropertiesVerb) {
-                SHObjectProperties(owner, SHOP_FILEPATH, filePath.c_str(), nullptr);
-            } else {
+            bool invoked = false;
+            if (hasCanonicalVerb) {
+                // Use ShellExecuteEx for canonical context-menu verbs. This is
+                // the Shell's supported invocation path for both built-in verbs
+                // (Properties, Print) and verbs supplied by context-menu
+                // extensions (for example Advanced Security).
+                SHELLEXECUTEINFOW executeInfo{};
+                executeInfo.cbSize = sizeof(executeInfo);
+                executeInfo.fMask = SEE_MASK_INVOKEIDLIST;
+                executeInfo.hwnd = owner;
+                const int verbLength = MultiByteToWideChar(CP_ACP, 0, verb, -1, nullptr, 0);
+                std::wstring wideVerb(static_cast<size_t>(verbLength), L'\\0');
+                if (verbLength > 1 &&
+                    MultiByteToWideChar(CP_ACP, 0, verb, -1, wideVerb.data(), verbLength) > 0) {
+                    wideVerb.resize(static_cast<size_t>(verbLength - 1));
+                    executeInfo.lpVerb = wideVerb.c_str();
+                    executeInfo.lpFile = filePath.c_str();
+                    executeInfo.nShow = SW_SHOWNORMAL;
+                    invoked = ShellExecuteExW(&executeInfo) == TRUE;
+                }
+            }
+
+            if (!invoked) {
+                // Some third-party handlers expose menu commands without a
+                // canonical verb. Preserve support for those via IContextMenu.
                 CMINVOKECOMMANDINFOEX invoke{};
                 invoke.cbSize = sizeof(invoke);
                 invoke.fMask = CMIC_MASK_UNICODE | CMIC_MASK_PTINVOKE;
