@@ -13,7 +13,7 @@ file(MAKE_DIRECTORY "${LUMASCOPE_CONTEXT_MENU_OUTPUT_DIRECTORY}")
 add_executable(lumascope_windows_shell_context_menu WIN32 src/main.cpp)
 target_compile_features(lumascope_windows_shell_context_menu PRIVATE cxx_std_17)
 set_property(TARGET lumascope_windows_shell_context_menu PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-target_compile_definitions(lumascope_windows_shell_context_menu PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
+target_compile_definitions(lumascope_windows_shell_context_menu PRIVATE UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
 target_link_libraries(lumascope_windows_shell_context_menu PRIVATE ole32 shell32 user32)
 set_target_properties(lumascope_windows_shell_context_menu PROPERTIES
   OUTPUT_NAME "lumascope_windows_shell_context_menu"
