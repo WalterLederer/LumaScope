@@ -214,16 +214,16 @@ html body app-images .detail-native-table > tbody.images.details-list > tr.detai
 /* Use the state class rendered by ImageGrid as the source of truth.
    Avoid relying on the host/toolbar ancestry or :has(), both of which made
    the active filter styling fragile across the toolbar's rendered structure. */
-html body label.thumbnail-name-filter.filter-active {
+html body app-image-grid .thumbnail-size-control.name-filter-active > label.thumbnail-name-filter {
   padding: 4px 7px !important;
   margin-top: -4px !important;
   margin-bottom: -4px !important;
   border-radius: var(--border-radius-small, 6px) !important;
-  box-shadow: var(--lumascope-surface-shadow, 0 2px 7px rgb(0 0 0 / 15%)) !important;
+  box-shadow: var(--lumascope-surface-shadow, 0 2px 6px rgb(0 0 0 / 14%)) !important;
   background: var(--detail-filtered-row-color, #e8f1fb) !important;
   background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
 }
-html body label.thumbnail-name-filter:not(.filter-active) {
+html body app-image-grid .thumbnail-size-control:not(.name-filter-active) > label.thumbnail-name-filter {
   background: transparent !important;
   background-color: transparent !important;
   box-shadow: none !important;
@@ -232,7 +232,8 @@ html body label.thumbnail-name-filter:not(.filter-active) {
 /* The two hamburger header cells have their own opaque base-surface rule.
    During cache activity, keep both header tiers in the same running tint as
    the remaining column headings. */
-html body app-images .detail-native-table > thead > tr.detail-header.cache-build-active > th:is(.detail-actions-heading, .detail-actions-statistics) {
+html body app-images .detail-native-table > thead > tr.detail-header-labels.cache-build-active > th.detail-actions-heading,
+html body app-images .detail-native-table > thead > tr.detail-header-statistics.cache-build-active > th.detail-actions-statistics {
   background: color-mix(in srgb, var(--color-surface-default-low, #fff) 86%, #dc4141 14%) !important;
   background-color: color-mix(in srgb, var(--color-surface-default-low, #fff) 86%, #dc4141 14%) !important;
   background-image: none !important;
@@ -245,4 +246,14 @@ html body app-images .detail-native-table > tbody.images.details-list > tr.detai
   background: var(--detail-filtered-row-color, #e8f1fb) !important;
   background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
   background-image: none !important;
+}
+
+/* Keep selected rows distinguishable even while the filter tint is active:
+   blend the selection color into every cell and retain a strong leading marker. */
+html body app-images .detail-native-table > tbody.images.details-list > tr.detail-filter-active.selected-image:not(.detail-virtual-spacer) > td {
+  background: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 38%, var(--detail-filtered-row-color, #e8f1fb)) !important;
+  background-color: color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 38%, var(--detail-filtered-row-color, #e8f1fb)) !important;
+}
+html body app-images .detail-native-table > tbody.images.details-list > tr.detail-filter-active.selected-image:not(.detail-virtual-spacer) > td:first-child {
+  box-shadow: inset 4px 0 0 var(--detail-selected-row-color, #d18b24) !important;
 }
