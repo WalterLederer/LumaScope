@@ -122,8 +122,7 @@
         <tr class="detail-header detail-header-statistics" [class.cache-build-active]="cacheRunActive()">
           <th class="thumb-statistics" scope="col"><small>{{ dimensions().width }} × {{ dimensions().height }}</small></th>
           <th scope="col" class="name-filter-header">
-            <small class="column-count">{{ cacheStats().total }}</small>
-
+            <small class="column-count" [class.incomplete]="nameFilterActive()">{{ nameFilterActive() ? totalFileCount() + ' / ' + cacheStats().total : cacheStats().total }}</small>
           </th>
           <th scope="col"><small class="column-summary"><span>Min: {{ detailSummary().date[0] }}</span><span>Max: {{ detailSummary().date[1] }}</span></small></th>
           <th scope="col">
