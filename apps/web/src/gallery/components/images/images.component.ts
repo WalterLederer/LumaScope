@@ -200,7 +200,7 @@ export class ImagesComponent {
   readonly detailFontSizeChanged = output<number>();
   readonly selectedImagePath = input<string | null>(null);
   readonly activeSelectionPath = signal<string | null>(null);
-  readonly cacheStats = input<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
+  readonly cacheStats = input<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, fullSizeConversionTotal: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
   readonly folderPath = input<string | null>(null);
   readonly includeUnsupportedFiles = input(false);
   readonly includeFilesRecursive = input(false);
@@ -286,10 +286,7 @@ export class ImagesComponent {
     }
   };
 
-  readonly fullSizeConversionTotal = computed(() => {
-    const statuses = this.cacheStatuses();
-    return (this.images() ?? []).filter(image => statuses.get(image.path)?.fullSizeRequired === true).length;
-  });
+  readonly fullSizeConversionTotal = computed(() => this.cacheStats().fullSizeConversionTotal);
   readonly gpsDateComparisons = signal<Map<string, boolean | null>>(new Map());
   readonly gpsDateDifferenceCount = computed(() =>
     [...this.gpsDateComparisons().values()].filter(differs => differs === true).length
