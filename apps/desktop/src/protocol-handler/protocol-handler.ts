@@ -11,6 +11,7 @@ import type { ThumbManager } from '../thumb-manager/thumb-manager';
 const MIME_TYPES: Record<string, string> = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
+  '.jpe': 'image/jpeg',
   '.png': 'image/png',
   '.webp': 'image/webp',
   '.jxl': 'image/jxl',
