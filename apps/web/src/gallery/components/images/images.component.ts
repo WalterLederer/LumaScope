@@ -204,6 +204,7 @@ export class ImagesComponent {
   readonly folderPath = input<string | null>(null);
   readonly includeUnsupportedFiles = input(false);
   readonly includeFilesRecursive = input(false);
+  readonly loading = input(false);
   readonly sortBy = input<SortType>(allSortTypes[0]);
   readonly thumbSize = input<ThumbnailSize>(defaultThumbnailSize);
   readonly viewMode = input<GalleryViewMode>('thumbnails');
