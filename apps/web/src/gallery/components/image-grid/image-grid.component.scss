@@ -175,6 +175,16 @@ ui-toolbar {
 
   .thumbnail-name-filter {
     display: inline-flex;
+    transition: background-color 120ms ease;
+
+    &.filter-active {
+      padding: 4px 7px;
+      margin-top: -4px;
+      margin-bottom: -4px;
+      border-radius: var(--border-radius-small, 6px);
+      background: var(--detail-filtered-row-color, #e8f1fb);
+    }
+
     flex: 0 1 auto;
     min-width: 190px;
     align-items: center;
