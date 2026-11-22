@@ -435,7 +435,7 @@ export class ThumbnailComponent implements OnDestroy {
           cacheCheckFailed = true;
           if (!cancelled) {
             console.warn('[Thumbnail] Cache status check failed; continuing with image request:', {
-              path: image.path,
+              path: this.image().path,
               error: error instanceof Error ? error.message : String(error)
             });
           }
