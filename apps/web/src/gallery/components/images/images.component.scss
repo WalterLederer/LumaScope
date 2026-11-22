@@ -1533,6 +1533,14 @@
   vertical-align: middle;
   box-sizing: border-box;
 }
+
+/* The generic table-cell display above overrides the browser's [hidden]
+   behavior. Explicitly remove both unused action cells from table layout,
+   otherwise the hidden right hamburger column still creates a phantom track. */
+.detail-native-table > thead > tr > th[hidden],
+.detail-native-table > tbody.images.details-list > tr > td[hidden] {
+  display: none !important;
+}
 .detail-native-table > thead > tr.detail-header-labels {
   height: 46px !important;
   min-height: 46px !important;
