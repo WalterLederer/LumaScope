@@ -153,7 +153,7 @@
               <strong>{{hexFileName()}}</strong>
               <span>{{hexFileSize() ? formatFileSize(hexFileSize()) : ''}}</span>
             </div>
-            <label class="image-hex-format-control">Byte format
+            <label class="image-hex-format-control lumascope-surface-box">Byte format
               <select [value]="hexByteDisplayMode()" (change)="setHexByteDisplayMode($any($event.target).value)" aria-label="Byte display format">
                 <option value="decimal">Decimal</option>
                 <option value="hex">Hex</option>
@@ -164,28 +164,30 @@
               </select>
             </label>
           </header>
-          <label class="image-hex-font-control">Font size
-            <input type="range" min="9" max="22" step="1" [value]="hexFontSize()" (input)="setHexFontSize($any($event.target).value)" aria-label="HEX table font size" />
-            <span>{{hexFontSize()}} px</span>
-          </label>
-          <div class="image-hex-search-box">
-            <div class="image-hex-search" role="search" aria-label="Search HEX file">
-              <select [value]="hexSearchMode()" (change)="setHexSearchMode($any($event.target).value)" aria-label="Search format">
-                <option value="ascii">ASCII</option>
-                <option value="hex">Hex bytes</option>
-              </select>
-              <input type="text" [value]="hexSearchTerm()" (input)="onHexSearchTermChange($any($event.target).value)" (keydown.enter)="searchHexFile(1)" [placeholder]="hexSearchMode() === 'ascii' ? 'Search ASCII text…' : 'Search hex bytes…'" aria-label="Search text or hex bytes" />
-              <button type="button" (click)="searchHexFile(-1)" [disabled]="hexSearchBusy() || !hexFilePath()" title="Find previous">↑</button>
-              <button type="button" (click)="searchHexFile(1)" [disabled]="hexSearchBusy() || !hexFilePath()" title="Find next">↓</button>
+          <div class="image-hex-search-toolbar">
+            <div class="image-hex-search-box lumascope-surface-box">
+              <div class="image-hex-search" role="search" aria-label="Search HEX file">
+                <select [value]="hexSearchMode()" (change)="setHexSearchMode($any($event.target).value)" aria-label="Search format">
+                  <option value="ascii">ASCII</option>
+                  <option value="hex">Hex bytes</option>
+                </select>
+                <input type="text" [value]="hexSearchTerm()" (input)="onHexSearchTermChange($any($event.target).value)" (keydown.enter)="searchHexFile(1)" [placeholder]="hexSearchMode() === 'ascii' ? 'Search ASCII text…' : 'Search hex bytes…'" aria-label="Search text or hex bytes" />
+                <button type="button" (click)="searchHexFile(-1)" [disabled]="hexSearchBusy() || !hexFilePath()" title="Find previous">↑</button>
+                <button type="button" (click)="searchHexFile(1)" [disabled]="hexSearchBusy() || !hexFilePath()" title="Find next">↓</button>
+              </div>
             </div>
+            <label class="image-hex-font-control">Font size
+              <input type="range" min="9" max="22" step="1" [value]="hexFontSize()" (input)="setHexFontSize($any($event.target).value)" aria-label="HEX table font size" />
+              <span>{{hexFontSize()}} px</span>
+            </label>
           </div>
           @if (hexSearchStatus()) { <div class="image-hex-search-status" role="status">{{hexSearchStatus()}}</div> }
           @if (hexTotalRows() > hexRowsPerPage) {
-            <input class="image-hex-position" type="range" min="0" [max]="hexMaxStartRow()" step="1" [value]="hexStartRow()" (change)="onHexPositionChange($event)" aria-label="HEX file position" [title]="hexPositionLabel()" />
+            <input class="image-hex-position" type="range" min="0" [max]="hexMaxStartRow()" step="1" [value]="hexPositionSliderValue()" (input)="onHexPositionInput($event)" (change)="onHexPositionChange($event)" aria-label="HEX file position" [title]="hexPositionLabel()" />
           }
           @if (hexPositionLabel()) { <div class="image-hex-position-label">{{hexPositionLabel()}}</div> }
           @if (hexFilePath() && hexTotalRows() > 0) {
-            <div class="image-hex-cursor-offset" aria-live="polite">Cursor offset: <strong>{{formatHexOffset(hexCursorOffset())}}</strong></div>
+            <div class="image-hex-cursor-offset" aria-live="polite">Cursor offset: <strong>{{formatHexOffset(hexCursorOffset())}}</strong> <span class="image-hex-cursor-decimal">({{hexCursorOffset().toLocaleString()}} dec)</span></div>
           }
           @if (hexStatus()) {
             <div class="image-hex-status" role="status">{{hexStatus()}}</div>
@@ -214,7 +216,7 @@
               </table>
             </div>
           }
-          @if (hexLoading()) { <div class="image-hex-loading" aria-live="polite">Loading HEX data…</div> }
+          @if (hexLoading() && !hexRows().length) { <div class="image-hex-loading" aria-live="polite">Loading HEX data…</div> }
         </section>
       }
       @if (activeImageSidebarTab() === 'image' && activeImageSubTab() === 'cache') {
