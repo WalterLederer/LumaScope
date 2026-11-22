@@ -84,7 +84,7 @@ export class GalleryCacheBuild {
     // then hand control to the currently mounted Gallery instance.
     effect(() => {
       const current = this.controller();
-      if (!current || this.cacheRunActive()) return;
+      if (!current || current.cacheRunActive() || this.activity()?.active()) return;
 
       const pending = this.pendingController();
       if (pending) {
@@ -97,7 +97,7 @@ export class GalleryCacheBuild {
       }
 
       const ready = this.controller();
-      if (!ready || this.cacheRunActive() || this.pendingStarts.length === 0) return;
+      if (!ready || ready.cacheRunActive() || this.activity()?.active() || this.pendingStarts.length === 0) return;
       const next = this.pendingStarts.shift()!;
       this.queuedRequest.set(this.pendingStarts[0] ? { directory: this.pendingStarts[0].directory, recursive: this.pendingStarts[0].recursive } : null);
       void this.executeBuild(ready, next).catch(error =>
