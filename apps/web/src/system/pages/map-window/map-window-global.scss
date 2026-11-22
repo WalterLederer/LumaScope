@@ -1075,3 +1075,26 @@ app-map-window {
 .offline-actions-column-toggle:hover {
   background: var(--color-surface-default-high, #454b55);
 }
+
+/* Keep the Track Settings button and its preview on one horizontal line. */
+.map-window .gpx-file-row .gpx-track-preview-cell {
+  display: flex !important;
+  flex-flow: row nowrap !important;
+  align-items: center !important;
+  white-space: nowrap !important;
+  min-width: 0 !important;
+  overflow: hidden;
+}
+.map-window .gpx-file-row .gpx-track-preview-cell > .gpx-track-edit-button {
+  display: inline-flex !important;
+  flex: 0 0 28px !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  white-space: nowrap !important;
+}
+.map-window .gpx-file-row .gpx-track-preview-cell > app-gpx-track-preview {
+  display: block !important;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+}
+
