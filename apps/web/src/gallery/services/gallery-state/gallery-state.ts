@@ -251,7 +251,7 @@ export class GalleryState {
               sort: `${sortMode.sortBy} ${sortMode.sortDir}`,
               limit: this.galleryWindowSize
             });
-            return this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : ''));
+            return this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : ''), 'GalleryState.navigateTo');
           }).then(page => {
             console.info('[GalleryDB] DONE first page', {
               rows: page.files.length,
@@ -288,7 +288,7 @@ export class GalleryState {
     console.info('[GalleryDB] WAIT next page', { offset, limit: this.galleryPageSize });
     void this.cacheManager.getGalleryFilesPage(
       directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
-      sort.sortBy, sort.sortDir, offset, this.galleryPageSize, (this.nameFilterActive$.value ? this.nameFilter$.value : '')
+      sort.sortBy, sort.sortDir, offset, this.galleryPageSize, (this.nameFilterActive$.value ? this.nameFilter$.value : ''), 'GalleryState.loadNextPage'
     ).then(page => {
       console.info('[GalleryDB] DONE next page', { offset, rows: page.files.length });
       if (request !== this.navigationRequest || directory !== this.selectedLocation$.value) return;
@@ -326,7 +326,7 @@ export class GalleryState {
     this.galleryPageLoading = true;
     void this.cacheManager.getGalleryFilesPage(
       directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
-      sort.sortBy, sort.sortDir, offset, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : '')
+      sort.sortBy, sort.sortDir, offset, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : ''), 'GalleryState.refreshLoadedPages', 'GalleryState.loadGalleryWindow'
     ).then(page => {
       if (request !== this.navigationRequest || directory !== this.selectedLocation$.value) return;
       this.galleryWindowStart.set(offset);
