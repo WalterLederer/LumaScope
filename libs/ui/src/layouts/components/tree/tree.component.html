@@ -14,7 +14,8 @@
                     (pressed)="nodeSelected($event)"
                     (action)="action.emit($event)"
                     (move)="move.emit($event)"
-                    (hovered)="hovered.emit($event)" />
+                    (hovered)="hovered.emit($event)"
+                    (contextMenuRequested)="contextMenuRequested.emit($event)" />
       @if (node.children !== undefined && node.children.length > 0 && node.isOpen) {
         <div class="children-container" animate.enter="enter-animation" animate.leave="leave-animation">
           <div class="wrapper">
