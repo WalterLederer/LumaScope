@@ -8,8 +8,7 @@
 
 @if (activeImageSidebarTab() === 'cache') {
   <!-- Keep the Browse cache-build controller mounted even when no image is selected. -->
-  <app-gallery [showFolderTree]="false" [showImageGrid]="true" [style.display]="'none'" />
-}
+  }
 
 @if (browseWorkspaceInitialized()) {
 <div class="browse-workspace" [class.sidebar-left]="sidebarOnLeft()" [style.display]="activeImageSidebarTab() === 'gallery' ? 'grid' : 'none'" [style.--browse-sidebar-width.px]="controlsSidebarVisible() ? sidebarWidth() : 0" [style.grid-template-rows]="'minmax(0, 1fr)'" [style.width]="'100%'" [style.min-width]="'0'" [style.min-height]="'0'">
