@@ -148,6 +148,7 @@ const loadLeaflet = (document: Document): Promise<LeafletApi> => {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ImageView {
+  readonly formatNumber = formatNumber;
   /* DI */
   protected readonly viewNavigator = inject(ViewNavigator);
   private readonly imageFileActions = inject(ImageFileActions);
