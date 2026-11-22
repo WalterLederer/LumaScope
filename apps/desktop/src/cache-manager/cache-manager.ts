@@ -1852,17 +1852,20 @@ export class CacheManager {
       )`;
     const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `lower(photos.file_name) LIKE :extension${index}`).join(' OR ')})`;
     const normalizedNameFilter = typeof nameFilter === 'string' ? nameFilter.trim().toLocaleLowerCase() : '';
+    const nameFilterTerms = normalizedNameFilter.split(/\\s+/).filter(Boolean);
     const filterParams: Record<string, string | number> = {
-      folder, recursive: recursive ? 1 : 0, folderPrefix,
-      ...(normalizedNameFilter ? { nameFilter: normalizedNameFilter } : {})
+      folder, recursive: recursive ? 1 : 0, folderPrefix
     };
     if (!includeUnsupported) {
       supportedFileExtensions.forEach((extension, index) => { filterParams[`extension${index}`] = `%.${extension.toLowerCase()}`; });
     }
-    const nameFilterSql = normalizedNameFilter ? ' AND instr(lower(photos.file_name), :nameFilter) > 0' : '';
-    const where = scope + supportedFilter + nameFilterSql;
+    const nameFilterSql = nameFilterTerms.map((term, index) => {
+      filterParams[`nameFilter${index}`] = term;
+      return `instr(lower(photos.file_name), :nameFilter${index}) > 0`;
+    });
+    const where = scope + supportedFilter + (nameFilterSql.length ? ` AND (${nameFilterSql.join(' AND ')})` : '');
     // Counts are independent of sorting and are reused across page requests.
-    const countCacheKey = [databaseKey, folder.toLocaleLowerCase(), recursive ? '1' : '0', includeUnsupported ? '1' : '0', normalizedNameFilter].join('|');
+    const countCacheKey = [databaseKey, folder.toLocaleLowerCase(), recursive ? '1' : '0', includeUnsupported ? '1' : '0', ...nameFilterTerms].join('|');
     const countStartedAt = Date.now();
     let totalCount = this.galleryCountCache.get(countCacheKey);
     if (totalCount === undefined) {
