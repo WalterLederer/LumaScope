@@ -14,7 +14,7 @@ IContextMenu3* g_contextMenu3 = nullptr;
 LRESULT CALLBACK MenuOwnerProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
     if (g_contextMenu3) {
         LRESULT result = 0;
-        if (SUCCEEDED(g_contextMenu3->HandleMenuMsg2(message, wParam, lParam, &result))) return result;
+        if (g_contextMenu3->HandleMenuMsg2(message, wParam, lParam, &result) == S_OK) return result;
     }
     if (g_contextMenu2) {
         switch (message) {
@@ -22,7 +22,7 @@ LRESULT CALLBACK MenuOwnerProc(HWND window, UINT message, WPARAM wParam, LPARAM 
         case WM_DRAWITEM:
         case WM_MEASUREITEM:
         case WM_MENUCHAR:
-            if (SUCCEEDED(g_contextMenu2->HandleMenuMsg(message, wParam, lParam))) return 0;
+            if (g_contextMenu2->HandleMenuMsg(message, wParam, lParam) == S_OK) return 0;
             break;
         default:
             break;
