@@ -1592,13 +1592,13 @@ export class CacheManager {
         }>;
         for (const row of staleRows) {
           const sourceName = join(root, row.file_name);
-          const cachePaths: string[] = [];
-          if (row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR) {
-            cachePaths.push(this.getSidecarPath(sourceName, false));
-          }
-          if (row.fullsize_cache_id === CACHE_STORAGE_TYPE.SIDECAR) {
-            cachePaths.push(this.getSidecarPath(sourceName, true));
-          } else if (row.fullsize_cache_id === CACHE_STORAGE_TYPE.PARALLEL) {
+          // Check both sidecar names even if the DB reference was already
+          // cleared by an earlier scan; the physical files may still remain.
+          const cachePaths = [
+            this.getSidecarPath(sourceName, false),
+            this.getSidecarPath(sourceName, true)
+          ];
+          if (row.fullsize_cache_id === CACHE_STORAGE_TYPE.PARALLEL) {
             cachePaths.push(this.getParallelPath(sourceName));
           }
           for (const cachePath of cachePaths) {
@@ -1611,6 +1611,39 @@ export class CacheManager {
             } catch { /* Missing or inaccessible cache file; preserve scan completion. */ }
           }
         }
+
+        // A previous ordinary scan may already have removed the photo row while
+        // leaving its sidecar behind. Reconcile the .cache directory against all
+        // files seen in this scan so those unreferenced sidecars are removed too.
+        const expectedSidecars = new Set<string>();
+        const seenFiles = db.prepare('SELECT file_name FROM temp.lumascope_seen_gallery_files')
+          .all() as Array<{ file_name: string }>;
+        for (const file of seenFiles) {
+          const extension = extname(file.file_name).slice(1).toLowerCase();
+          if (!extension) continue;
+          const base = basename(file.file_name, extname(file.file_name));
+          expectedSidecars.add(`${base}_${extension}_thumb.jpg`.toLowerCase());
+          expectedSidecars.add(`${base}_${extension}.jpg`.toLowerCase());
+        }
+        const cacheDirectory = join(root, '.cache');
+        try {
+          const cacheEntries = await readdir(cacheDirectory, { withFileTypes: true });
+          const cacheExtensions = supportedFileExtensions.map(extension => extension.toLowerCase().replace(/^\\./, ''));
+          for (const entry of cacheEntries) {
+            if (!entry.isFile()) continue;
+            const cacheName = entry.name.toLowerCase();
+            const isLumaScopeSidecar = cacheExtensions.some(extension =>
+              cacheName.endsWith(`_${extension}_thumb.jpg`) || cacheName.endsWith(`_${extension}.jpg`));
+            if (!isLumaScopeSidecar || expectedSidecars.has(cacheName)) continue;
+            const cachePath = join(cacheDirectory, entry.name);
+            try {
+              const info = await stat(cachePath);
+              await rm(cachePath, { force: true });
+              removedCacheFiles++;
+              removedCacheBytes += info.size;
+            } catch { /* Ignore sidecars that disappear during verification. */ }
+          }
+        } catch { /* The folder has no sidecar cache directory. */ }
       }
       db.exec('BEGIN IMMEDIATE;');
       try {
