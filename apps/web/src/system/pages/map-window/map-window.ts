@@ -889,6 +889,13 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly autoFixLogMenuOpen = signal(false);
   protected readonly gpxRowActionMenuOpen = signal<string | null>(null);
   protected readonly actionsColumnPosition = signal<'left' | 'right'>('left');
+  protected readonly gpxHeaderActionMenuOpen = signal(false);
+  protected readonly gpxHeaderActionMenuPosition = signal({ top: 8, left: 8 });
+  protected readonly toggleGpxHeaderActionMenu = (event: MouseEvent): void => {
+    if (this.gpxHeaderActionMenuOpen()) { this.gpxHeaderActionMenuOpen.set(false); return; }
+    this.gpxHeaderActionMenuPosition.set(this.getRowActionMenuPosition(event, 230, 52, true));
+    this.gpxHeaderActionMenuOpen.set(true);
+  };
   protected readonly toggleActionsColumnPosition = (): void => this.actionsColumnPosition.update(position => position === 'left' ? 'right' : 'left');
   protected readonly gpxRowActionTrack = signal<GpxTrackFile | null>(null);
   protected readonly gpxRowActionMenuPosition = signal({ top: 8, left: 8 });
@@ -1523,6 +1530,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.routePointActionMenuOpen.set(null);
     this.gpxRowActionMenuOpen.set(null);
     this.gpxRowActionTrack.set(null);
+    this.gpxHeaderActionMenuOpen.set(false);
     this.offlineRowActionMenuOpen.set(null);
     this.colorMenuOpen.set(false);
     this.markerColorMenuOpen.set(false);
