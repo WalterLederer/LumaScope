@@ -38,6 +38,7 @@
 
 @if (activeImageSidebarTab() !== 'gallery') {
   @if (selected !== null) {
+  @if (isSelectedFilePreviewSupported()) {
   <app-image-renderer [url]="selected.url"
                       [style.margin-right.px]="!fullScreen && controlsSidebarVisible() && !sidebarOnLeft() ? sidebarWidth() + 16 : 0"
                       [style.margin-left.px]="!fullScreen && controlsSidebarVisible() && sidebarOnLeft() ? sidebarWidth() + 16 : 0"
@@ -61,6 +62,20 @@
                       (wheel)="onMouseWheel($event)"
                       (mousemove)="onLoupeMouseMove($event)"
                       (mouseleave)="onLoupeMouseLeave()" />
+  } @else {
+    <div class="unsupported-file-preview"
+         [style.margin-right.px]="!fullScreen && controlsSidebarVisible() && !sidebarOnLeft() ? sidebarWidth() + 16 : 0"
+         [style.margin-left.px]="!fullScreen && controlsSidebarVisible() && sidebarOnLeft() ? sidebarWidth() + 16 : 0"
+         role="status" aria-live="polite">
+      @if (selectedFileTypeIcon(); as icon) {
+        <img class="unsupported-file-type-icon" [src]="icon" [alt]="selectedFileExtension().toUpperCase() + ' file'" />
+      } @else {
+        <span class="unsupported-file-type-fallback" aria-hidden="true">▧</span>
+      }
+      <div class="unsupported-file-preview-title">{{ selectedFileExtension() ? selectedFileExtension().toUpperCase() + ' file' : 'Unsupported file type' }}</div>
+      <div class="unsupported-file-preview-message">Image preview is not available for this file type. Use the Hex tab to inspect the file contents.</div>
+    </div>
+  }
 
   @if (hdrImageAdjustmentActive()) {
     <canvas class="hdr-image-adjustment-canvas"
