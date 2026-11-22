@@ -10,6 +10,7 @@ import { ThemeService } from '../../services/theme/theme.service';
 import { Configuration } from '../../services/configuration/configuration';
 import { take } from 'rxjs';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
+import { formatNumber } from '../../../ui/utils/format-number';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
 import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, setOfflineRenderConcurrency, runOfflineRenderTask, subscribeOfflineRenderStatus, type OfflineRenderTaskStatus, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
@@ -1206,7 +1207,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     try {
       const result = await this.desktop.CacheManager.exportGpxTrackFromMemory(track.name, segments.map(segment => segment.map(point => ({ latitude: point.latitude, longitude: point.longitude, elevation: point.elevation, timestamp: point.timestamp }))));
-      if (!result.cancelled && result.path) this.gpxDatabaseQueryStatus.set('Exported ' + result.points.toLocaleString() + ' points (' + result.elevationPoints.toLocaleString() + ' elevation values) to ' + result.path);
+      if (!result.cancelled && result.path) this.gpxDatabaseQueryStatus.set('Exported ' + formatNumber(result.points) + ' points (' + formatNumber(result.elevationPoints) + ' elevation values) to ' + result.path);
     } catch (error) { this.gpxError.set(error instanceof Error ? error.message : String(error)); }
   };
   protected readonly toggleGpxRowActionMenu = (track: GpxTrackFile, event: MouseEvent): void => {
@@ -1224,7 +1225,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const result = await this.desktop.CacheManager.deleteGpxDatabaseEntriesForFile(sourcePath, databaseKey);
       this.gpxDatabaseQueryStatus.set(result.deleted
-        ? `Deleted records for ${track.name}: ${result.files} file, ${result.segments.toLocaleString()} segments and ${result.points.toLocaleString()} points.`
+        ? `Deleted records for ${track.name}: ${formatNumber(result.files)} file, ${formatNumber(result.segments)} segments and ${formatNumber(result.points)} points.`
         : `No database records were found for ${track.name}.`);
       if (result.deleted && this.gpxTracks().at(-1)?.path === track.path) await this.refreshLatestGpxElevationProfile();
     } catch (error) {
@@ -1243,7 +1244,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const result = await this.desktop.CacheManager.exportGpxFileFromDatabase(sourcePath, databaseKey);
       if (!result.cancelled && result.path) {
-        this.gpxDatabaseQueryStatus.set(`Exported ${result.points.toLocaleString()} points (${result.elevationPoints.toLocaleString()} elevation values) to ${result.path}`);
+        this.gpxDatabaseQueryStatus.set(`Exported ${formatNumber(result.points)} points (${formatNumber(result.elevationPoints)} elevation values) to ${result.path}`);
       }
     } catch (error) {
       this.gpxError.set(error instanceof Error ? error.message : String(error));
@@ -2166,7 +2167,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
-  protected readonly formatAutoFixCount = (value: number): string => value.toLocaleString('en-US').replace(/,/g, ' ');
+  protected readonly formatAutoFixCount = (value: number): string => formatNumber(value);
 
   protected readonly setAutoFixMaxDifference = (value: string): void => {
     this.autoFixMaxDifferenceMinutes.set(value.trim() === '' ? 0 : Number(value));
@@ -4298,7 +4299,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const result = await this.desktop.CacheManager.clearAllGpxDatabaseEntries();
       this.gpxDatabaseClearStatus.set(
-        `Deleted ${result.files.toLocaleString(this.locale)} GPX file(s), ${result.segments.toLocaleString(this.locale)} segment(s) and ${result.points.toLocaleString(this.locale)} point(s) from ${result.databases.toLocaleString(this.locale)} cache database(s).`
+        `Deleted ${result.files.toLocaleString(this.locale)} GPX file(s), ${formatNumber(result.segments)} segment(s) and ${formatNumber(result.points)} point(s) from ${formatNumber(result.databases)} cache database(s).`
       );
       this.gpxElevationProfileRequestId++;
       this.gpxElevationProfiles.set([]);
@@ -4324,7 +4325,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop || this.osmAndTileCacheBusy()) return;
     const current = this.osmAndTileCache();
     const confirmed = window.confirm(
-      `Clear the OsmAnd tile cache?\n\n${current.entries.toLocaleString(this.locale)} PNG tiles (about ${this.formatOfflineMapSize(current.bytes)}) will be deleted from:\n${current.path}\n\nThe tiles will be rendered again when needed.`
+      `Clear the OsmAnd tile cache?\n\n${formatNumber(current.entries)} PNG tiles (about ${this.formatOfflineMapSize(current.bytes)}) will be deleted from:\n${current.path}\n\nThe tiles will be rendered again when needed.`
     );
     if (!confirmed) return;
 
@@ -4333,7 +4334,7 @@ export class MapWindow implements OnInit, OnDestroy {
     try {
       const result = await this.desktop.CacheManager.clearOsmAndTileCache();
       await this.refreshOsmAndTileCache();
-      this.osmAndTileCacheStatus.set(`Cleared ${result.entries.toLocaleString(this.locale)} tile(s) · ${this.formatOfflineMapSize(result.bytes)} freed.`);
+      this.osmAndTileCacheStatus.set(`Cleared ${formatNumber(result.entries)} tile(s) · ${this.formatOfflineMapSize(result.bytes)} freed.`);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.osmAndTileCacheStatus.set('Clear cache failed: ' + message);
@@ -5363,7 +5364,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.applyGpxTrack();
       const matchingPoints = results.reduce((total, file) => total + file.matchingPoints, 0);
       this.gpxDatabaseQueryStatus.set(results.length
-        ? results.length + ' file(s), ' + matchingPoints.toLocaleString() + ' point(s) in the current map viewport.'
+        ? results.length + ' file(s), ' + formatNumber(matchingPoints) + ' point(s) in the current map viewport.'
         : 'No GPX track points found in the current map viewport.');
     } catch (error) {
       if (queryGeneration === this.gpxDatabaseQueryGeneration) this.gpxDatabaseQueryStatus.set(error instanceof Error ? error.message : String(error));
