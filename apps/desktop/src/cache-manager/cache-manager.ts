@@ -42,6 +42,12 @@ const getThumbnailCacheVersion = (sourceName: string): number => {
 const FULL_SIZE_EXTENSIONS = new Set([ '.jxr', '.avif', '.heif', '.heic', '.exr', '.hdr', '.tif', '.tiff', '.dng', '.rw2', '.raw', '.ohsp' ]);
 const CHROMIUM_NATIVE_IMAGE_EXTENSIONS = new Set([ '.jpg', '.jpeg', '.jpe', '.png', '.gif', '.webp', '.bmp', '.svg', '.avif' ]);
 const DIRECT_IMAGE_MAX_DIMENSION = 1024;
+let sqlLogSequence = 0;
+const sqlLogTimestamp = (): string => {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`;
+};
+const nextSqlLogId = (): number => ++sqlLogSequence;
 
 export interface CacheSummary {
   total: CacheClearResult;
@@ -1883,11 +1889,14 @@ export class CacheManager {
     const where = scope + supportedFilter + (nameFilterSql.length ? ` AND (${nameFilterSql.join(' AND ')})` : '');
     // Counts are independent of sorting and are reused across page requests.
     const countCacheKey = [databaseKey, folder.toLocaleLowerCase(), recursive ? '1' : '0', includeUnsupported ? '1' : '0', ...nameFilterTerms].join('|');
-    const countStartedAt = Date.now();
     let totalCount = this.galleryCountCache.get(countCacheKey);
     if (totalCount === undefined) {
+      const countStartedAt = Date.now();
+      const countLogId = nextSqlLogId();
+      console.info(`[SQL] ${sqlLogTimestamp()} START #${countLogId} COUNT | folder=${directory} | recursive=${recursive} | unsupported=${includeUnsupported}`);
       const totalCountRow = db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number };
       totalCount = Number(totalCountRow.totalCount) || 0;
+      console.info(`[SQL] ${sqlLogTimestamp()} END   #${countLogId} COUNT | ${Date.now() - countStartedAt}ms | total=${totalCount}`);
       this.galleryCountCache.set(countCacheKey, totalCount);
       // Keep searches typed character by character from growing this cache indefinitely.
       if (this.galleryCountCache.size > 100) {
@@ -1913,37 +1922,18 @@ export class CacheManager {
       LIMIT :limit OFFSET :offset`;
     const queryParameters = { ...filterParams, limit: safeLimit, offset: safeOffset };
     const queryStartedAt = Date.now();
-    console.info('[GalleryDB] QUERY getGalleryFilesPage', {
-      directory,
-      recursive,
-      includeUnsupported,
-      sort: `${sortBy} ${sortDir}`,
-      limit: safeLimit,
-      offset: safeOffset,
-      sql
-    });
+    const queryLogId = nextSqlLogId();
+    console.info(`[SQL] ${sqlLogTimestamp()} START #${queryLogId} getGalleryFilesPage | folder=${directory} | recursive=${recursive} | unsupported=${includeUnsupported} | sort=${sortBy} ${sortDir} | offset=${safeOffset} | limit=${safeLimit}${nameFilterTerms.length ? ` | terms=${nameFilterTerms.join(' ')}` : ''}`);
     const rows = db.prepare(sql).all(queryParameters) as Array<{
       file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
     }>;
-    console.info('[GalleryDB] QUERY END getGalleryFilesPage', {
-      database: databaseKey,
-      directory,
-      offset: safeOffset,
-      limit: safeLimit,
-      rows: rows.length,
-      durationMs: Date.now() - queryStartedAt
-    });
+    console.info(`[SQL] ${sqlLogTimestamp()} END   #${queryLogId} getGalleryFilesPage | ${Date.now() - queryStartedAt}ms | rows=${rows.length}`);
     const files = rows.map(row => {
       const parent = this.resolveStoredFolderPath(row.relative_folder_path, databaseKey);
       return {
         path: join(parent, row.file_name), name: row.file_name, parent, isDirectory: false,
         ext: extname(row.file_name), createdAt: row.modified_at, size: row.file_size, modifiedAt: row.modified_at
       } satisfies FileInfo;
-    });
-    console.info('[GalleryDB] COUNT END getGalleryFilesPage', {
-      directory,
-      totalCount,
-      durationMs: Date.now() - countStartedAt
     });
     return { files, totalCount, offset: safeOffset, limit: safeLimit };
   };
@@ -2047,22 +2037,12 @@ export class CacheManager {
       WHERE paths.relative_folder_path = :folder COLLATE NOCASE
         AND photos.file_name COLLATE NOCASE IN (${nameParameters})`;
     const queryStartedAt = Date.now();
-    console.info('[GalleryDB] QUERY getDirectoryCacheStats', {
-      folder,
-      fileCount: requestedNames.length,
-      verifyCacheFiles,
-      sql
-    });
+    const queryLogId = nextSqlLogId();
+    console.info(`[SQL] ${sqlLogTimestamp()} START #${queryLogId} getDirectoryCacheStats | folder=${folder} | files=${requestedNames.length} | verify=${verifyCacheFiles}`);
     const matching = db.prepare(sql).all(parameters) as unknown as Array<PhotoRow & {
       relative_folder_path: string; location_display_name: string | null
     }>;
-    console.info('[GalleryDB] QUERY END getDirectoryCacheStats', {
-      database: databaseKey,
-      folder,
-      requestedFiles: requestedNames.length,
-      matchedRows: matching.length,
-      durationMs: Date.now() - queryStartedAt
-    });
+    console.info(`[SQL] ${sqlLogTimestamp()} END   #${queryLogId} getDirectoryCacheStats | ${Date.now() - queryStartedAt}ms | matched=${matching.length}`);
     const fullSizeConversionTotal = matching.filter(row => FULL_SIZE_EXTENSIONS.has(extname(row.file_name).toLowerCase())).length;
     const gps = matching.filter(row => row.latitude !== null && row.longitude !== null).length;
     const hdr = matching.filter(row => row.is_hdr === 1).length;
