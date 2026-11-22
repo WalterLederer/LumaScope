@@ -87,11 +87,8 @@
     <span class="gallery-loading-spinner" aria-hidden="true"></span>
     @if (cacheRunActive()) {
       <span>{{ cacheRunCurrentOperation() || 'Indexing folder contents…' }}</span>
-      @if (cacheRunDirectory()) {
-        <span class="gallery-loading-folder">Cache and thumbnails: {{ cacheRunDirectory() }}</span>
-      }
       <div class="gallery-cache-folder-action" aria-live="polite">
-        <span class="gallery-cache-folder-action-label">Cache folder action is running</span>
+        <span class="gallery-cache-folder-action-label">Cache folder action@if (cacheRunDirectory()) { for {{ cacheRunDirectory() }} } is running</span>
         <span class="gallery-cache-folder-action-count">{{ cacheRunProgress().completed.toLocaleString() }} / {{ cacheRunProgress().total.toLocaleString() }}</span>
         <button type="button" class="gallery-cache-folder-action-stop" (click)="cancelCacheRun()" aria-label="Stop cache folder action" title="Stop cache folder action">Stop</button>
       </div>
