@@ -228,6 +228,15 @@ html body app-image-grid .thumbnail-size-control > label.thumbnail-name-filter:n
   box-shadow: none !important;
 }
 
+/* The two hamburger header cells have their own opaque base-surface rule.
+   During cache activity, keep both header tiers in the same running tint as
+   the remaining column headings. */
+html body app-images .detail-native-table > thead > tr.detail-header.cache-build-active > th:is(.detail-actions-heading, .detail-actions-statistics) {
+  background: color-mix(in srgb, var(--color-surface-default-low, #fff) 86%, #dc4141 14%) !important;
+  background-color: color-mix(in srgb, var(--color-surface-default-low, #fff) 86%, #dc4141 14%) !important;
+  background-image: none !important;
+}
+
 /* Filtered detail rows are thumbnail-component hosts (native <tr> elements).
    Paint their cells globally so component view encapsulation and table-cell
    backgrounds cannot hide the configured filtered-row color. */
