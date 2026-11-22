@@ -888,7 +888,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTrackColorMenuPosition = signal({ top: 8, left: 8 });
   protected readonly autoFixLogMenuOpen = signal(false);
   protected readonly gpxRowActionMenuOpen = signal<string | null>(null);
-  protected readonly actionsColumnPosition = signal<'left' | 'right'>('left');
+  protected readonly gpxActionsColumnPosition = signal<'left' | 'right'>('left');
+  protected readonly offlineActionsColumnPosition = signal<'left' | 'right'>('left');
   protected readonly gpxHeaderActionMenuOpen = signal(false);
   protected readonly gpxHeaderActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly toggleGpxHeaderActionMenu = (event: MouseEvent): void => {
@@ -896,7 +897,16 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxHeaderActionMenuPosition.set(this.getRowActionMenuPosition(event, 230, 52, true));
     this.gpxHeaderActionMenuOpen.set(true);
   };
-  protected readonly toggleActionsColumnPosition = (): void => this.actionsColumnPosition.update(position => position === 'left' ? 'right' : 'left');
+  protected readonly toggleGpxActionsColumnPosition = (): void => {
+    const next = this.gpxActionsColumnPosition() === 'left' ? 'right' : 'left';
+    this.gpxActionsColumnPosition.set(next);
+    this.configuration.updateSystemConfig({ gpxTrackActionsColumnPosition: next });
+  };
+  protected readonly toggleOfflineActionsColumnPosition = (): void => {
+    const next = this.offlineActionsColumnPosition() === 'left' ? 'right' : 'left';
+    this.offlineActionsColumnPosition.set(next);
+    this.configuration.updateSystemConfig({ offlineFilesActionsColumnPosition: next });
+  };
   protected readonly gpxRowActionTrack = signal<GpxTrackFile | null>(null);
   protected readonly gpxRowActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly gpxTrackSettingsTrack = signal<GpxTrackFile | null>(null);
@@ -1650,6 +1660,10 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.configuration.config().pipe(take(1)).subscribe(config => {
+      this.gpxActionsColumnPosition.set(config.system.gpxTrackActionsColumnPosition === 'right' ? 'right' : 'left');
+      this.offlineActionsColumnPosition.set(config.system.offlineFilesActionsColumnPosition === 'right' ? 'right' : 'left');
+    });
     const favoriteLocationsSubscription = this.galleryLocations.locations().subscribe(locations => {
       const keys = [...new Set(locations.map(path => path.slice(0, 2).toUpperCase()).filter(key => /^[A-Z]:$/.test(key)))].sort();
       this.favoriteGpxDatabaseKeys.set(keys);
