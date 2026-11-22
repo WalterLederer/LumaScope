@@ -1,4 +1,4 @@
-import { app, BrowserWindow, IpcMainInvokeEvent, shell } from 'electron';
+import { app, BrowserWindow, IpcMainInvokeEvent, screen, shell } from 'electron';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { ProcessMemorySnapshot, SystemPathMapping, formatOsDateTime } from 'internal-api';
@@ -254,6 +254,30 @@ export class ProcessManager {
 
   @IpcHandler({ name: 'ProcessManager.openPath' })
   readonly openPath = async (_: IpcMainInvokeEvent, filePath: string): Promise<string> => shell.openPath(filePath);
+
+  @IpcHandler({ name: 'ProcessManager.showWindowsContextMenu' })
+  readonly showWindowsContextMenu = async (_: IpcMainInvokeEvent, filePath: string, screenX: number, screenY: number): Promise<void> => {
+    if (process.platform !== 'win32') throw new Error('The Windows Shell context menu is only available on Windows.');
+    if (typeof filePath !== 'string' || !filePath.trim()) throw new Error('A file path is required.');
+    if (!Number.isFinite(screenX) || !Number.isFinite(screenY)) throw new Error('A valid screen position is required.');
+
+    const file = await stat(filePath);
+    if (!file.isFile()) throw new Error('The Windows Shell context menu can only be opened for files.');
+
+    const helperName = 'lumascope_windows_shell_context_menu.exe';
+    const helperPath = app.isPackaged
+      ? join(process.resourcesPath, 'windows-shell-context-menu', helperName)
+      : join(process.cwd(), 'tools', 'windows-shell-context-menu', 'stage', helperName);
+    if (!existsSync(helperPath)) {
+      throw new Error('The Windows Shell context-menu helper is missing. Run tools/windows-shell-context-menu/build.ps1 first.');
+    }
+
+    const point = screen.dipToScreenPoint({ x: Math.round(screenX), y: Math.round(screenY) });
+    await execFileAsync(helperPath, [filePath, String(point.x), String(point.y)], {
+      windowsHide: true,
+      maxBuffer: 1024 * 1024
+    });
+  };
 
   @IpcHandler({ name: 'ProcessManager.openWith' })
   readonly openWith = async (_: IpcMainInvokeEvent, filePath: string): Promise<void> => {
