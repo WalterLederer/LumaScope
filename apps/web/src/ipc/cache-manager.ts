@@ -135,6 +135,9 @@ export class CacheManager implements DesktopCacheManager {
   readonly onGalleryFilesChanged = (callback: (directory: string) => void): (() => void) =>
     window.desktop.CacheManager.onGalleryFilesChanged(callback);
 
+  readonly getGalleryCacheStats = (directory: string, recursive = false, includeUnsupported = false, nameFilter = '', sourceId = 'ImageGrid.refreshDirectoryCacheStats'): Promise<CacheDirectoryStats> =>
+    window.desktop.CacheManager.getGalleryCacheStats(directory, recursive, includeUnsupported, nameFilter, sourceId);
+
   readonly getDirectoryCacheStats = (sourceNames: string[], verifyCacheFiles = false, sourceId = 'ImageGrid'): Promise<CacheDirectoryStats> =>
     window.desktop.CacheManager.getDirectoryCacheStats(sourceNames, verifyCacheFiles, sourceId);
 
