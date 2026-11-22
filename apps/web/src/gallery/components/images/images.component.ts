@@ -203,6 +203,7 @@ export class ImagesComponent {
   readonly detailFontSizeChanged = output<number>();
   readonly selectedImagePath = input<string | null>(null);
   readonly activeSelectionPath = signal<string | null>(null);
+  readonly activeSelectionChanged = output<string | null>();
   readonly cacheStats = input<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, fullSizeConversionTotal: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
   readonly folderPath = input<string | null>(null);
   readonly includeUnsupportedFiles = input(false);
@@ -1687,6 +1688,12 @@ export class ImagesComponent {
       queueMicrotask(() => {
         this.setupObserver();
       });
+    });
+
+    effect(() => {
+      const path = this.activeSelectionPath();
+      const images = this.displayedImages();
+      this.activeSelectionChanged.emit(path && images.some(image => image.path === path) ? path : null);
     });
 
     effect(() => {
