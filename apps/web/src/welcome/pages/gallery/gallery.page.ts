@@ -196,7 +196,10 @@ export class GalleryPage {
         // The restored favorite folder must receive the same automatic cache build
         // as a folder selected manually. The service queues this until ImageGrid
         // has registered its cache-build controller after the first render.
-        void this.galleryCacheBuild.startCacheBuild(location, true).catch(error => {
+        const startCacheBuild = this.galleryState.includeFilesRecursiveValue()
+          ? this.galleryCacheBuild.startRecursiveCacheBuild(location, true)
+          : this.galleryCacheBuild.startCacheBuild(location, true);
+        void startCacheBuild.catch(error => {
           const message = error instanceof Error ? error.message : String(error);
           this.galleryLocationError.set(`Cache folder action failed: ${message}`);
         });
