@@ -34,6 +34,7 @@ import { GalleryState } from '../../../gallery/services/gallery-state/gallery-st
 import { GalleryPage } from '../../../welcome/pages/gallery/gallery.page';
 import { MarkdownViewerComponent } from '../../../ui/components/markdown-viewer/markdown-viewer.component';
 import { RendererMemoryPanelComponent } from '../../../system/components/renderer-memory-panel/renderer-memory-panel.component';
+import { getCachedFileTypeIcon } from '../../../ui/utils/file-type-icon-cache';
 
 const HDR_WEBGPU_BRIGHTNESS_CORRECTION = 0.4;
 
@@ -395,10 +396,12 @@ export class ImageView {
     }
     let cancelled = false;
     onCleanup(() => { cancelled = true; });
-    void this.processManager.getFileTypeIcon(image.path).then(icon => {
+    void getCachedFileTypeIcon(
+      image.path,
+      this.selectedFileExtension(),
+      path => this.processManager.getFileTypeIcon(path)
+    ).then(icon => {
       if (!cancelled) this.selectedFileTypeIcon.set(icon);
-    }).catch(() => {
-      if (!cancelled) this.selectedFileTypeIcon.set(null);
     });
   });
 
