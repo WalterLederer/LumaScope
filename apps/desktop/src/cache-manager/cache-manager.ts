@@ -1499,7 +1499,8 @@ export class CacheManager {
   readonly scanGalleryDirectory = async (
     _event: IpcMainInvokeEvent,
     directory: string,
-    verifyCacheFiles = false
+    verifyCacheFiles = false,
+    notifyChanges = true
   ): Promise<{ files: number; directories: string[]; removedStale: number; removedCacheFiles: number; removedCacheBytes: number; complete: boolean }> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
     const scanStartedAt = performance.now();
@@ -1700,8 +1701,17 @@ export class CacheManager {
     cleanupDurationMs = performance.now() - cleanupStartedAt;
     const totalDurationMs = performance.now() - scanStartedAt;
     console.info(`[CACHE-SCAN] folder=${root} entries=${entryCount} files=${files} directories=${directories.length} statCalls=${statCalls} statErrors=${statErrors} batches=${batchCount} directoryReadMs=${directoryReadDurationMs.toFixed(1)} statMs=${statDurationMs.toFixed(1)} sqliteMs=${sqliteDurationMs.toFixed(1)} cleanupMs=${cleanupDurationMs.toFixed(1)} totalMs=${totalDurationMs.toFixed(1)} complete=${scanComplete}`);
-    this.notifyGalleryFilesChanged(root);
+    if (notifyChanges) this.notifyGalleryFilesChanged(root);
     return { files, directories, removedStale, removedCacheFiles, removedCacheBytes, complete: scanComplete };
+  };
+
+  @IpcHandler({ name: 'CacheManager.notifyGalleryFilesChanged' })
+  readonly notifyGalleryFilesChangedHandler = async (
+    _event: IpcMainInvokeEvent,
+    directory: string
+  ): Promise<void> => {
+    if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
+    this.notifyGalleryFilesChanged(resolve(directory));
   };
 
   @IpcHandler({ name: 'CacheManager.registerGalleryFiles' })
