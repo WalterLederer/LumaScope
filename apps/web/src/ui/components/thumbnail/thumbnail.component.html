@@ -72,7 +72,7 @@
         </div>
       }
       @if (!loading && !error) {
-        <button [title]="thumbnailError() ? image().name + ' — ' + thumbnailError() : image().name"
+        <button class="thumbnail-image-button" [title]="thumbnailError() ? image().name + ' — ' + thumbnailError() : image().name"
                 (click)="$event.stopPropagation(); clicked.emit(image())">
           <img loading="lazy" [alt]="image().name" [src]="url()" style="dynamic-range-limit: no-limit" />
         </button>
