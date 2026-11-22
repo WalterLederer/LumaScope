@@ -219,16 +219,12 @@ html body app-image-grid .thumbnail-size-control.name-filter-active > label.thum
   padding: 4px 7px !important;
   margin-top: -4px !important;
   margin-bottom: -4px !important;
-  border-radius: var(--lumascope-surface-radius) !important;
-  box-shadow: var(--lumascope-surface-shadow) !important;
   background: var(--detail-filtered-row-color, #e8f1fb) !important;
   background-color: var(--detail-filtered-row-color, #e8f1fb) !important;
 }
 html body app-image-grid .thumbnail-size-control:not(.name-filter-active) > label.thumbnail-name-filter {
   background: #fff !important;
   background-color: #fff !important;
-  border-radius: var(--lumascope-surface-radius) !important;
-  box-shadow: var(--lumascope-surface-shadow) !important;
 }
 
 /* The two hamburger header cells have their own opaque base-surface rule.
