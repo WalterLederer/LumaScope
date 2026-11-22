@@ -897,7 +897,7 @@ export class ImagesComponent {
       await this.cacheManager.appendBuildLog('Cache build started: ' + formatOsDateTime(new Date()));
       await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
       this.cacheRunCurrentOperation.set(`Scanning folder and updating photo database: ${folder}`);
-      const scan = await this.cacheManager.scanGalleryDirectory(folder);
+      const scan = await this.cacheManager.scanGalleryDirectory(folder, this.verifyCacheFiles());
       // The scan has now registered the folder's files in SQLite. Refresh the
       // visible gallery immediately, before potentially lengthy thumbnail and
       // full-size conversions start, so a previously unindexed favorite folder
@@ -1152,7 +1152,7 @@ export class ImagesComponent {
         this.cacheRunCurrentOperation.set(`Scanning folder and updating photo database: ${directoryPath}`);
         let scan: { files: number; directories: string[]; removedStale: number; complete: boolean };
         try {
-          scan = await this.cacheManager.scanGalleryDirectory(directoryPath);
+          scan = await this.cacheManager.scanGalleryDirectory(directoryPath, this.verifyCacheFiles());
         } catch (error) {
           enumerationComplete = false;
           console.warn('Failed to index gallery folder', directoryPath, error);
