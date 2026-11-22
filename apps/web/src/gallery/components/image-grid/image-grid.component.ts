@@ -3,7 +3,7 @@ import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { distinctUntilChanged, fromEvent, map } from 'rxjs';
+import { distinctUntilChanged, firstValueFrom, fromEvent, map } from 'rxjs';
 import {
   ActionButtonComponent,
   IconComponent,
@@ -570,7 +570,15 @@ export class ImageGridComponent {
         cacheRunProgress: images.cacheRunProgress,
         cacheRunCurrentOperation: images.cacheRunCurrentOperation,
         start: (directory, importGpx) => images.cacheAllImages(directory, importGpx),
-        startRecursive: (directory, importGpx) => images.cacheAllImagesRecursive(directory, importGpx),
+        startRecursive: async (directory, importGpx) => {
+          await images.cacheAllImagesRecursive(directory, importGpx);
+          // Recursive indexing writes files folder by folder. Do one definitive
+          // reload after the scan so the list cannot remain stuck on the empty
+          // first page if an intermediate change notification was missed.
+          if (this.selectedLocation() === directory) {
+            await firstValueFrom(this.galleryState.navigateTo(directory, false));
+          }
+        },
         cancel: () => images.cancelCacheRun(),
         refreshDetailCacheStatus: () => {
           if (this.viewMode() === 'details') images.refreshGallery();
