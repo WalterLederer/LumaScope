@@ -125,7 +125,7 @@ int Run(const std::wstring& filePath, int x, int y) {
     constexpr UINT lastCommand = 0x7FFF;
     result = contextMenu->QueryContextMenu(menu, 0, firstCommand, lastCommand, CMF_NORMAL);
     if (FAILED(result)) {
-        fwprintf(stderr, L"[LumaScope] IContextMenu::QueryContextMenu failed: HRESULT=0x%08lX\\n",
+        fwprintf(stderr, L"[LumaScope] IContextMenu::QueryContextMenu failed: HRESULT=0x%08lX\n",
             static_cast<unsigned long>(result));
     }
     if (SUCCEEDED(result)) {
@@ -160,7 +160,7 @@ int Run(const std::wstring& filePath, int x, int y) {
             const HRESULT invokeResult =
                 contextMenu->InvokeCommand(reinterpret_cast<LPCMINVOKECOMMANDINFO>(&invoke));
             if (FAILED(invokeResult)) {
-                fwprintf(stderr, L"[LumaScope] IContextMenu::InvokeCommand failed: HRESULT=0x%08lX, verb=%ls\\n",
+                fwprintf(stderr, L"[LumaScope] IContextMenu::InvokeCommand failed: HRESULT=0x%08lX, verb=%ls\n",
                     static_cast<unsigned long>(invokeResult), hasCanonicalVerb ? canonicalVerb : L"<numeric-command>");
                 DestroyMenu(menu);
                 if (g_contextMenu3) { g_contextMenu3->Release(); g_contextMenu3 = nullptr; }
