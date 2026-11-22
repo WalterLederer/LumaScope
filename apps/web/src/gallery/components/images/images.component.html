@@ -1,7 +1,9 @@
 @let imageList = images();
 
 @if (imageList === null || imageList.length === 0) {
-  <p>No images found in this folder.</p>
+  @if (!loading()) {
+    <p>{{ includeFilesRecursive() ? 'No images found in this folder and subfolders.' : 'No images found in this folder.' }}</p>
+  }
 } @else if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
   <div class="detail-table" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
     <table class="detail-native-table" [class.actions-column-right]="detailActionsColumnPosition() === 'right'" aria-label="Image details"
