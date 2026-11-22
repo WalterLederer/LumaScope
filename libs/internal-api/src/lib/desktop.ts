@@ -41,6 +41,7 @@ export interface DesktopProcessManager {
   readonly openConfigFile: () => Promise<string>;
   readonly openPath: (filePath: string) => Promise<string>;
   readonly openWith: (filePath: string) => Promise<void>;
+  readonly showWindowsContextMenu: (filePath: string, screenX: number, screenY: number) => Promise<void>;
   readonly openExternal: (url: string) => Promise<void>;
   readonly quit: (code: number) => Promise<void>;
   readonly setWindowTitle: (title: string) => Promise<void>;
