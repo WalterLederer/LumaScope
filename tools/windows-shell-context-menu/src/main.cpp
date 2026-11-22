@@ -147,7 +147,7 @@ int Run(const std::wstring& filePath, int x, int y) {
             wchar_t verb[256]{};
             const bool hasCanonicalVerb =
                 SUCCEEDED(contextMenu->GetCommandString(selected - firstCommand, GCS_VERBW,
-                    nullptr, reinterpret_cast<LPSTR>(verb), static_cast<UINT>(std::size(verb))))
+                    nullptr, reinterpret_cast<LPSTR>(verb), static_cast<UINT>(sizeof(verb) / sizeof(verb[0]))))
                 && verb[0] != L'\0';
 
             bool invoked = false;
