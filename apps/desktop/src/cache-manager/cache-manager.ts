@@ -1928,11 +1928,15 @@ export class CacheManager {
     await Promise.all(matching.map(async row => {
       const sourceName = join(folder, row.file_name);
       const extension = extname(sourceName).toLowerCase();
-      const thumbnailValid = row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR
-        && row.thumbnail_cache_version === getThumbnailCacheVersion(sourceName);
-      const fullSizeTag = extension === '.ohsp' ? 'ohsp-full-spectrum-v15' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
+      const isOhsp = extension === '.ohsp';
+      const fullSizeTag = isOhsp ? 'ohsp-full-spectrum-v15' : ['.dng', '.rw2', '.raw'].includes(extension) ? (extension === '.dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') : `${extension.slice(1)}${[ '.tif', '.tiff' ].includes(extension) ? '-full-hdr-v6' : extension === '.exr' ? '-full-uhdr-v2' : '-full-uhdr'}`;
       const fullSizeValid = FULL_SIZE_EXTENSIONS.has(extension) && row.fullsize_cache_id !== null
         && row.fullsize_cache_version === getFullSizeCacheVersionCode(fullSizeTag);
+      // OHSP gallery previews use the full-size derivative as their thumbnail.
+      const thumbnailValid = isOhsp
+        ? fullSizeValid
+        : row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR
+          && row.thumbnail_cache_version === getThumbnailCacheVersion(sourceName);
       if (!verifyCacheFiles) {
         if (thumbnailValid) thumbnailPaths.push(sourceName);
         if (fullSizeValid) fullSizePaths.push(sourceName);
@@ -1943,7 +1947,10 @@ export class CacheManager {
         if (sourceStats.size !== row.file_size || sourceStats.mtimeMs !== row.modified_at) return;
       } catch { return; }
       if (thumbnailValid) {
-        try { const info = await stat(this.getSidecarPath(sourceName, false)); if (info.isFile()) thumbnailPaths.push(sourceName); }
+        const thumbnailPath = isOhsp
+          ? (row.fullsize_cache_id === CACHE_STORAGE_TYPE.PARALLEL ? this.getParallelPath(sourceName) : this.getSidecarPath(sourceName, true))
+          : this.getSidecarPath(sourceName, false);
+        try { const info = await stat(thumbnailPath); if (info.isFile()) thumbnailPaths.push(sourceName); }
         catch { /* Missing thumbnail cache file. */ }
       }
       if (fullSizeValid) {
