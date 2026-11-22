@@ -73,10 +73,10 @@
         <span>+ Recursive</span>
       </label>
 
-      <label class="thumbnail-name-filter lumascope-surface-box" [class.filter-active]="nameFilterActive()" [style.--detail-filtered-row-color]="filteredRowColor()" title="Filter the file list by name">
+      <label class="thumbnail-name-filter lumascope-surface-box" [class.filter-active]="nameFilterActive()" [style.--detail-filtered-row-color]="filteredRowColor()" title="Filter by filename: separate terms with spaces; every term must match">
         <span class="thumbnail-name-filter-label">Filter</span>
         <input class="ui-checkbox" type="checkbox" [checked]="nameFilterActive()" [disabled]="!nameFilter().trim()" (change)="setNameFilterEnabled($any($event.target).checked)" aria-label="Enable name filter" />
-        <input type="search" [value]="nameFilter()" (input)="updateNameFilter($any($event.target).value)" aria-label="Filter by file name" placeholder="Filter names..." />
+        <input type="search" [value]="nameFilter()" (input)="updateNameFilter($any($event.target).value)" aria-label="Filter by file name" placeholder="Filter names (all terms)..." />
       </label>
     </div>
 
