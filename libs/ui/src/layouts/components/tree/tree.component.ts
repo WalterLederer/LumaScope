@@ -23,6 +23,7 @@ export class TreeComponent<T> {
   readonly loadRequested = output<TreeLoadRequest<T>>();
   readonly action = output<TreeNode<T>>();
   readonly move = output<{ node: TreeNode<T>; direction: 'up' | 'down' }>();
+  readonly contextMenuRequested = output<{ node: TreeNode<T>; event: MouseEvent }>();
   protected readonly treeRoot = signal<TreeNode<T> | null>(null);
 
   constructor() {
