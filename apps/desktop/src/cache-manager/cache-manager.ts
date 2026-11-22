@@ -1887,7 +1887,6 @@ export class CacheManager {
       filterParams[`nameFilter${index}`] = term;
       return `instr(lower(photos.file_name), :nameFilter${index}) > 0`;
     });
-    const where = scope + supportedFilter + (nameFilterSql.length ? ` AND (${nameFilterSql.join(' AND ')})` : '');
     // Counts are independent of sorting and are reused across page requests.
     const countCacheKey = [databaseKey, folder.toLocaleLowerCase(), recursive ? '1' : '0', includeUnsupported ? '1' : '0', ...nameFilterTerms].join('|');
     let totalCount = this.galleryCountCache.get(countCacheKey);
