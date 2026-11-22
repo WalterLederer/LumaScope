@@ -925,7 +925,7 @@ export class ImagesComponent {
       this.cacheRunProgress.set({ completed: 0, total: scan.files });
       this.cacheRunCurrentOperation.set(`Database updated: ${formatNumber(scan.files)} files found. Preparing thumbnails and previews…`);
       for (let offset = 0; offset < scan.files && !controller.signal.aborted; offset += 500) {
-        const page = await this.cacheManager.getGalleryFilesPage(folder, false, true, 'name', 'asc', offset, 500);
+        const page = await this.cacheManager.getGalleryFilesPage(folder, false, true, 'name', 'asc', offset, 500, '', 'ImagesComponent.cacheAllImages');
         const images = page.files.filter(file => supportedFileExtensions.includes(file.ext.toLowerCase().replace(/^\./, '')));
         if (images.length > 0) {
           await this.runCacheForImages(images, true, controller.signal, {
@@ -985,7 +985,7 @@ export class ImagesComponent {
     let matched = 0;
     while (!signal.aborted) {
       const page = await this.cacheManager.getGalleryFilesPage(
-        folder, recursive, includeUnsupported, sortBy, sortDir, offset, 500
+        folder, recursive, includeUnsupported, sortBy, sortDir, offset, 500, '', 'ImagesComponent.cacheAllImagesRecursive'
       );
       if (page.totalCount >= 0) total = page.totalCount;
       if (offset === 0) this.cacheRunProgress.set({ completed: progressBase, total: total * progressMultiplier });
