@@ -233,12 +233,12 @@ export interface DesktopCacheManager {
   readonly scanGalleryDirectory: (directory: string, verifyCacheFiles?: boolean) => Promise<{ files: number; directories: string[]; removedStale: number; removedCacheFiles: number; removedCacheBytes: number; complete: boolean }>;
   readonly removeGalleryFile: (sourceName: string) => Promise<boolean>;
   readonly getGalleryFiles: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection) => Promise<FileInfo[]>;
-  readonly getGalleryFilesPage: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection, offset?: number, limit?: number, nameFilter?: string) => Promise<GalleryFilesPage>;
+  readonly getGalleryFilesPage: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection, offset?: number, limit?: number, nameFilter?: string, sourceId?: string) => Promise<GalleryFilesPage>;
   readonly getGalleryFileAtPosition: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection, position?: number) => Promise<FileInfo | null>;
   readonly getGalleryFilePosition: (directory: string, sourcePath: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection) => Promise<number>;
   readonly getGalleryUnsupportedSummary: (directory: string, recursive?: boolean) => Promise<{ count: number; suffixes: string[] }>;
   readonly onGalleryFilesChanged: (callback: (directory: string) => void) => () => void;
-  readonly getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean) => Promise<CacheDirectoryStats>;
+  readonly getDirectoryCacheStats: (sourceNames: string[], verifyCacheFiles?: boolean, sourceId?: string) => Promise<CacheDirectoryStats>;
   readonly reconcilePhotoRecords: (directory: string, sourceNames: string[], recursive?: boolean) => Promise<number>;
   readonly reconcilePhotoRecordsFromDisk: (directory: string, recursive?: boolean) => Promise<number>;
   readonly selectDatabaseForDirectory: (directory: string) => Promise<boolean>;
