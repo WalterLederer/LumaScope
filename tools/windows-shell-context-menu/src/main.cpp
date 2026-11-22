@@ -120,7 +120,7 @@ int Run(const std::wstring& filePath, int x, int y) {
             const bool isPropertiesVerb =
                 SUCCEEDED(contextMenu->GetCommandString(selected - firstCommand, GCS_VERBA,
                     nullptr, verb, static_cast<UINT>(sizeof(verb))))
-                && _stricmp(verb, "properties") == 0;
+                && std::string(verb) == "properties";
             if (isPropertiesVerb) {
                 SHObjectProperties(owner, SHOP_FILEPATH, filePath.c_str(), nullptr);
             } else {
