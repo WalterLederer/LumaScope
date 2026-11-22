@@ -280,24 +280,12 @@ export class ImageGridComponent {
   private cacheStatsScope = '';
   private cacheStatsScanActive = false;
   private cacheStatsScanComplete = false;
-  private cacheStatsThumbnails = 0;
-  private cacheStatsFullSize = 0;
-  private cacheStatsFullSizeTotal = 0;
-  private cacheStatsGps = 0;
-  private cacheStatsHdr = 0;
-  private cacheStatsLocation = 0;
   private lastCacheRevision: number | null = null;
 
   private readonly resetDirectoryCacheStats = (): void => {
     this.cacheStatsRequest++;
     this.cacheStatsScanActive = false;
     this.cacheStatsScanComplete = false;
-    this.cacheStatsThumbnails = 0;
-    this.cacheStatsFullSize = 0;
-    this.cacheStatsFullSizeTotal = 0;
-    this.cacheStatsGps = 0;
-    this.cacheStatsHdr = 0;
-    this.cacheStatsLocation = 0;
   };
 
   readonly refreshDirectoryCacheStats = async (): Promise<void> => {
