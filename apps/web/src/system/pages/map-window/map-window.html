@@ -1219,7 +1219,7 @@
     </details>
 
     @if (offlineHeaderActionMenuOpen()) {
-      <div class="gpx-row-action-menu offline-row-action-menu" role="menu" aria-label="Offline files list options"
+      <div class="gpx-row-action-menu offline-row-action-menu offline-header-action-menu" role="menu" aria-label="Offline files list options"
            [style.top.px]="offlineHeaderActionMenuPosition().top" [style.left.px]="offlineHeaderActionMenuPosition().left"
            (click)="$event.stopPropagation()">
         <button type="button" role="menuitem" (click)="toggleActionsColumnPosition(); offlineHeaderActionMenuOpen.set(false)">
