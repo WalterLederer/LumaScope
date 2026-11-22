@@ -137,8 +137,14 @@ export interface AppConfigV1System {
   comparisonSplit?: number;
   /** Expanded/collapsed sections in the gallery's general-settings sidebar. */
   gallerySidebarSections?: Record<string, boolean>;
-  /** Left/right position of the gallery detail-table and favorites-folder actions column. */
+  /** Left/right position of the gallery detail-table actions column. */
   galleryDetailActionsColumnPosition?: 'left' | 'right';
+  /** Left/right position of the favorites-folder tree actions column. */
+  galleryFavoritesActionsColumnPosition?: 'left' | 'right';
+  /** Left/right position of the GPX track table actions column. */
+  gpxTrackActionsColumnPosition?: 'left' | 'right';
+  /** Left/right position of the OfflineFiles table actions column. */
+  offlineFilesActionsColumnPosition?: 'left' | 'right';
   /** Expanded/collapsed sections in the image-view controls sidebar. */
   imageSidebarSections?: Record<string, boolean>;
   /** Reusable GPX track appearance presets shown in the Track Settings dialog. */
@@ -182,6 +188,9 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.gallerySidebarSections || 'object' === typeof input.gallerySidebarSections && null !== input.gallerySidebarSections && Object.values(input.gallerySidebarSections).every((elem: any) => 'boolean' === typeof elem))
     && (undefined === input.imageSidebarSections || 'object' === typeof input.imageSidebarSections && null !== input.imageSidebarSections && Object.values(input.imageSidebarSections).every((elem: any) => 'boolean' === typeof elem))
     && (undefined === input.galleryDetailActionsColumnPosition || 'left' === input.galleryDetailActionsColumnPosition || 'right' === input.galleryDetailActionsColumnPosition)
+    && (undefined === input.galleryFavoritesActionsColumnPosition || 'left' === input.galleryFavoritesActionsColumnPosition || 'right' === input.galleryFavoritesActionsColumnPosition)
+    && (undefined === input.gpxTrackActionsColumnPosition || 'left' === input.gpxTrackActionsColumnPosition || 'right' === input.gpxTrackActionsColumnPosition)
+    && (undefined === input.offlineFilesActionsColumnPosition || 'left' === input.offlineFilesActionsColumnPosition || 'right' === input.offlineFilesActionsColumnPosition)
     && (undefined === input.gpxTrackSettingsFavorites || Array.isArray(input.gpxTrackSettingsFavorites) && input.gpxTrackSettingsFavorites.every((elem: any) => 'object' === typeof elem && null !== elem && 'string' === typeof elem.name && 'object' === typeof elem.settings && null !== elem.settings && !Array.isArray(elem.settings)))
     && (undefined === input.galleryDetailPreferencesFavorites || Array.isArray(input.galleryDetailPreferencesFavorites) && input.galleryDetailPreferencesFavorites.every((elem: any) => 'object' === typeof elem && null !== elem && 'string' === typeof elem.name && 'object' === typeof elem.settings && null !== elem.settings && !Array.isArray(elem.settings)))
     && (undefined === input.bounds || 'object' === typeof input.bounds && null !== input.bounds && _io3(input.bounds));
