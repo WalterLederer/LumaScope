@@ -973,8 +973,10 @@ export class ImagesComponent {
     const includeUnsupported = this.includeUnsupportedFiles();
     const sortBy = this.sortBy();
     const sortDir = this.sortDirection();
-    const filter = (this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails')
-      && this.nameFilterActive() ? this.nameFilter().trim().toLocaleLowerCase() : '';
+    const filterTerms = (this.viewMode() === 'details' || this.viewMode() === 'details-no-thumbnails')
+      && this.nameFilterActive()
+      ? this.nameFilter().trim().toLocaleLowerCase().split(/\\s+/).filter(Boolean)
+      : [];
     let offset = 0;
     let total = this.totalFileCount();
     let resetLog = true;
@@ -987,7 +989,7 @@ export class ImagesComponent {
       if (offset === 0) this.cacheRunProgress.set({ completed: progressBase, total: total * progressMultiplier });
       if (page.files.length === 0) break;
       const batch = page.files.filter(image =>
-        (!filter || image.name.toLocaleLowerCase().includes(filter))
+        filterTerms.every(term => image.name.toLocaleLowerCase().includes(term))
         && supportedFileExtensions.includes(image.ext.toLowerCase().replace('.', ''))
       );
       if (batch.length > 0) {
