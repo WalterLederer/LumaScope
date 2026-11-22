@@ -21,6 +21,7 @@ import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { ExifService } from '../../../ipc/exif';
 import { GalleryCacheBuild } from '../../services/gallery-cache-build/gallery-cache-build';
+import { GalleryState } from '../../services/gallery-state/gallery-state';
 import { Configuration } from '../../../system/services/configuration/configuration';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import {
@@ -119,6 +120,7 @@ export class ImagesComponent {
   private readonly cacheManager = inject(CacheManager);
   private readonly exif = inject(ExifService);
   private readonly galleryCacheBuild = inject(GalleryCacheBuild);
+  private readonly galleryState = inject(GalleryState);
   private readonly configuration = inject(Configuration);
   readonly appConfig = toSignal(this.configuration.config(), { initialValue: null });
   readonly detailPreferenceDraft = signal<DetailTablePreferences>({ ...defaultDetailTablePreferences });
@@ -889,6 +891,15 @@ export class ImagesComponent {
       await this.cacheManager.appendBuildLog('Verify cache files: ' + (this.verifyCacheFiles() ? 'enabled' : 'disabled'));
       this.cacheRunCurrentOperation.set(`Indexing files in ${folder}`);
       const scan = await this.cacheManager.scanGalleryDirectory(folder);
+      // The scan has now registered the folder's files in SQLite. Refresh the
+      // visible gallery immediately, before potentially lengthy thumbnail and
+      // full-size conversions start, so a previously unindexed favorite folder
+      // does not remain empty while its cache is being built.
+      if (this.folderPath() === folder) {
+        this.galleryState.navigateTo(folder, false).subscribe({
+          error: error => console.error('Failed to refresh gallery after folder indexing', folder, error)
+        });
+      }
       if (!scan.complete) {
         await this.cacheManager.appendBuildLog(`Folder scan incomplete in ${folder}; stale database records were preserved.`);
       }
