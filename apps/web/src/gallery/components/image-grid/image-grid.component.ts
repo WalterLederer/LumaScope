@@ -306,8 +306,8 @@ export class ImageGridComponent {
   readonly refreshDirectoryCacheStats = async (): Promise<void> => {
     const folder = this.selectedLocation();
     const verifyCacheFiles = this.verifyCacheFiles();
-    const scope = [folder ?? '', this.sortBy(), this.sortDirection(),
-      this.includeUnsupportedFiles(), this.includeFilesRecursive()].join('|');
+    const scope = [folder ?? '', this.includeUnsupportedFiles(), this.includeFilesRecursive(),
+      this.nameFilterActive(), this.nameFilter()].join('|');
     if (this.cacheStatsFolder !== folder || this.cacheStatsScope !== scope
       || this.cacheStatsVerifyFiles !== verifyCacheFiles) {
       this.resetDirectoryCacheStats();
