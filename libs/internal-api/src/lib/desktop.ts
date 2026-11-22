@@ -28,6 +28,7 @@ export interface ProcessMemorySnapshot {
 export interface DesktopProcessManager {
   readonly getProcessMemoryUsage: () => Promise<ProcessMemorySnapshot>;
   readonly getAppVersion: () => Promise<string>;
+  readonly getFileTypeIcon: (filePath: string) => Promise<string | null>;
   readonly getAppSettings: () => Promise<Record<string, unknown>>;
   readonly setAppSettingsSection: (section: string, values: Record<string, unknown>) => Promise<void>;
   readonly onAppSettingsChanged: (callback: (section: string, values: Record<string, unknown>) => void) => () => void;
