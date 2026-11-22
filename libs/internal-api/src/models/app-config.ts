@@ -171,7 +171,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.autoSortFavorites || 'boolean' === typeof input.autoSortFavorites)
     && (undefined === input.thumbWidth || 'number' === typeof input.thumbWidth)
     && (undefined === input.thumbHeight || 'number' === typeof input.thumbHeight)
-    && (undefined === input.sortBy || 'date' === input.sortBy || 'gpsDate' === input.sortBy || 'name' === input.sortBy || 'path' === input.sortBy || 'size' === input.sortBy)
+    && (undefined === input.sortBy || 'date' === input.sortBy || 'gpsDate' === input.sortBy || 'gps' === input.sortBy || 'location' === input.sortBy || 'name' === input.sortBy || 'path' === input.sortBy || 'size' === input.sortBy || 'suffix' === input.sortBy)
     && (undefined === input.sortDir || 'asc' === input.sortDir || 'desc' === input.sortDir)
     && (undefined === input.selectedLocation || 'string' === typeof input.selectedLocation)
     && (undefined === input.includeFilesRecursive || 'boolean' === typeof input.includeFilesRecursive)
