@@ -1050,7 +1050,7 @@ if (parentPort) {
     if (request.type === 'metadata') {
       try {
         const vips = await getVips();
-        using image = vips.Image.newFromFile(request.source, { access: 'sequential', failOn: 'none' });
+        using image = vips.Image.newFromFile(request.source, { access: 'sequential', fail_on: 'none' });
         const extension = extname(request.source).toLowerCase();
         let isHdr = hasUltraHdrGainMap(vips, request.source);
         if (extension === '.png') {
