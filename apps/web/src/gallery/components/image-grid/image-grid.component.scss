@@ -427,11 +427,7 @@ ui-toolbar {
 }
 
 .gallery-cache-status-layout {
-  display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-  flex: 1 1 100%;
+  flex: 1 1 calc(100% - 26px);
   min-width: 0;
 }
 
