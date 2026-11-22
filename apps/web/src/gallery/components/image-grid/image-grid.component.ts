@@ -320,14 +320,31 @@ export class ImageGridComponent {
     const request = ++this.cacheStatsRequest;
     const pathUpdateRevision = this.cachePathUpdateRevision;
     this.cacheStatsScanActive = true;
-    let total = this.totalFileCount();
     try {
-      // Cache counters must describe the whole database result, not only the
-      // currently visible renderer window. Read one bounded page at a time.
+      if (!verifyCacheFiles) {
+        const stats = await this.cacheManager.getGalleryCacheStats(
+          folder, this.includeFilesRecursive(), this.includeUnsupportedFiles(),
+          this.nameFilterActive() ? this.nameFilter() : '', 'ImageGrid.refreshDirectoryCacheStats'
+        );
+        if (request !== this.cacheStatsRequest) return;
+        if (pathUpdateRevision !== this.cachePathUpdateRevision) {
+          this.resetDirectoryCacheStats();
+          void this.refreshDirectoryCacheStats();
+          return;
+        }
+        this.cacheStats.set(stats);
+        this.cacheStatsScanComplete = true;
+        return;
+      }
+
+      // Physical cache-file verification is intentionally kept as a slower,
+      // explicit path. Normal startup uses the single aggregate SQL query above.
+      let total = this.totalFileCount();
       for (let offset = 0; offset < total || (offset === 0 && total === 0); offset += 1000) {
         const page = await this.cacheManager.getGalleryFilesPage(
           folder, this.includeFilesRecursive(), this.includeUnsupportedFiles(),
-          this.sortBy(), this.sortDirection(), offset, 1000, '', 'ImageGrid.refreshDirectoryCacheStats'
+          this.sortBy(), this.sortDirection(), offset, 1000,
+          this.nameFilterActive() ? this.nameFilter() : '', 'ImageGrid.refreshDirectoryCacheStats'
         );
         if (request !== this.cacheStatsRequest) return;
         if (page.totalCount >= 0) total = page.totalCount;
@@ -341,7 +358,7 @@ export class ImageGridComponent {
         }
         for (const paths of filesByParent.values()) {
           for (let index = 0; index < paths.length; index += 500) {
-            const stats = await this.cacheManager.getDirectoryCacheStats(paths.slice(index, index + 500), verifyCacheFiles, 'ImageGrid.refreshDirectoryCacheStats');
+            const stats = await this.cacheManager.getDirectoryCacheStats(paths.slice(index, index + 500), true, 'ImageGrid.refreshDirectoryCacheStats');
             if (request !== this.cacheStatsRequest) return;
             if (pathUpdateRevision !== this.cachePathUpdateRevision) {
               this.resetDirectoryCacheStats();
