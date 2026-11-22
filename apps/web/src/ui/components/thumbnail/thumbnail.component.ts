@@ -52,7 +52,8 @@ const supportedThumbnailExtensions = new Set([
     '[class.view-details-no-thumbnails]': "viewMode() === 'details-no-thumbnails'",
     '(mouseenter)': 'hovered.emit(image())',
     '(mouseleave)': 'hovered.emit(null)',
-    '(click)': 'rowSelected.emit(image())'
+    '(click)': 'rowSelected.emit(image())',
+    '(contextmenu)': 'openWindowsContextMenu($event)'
   }
 })
 export class ThumbnailComponent implements OnDestroy {
@@ -161,6 +162,16 @@ export class ThumbnailComponent implements OnDestroy {
   readonly openImageFile = async (): Promise<void> => {
     const error = await this.processManager.openPath(this.image().path);
     if (error) window.alert(error);
+  };
+
+  readonly openWindowsContextMenu = async (event: MouseEvent): Promise<void> => {
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      await this.processManager.showWindowsContextMenu(this.image().path, event.screenX, event.screenY);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : String(error));
+    }
   };
 
   readonly exportHex = async (): Promise<void> => {
