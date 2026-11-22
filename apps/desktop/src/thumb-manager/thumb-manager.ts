@@ -174,7 +174,8 @@ export class ThumbManager {
     return new Promise(resolve => {
       const id = randomUUID();
       this.pendingRequests.set(id, response => {
-        resolve(response.success && Number.isFinite(response.width) && Number.isFinite(response.height)
+        resolve(response.success && !response.isHdr
+          && Number.isFinite(response.width) && Number.isFinite(response.height)
           ? { width: response.width!, height: response.height! }
           : null);
       });
