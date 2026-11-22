@@ -1903,6 +1903,8 @@ export class CacheManager {
         const oldestKey = this.galleryCountCache.keys().next().value;
         if (oldestKey !== undefined) this.galleryCountCache.delete(oldestKey);
       }
+    } else {
+      console.info(`[SQL] ${sqlLogTimestamp()} CACHE COUNT | folder=${directory} | total=${totalCount}`);
     }
     const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
     const orderBy = sortBy === 'path'
