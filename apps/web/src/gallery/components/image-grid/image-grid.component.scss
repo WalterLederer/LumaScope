@@ -476,10 +476,6 @@ ui-toolbar {
   white-space: nowrap;
 }
 
-.gallery-cache-folder-action-stop-cell {
-  text-align: center !important;
-}
-
 .gallery-cache-current-operation {
   max-width: 0;
   overflow: hidden;
@@ -487,22 +483,4 @@ ui-toolbar {
   white-space: nowrap;
   font-weight: 400;
 }
-
-.gallery-cache-folder-action-stop {
-  width: 100%;
-  min-height: 24px;
-  padding: 2px 8px;
-  border: 1px solid var(--color-border-default, rgb(128 128 128 / 45%));
-  border-radius: 4px;
-  background: var(--color-surface-default-low);
-  color: var(--color-content-primary-high);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.gallery-cache-folder-action-stop:hover {
-  background: var(--color-surface-default-high);
-}
-
 
