@@ -16,6 +16,15 @@ Browse is the folder-based image collection view embedded in the main Image View
 - Use keyboard zoom controls to change thumbnail size.
 - Keep the browser component mounted while switching to other Image View tabs, preserving its state and cache activity.
 
+### Filename filter
+
+The **Filter** field above the file list searches filenames. Enable its checkbox to apply the entered filter; uncheck it to temporarily show all files again.
+
+- Enter multiple search terms separated by spaces. Every term must occur somewhere in the filename (AND logic).
+- Terms can appear in any order and do not need to be adjacent. For example, `.hdr 2023` matches filenames containing both `.hdr` and `2023`.
+- Matching is case-insensitive. A single term works as before, and any number of terms can be combined.
+- The filter is applied to the database query, so files that do not match are excluded before the gallery pages are loaded.
+
 Images are not imported into a central library by copying the originals. Source files remain in their original folders.
 
 ## Image View
