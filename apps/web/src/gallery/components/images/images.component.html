@@ -2,7 +2,7 @@
 
 @if (imageList === null || imageList.length === 0) {
   @if (!loading()) {
-    <p>{{ includeFilesRecursive() ? 'No images found in this folder and subfolders.' : 'No images found in this folder.' }}</p>
+    <p>{{ includeFilesRecursive() ? 'No files found in this folder and subfolders.' : 'No files found in this folder.' }}</p>
   }
 } @else if (viewMode() === 'details' || viewMode() === 'details-no-thumbnails') {
   <div class="detail-table" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
