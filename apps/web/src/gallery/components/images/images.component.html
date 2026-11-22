@@ -50,7 +50,7 @@
                         <ng-template #folderActionsMenu>
               <div class="gpx-row-action-menu detail-row-action-menu folder-actions-menu" cdkMenu>
                 <button type="button" class="gallery-menu-item" cdkMenuItem aria-label="Autofit all column widths" (click)="autofitDetailColumns()"><span aria-hidden="true">↔</span> Autofit column width</button>
-                <button type="button" class="gallery-menu-item" cdkMenuItem (click)="toggleDetailActionsColumnPosition()" [attr.aria-label]="detailActionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'"><span aria-hidden="true">⇄</span> {{ detailActionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left' }}</button>
+                <button type="button" class="gallery-menu-item" cdkMenuItem (click)="toggleDetailActionsColumnPosition()" [attr.aria-label]="detailActionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left'"><span aria-hidden="true">↔</span> {{ detailActionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left' }}</button>
                 <button type="button" class="gallery-menu-item" cdkMenuItem (click)="requestRefreshFolder()"><span aria-hidden="true">↻</span> Refresh</button>
                 <div class="gpx-row-action-menu-separator" role="separator"></div>
                 <button type="button" class="gallery-menu-item" cdkMenuItem [disabled]="!folderPath()" (click)="requestOpenFolderPath()"><span aria-hidden="true">📂</span> Open path</button>
