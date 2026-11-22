@@ -45,6 +45,7 @@ const api: Desktop = {
     openConfigFile: () => ipcRenderer.invoke('ProcessManager.openConfigFile'),
     openPath: (filePath: string) => ipcRenderer.invoke('ProcessManager.openPath', filePath),
     openWith: (filePath: string) => ipcRenderer.invoke('ProcessManager.openWith', filePath),
+    showWindowsContextMenu: (filePath: string, screenX: number, screenY: number) => ipcRenderer.invoke('ProcessManager.showWindowsContextMenu', filePath, screenX, screenY),
     openExternal: (url: string) => ipcRenderer.invoke('ProcessManager.openExternal', url),
     quit: (code: number) => ipcRenderer.invoke('ProcessManager.quit', code),
     setWindowTitle: (title: string) => ipcRenderer.invoke('ProcessManager.setWindowTitle', title)
