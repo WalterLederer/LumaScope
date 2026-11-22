@@ -44,7 +44,7 @@
     </div>
 
     <div class="thumbnail-size-control" [class.name-filter-active]="nameFilterActive()" title="Thumbnail size">
-      <div class="thumbnail-zoom-box">
+      <div class="thumbnail-zoom-box lumascope-surface-box">
         <span class="zoom-label">Thumb size</span>
         <div class="zoom-step-buttons">
           <button class="zoom-step-button"
@@ -73,7 +73,7 @@
         <span>+ Recursive</span>
       </label>
 
-      <label class="thumbnail-name-filter" [class.filter-active]="nameFilterActive()" title="Filter the file list by name">
+      <label class="thumbnail-name-filter lumascope-surface-box" [class.filter-active]="nameFilterActive()" title="Filter the file list by name">
         <span class="thumbnail-name-filter-label">Filter</span>
         <input type="checkbox" [checked]="nameFilterActive()" [disabled]="!nameFilter().trim()" (change)="setNameFilterEnabled($any($event.target).checked)" aria-label="Enable name filter" />
         <input type="search" [value]="nameFilter()" (input)="updateNameFilter($any($event.target).value)" aria-label="Filter by file name" placeholder="Filter names..." />
