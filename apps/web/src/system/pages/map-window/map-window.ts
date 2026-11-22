@@ -927,9 +927,31 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineHeaderActionMenuOpen = signal(false);
   protected readonly offlineHeaderActionMenuPosition = signal({ top: 8, left: 8 });
   protected readonly toggleOfflineHeaderActionMenu = (event: MouseEvent): void => {
+    event.preventDefault();
+    event.stopPropagation();
     if (this.offlineHeaderActionMenuOpen()) { this.offlineHeaderActionMenuOpen.set(false); return; }
+
+    const pointer = { x: event.clientX, y: event.clientY };
     this.offlineHeaderActionMenuPosition.set(this.getRowActionMenuPosition(event, 270, 52, true));
     this.offlineHeaderActionMenuOpen.set(true);
+
+    requestAnimationFrame(() => {
+      if (!this.offlineHeaderActionMenuOpen()) return;
+      const menu = document.querySelector<HTMLElement>('.offline-header-action-menu');
+      if (!menu) return;
+
+      const width = menu.getBoundingClientRect().width;
+      const height = menu.getBoundingClientRect().height;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      let left = pointer.x + 4;
+      if (left + width > viewportWidth - 8) left = pointer.x - width - 4;
+      left = Math.max(8, Math.min(left, Math.max(8, viewportWidth - width - 8)));
+      let top = pointer.y + 4;
+      if (top + height > viewportHeight - 8) top = pointer.y - height - 4;
+      top = Math.max(8, Math.min(top, Math.max(8, viewportHeight - height - 8)));
+      this.offlineHeaderActionMenuPosition.set({ top, left });
+    });
   };
   protected readonly offlineRowActionMenuOpen = signal<string | null>(null);
   protected readonly offlineRowActionMenuPosition = signal({ top: 8, left: 8 });
