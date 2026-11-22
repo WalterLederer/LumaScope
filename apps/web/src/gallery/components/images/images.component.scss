@@ -1849,3 +1849,43 @@
   pointer-events: none !important;
   z-index: 80 !important;
 }
+
+
+/* The actions header follows the same two-row structure as every other
+   column: a normal label-row cell and a normal statistics-row cell. No
+   spanning cell, pseudo-element divider, or per-column thick border. */
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading,
+.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
+  display: table-cell !important;
+  box-sizing: border-box !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  padding: 0 !important;
+  vertical-align: middle !important;
+  border-top: 0 !important;
+  border-left: 0 !important;
+  border-right: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
+  border-bottom: 0 !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading::after {
+  content: none !important;
+  display: none !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .folder-actions-menu-trigger {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  transform: none !important;
+  display: flex !important;
+  margin: 0 auto !important;
+}
+.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
+  border-bottom: 3px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
+}
