@@ -835,8 +835,12 @@ export class ImagesComponent {
 
     const images = this.displayedImages();
     if (images.length === 0) return;
-    const selectedPath = this.activeSelectionPath() ?? this.selectedImagePath();
-    const currentIndex = images.findIndex(image => image.path === selectedPath);
+    const activePath = this.activeSelectionPath();
+    let currentIndex = activePath ? images.findIndex(image => image.path === activePath) : -1;
+    if (currentIndex < 0) {
+      const selectedPath = this.selectedImagePath();
+      if (selectedPath) currentIndex = images.findIndex(image => image.path === selectedPath);
+    }
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       event.stopPropagation();
