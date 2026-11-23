@@ -1,10 +1,48 @@
 import { randomUUID } from 'node:crypto';
-import { rename, unlink, writeFile } from 'node:fs/promises';
+import { readdir, rename, stat, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 // Serialize writes from the renderer config and startup-bounds persistence.
 // Atomic replacement prevents readers from seeing a partially written JSON file.
 const pendingWrites = new Map<string, Promise<void>>();
+
+const staleTemporaryFileAgeMs = 24 * 60 * 60 * 1000;
+const atomicJsonTemporaryFilePattern = /^\\.[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.tmp$/i;
+
+/**
+ * Remove abandoned atomic-JSON write files from a directory.
+ * Only UUID-named files older than 24 hours are eligible, so active writes
+ * and unrelated application temporary files are never touched.
+ */
+export const cleanupStaleJsonTemporaryFiles = async (directory: string): Promise<number> => {
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return 0;
+    throw error;
+  }
+
+  let removed = 0;
+  const cutoff = Date.now() - staleTemporaryFileAgeMs;
+  for (const entry of entries) {
+    if (!entry.isFile() || !atomicJsonTemporaryFilePattern.test(entry.name)) continue;
+    const path = join(directory, entry.name);
+    try {
+      const details = await stat(path);
+      if (details.mtimeMs >= cutoff) continue;
+      await unlink(path);
+      removed++;
+    } catch (error) {
+      // A file may disappear or be locked between listing and deletion.
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT' && code !== 'EPERM' && code !== 'EACCES' && code !== 'EBUSY') {
+        throw error;
+      }
+    }
+  }
+  return removed;
+};
 
 const renameWithRetry = async (source: string, destination: string): Promise<void> => {
   const retryableCodes = new Set(['EPERM', 'EACCES', 'EBUSY']);
