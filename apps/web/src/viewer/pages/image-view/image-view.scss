@@ -3021,3 +3021,111 @@
   font-size: 11px;
   line-height: 1.4;
 }
+
+
+/* Compact three-column list for all six View modes:
+   source logos | layout indicator | mode description. */
+:host .image-controls-sidebar .mode-row {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 6px !important;
+}
+:host .image-controls-sidebar .mode-row > .mode-option {
+  display: block !important;
+  width: 100% !important;
+  height: 68px !important;
+  min-height: 68px !important;
+  padding: 5px 9px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+:host .image-controls-sidebar .mode-row .mode-option-content {
+  display: grid !important;
+  grid-template-columns: 88px 48px minmax(0, 1fr) !important;
+  align-items: center !important;
+  justify-content: stretch !important;
+  gap: 8px !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-area {
+  position: static !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 88px !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-area > .mode-logo-image {
+  display: block !important;
+  width: 54px !important;
+  height: 54px !important;
+  max-width: 100% !important;
+  object-fit: contain !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-pair {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-pair .mode-logo-image {
+  width: 42px !important;
+  height: 42px !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-pair.vertical {
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-pair.vertical .mode-logo-image {
+  width: 34px !important;
+  height: 34px !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-pair.overlay-pair .mode-logo-image + .mode-logo-image {
+  position: relative !important;
+  z-index: 2 !important;
+  margin-left: -20px !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-pair.vertical.overlay-pair .mode-logo-image + .mode-logo-image {
+  margin-top: -16px !important;
+  margin-left: 0 !important;
+}
+:host .image-controls-sidebar .mode-row .mode-layout-cell {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 48px !important;
+  height: 100% !important;
+}
+:host .image-controls-sidebar .mode-row .mode-layout-placeholder {
+  display: block;
+  width: 34px;
+  height: 34px;
+}
+:host .image-controls-sidebar .mode-row .mode-layout-cell > .mode-layout-icon {
+  position: relative !important;
+  inset: auto !important;
+  display: block !important;
+  flex: 0 0 34px !important;
+  width: 34px !important;
+  height: 34px !important;
+  opacity: 1 !important;
+}
+:host .image-controls-sidebar .mode-row .mode-option-label {
+  display: block !important;
+  width: auto !important;
+  min-width: 0 !important;
+  text-align: left !important;
+  font-size: 12px !important;
+  line-height: 1.3 !important;
+  overflow-wrap: normal !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-image,
+:host .image-controls-sidebar .mode-row .mode-logo-image.sdr-logo-image {
+  opacity: 1 !important;
+  filter: none !important;
+}
