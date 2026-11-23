@@ -103,9 +103,25 @@ const readUserAppSettingsForUpdate = (): AppSettings => {
   return value;
 };
 
+const copyFileWithRetry = async (source: string, destination: string): Promise<void> => {
+  const retryableCodes = new Set(['EBUSY', 'EPERM', 'EACCES']);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await copyFile(source, destination);
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (!retryableCodes.has(code ?? '') || attempt >= 4) throw error;
+      // Windows scanners can briefly hold either the source or destination.
+      await new Promise(resolve => setTimeout(resolve, 40 * (2 ** attempt)));
+    }
+  }
+};
+
 // Keep the immediately previous file plus one dated snapshot per day.
 // The caller validates the existing JSON before this runs, so backups are
 // always made from a readable configuration rather than preserving corruption.
+// Backup creation runs inside the same per-file transaction as every config write.
 const backupUserAppSettings = async (): Promise<void> => {
   const path = settingsPath();
   if (!existsSync(path)) return;
@@ -119,14 +135,14 @@ const backupUserAppSettings = async (): Promise<void> => {
   // not prevent otherwise safe settings updates.
   let rollingBackupError: unknown;
   try {
-    await copyFile(path, path + '.bak');
+    await copyFileWithRetry(path, path + '.bak');
   } catch (error) {
     rollingBackupError = error;
   }
 
   if (!existsSync(dailyBackupPath)) {
     try {
-      await copyFile(path, dailyBackupPath);
+      await copyFileWithRetry(path, dailyBackupPath);
     } catch (error) {
       if (rollingBackupError) {
         throw new AggregateError(
