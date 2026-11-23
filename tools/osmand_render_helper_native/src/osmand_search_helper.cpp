@@ -34,7 +34,7 @@ void printUsage()
     std::cerr
         << "Usage:\n"
         << "  osmand_search_helper --search <obf-paths-json> <resources-root> <query> [locale] [limit]\n"
-        << "  osmand_search_helper --reverse-geocode <obf-paths-json> <resources-root> <latitude> <longitude> [locale]\\n"
+        << "  osmand_search_helper --reverse-geocode <obf-paths-json> <resources-root> <latitude> <longitude> [locale]\n"
         << "  osmand_search_helper --reverse-geocode-worker <obf-paths-json> <resources-root> [locale]"
         << std::endl;
 }
