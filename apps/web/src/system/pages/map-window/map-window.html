@@ -34,7 +34,7 @@
             <div class="location-settings-content">
               
               <details class="offline-address-search app-disclosure">
-                <summary class="settings-row-title">Offline address search</summary>
+                <summary class="settings-row-title">Geocoding offline (Address search, Location name -> Position)</summary>
                 <button type="button" class="routing-help-button location-section-help" (click)="openOfflineAddressSearchHelp()" title="Open offline address search help" aria-label="Open offline address search help"><span aria-hidden="true">?</span></button>
                 <form (submit)="$event.preventDefault(); searchOfflineAddresses()">
                   <div class="location-actions">
@@ -62,7 +62,7 @@
                 </form>
               </details>
               <details class="location-tools-section app-disclosure">
-                <summary class="settings-row-title">Location tools</summary>
+                <summary class="settings-row-title">Reverse Geocoding offline (Position -> Location name)</summary>
                 <div class="location-tools-content">
                   <div class="location-coordinate-display"><span>{{ photoCoordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
                   <div class="location-coordinate-display"><span>Mouse: {{ mouseCoordinateLabel() }}</span></div>
@@ -70,15 +70,13 @@
                     <table class="fix-location-position-table" aria-label="Crosshair and photo address lookup">
                       <tbody>
                         <tr>
-                          <th scope="row">Crosshair</th>
-                          <td class="fix-location-coordinate-value" role="status">{{ crosshairCoordinates() }}</td>
-                          <td><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></td>
+                          <td class="fix-location-toggle-cell"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></td>
+                          <td class="fix-location-coordinate-value" role="status"><strong>Crosshair</strong> · {{ crosshairCoordinates() }}</td>
                           <td class="fix-location-address-cell"><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span></td>
                         </tr>
                         <tr>
-                          <th scope="row">Photo</th>
-                          <td class="fix-location-photo-coordinates" role="status">{{ photoGpsCoordinates() }}</td>
-                          <td></td>
+                          <td class="fix-location-toggle-cell"></td>
+                          <td class="fix-location-photo-coordinates" role="status"><strong>Photo</strong> · {{ photoGpsCoordinates() }}</td>
                           <td class="fix-location-address-cell"><button type="button" class="map-toolbar-button" (click)="showPhotoAddress()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">⌖</span> Show address</button><span class="location-address fix-location-address" role="status">{{ photoAddress() }}</span></td>
                         </tr>
                       </tbody>
@@ -88,45 +86,49 @@
                     <span class="settings-row-title">Address:</span>
                     <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || (coordinatesAvailable() ? 'Looking up address…' : '') }}</span>
                   </div>
-                  <div class="location-actions">
-                    <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates"><span aria-hidden="true">⧉</span> Copy GPS coordinates</button>
-                    <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location"><span aria-hidden="true">◎</span> Center</button>
-                    <label>Open location in
-                      <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
-                        <option value="">Select web app…</option>
-                        <option value="google-earth">Google Earth</option>
-                        <option value="google-maps">Google Maps</option>
-                        <option value="bing-maps">Bing Maps</option>
-                        <option value="openstreetmap">OpenStreetMap</option>
-                        <option value="apple-maps">Apple Maps</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div class="marker-current-appearance-settings">
-                <span>Location Icon:</span>
-                <label>Shape
-                  <select [value]="currentMarkerShape()" (change)="changeCurrentMarkerShape($any($event.target).value)">
-                    <option value="pin">Location pin</option><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option>
-                  </select>
-                </label>
-                <label>Color</label>
-                <div class="color-picker">
-                  <button type="button" class="color-picker-trigger" (click)="toggleCurrentMarkerColorMenu()" [attr.aria-expanded]="currentMarkerColorMenuOpen()" aria-label="Current location marker color">
-                    <span class="color-swatch" [style.background]="currentMarkerColor()" [style.color]="selectedCurrentMarkerTextColor()">{{ currentMarkerColor() }}</span>
-                    <span>{{ selectedCurrentMarkerColorName() }}</span>
-                    <span class="color-picker-chevron">▾</span>
-                  </button>
-                  @if (currentMarkerColorMenuOpen()) {
-                    <div class="color-picker-menu" role="listbox" aria-label="Current location marker colors">
-                      @for (color of gpxColors; track color.value) {
-                        <button type="button" class="color-option" role="option" [attr.aria-selected]="currentMarkerColor() === color.value" (click)="changeCurrentMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
-                      }
-                    </div>
-                  }
-                  </div>
-                </div>
                 </div>
               </details>
+              <div class="location-command-row">
+                <div class="location-actions">
+                  <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates"><span aria-hidden="true">⧉</span> Copy GPS coordinates</button>
+                  <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location"><span aria-hidden="true">◎</span> Center</button>
+                  <label>Open location in
+                    <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
+                      <option value="">Select web app…</option>
+                      <option value="google-earth">Google Earth</option>
+                      <option value="google-maps">Google Maps</option>
+                      <option value="bing-maps">Bing Maps</option>
+                      <option value="openstreetmap">OpenStreetMap</option>
+                      <option value="apple-maps">Apple Maps</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="location-icon-settings-box">
+                  <div class="marker-current-appearance-settings">
+                    <span>Location Icon:</span>
+                    <label>Shape
+                      <select [value]="currentMarkerShape()" (change)="changeCurrentMarkerShape($any($event.target).value)">
+                        <option value="pin">Location pin</option><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option>
+                      </select>
+                    </label>
+                    <label>Color</label>
+                    <div class="color-picker">
+                      <button type="button" class="color-picker-trigger" (click)="toggleCurrentMarkerColorMenu()" [attr.aria-expanded]="currentMarkerColorMenuOpen()" aria-label="Current location marker color">
+                        <span class="color-swatch" [style.background]="currentMarkerColor()" [style.color]="selectedCurrentMarkerTextColor()">{{ currentMarkerColor() }}</span>
+                        <span>{{ selectedCurrentMarkerColorName() }}</span>
+                        <span class="color-picker-chevron">▾</span>
+                      </button>
+                      @if (currentMarkerColorMenuOpen()) {
+                        <div class="color-picker-menu" role="listbox" aria-label="Current location marker colors">
+                          @for (color of gpxColors; track color.value) {
+                            <button type="button" class="color-option" role="option" [attr.aria-selected]="currentMarkerColor() === color.value" (click)="changeCurrentMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
