@@ -55,6 +55,8 @@ export interface CacheSummary {
   thumbnails: CacheClearResult;
   sidecar: CacheClearResult;
   gps: CacheClearResult;
+  gpsResolved: number;
+  gpsUnresolved: number;
   selectedDatabaseKey: string | null;
   databases: Array<{ key: string; path: string; bytes: number }>;
 }
