@@ -3034,15 +3034,15 @@
 :host .image-controls-sidebar .mode-row > .mode-option {
   display: block !important;
   width: 100% !important;
-  height: 68px !important;
-  min-height: 68px !important;
+  height: 96px !important;
+  min-height: 96px !important;
   padding: 5px 9px !important;
   box-sizing: border-box !important;
   overflow: visible !important;
 }
 :host .image-controls-sidebar .mode-row .mode-option-content {
   display: grid !important;
-  grid-template-columns: 88px 48px minmax(0, 1fr) !important;
+  grid-template-columns: 112px 60px minmax(0, 1fr) !important;
   align-items: center !important;
   justify-content: stretch !important;
   gap: 8px !important;
@@ -3054,7 +3054,7 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 88px !important;
+  width: 112px !important;
   height: 100% !important;
   min-height: 0 !important;
 }
@@ -3098,7 +3098,7 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 48px !important;
+  width: 60px !important;
   height: 100% !important;
 }
 :host .image-controls-sidebar .mode-row .mode-layout-placeholder {
@@ -3128,4 +3128,10 @@
 :host .image-controls-sidebar .mode-row .mode-logo-image.sdr-logo-image {
   opacity: 1 !important;
   filter: none !important;
+}
+
+:host .image-controls-sidebar .mode-row .mode-option-label {
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+  align-self: center !important;
 }
