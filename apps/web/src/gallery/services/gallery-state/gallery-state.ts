@@ -288,7 +288,7 @@ export class GalleryState {
               sort: `${sortMode.sortBy} ${sortMode.sortDir}`,
               limit: this.galleryWindowSize
             });
-            return this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : ''), 'GalleryState.navigateTo');
+            return this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : ''), 'GalleryState.navigateTo', true);
           }).then(page => {
             console.info('[GalleryDB] DONE first page', {
               rows: page.files.length,
