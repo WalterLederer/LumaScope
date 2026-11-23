@@ -2711,3 +2711,59 @@
   font-size: 10px;
   pointer-events: none;
 }
+
+
+/* The Image and View tabs, and the comparison-mode controls, use neutral
+   surfaces so the selected state remains clearly visible without the global
+   blue action-button treatment. */
+:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab,
+:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:hover,
+:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:focus,
+:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:active,
+:host .image-controls-sidebar .image-sidebar-subtabs > button.image-neutral-tab,
+:host .image-controls-sidebar .image-sidebar-subtabs > button.image-neutral-tab:hover,
+:host .image-controls-sidebar .image-sidebar-subtabs > button.image-neutral-tab:focus,
+:host .image-controls-sidebar .image-sidebar-subtabs > button.image-neutral-tab:active,
+:host .image-controls-sidebar .mode-row > button.mode-button,
+:host .image-controls-sidebar .mode-row > button.mode-button:hover,
+:host .image-controls-sidebar .mode-row > button.mode-button:focus,
+:host .image-controls-sidebar .mode-row > button.mode-button:active {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: #ededed !important;
+  background-color: #ededed !important;
+  background-image: none !important;
+  color: #202124 !important;
+  border: 1px solid #999 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transform: none !important;
+}
+:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab.active,
+:host .image-controls-sidebar .image-sidebar-subtabs > button.image-neutral-tab.active,
+:host .image-controls-sidebar .mode-row > button.mode-button.selected {
+  background: #c9c9c9 !important;
+  background-color: #c9c9c9 !important;
+  color: #111 !important;
+  border: 2px solid #555 !important;
+  box-shadow: inset 0 0 0 1px #fff !important;
+  font-weight: 700 !important;
+}
+:host-context(html[data-theme='dark']) .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab,
+:host-context(html[data-theme='dark']) .image-controls-sidebar .image-sidebar-subtabs > button.image-neutral-tab,
+:host-context(html[data-theme='dark']) .image-controls-sidebar .mode-row > button.mode-button {
+  background: #34373b !important;
+  background-color: #34373b !important;
+  color: #e8e8e8 !important;
+  border-color: #777 !important;
+}
+:host-context(html[data-theme='dark']) .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab.active,
+:host-context(html[data-theme='dark']) .image-controls-sidebar .image-sidebar-subtabs > button.image-neutral-tab.active,
+:host-context(html[data-theme='dark']) .image-controls-sidebar .mode-row > button.mode-button.selected {
+  background: #555b62 !important;
+  background-color: #555b62 !important;
+  color: #fff !important;
+  border: 2px solid #c5cbd2 !important;
+  box-shadow: inset 0 0 0 1px #25282c !important;
+  font-weight: 700 !important;
+}
