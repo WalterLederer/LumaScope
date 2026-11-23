@@ -1,7 +1,7 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { TreeNode, updateSubject } from '@light-matter/ui';
 import { FileInfo, getThumbnailSize, thumbnailDimensions, ThumbnailSize } from 'internal-api';
-import { BehaviorSubject, defer, filter, map, Observable, distinctUntilChanged, finalize, shareReplay, startWith, switchMap, take, tap } from 'rxjs';
+import { BehaviorSubject, defer, filter, map, Observable, distinctUntilChanged, finalize, of, shareReplay, startWith, switchMap, take, tap } from 'rxjs';
 import { FileSystem } from '../../../ipc/file-system';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { Configuration } from '../../../system/services/configuration/configuration';
@@ -31,6 +31,8 @@ export class GalleryState {
   private readonly galleryLoading$ = new BehaviorSubject(false);
   private readonly galleryRefreshing$ = new BehaviorSubject(false);
   private navigationRequest = 0;
+  private navigationInFlight: { key: string; observable: Observable<boolean> } | null = null;
+  private loadedNavigationKey: string | null = null;
   private readonly navigationHistory: string[] = [];
   private navigationHistoryIndex = -1;
   readonly canNavigateBack = signal(false);
@@ -217,13 +219,28 @@ export class GalleryState {
   readonly sortMode = () => this.sortMode$.asObservable();
 
   /* Modifiers */
-  readonly navigateTo = (path: string, recordHistory = true): Observable<boolean> => {
+  readonly navigateTo = (path: string, recordHistory = true, forceReload = false): Observable<boolean> => {
     if (recordHistory && this.navigationHistory[this.navigationHistoryIndex] !== path) {
       this.navigationHistory.splice(this.navigationHistoryIndex + 1);
       this.navigationHistory.push(path);
       this.navigationHistoryIndex = this.navigationHistory.length - 1;
       this.updateNavigationHistoryState();
     }
+    const sort = this.sortMode$.value;
+    const navigationKey = JSON.stringify([
+      path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
+      sort.sortBy, sort.sortDir, this.nameFilterActive$.value ? this.nameFilter$.value : ''
+    ]);
+    if (!forceReload && this.navigationInFlight?.key === navigationKey) {
+      console.info('[GalleryDB] SKIP duplicate navigation | reason=in-flight | folder=' + path);
+      return this.navigationInFlight.observable;
+    }
+    if (!forceReload && this.selectedLocation$.value === path
+      && this.loadedNavigationKey === navigationKey && !this.galleryLoading$.value) {
+      console.info('[GalleryDB] SKIP duplicate navigation | reason=already-loaded | folder=' + path);
+      return of(true);
+    }
+
     const request = ++this.navigationRequest;
     this.selectedLocation$.next(path);
     this.galleryLoading$.next(true);
@@ -235,9 +252,11 @@ export class GalleryState {
     this.galleryPageLoading = false;
     this.pendingGalleryWindowOffset = null;
     this.images$.next([]);
+    this.loadedNavigationKey = null;
     this.configuration.updateGalleryConfig({ selectedLocation: path });
 
-    return this.sortMode$
+    let sharedNavigation: Observable<boolean>;
+    sharedNavigation = this.sortMode$
       .pipe(
         take(1),
         switchMap(sortMode => defer(() => {
@@ -270,12 +289,17 @@ export class GalleryState {
             : page.files.length < this.galleryWindowSize ? page.files.length : -1;
           this.totalFileCount.set(this.galleryTotalCount >= 0 ? this.galleryTotalCount : page.files.length);
           this.images$.next(page.files);
+          this.loadedNavigationKey = navigationKey;
         }),
         map(() => true),
         finalize(() => {
           if (request === this.navigationRequest) this.galleryLoading$.next(false);
-        })
+          if (this.navigationInFlight?.observable === sharedNavigation) this.navigationInFlight = null;
+        }),
+        shareReplay({ bufferSize: 1, refCount: false })
       );
+    this.navigationInFlight = { key: navigationKey, observable: sharedNavigation };
+    return sharedNavigation;
   };
 
   readonly loadNextGalleryPage = (): void => {
