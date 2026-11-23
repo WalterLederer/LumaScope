@@ -307,7 +307,7 @@
     app-thumbnail {
       width: auto;
       height: auto;
-      min-height: calc(var(--detail-thumb-height, 27px) + 10px);
+      min-height: var(--detail-thumb-height, 27px);
       border-radius: 0;
       border-bottom: var(--lumascope-table-line-width,1px) solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 25%)));
     }
@@ -732,7 +732,9 @@
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  padding: 2px;
+  /* The row height is the thumbnail height; vertical cell padding would
+     otherwise make the grid row taller than the thumbnail itself. */
+  padding: 0 2px;
   text-align: center;
 }
 .detail-native-table .detail-thumb img { display: block; max-width: 100%; max-height: var(--detail-thumb-height, 27px); object-fit: contain; margin: 0 auto; }
