@@ -393,9 +393,12 @@ export class GalleryPage {
     this.galleryState.navigateTo(node.id).subscribe();
 
   protected readonly onImageSelected = (file: FileInfo) => {
-    // The embedded Image View gallery only tracks the active row. Opening the
-    // file is reserved for an explicit click on the Image tab.
+    // A single click only opens images in the standalone gallery.
     if (!this.selectImageOnThumbnailClick()) return;
+    this.openImage(file);
+  };
+
+  protected readonly openImage = (file: FileInfo): void => {
     this.viewNavigator
       .selectImage(file.path)
       .subscribe(selected => {
