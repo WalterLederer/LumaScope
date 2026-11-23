@@ -31,7 +31,7 @@ export class GalleryState {
   private readonly galleryLoading$ = new BehaviorSubject(false);
   private readonly galleryRefreshing$ = new BehaviorSubject(false);
   private navigationRequest = 0;
-  private navigationInFlight: { key: string; observable: Observable<boolean> } | null = null;
+  private navigationInFlight: { key: string; request: number; observable: Observable<boolean> } | null = null;
   private loadedNavigationKey: string | null = null;
   private readonly navigationHistory: string[] = [];
   private navigationHistoryIndex = -1;
@@ -294,11 +294,11 @@ export class GalleryState {
         map(() => true),
         finalize(() => {
           if (request === this.navigationRequest) this.galleryLoading$.next(false);
-          if (this.navigationInFlight?.observable === sharedNavigation) this.navigationInFlight = null;
+          if (this.navigationInFlight?.request === request) this.navigationInFlight = null;
         }),
         shareReplay({ bufferSize: 1, refCount: false })
       );
-    this.navigationInFlight = { key: navigationKey, observable: sharedNavigation };
+    this.navigationInFlight = { key: navigationKey, request, observable: sharedNavigation };
     return sharedNavigation;
   };
 
