@@ -953,6 +953,65 @@ export class OsmAndAtlasManager {
     return [...this.obfPaths];
   };
 
+  @IpcHandler({ name: 'OsmAndAtlas.reverseGeocode' })
+  readonly reverseGeocode = async (
+    _event: Electron.IpcMainInvokeEvent,
+    latitude: number,
+    longitude: number,
+    locale = ''
+  ): Promise<{ found: boolean; latitude: number; longitude: number; building: string; street: string; place: string; distance_m: number | null; source: string }> => {
+    if (typeof latitude !== 'number' || !Number.isFinite(latitude) || latitude < -90 || latitude > 90
+      || typeof longitude !== 'number' || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      throw new Error('Reverse geocoding requires valid latitude and longitude coordinates.');
+    }
+    await this.refreshSelectedObf();
+    const activePaths = [...new Set(this.obfPaths.filter(path => existsSync(path)))];
+    if (!activePaths.length) throw new Error('Enable at least one available OsmAnd OBF map in Offline Files.');
+    if (!this.resourcesPath || !existsSync(this.resourcesPath)) throw new Error('Select an available OsmAnd resources folder first.');
+    if (!existsSync(this.searchHelperPath)) throw new Error('OsmAnd reverse geocoding helper not found: ' + this.searchHelperPath);
+
+    const encodeArgument = (value: string): string => 'utf8hex:' + Buffer.from(value, 'utf8').toString('hex');
+    const output = await new Promise<string>((resolveOutput, rejectOutput) => {
+      const child = spawn(this.searchHelperPath, [
+        '--reverse-geocode',
+        encodeArgument(JSON.stringify(activePaths)),
+        encodeArgument(this.resourcesPath),
+        String(latitude),
+        String(longitude),
+        encodeArgument(locale)
+      ], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: this.environment });
+      let stdout = '';
+      let stderr = '';
+      child.stdout.setEncoding('utf8');
+      child.stderr.setEncoding('utf8');
+      child.stdout.on('data', chunk => { stdout += String(chunk); });
+      child.stderr.on('data', chunk => { stderr += String(chunk); });
+      child.once('error', rejectOutput);
+      child.once('close', code => {
+        if (code !== 0) {
+          rejectOutput(new Error('Offline reverse geocoding failed (exit ' + String(code) + '). ' + stderr.trim()));
+          return;
+        }
+        resolveOutput(stdout);
+      });
+    });
+    const parsed: unknown = JSON.parse(output.trim());
+    if (!parsed || typeof parsed !== 'object' || typeof (parsed as { found?: unknown }).found !== 'boolean') {
+      throw new Error('Offline reverse geocoding returned an invalid result.');
+    }
+    const result = parsed as { found: boolean; latitude?: number; longitude?: number; building?: string; street?: string; place?: string; distance_m?: number; source?: string };
+    return {
+      found: result.found,
+      latitude,
+      longitude,
+      building: typeof result.building === 'string' ? result.building : '',
+      street: typeof result.street === 'string' ? result.street : '',
+      place: typeof result.place === 'string' ? result.place : '',
+      distance_m: typeof result.distance_m === 'number' && Number.isFinite(result.distance_m) ? result.distance_m : null,
+      source: typeof result.source === 'string' ? result.source : 'OsmAnd'
+    };
+  };
+
   @IpcHandler({ name: 'OsmAndAtlas.searchAddresses' })
   readonly searchAddresses = async (
     _event: Electron.IpcMainInvokeEvent,
