@@ -44,7 +44,6 @@
                     (thumbSizeChanged)="onThumbSizeChange($event)"
                     (selected)="onImageSelected($event)"
                     (activeSelectionChanged)="activeSelectionChanged.emit($event)"
-                    (activeSelectionChanged)="activeSelectionChanged.emit($event)"
                      (folderRefreshRequested)="refreshSelectedFolder($event)" />
   </ui-side-panel>
 } @else {
@@ -86,7 +85,8 @@
                     (sortDirChanged)="onSortDirChange($event)"
                     (thumbSizeChanged)="onThumbSizeChange($event)"
                     (selected)="onImageSelected($event)"
-                     (folderRefreshRequested)="refreshSelectedFolder($event)" />
+                    (activeSelectionChanged)="activeSelectionChanged.emit($event)"
+                    (folderRefreshRequested)="refreshSelectedFolder($event)" />
   }
 }
 
