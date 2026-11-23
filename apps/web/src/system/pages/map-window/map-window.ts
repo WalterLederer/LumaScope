@@ -2545,33 +2545,32 @@ export class MapWindow implements OnInit, OnDestroy {
     });
   }
 
+  private async lookupBothReverseGeocoders(latitude: number, longitude: number): Promise<string> {
+    const language = navigator.language || 'en';
+    const offlineLookup = this.desktop
+      ? this.desktop.OsmAndAtlas.reverseGeocode(latitude, longitude, language)
+        .then(result => result.found
+          ? [result.building, result.street, result.place].filter(Boolean).join(', ') || 'No result'
+          : 'No result')
+        .catch(error => `Error: ${error instanceof Error ? error.message : String(error)}`)
+      : Promise.resolve('Unavailable');
+    const onlineLookup = lookupReverseGeocoding(latitude, longitude, language)
+      .then(result => result?.displayName?.trim() || 'No result')
+      .catch(error => `Error: ${error instanceof Error ? error.message : String(error)}`);
+    const [offline, online] = await Promise.all([offlineLookup, onlineLookup]);
+    return `Offline: ${offline} | Online: ${online}`;
+  }
+
   protected readonly showCrosshairAddress = (): void => {
     if (!this.fixLocationEnabled()) return;
     const center = this.currentMapCenter();
     if (!center) { this.crosshairAddress.set('Map center is not available.'); return; }
     this.updateCrosshairCoordinates();
-    this.crosshairAddress.set('Looking up address…');
-    void (async () => {
-      try {
-        let displayName: string | null = null;
-        if (this.desktop) {
-          try {
-            const offline = await this.desktop.OsmAndAtlas.reverseGeocode(center.lat, center.lng, navigator.language || 'en');
-            if (offline.found) {
-              displayName = [offline.building, offline.street, offline.place].filter(Boolean).join(', ') || null;
-            }
-          } catch (error) {
-            console.warn('Offline OsmAnd reverse geocoding is unavailable; trying the online provider:', error);
-          }
-        }
-        if (!displayName) {
-          displayName = (await lookupReverseGeocoding(center.lat, center.lng, navigator.language || 'en'))?.displayName ?? null;
-        }
-        this.crosshairAddress.set(displayName || 'No street address available for this location.');
-      } catch (error) {
-        this.crosshairAddress.set(`Reverse geocoding failed: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    })();
+    this.crosshairAddress.set('Looking up offline and online addresses…');
+    void this.lookupBothReverseGeocoders(center.lat, center.lng).then(
+      result => this.crosshairAddress.set(result),
+      error => this.crosshairAddress.set(`Reverse geocoding failed: ${error instanceof Error ? error.message : String(error)}`)
+    );
   };
 
   protected readonly showPhotoAddress = (): void => {
@@ -2582,28 +2581,11 @@ export class MapWindow implements OnInit, OnDestroy {
       this.photoAddress.set('Photo coordinates are not available.');
       return;
     }
-    this.photoAddress.set('Looking up address…');
-    void (async () => {
-      try {
-        let displayName: string | null = null;
-        if (this.desktop) {
-          try {
-            const offline = await this.desktop.OsmAndAtlas.reverseGeocode(latitude, longitude, navigator.language || 'en');
-            if (offline.found) {
-              displayName = [offline.building, offline.street, offline.place].filter(Boolean).join(', ') || null;
-            }
-          } catch (error) {
-            console.warn('Offline OsmAnd reverse geocoding is unavailable; trying the online provider:', error);
-          }
-        }
-        if (!displayName) {
-          displayName = (await lookupReverseGeocoding(latitude, longitude, navigator.language || 'en'))?.displayName ?? null;
-        }
-        this.photoAddress.set(displayName || 'No street address available for this photo.');
-      } catch (error) {
-        this.photoAddress.set('Reverse geocoding failed: ' + (error instanceof Error ? error.message : String(error)));
-      }
-    })();
+    this.photoAddress.set('Looking up offline and online addresses…');
+    void this.lookupBothReverseGeocoders(latitude, longitude).then(
+      result => this.photoAddress.set(result),
+      error => this.photoAddress.set(`Reverse geocoding failed: ${error instanceof Error ? error.message : String(error)}`)
+    );
   };
 
   private async lookupLocationAddress(latitude: number, longitude: number): Promise<void> {
