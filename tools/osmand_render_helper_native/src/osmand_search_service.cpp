@@ -67,6 +67,19 @@ struct AdministrativeAreaCandidate
     qint64 bboxArea = 0;
 };
 
+QString administrativeObjectKey(const OsmAnd::ObfObjectId& objectId)
+{
+    if (!objectId.isOsmId())
+        return {};
+
+    // Address and map indexes may encode the same OSM object differently
+    // (notably when map objects carry the split-ID flag). Compare the
+    // normalized OSM ID and relation/way kind, not the packed OBF ID.
+    return QStringLiteral("%1:%2")
+        .arg(objectId.isIdFromRelation() ? QStringLiteral("relation") : QStringLiteral("way"))
+        .arg(objectId.getOsmId());
+}
+
 bool polygonContainsPoint(
     const QVector<OsmAnd::PointI>& points,
     const QPoint& point)
@@ -120,7 +133,7 @@ QJsonObject administrativeAreasForCoordinate(
     queryArea.bottom() = point31.y + 2;
 
     QList<AdministrativeAreaCandidate> candidates;
-    QHash<quint64, int> administrativeLevelsByObjectId;
+    QHash<QString, int> administrativeLevelsByObjectId;
     int loadedMapObjectCount = 0;
     int administrativeBoundaryObjectCount = 0;
     int loadedAddressBoundaryGroupCount = 0;
@@ -178,7 +191,9 @@ QJsonObject administrativeAreasForCoordinate(
                         ++administrativeBoundaryObjectCount;
                         if (mapObject->id.isOsmId())
                         {
-                            administrativeLevelsByObjectId.insert(mapObject->id.id, adminLevel);
+                            const auto objectKey = administrativeObjectKey(mapObject->id);
+                            if (!objectKey.isEmpty())
+                                administrativeLevelsByObjectId.insert(objectKey, adminLevel);
                             if (mapBoundaryObjectIds.size() < 20)
                             {
                                 const auto mapName = mapObject->getName(locale, false).trimmed();
@@ -287,7 +302,10 @@ QJsonObject administrativeAreasForCoordinate(
                 .arg(streetGroup->id.isIdFromSplit() ? 1 : 0)
                 .arg(displayName));
         }
-        const auto levelIt = administrativeLevelsByObjectId.constFind(streetGroup->id.id);
+        const auto addressObjectKey = administrativeObjectKey(streetGroup->id);
+        if (addressObjectKey.isEmpty())
+            continue;
+        const auto levelIt = administrativeLevelsByObjectId.constFind(addressObjectKey);
         if (levelIt == administrativeLevelsByObjectId.cend())
             continue;
         ++matchedAddressBoundaryObjectIdCount;
