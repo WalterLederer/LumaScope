@@ -611,7 +611,23 @@ export interface OsmAndReverseGeocodeResult {
   postcode: string;
   administrative_areas: Array<{ admin_level: number; name: string }>;
   helper_version: string;
-  diagnostics: { loaded_map_objects: number; administrative_boundary_objects: number; loaded_address_boundary_groups: number; matching_address_boundary_groups: number; matched_address_boundary_object_ids: number; map_boundary_object_ids: string[]; address_boundary_object_ids: string[]; matched_boundary_object_ids: string[]; resolved_administrative_areas: number };
+  diagnostics: {
+      loaded_map_objects: number;
+      administrative_boundary_objects: number;
+      loaded_address_boundary_groups: number;
+      matching_address_boundary_groups: number;
+      matched_address_boundary_object_ids: number;
+      map_boundary_object_ids: string[];
+      address_boundary_object_ids: string[];
+      matched_boundary_object_ids: string[];
+      resolved_administrative_areas: number;
+      boundary_search_area_available: boolean;
+      boundary_line_diagnostics_enabled: boolean;
+      boundary_line_counts: Array<{ admin_level: number; line_segments: number; unique_endpoints: number; dangling_endpoints: number; degree_two_endpoints: number; branch_or_duplicate_endpoints: number }>;
+      boundary_geometry_points: number;
+      boundary_area_objects: number;
+      boundary_line_samples: Array<{ id: string; osm_id: string; admin_level: number; is_area: boolean; point_count: number; first: string; last: string; name: string }>;
+    };
   distance_m: number | null;
   source: string;
 }
