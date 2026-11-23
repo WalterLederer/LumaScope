@@ -346,7 +346,8 @@ const api: Desktop = {
       const listener = (): void => callback();
       ipcRenderer.on('Capture.rectangleClipboardHotkey', listener);
       return () => ipcRenderer.removeListener('Capture.rectangleClipboardHotkey', listener);
-    }
+    },
+    notifyPreviewRendererReady: () => ipcRenderer.send('CapturePreviewWindow.rendererReady')
   },
 
   // TODO: Deprecated methods, should be moved into a handler class in the future
