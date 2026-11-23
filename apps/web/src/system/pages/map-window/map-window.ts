@@ -2004,6 +2004,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.currentImageHasGps.set(false);
         this.photoCoordinateLabel.set('Photo: GPS coordinates unavailable');
         this.photoGpsCoordinates.set('Photo GPS position unavailable');
+        this.photoAddress.set('');
         this.coordinateLabel.set('GPS coordinates unavailable');
         this.locationAddress.set('');
         this.marker?.setOpacity(0);
@@ -2025,6 +2026,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.coordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!));
       this.photoCoordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!).replace(/^Coordinates: /, 'Photo: '));
       this.photoGpsCoordinates.set(this.formatManualGpsPosition(nextLatitude!, nextLongitude!));
+      this.photoAddress.set('');
       void this.lookupLocationAddress(nextLatitude!, nextLongitude!);
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
       if (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge') {
@@ -2553,9 +2555,13 @@ export class MapWindow implements OnInit, OnDestroy {
       try {
         let displayName: string | null = null;
         if (this.desktop) {
-          const offline = await this.desktop.OsmAndAtlas.reverseGeocode(center.lat, center.lng, navigator.language || 'en');
-          if (offline.found) {
-            displayName = [offline.building, offline.street, offline.place].filter(Boolean).join(', ') || null;
+          try {
+            const offline = await this.desktop.OsmAndAtlas.reverseGeocode(center.lat, center.lng, navigator.language || 'en');
+            if (offline.found) {
+              displayName = [offline.building, offline.street, offline.place].filter(Boolean).join(', ') || null;
+            }
+          } catch (error) {
+            console.warn('Offline OsmAnd reverse geocoding is unavailable; trying the online provider:', error);
           }
         }
         if (!displayName) {
@@ -2577,9 +2583,13 @@ export class MapWindow implements OnInit, OnDestroy {
       try {
         let displayName: string | null = null;
         if (this.desktop) {
-          const offline = await this.desktop.OsmAndAtlas.reverseGeocode(latitude, longitude, navigator.language || 'en');
-          if (offline.found) {
-            displayName = [offline.building, offline.street, offline.place].filter(Boolean).join(', ') || null;
+          try {
+            const offline = await this.desktop.OsmAndAtlas.reverseGeocode(latitude, longitude, navigator.language || 'en');
+            if (offline.found) {
+              displayName = [offline.building, offline.street, offline.place].filter(Boolean).join(', ') || null;
+            }
+          } catch (error) {
+            console.warn('Offline OsmAnd reverse geocoding is unavailable; trying the online provider:', error);
           }
         }
         if (!displayName) {
