@@ -1967,25 +1967,11 @@ export class CacheManager {
       return `instr(lower(photos.file_name), :nameFilter${index}) > 0`;
     });
     const where = `${scope}${supportedFilter}${nameFilterSql.length ? ` AND ${nameFilterSql.join(' AND ')}` : ''}`;
-    // Counts are independent of sorting and are reused across page requests.
+    // Load the requested page first. When fewer than the requested limit are
+    // returned, the result set is complete and an expensive COUNT(*) scan is
+    // unnecessary (the common case for ordinary folders).
     const countCacheKey = [databaseKey, folder.toLocaleLowerCase(), recursive ? '1' : '0', includeUnsupported ? '1' : '0', ...nameFilterTerms].join('|');
-    let totalCount = this.galleryCountCache.get(countCacheKey);
-    if (totalCount === undefined) {
-      const countStartedAt = Date.now();
-      const countLogId = nextSqlLogId();
-      console.info(`[SQL] ${sqlLogTimestamp()} START #${countLogId} COUNT | source=${sourceId} | folder=${directory} | recursive=${recursive} | unsupported=${includeUnsupported}`);
-      const totalCountRow = db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number };
-      totalCount = Number(totalCountRow.totalCount) || 0;
-      console.info(`[SQL] ${sqlLogTimestamp()} END   #${countLogId} COUNT | ${Date.now() - countStartedAt}ms | total=${totalCount}`);
-      this.galleryCountCache.set(countCacheKey, totalCount);
-      // Keep searches typed character by character from growing this cache indefinitely.
-      if (this.galleryCountCache.size > 100) {
-        const oldestKey = this.galleryCountCache.keys().next().value;
-        if (oldestKey !== undefined) this.galleryCountCache.delete(oldestKey);
-      }
-    } else {
-      console.info(`[SQL] ${sqlLogTimestamp()} CACHE COUNT | source=${sourceId} | folder=${directory} | total=${totalCount}`);
-    }
+    let totalCount = this.galleryCountCache.get(countCacheKey) ?? -1;
     const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
     const orderBy = sortBy === 'path'
       ? `paths.relative_folder_path COLLATE NOCASE ${direction}, photos.file_name COLLATE NOCASE ${direction}`
@@ -2010,6 +1996,25 @@ export class CacheManager {
       file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
     }>;
     console.info(`[SQL] ${sqlLogTimestamp()} END   #${queryLogId} getGalleryFilesPage | ${Date.now() - queryStartedAt}ms | rows=${rows.length}`);
+    if (totalCount < 0) {
+      if (rows.length < safeLimit) {
+        totalCount = safeOffset + rows.length;
+        this.galleryCountCache.set(countCacheKey, totalCount);
+        console.info(`[SQL] ${sqlLogTimestamp()} SKIP COUNT | source=${sourceId} | completePage=true | total=${totalCount}`);
+      } else {
+        const countStartedAt = Date.now();
+        const countLogId = nextSqlLogId();
+        console.info(`[SQL] ${sqlLogTimestamp()} START #${countLogId} COUNT | source=${sourceId} | folder=${directory} | recursive=${recursive} | unsupported=${includeUnsupported}`);
+        const totalCountRow = db.prepare(`SELECT COUNT(*) AS totalCount ${where}`).get(filterParams) as { totalCount: number };
+        totalCount = Number(totalCountRow.totalCount) || 0;
+        console.info(`[SQL] ${sqlLogTimestamp()} END   #${countLogId} COUNT | ${Date.now() - countStartedAt}ms | total=${totalCount}`);
+        this.galleryCountCache.set(countCacheKey, totalCount);
+        if (this.galleryCountCache.size > 100) {
+          const oldestKey = this.galleryCountCache.keys().next().value;
+          if (oldestKey !== undefined) this.galleryCountCache.delete(oldestKey);
+        }
+      }
+    }
     const files = rows.map(row => {
       const parent = this.resolveStoredFolderPath(row.relative_folder_path, databaseKey);
       return {
