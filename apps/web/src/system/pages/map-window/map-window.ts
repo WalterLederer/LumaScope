@@ -1508,6 +1508,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly locationAddress = signal('');
 
   protected readonly crosshairAddress = signal('');
+  protected readonly photoAddress = signal('');
   protected readonly crosshairCoordinates = signal('—');
   protected readonly photoGpsCoordinates = signal('Photo GPS position unavailable');
   protected readonly gpsRefreshBusy = signal(false);
@@ -2550,13 +2551,43 @@ export class MapWindow implements OnInit, OnDestroy {
     this.crosshairAddress.set('Looking up address…');
     void (async () => {
       try {
-        const imagePath = this.currentImagePath;
         let displayName: string | null = null;
-        if (imagePath && this.desktop) displayName = await this.desktop.CacheManager.resolvePhotoLocation(imagePath, center.lat, center.lng);
-        else displayName = (await lookupReverseGeocoding(center.lat, center.lng, navigator.language || 'en'))?.displayName ?? null;
+        if (this.desktop) {
+          const offline = await this.desktop.OsmAndAtlas.reverseGeocode(center.lat, center.lng, navigator.language || 'en');
+          if (offline.found) {
+            displayName = [offline.building, offline.street, offline.place].filter(Boolean).join(', ') || null;
+          }
+        }
+        if (!displayName) {
+          displayName = (await lookupReverseGeocoding(center.lat, center.lng, navigator.language || 'en'))?.displayName ?? null;
+        }
         this.crosshairAddress.set(displayName || 'No street address available for this location.');
       } catch (error) {
         this.crosshairAddress.set(`Reverse geocoding failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    })();
+  };
+
+  protected readonly showPhotoAddress = (): void => {
+    if (!this.coordinatesAvailable()) return;
+    const latitude = this.currentLatitude;
+    const longitude = this.currentLongitude;
+    this.photoAddress.set('Looking up address…');
+    void (async () => {
+      try {
+        let displayName: string | null = null;
+        if (this.desktop) {
+          const offline = await this.desktop.OsmAndAtlas.reverseGeocode(latitude, longitude, navigator.language || 'en');
+          if (offline.found) {
+            displayName = [offline.building, offline.street, offline.place].filter(Boolean).join(', ') || null;
+          }
+        }
+        if (!displayName) {
+          displayName = (await lookupReverseGeocoding(latitude, longitude, navigator.language || 'en'))?.displayName ?? null;
+        }
+        this.photoAddress.set(displayName || 'No street address available for this photo.');
+      } catch (error) {
+        this.photoAddress.set('Reverse geocoding failed: ' + (error instanceof Error ? error.message : String(error)));
       }
     })();
   };
