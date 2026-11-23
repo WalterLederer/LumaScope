@@ -680,10 +680,12 @@ export class ImageGridComponent {
         this.cacheCompletenessScope = '';
         return;
       }
-      if (loading || running || images.length === 0) return;
       const scope = `${folder.toLocaleLowerCase()}|${recursive}`;
-      if (this.cacheCompletenessScope === scope && this.cacheCompleteness() !== null) return;
-      this.cacheCompletenessScope = scope;
+      if (this.cacheCompletenessScope !== scope) {
+        this.cacheCompletenessScope = scope;
+        this.cacheCompleteness.set(null);
+      }
+      if (loading || running || images.length === 0 || this.cacheCompleteness() !== null) return;
       const timer = setTimeout(() => void this.refreshCacheCompleteness(folder, recursive), 1800);
       onCleanup(() => clearTimeout(timer));
     });
