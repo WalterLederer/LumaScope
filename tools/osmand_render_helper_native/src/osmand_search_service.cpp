@@ -354,7 +354,12 @@ QJsonObject administrativeAreasForCoordinate(
     QJsonArray boundaryLineSamples;
     int boundaryAreaObjectCount = 0;
     int boundaryGeometryPointCount = 0;
-    if (hasBoundarySearchArea)
+    // This broad scan is diagnostic-only and can be expensive on large OBF
+    // files. Keep it opt-in so normal reverse geocoding does not repeatedly
+    // traverse every map section and zoom level.
+    const bool boundaryLineDiagnosticsEnabled =
+        qEnvironmentVariableIsSet("LUMASCOPE_OSMAND_BOUNDARY_DIAGNOSTICS");
+    if (hasBoundarySearchArea && boundaryLineDiagnosticsEnabled)
     {
         for (const auto& reader : dataInterface->obfReaders)
         {
@@ -481,6 +486,7 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("matched_boundary_object_ids"), matchedBoundaryObjectIds},
         {QStringLiteral("resolved_administrative_areas"), areas.size()},
         {QStringLiteral("boundary_search_area_available"), hasBoundarySearchArea},
+        {QStringLiteral("boundary_line_diagnostics_enabled"), boundaryLineDiagnosticsEnabled},
         {QStringLiteral("boundary_line_counts"), boundaryConnectivity},
         {QStringLiteral("boundary_geometry_points"), boundaryGeometryPointCount},
         {QStringLiteral("boundary_area_objects"), boundaryAreaObjectCount},
