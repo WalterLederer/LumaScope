@@ -2930,3 +2930,13 @@
   border: 2px solid #c5cbd2;
   box-shadow: inset 0 0 0 1px #25282c;
 }
+
+
+/* The comparison-mode logos are artwork, not HDR image previews. Keep their
+   luminance restrained so the symbols remain comfortable against the controls. */
+:host .image-controls-sidebar .mode-logo-image {
+  filter: brightness(.72);
+}
+:host .image-controls-sidebar .mode-logo-image.sdr-logo-image {
+  filter: brightness(.72) drop-shadow(0 2px 5px rgb(0 0 0 / 30%));
+}
