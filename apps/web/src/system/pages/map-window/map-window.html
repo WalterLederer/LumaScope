@@ -66,6 +66,18 @@
                 <div class="location-tools-content">
                   <div class="location-coordinate-display"><span>{{ photoCoordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
                   <div class="location-coordinate-display"><span>Mouse: {{ mouseCoordinateLabel() }}</span></div>
+                  <div class="location-reverse-geocoding">
+                    <table class="fix-location-position-table" aria-label="Crosshair and photo address lookup">
+                      <tbody>
+                        <tr>
+                          <th scope="row">Photo</th>
+                          <td class="fix-location-photo-coordinates" role="status">{{ photoGpsCoordinates() }}</td>
+                          <td></td>
+                          <td class="fix-location-address-cell"><button type="button" class="map-toolbar-button" (click)="showPhotoAddress()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">⌖</span> Show address</button><span class="location-address fix-location-address" role="status">{{ photoAddress() }}</span></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                   <div class="address-settings">
                     <span class="settings-row-title">Address:</span>
                     <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || (coordinatesAvailable() ? 'Looking up address…' : '') }}</span>
@@ -198,7 +210,7 @@
                           <th scope="row">Image</th>
                           <td class="fix-location-photo-coordinates" role="status">{{ photoGpsCoordinates() }}</td>
                           <td><button type="button" class="map-toolbar-button" (click)="centerMapOnPhoto()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">◎</span> Center on image</button></td>
-                          <td><div class="fix-location-gps-file-actions"><button type="button" class="map-toolbar-button" (click)="showPhotoAddress()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">⌖</span> Show address</button><button type="button" class="map-toolbar-button" (click)="refreshGpsPosition()" [disabled]="!currentImagePath || gpsRefreshBusy()"><span aria-hidden="true">↻</span> {{ gpsRefreshBusy() ? 'Refreshing…' : 'Refresh GPS from file' }}</button><span class="location-address fix-location-address" role="status">{{ photoAddress() }}</span></div></td>
+                          <td><div class="fix-location-gps-file-actions"><button type="button" class="map-toolbar-button" (click)="centerMapOnPhoto()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">◎</span> Center on image</button><button type="button" class="map-toolbar-button" (click)="refreshGpsPosition()" [disabled]="!currentImagePath || gpsRefreshBusy()"><span aria-hidden="true">↻</span> {{ gpsRefreshBusy() ? 'Refreshing…' : 'Refresh GPS from file' }}</button></div></td>
                         </tr>
                       </tbody>
                     </table>
@@ -926,21 +938,7 @@
           </section>
         </div>
       </details>
-      <details class="render-statistics-section app-disclosure view-settings-section">
-        <summary>View settings</summary>
-        <div class="render-statistics-content">
-          <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
-          <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
-          <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()" title="Map bounds are drawn only at zoom level 10 or lower (zoom ≤ 10). Zoom in beyond level 10 to hide them."><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
-          <div class="range-setting photo-preview-size-setting">
-            <label for="photo-preview-size">Photo marker preview width</label>
-            <ui-slider id="photo-preview-size" class="opacity-slider" [min]="60" [max]="240" [step]="10"
-              [value]="photoPreviewSize()" (valueChange)="changePhotoPreviewSize($event)"
-              [color]="themeService.sliderColor()" aria-label="Photo marker preview width" />
-            <span class="range-value">{{ photoPreviewSize() }} px</span>
-          </div>
-        </div>
-      </details>
+      
       <details class="render-statistics-section app-disclosure">
         <summary>Statistics</summary>
         <div class="render-statistics-content">
@@ -1072,6 +1070,22 @@
       </details>
       </div>
   </details>
+  <details class="render-statistics-section app-disclosure view-settings-section">
+          <summary>View settings</summary>
+          <div class="render-statistics-content">
+            <label class="visibility-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label>
+            <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay and dimming</label>
+            <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
+            <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()" title="Map bounds are drawn only at zoom level 10 or lower (zoom ≤ 10). Zoom in beyond level 10 to hide them."><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
+            <div class="range-setting photo-preview-size-setting">
+              <label for="photo-preview-size">Photo marker preview width</label>
+              <ui-slider id="photo-preview-size" class="opacity-slider" [min]="60" [max]="240" [step]="10"
+                [value]="photoPreviewSize()" (valueChange)="changePhotoPreviewSize($event)"
+                [color]="themeService.sliderColor()" aria-label="Photo marker preview width" />
+              <span class="range-value">{{ photoPreviewSize() }} px</span>
+            </div>
+          </div>
+        </details>
     </div>
 </div>
 <div class="settings-tab-panel" data-settings-tab="offlineMaps" role="tabpanel" [hidden]="activeSettingsTab() !== 'offlineMaps'">
