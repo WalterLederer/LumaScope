@@ -6,6 +6,7 @@ import { format } from 'url';
 import { environment } from '../environments/environment';
 import { protocolHandler } from '../protocol-handler/protocol-handler';
 import { StartupConfig } from '../startup-config/startup-config';
+import { cleanupStaleJsonTemporaryFiles } from '../file-system/json-file';
 import { flushAppSettingsWrites, startAppSettingsCheckpoint } from '../settings/app-settings';
 import { rendererAppName, rendererAppPort } from './constants';
 
@@ -782,6 +783,9 @@ export default class App {
     }
 
     App.application.setName('LumaScope');
+    void cleanupStaleJsonTemporaryFiles(App.application.getPath('userData'))
+      .then(removed => { if (removed > 0) console.info(`[Settings] Removed ${removed} stale temporary file(s).`); })
+      .catch(error => console.warn('[Settings] Could not clean stale temporary files:', error));
     App.logShutdown('application-initialized', { logFile: join(app.getPath('userData'), 'logs', 'shutdown.log') });
     App.startupConfig = new StartupConfig(app);
 
