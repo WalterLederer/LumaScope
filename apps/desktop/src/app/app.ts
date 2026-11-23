@@ -233,8 +233,14 @@ export default class App {
     };
     let devToolsAttachedForMainNavigation = false;
     let rendererUnresponsive = false;
+    let rendererNavigationCount = 0;
     App.mainWindow.webContents.on('did-start-loading', () => {
-      logRendererStartup('Renderer navigation started');
+      rendererNavigationCount++;
+      logRendererStartup('Renderer navigation started', {
+        navigation: rendererNavigationCount,
+        url: App.mainWindow && !App.mainWindow.isDestroyed() ? App.mainWindow.webContents.getURL() : null,
+        loadingMainFrame: App.mainWindow && !App.mainWindow.isDestroyed() ? App.mainWindow.webContents.isLoadingMainFrame() : null
+      });
       // Attach after Chromium has created the navigation target, but before
       // the renderer executes the application entry bundle.
       if (!devToolsAttachedForMainNavigation && App.startupConfig.devToolsOpen()) {
@@ -243,8 +249,20 @@ export default class App {
         logRendererStartup('DevTools attached to active renderer navigation');
       }
     });
-    App.mainWindow.webContents.on('dom-ready', () => logRendererStartup('Renderer DOM ready'));
+    App.mainWindow.webContents.on('dom-ready', () => logRendererStartup('Renderer DOM ready', {
+      navigation: rendererNavigationCount,
+      url: App.mainWindow && !App.mainWindow.isDestroyed() ? App.mainWindow.webContents.getURL() : null
+    }));
+    App.mainWindow.webContents.on('did-navigate', (_event, url, httpResponseCode, httpStatusText) =>
+      logRendererStartup('Renderer main-frame navigation committed', {
+        navigation: rendererNavigationCount, url, httpResponseCode, httpStatusText
+      })
+    );
+    App.mainWindow.webContents.on('did-navigate-in-page', (_event, url, isMainFrame) =>
+      logRendererStartup('Renderer in-page navigation', { navigation: rendererNavigationCount, url, isMainFrame })
+    );
     App.mainWindow.webContents.on('did-finish-load', () => logRendererStartup('Renderer document finished loading', {
+      navigation: rendererNavigationCount,
       url: App.mainWindow && !App.mainWindow.isDestroyed() ? App.mainWindow.webContents.getURL() : null
     }));
     App.mainWindow.webContents.on('console-message', ({ level, message, lineNumber, sourceId }) => {
