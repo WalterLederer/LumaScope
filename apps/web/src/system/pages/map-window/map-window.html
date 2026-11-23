@@ -198,7 +198,7 @@
                           <th scope="row">Image</th>
                           <td class="fix-location-photo-coordinates" role="status">{{ photoGpsCoordinates() }}</td>
                           <td><button type="button" class="map-toolbar-button" (click)="centerMapOnPhoto()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">◎</span> Center on image</button></td>
-                          <td><button type="button" class="map-toolbar-button" (click)="refreshGpsPosition()" [disabled]="!currentImagePath || gpsRefreshBusy()"><span aria-hidden="true">↻</span> {{ gpsRefreshBusy() ? 'Refreshing…' : 'Refresh GPS from file' }}</button></td>
+                          <td><div class="fix-location-image-actions"><button type="button" class="map-toolbar-button" (click)="showPhotoAddress()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">⌖</span> Show address</button><button type="button" class="map-toolbar-button" (click)="refreshGpsPosition()" [disabled]="!currentImagePath || gpsRefreshBusy()"><span aria-hidden="true">↻</span> {{ gpsRefreshBusy() ? 'Refreshing…' : 'Refresh GPS from file' }}</button><span class="location-address fix-location-address" role="status">{{ photoAddress() }}</span></div></td>
                         </tr>
                       </tbody>
                     </table>
