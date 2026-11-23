@@ -420,8 +420,10 @@ export class ThumbnailComponent implements OnDestroy {
       void (async () => {
         let cached = false;
         let cacheCheckFailed = false;
+        const preflightStartedAt = performance.now();
+        let statusUrl: URL;
         try {
-          const statusUrl = new URL(imageUrl);
+          statusUrl = new URL(imageUrl);
           statusUrl.searchParams.set('status', '1');
           preflightTimer = setTimeout(() => controller.abort(), 8000);
           const response = await fetch(statusUrl.toString(), { cache: 'no-store', signal: controller.signal });
@@ -442,10 +444,17 @@ export class ThumbnailComponent implements OnDestroy {
           // request can still succeed.
           cacheCheckFailed = true;
           if (!cancelled) {
-            console.warn('[Thumbnail] Cache status check failed; continuing with image request:', {
-              path: this.image().path,
-              error: error instanceof Error ? error.message : String(error)
-            });
+            const details = error instanceof Error
+              ? { name: error.name, message: error.message, stack: error.stack }
+              : error !== null && typeof error === 'object'
+                ? error as Record<string, unknown>
+                : { message: String(error) };
+            console.warn('[Thumbnail] Cache status check failed; continuing with image request: ' + JSON.stringify({
+              path: image.path,
+              elapsedMs: Math.round(performance.now() - preflightStartedAt),
+              statusUrl: statusUrl.toString(),
+              error: details
+            }));
           }
         } finally {
           if (preflightTimer) clearTimeout(preflightTimer);
