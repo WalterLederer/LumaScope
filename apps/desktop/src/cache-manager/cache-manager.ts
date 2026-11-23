@@ -2090,7 +2090,7 @@ export class CacheManager {
     // each extension through reverse()/substr() for every row in a large gallery.
     const extensionPatterns = new Map<string, string>();
     const extensionPattern = (extension: string): string => {
-      const normalized = extension.toLowerCase().replace(/^\\./, '');
+      const normalized = extension.toLowerCase().replace(/^\./, '');
       let pattern = extensionPatterns.get(normalized);
       if (!pattern) {
         const parameter = `fileExtension${extensionPatterns.size}`;
@@ -2114,10 +2114,14 @@ export class CacheManager {
       `(${extensionPattern(extension)} AND photos.fullsize_cache_id IS NOT NULL AND photos.fullsize_cache_version = ${version})`);
     const ohspExtension = extensionPattern('ohsp');
     const dngExtension = extensionPattern('dng');
+    const ohspFullSizeVersion = fullSizeVersions.get('ohsp');
+    const ohspFullSizeCase = ohspFullSizeVersion === undefined
+      ? '0'
+      : `(${ohspExtension} AND photos.fullsize_cache_id IS NOT NULL AND photos.fullsize_cache_version = ${ohspFullSizeVersion})`;
     const thumbnailValid = `(
       (${dngExtension} AND photos.thumbnail_cache_id = ${CACHE_STORAGE_TYPE.SIDECAR} AND photos.thumbnail_cache_version = ${DNG_THUMBNAIL_CACHE_VERSION})
       OR (NOT (${dngExtension}) AND NOT (${ohspExtension}) AND photos.thumbnail_cache_id = ${CACHE_STORAGE_TYPE.SIDECAR} AND photos.thumbnail_cache_version = ${THUMBNAIL_CACHE_VERSION})
-      OR (${ohspExtension} AND (${fullSizeCases.find(value => value.includes('ohsp')) ?? '0'}))
+      OR ${ohspFullSizeCase}
     )`;
     const fullSizeValid = fullSizeCases.length ? `(${fullSizeCases.join(' OR ')})` : '0';
     const fullSizeConversionTotalFilter = [...fullSizeVersions.keys()].map(extension => extensionPattern(extension)).join(' OR ') || '0';
