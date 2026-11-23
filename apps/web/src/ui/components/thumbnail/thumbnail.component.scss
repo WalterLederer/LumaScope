@@ -582,3 +582,32 @@
   background-image: none !important;
   box-shadow: none !important;
 }
+
+
+/* Detail rows are custom app-thumbnail hosts inside the native table body.
+   Prevent wrapped metadata cells from silently increasing the table row beyond
+   the thumbnail height and keep the rendered row equal to virtual scroll size. */
+:host(.view-details) {
+  height: var(--detail-row-height, var(--detail-thumb-height, 27px)) !important;
+  min-height: var(--detail-row-height, var(--detail-thumb-height, 27px)) !important;
+  max-height: var(--detail-row-height, var(--detail-thumb-height, 27px)) !important;
+  overflow: hidden !important;
+}
+:host(.view-details) > td {
+  height: var(--detail-row-height, var(--detail-thumb-height, 27px)) !important;
+  min-height: 0 !important;
+  max-height: var(--detail-row-height, var(--detail-thumb-height, 27px)) !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+:host(.view-details) > .thumbnail-preview {
+  height: var(--detail-row-height, var(--detail-thumb-height, 27px)) !important;
+  min-height: 0 !important;
+  max-height: var(--detail-row-height, var(--detail-thumb-height, 27px)) !important;
+  overflow: hidden !important;
+}
