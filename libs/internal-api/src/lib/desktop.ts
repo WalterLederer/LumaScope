@@ -624,6 +624,7 @@ export interface OsmAndReverseGeocodeResult {
       boundary_search_area_available: boolean;
       boundary_line_diagnostics_enabled: boolean;
       boundary_line_counts: Array<{ admin_level: number; line_segments: number; unique_endpoints: number; dangling_endpoints: number; degree_two_endpoints: number; branch_or_duplicate_endpoints: number }>;
+      boundary_line_relation_groups: Array<{ admin_level: number; osm_id: string; is_relation: boolean; has_split_ids: boolean; name: string; line_segments: number; unique_endpoints: number; dangling_endpoints: number; degree_two_endpoints: number; branch_or_duplicate_endpoints: number }>;
       boundary_line_relation_group_count: number;
       target_boundary_line_relation_group_count: number;
       target_boundary_line_relation_groups: Array<{ admin_level: number; osm_id: string; is_relation: boolean; has_split_ids: boolean; name: string; line_segments: number; unique_endpoints: number; dangling_endpoints: number; degree_two_endpoints: number; branch_or_duplicate_endpoints: number }>;
