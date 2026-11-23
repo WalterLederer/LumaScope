@@ -1102,7 +1102,23 @@ export class OsmAndAtlasManager {
     postcode: string;
     administrative_areas: Array<{ admin_level: number; name: string }>;
     helper_version: string;
-    diagnostics: { loaded_map_objects: number; administrative_boundary_objects: number; loaded_address_boundary_groups: number; matching_address_boundary_groups: number; matched_address_boundary_object_ids: number; map_boundary_object_ids: string[]; address_boundary_object_ids: string[]; matched_boundary_object_ids: string[]; resolved_administrative_areas: number };
+    diagnostics: {
+      loaded_map_objects: number;
+      administrative_boundary_objects: number;
+      loaded_address_boundary_groups: number;
+      matching_address_boundary_groups: number;
+      matched_address_boundary_object_ids: number;
+      map_boundary_object_ids: string[];
+      address_boundary_object_ids: string[];
+      matched_boundary_object_ids: string[];
+      resolved_administrative_areas: number;
+      boundary_search_area_available: boolean;
+      boundary_line_diagnostics_enabled: boolean;
+      boundary_line_counts: Array<{ admin_level: number; line_segments: number; unique_endpoints: number; dangling_endpoints: number; degree_two_endpoints: number; branch_or_duplicate_endpoints: number }>;
+      boundary_geometry_points: number;
+      boundary_area_objects: number;
+      boundary_line_samples: Array<{ id: string; osm_id: string; admin_level: number; is_area: boolean; point_count: number; first: string; last: string; name: string }>;
+    };
     distance_m: number | null;
     source: string;
   }> => {
@@ -1149,6 +1165,29 @@ export class OsmAndAtlasManager {
       const value = rawDiagnostics[key];
       return typeof value === 'number' && Number.isFinite(value) ? value : 0;
     };
+    const diagnosticRecords = (key: string): Array<Record<string, unknown>> =>
+      Array.isArray(rawDiagnostics[key])
+        ? rawDiagnostics[key].filter((value): value is Record<string, unknown> =>
+          !!value && typeof value === 'object' && !Array.isArray(value))
+        : [];
+    const boundaryLineCounts = diagnosticRecords('boundary_line_counts').map(value => ({
+      admin_level: typeof value['admin_level'] === 'number' ? value['admin_level'] : 0,
+      line_segments: typeof value['line_segments'] === 'number' ? value['line_segments'] : 0,
+      unique_endpoints: typeof value['unique_endpoints'] === 'number' ? value['unique_endpoints'] : 0,
+      dangling_endpoints: typeof value['dangling_endpoints'] === 'number' ? value['dangling_endpoints'] : 0,
+      degree_two_endpoints: typeof value['degree_two_endpoints'] === 'number' ? value['degree_two_endpoints'] : 0,
+      branch_or_duplicate_endpoints: typeof value['branch_or_duplicate_endpoints'] === 'number' ? value['branch_or_duplicate_endpoints'] : 0
+    }));
+    const boundaryLineSamples = diagnosticRecords('boundary_line_samples').map(value => ({
+      id: typeof value['id'] === 'string' ? value['id'] : '',
+      osm_id: typeof value['osm_id'] === 'string' ? value['osm_id'] : '',
+      admin_level: typeof value['admin_level'] === 'number' ? value['admin_level'] : 0,
+      is_area: value['is_area'] === true,
+      point_count: typeof value['point_count'] === 'number' ? value['point_count'] : 0,
+      first: typeof value['first'] === 'string' ? value['first'] : '',
+      last: typeof value['last'] === 'string' ? value['last'] : '',
+      name: typeof value['name'] === 'string' ? value['name'] : ''
+    }));
     return {
       found: result.found,
       latitude,
@@ -1168,7 +1207,13 @@ export class OsmAndAtlasManager {
         map_boundary_object_ids: Array.isArray(rawDiagnostics['map_boundary_object_ids']) ? rawDiagnostics['map_boundary_object_ids'].filter((value): value is string => typeof value === 'string').slice(0, 20) : [],
         address_boundary_object_ids: Array.isArray(rawDiagnostics['address_boundary_object_ids']) ? rawDiagnostics['address_boundary_object_ids'].filter((value): value is string => typeof value === 'string').slice(0, 20) : [],
         matched_boundary_object_ids: Array.isArray(rawDiagnostics['matched_boundary_object_ids']) ? rawDiagnostics['matched_boundary_object_ids'].filter((value): value is string => typeof value === 'string').slice(0, 20) : [],
-        resolved_administrative_areas: diagnosticCount('resolved_administrative_areas')
+        resolved_administrative_areas: diagnosticCount('resolved_administrative_areas'),
+        boundary_search_area_available: rawDiagnostics['boundary_search_area_available'] === true,
+        boundary_line_diagnostics_enabled: rawDiagnostics['boundary_line_diagnostics_enabled'] === true,
+        boundary_line_counts: boundaryLineCounts,
+        boundary_geometry_points: diagnosticCount('boundary_geometry_points'),
+        boundary_area_objects: diagnosticCount('boundary_area_objects'),
+        boundary_line_samples: boundaryLineSamples
       },
       distance_m: typeof result.distance_m === 'number' && Number.isFinite(result.distance_m) ? result.distance_m : null,
       source: typeof result.source === 'string' ? result.source : 'OsmAnd'
