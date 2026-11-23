@@ -310,7 +310,7 @@ export class ImageGridComponent {
         await this.galleryCacheBuild.startManualCacheBuild(folder, true);
       }
     } finally {
-      this.cacheCompletenessScope = '';
+      this.cacheCompletenessScope = `${folder.toLocaleLowerCase()}|${this.includeFilesRecursive()}`;
       await this.refreshCacheCompleteness(folder, this.includeFilesRecursive());
     }
   };
@@ -382,9 +382,6 @@ export class ImageGridComponent {
     }
     this.cachePathUpdateRevision++;
     this.resetDirectoryCacheStats();
-    this.cacheCompletenessScope = '';
-    const folder = this.selectedLocation();
-    if (folder) void this.refreshCacheCompleteness(folder, this.includeFilesRecursive());
     void this.refreshDirectoryCacheStats();
   };
 
@@ -669,29 +666,14 @@ export class ImageGridComponent {
       }
     });
 
-    effect(onCleanup => {
+    effect(() => {
       const folder = this.selectedLocation();
       const recursive = this.includeFilesRecursive();
-      const loading = this.galleryLoading();
-      const images = this.images() ?? [];
-      const running = this.cacheRunActive();
-      if (!folder) {
-        this.cacheCompleteness.set(null);
-        this.cacheCompletenessScope = '';
-        return;
-      }
-      const scope = `${folder.toLocaleLowerCase()}|${recursive}`;
+      const scope = folder ? `${folder.toLocaleLowerCase()}|${recursive}` : '';
       if (this.cacheCompletenessScope !== scope) {
         this.cacheCompletenessScope = scope;
         this.cacheCompleteness.set(null);
       }
-      if (loading || running || images.length === 0 || this.cacheCompleteness() !== null) return;
-      const timer = setTimeout(() => void this.refreshCacheCompleteness(folder, recursive), 1800);
-      onCleanup(() => clearTimeout(timer));
-    });
-
-    effect(() => {
-      this.selectedLocation();
       const scrollBox = this.scrollBox();
 
       if (scrollBox === undefined) {
