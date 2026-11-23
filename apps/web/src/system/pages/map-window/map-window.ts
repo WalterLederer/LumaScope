@@ -2587,7 +2587,8 @@ export class MapWindow implements OnInit, OnDestroy {
             seenParts.add(key);
             uniqueParts.push(value);
           }
-          return uniqueParts.join(', ') || 'No address details available';
+          const address = uniqueParts.join(', ') || 'No address details available';
+          return `${address} (OsmAnd offline search v0.1)`;
         })
         .catch(error => `Error: ${error instanceof Error ? error.message : String(error)}`)
       : Promise.resolve('Unavailable');
