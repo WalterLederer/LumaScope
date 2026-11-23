@@ -204,6 +204,7 @@ export class ImagesComponent {
   readonly activeSelectionPath = signal<string | null>(null);
   readonly activeSelectionChanged = output<string | null>();
   readonly cacheStats = input<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, fullSizeConversionTotal: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
+  readonly cacheStatsLoaded = input(false);
   readonly folderPath = input<string | null>(null);
   readonly includeUnsupportedFiles = input(false);
   readonly includeFilesRecursive = input(false);
