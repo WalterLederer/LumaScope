@@ -165,6 +165,7 @@ export class SettingsPanelComponent {
 
   protected readonly cacheSummaryLoading = signal(false);
   protected readonly cacheSummaryLoadingDrives = signal<string[]>([]);
+  protected readonly physicalCacheVerificationLoading = signal(false);
   protected readonly cacheSummaryError = signal<string | null>(null);
   protected readonly favoriteCacheDatabaseKeys = signal<string[]>([]);
   private cacheSummaryRequestId = 0;
@@ -671,6 +672,23 @@ export class SettingsPanelComponent {
       if (requestId === this.cacheInfoRequestId) {
         this.clearError.set(error instanceof Error ? error.message : String(error));
       }
+    }
+  };
+
+  protected readonly verifyPhysicalCacheFiles = async (): Promise<void> => {
+    if (this.physicalCacheVerificationLoading() || this.cacheBuildActive() || this.cacheSummaryLoading()) return;
+    const keys = this.cacheSummaryColumns().map(column => column.key);
+    if (!keys.length) return;
+    this.physicalCacheVerificationLoading.set(true);
+    this.cacheSummaryError.set(null);
+    try {
+      const results = await Promise.all(keys.map(key => this.cacheManager.verifyCacheSummary(key)));
+      const byKey = new Map(results.map(summary => [summary.selectedDatabaseKey, summary]));
+      this.cacheSummaryColumns.update(columns => columns.map(column => ({ ...column, summary: byKey.get(column.key) ?? column.summary })));
+    } catch (error) {
+      this.cacheSummaryError.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      this.physicalCacheVerificationLoading.set(false);
     }
   };
 
