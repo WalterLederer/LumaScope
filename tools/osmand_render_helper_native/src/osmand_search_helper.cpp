@@ -1,6 +1,7 @@
 #include "osmand_search_service.h"
 
 #include <iostream>
+#include <cstdio>
 
 #include <QByteArray>
 #include <QCoreApplication>
@@ -84,11 +85,13 @@ int main(int argc, char* argv[])
     const auto resourcesRoot = decodeArgument(argv[3]);
     OsmAndSearchService service({obfPaths, resourcesRoot});
     QString errorMessage;
+    std::fprintf(stderr, "[osmand-search] Initializing service with %d OBF file(s)\\n", obfPaths.size());
     if (!service.initialize(errorMessage))
     {
         std::cerr << errorMessage.toUtf8().constData() << std::endl;
         return 1;
     }
+    std::fprintf(stderr, "[osmand-search] Service initialized\\n");
 
     QString result;
     if (reverseGeocodeMode)
@@ -101,7 +104,9 @@ int main(int argc, char* argv[])
             return 2;
         }
         const auto locale = argc > 6 ? decodeArgument(argv[6]) : QString();
+        std::fprintf(stderr, "[osmand-search] Calling reverseGeocode\\n");
         result = service.reverseGeocode(latitude, longitude, locale, errorMessage);
+        std::fprintf(stderr, "[osmand-search] reverseGeocode returned\\n");
     }
     else
     {
