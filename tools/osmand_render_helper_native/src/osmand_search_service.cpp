@@ -1295,12 +1295,37 @@ QString OsmAndSearchService::reverseGeocode(
             const OsmAnd::LatLon roadPoint(
                 OsmAnd::Utilities::get31LatitudeY(roadInfo->preciseY),
                 OsmAnd::Utilities::get31LongitudeX(roadInfo->preciseX));
+            const auto roadId = road->id;
+            const auto& roadPoints = road->points31;
+            const auto roadStart = roadPoints.isEmpty()
+                ? OsmAnd::LatLon()
+                : OsmAnd::LatLon(
+                    OsmAnd::Utilities::get31LatitudeY(roadPoints.first().y),
+                    OsmAnd::Utilities::get31LongitudeX(roadPoints.first().x));
+            const auto roadEnd = roadPoints.isEmpty()
+                ? OsmAnd::LatLon()
+                : OsmAnd::LatLon(
+                    OsmAnd::Utilities::get31LatitudeY(roadPoints.last().y),
+                    OsmAnd::Utilities::get31LongitudeX(roadPoints.last().x));
             roadLocatorDiagnostics.push_back(QJsonObject{
                 {QStringLiteral("name"), roadName},
                 {QStringLiteral("ref"), roadRef},
                 {QStringLiteral("distance_m"), std::sqrt(roadInfo->distSquare)},
                 {QStringLiteral("connection_point"), QJsonArray{roadPoint.latitude, roadPoint.longitude}},
-                {QStringLiteral("candidate_index"), roadLocatorDiagnostics.size()}
+                {QStringLiteral("candidate_index"), roadLocatorDiagnostics.size()},
+                {QStringLiteral("osm_id"), roadId.isOsmId()
+                    ? QString::number(roadId.getOsmId()) : QString()},
+                {QStringLiteral("raw_id"), QString::number(roadId.id)},
+                {QStringLiteral("is_relation"), roadId.isIdFromRelation()},
+                {QStringLiteral("is_split"), roadId.isIdFromSplit()},
+                {QStringLiteral("geometry_point_count"), roadPoints.size()},
+                {QStringLiteral("geometry_bbox31"), QJsonArray{
+                    road->bbox31.left(), road->bbox31.top(),
+                    road->bbox31.right(), road->bbox31.bottom()}},
+                {QStringLiteral("geometry_start"), roadPoints.isEmpty()
+                    ? QJsonArray{} : QJsonArray{roadStart.latitude, roadStart.longitude}},
+                {QStringLiteral("geometry_end"), roadPoints.isEmpty()
+                    ? QJsonArray{} : QJsonArray{roadEnd.latitude, roadEnd.longitude}}
             });
             if (roadLocatorDiagnostics.size() >= 40)
                 break;
