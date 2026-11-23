@@ -194,31 +194,45 @@ export class GalleryPage {
     // second cache build or refresh the image-grid cache statistics.
     effect(onCleanup => {
       if (!this.showImageGrid()) return;
-      const subscription = this.selectedLocation$.subscribe(location => {
+      let initialLocationHandled = false;
+      const subscription = combineLatest([
+        this.configuration.config().pipe(take(1)),
+        this.selectedLocation$
+      ]).subscribe(([config, location]) => {
         this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
-        if (location) {
-          // A cache build belongs to the folder that started it. Cancel that run
-          // before scheduling work for a newly selected favorite, so the old
-          // folder cannot keep the shared cache worker occupied or queue stale work.
-          const activeDirectory = this.galleryCacheBuild.cacheRunDirectory();
-          const normalizePath = (value: string): string =>
-            value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
-          if (this.galleryCacheBuild.cacheRunActive()
-            && activeDirectory
-            && normalizePath(activeDirectory) !== normalizePath(location)) {
-            this.galleryCacheBuild.cancelCacheBuild();
+        if (!location) return;
+
+        // Restoring the last selected favorite on application startup is only
+        // navigation. It must not implicitly start a potentially long cache build.
+        // Keep automatic cache preparation for folders selected afterwards.
+        if (!initialLocationHandled) {
+          initialLocationHandled = true;
+          const restoredLocation = config.gallery.selectedLocation || config.gallery.locations[0] || null;
+          if (restoredLocation && location.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase()
+            === restoredLocation.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase()) {
+            return;
           }
-          // The restored favorite folder must receive the same automatic cache build
-          // as a folder selected manually. The service queues this until ImageGrid
-          // has registered its cache-build controller after the first render.
-          const startCacheBuild = this.galleryState.includeFilesRecursiveValue()
-            ? this.galleryCacheBuild.startRecursiveCacheBuild(location, true)
-            : this.galleryCacheBuild.startCacheBuild(location, true);
-          void startCacheBuild.catch(error => {
-            const message = error instanceof Error ? error.message : String(error);
-            this.galleryLocationError.set(`Cache folder action failed: ${message}`);
-          });
         }
+
+        // A cache build belongs to the folder that started it. Cancel that run
+        // before scheduling work for a newly selected favorite, so the old
+        // folder cannot keep the shared cache worker occupied or queue stale work.
+        const activeDirectory = this.galleryCacheBuild.cacheRunDirectory();
+        const normalizePath = (value: string): string =>
+          value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
+        if (this.galleryCacheBuild.cacheRunActive()
+          && activeDirectory
+          && normalizePath(activeDirectory) !== normalizePath(location)) {
+          this.galleryCacheBuild.cancelCacheBuild();
+        }
+
+        const startCacheBuild = this.galleryState.includeFilesRecursiveValue()
+          ? this.galleryCacheBuild.startRecursiveCacheBuild(location, true)
+          : this.galleryCacheBuild.startCacheBuild(location, true);
+        void startCacheBuild.catch(error => {
+          const message = error instanceof Error ? error.message : String(error);
+          this.galleryLocationError.set(`Cache folder action failed: ${message}`);
+        });
       });
       onCleanup(() => subscription.unsubscribe());
     });
