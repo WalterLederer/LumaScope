@@ -548,7 +548,11 @@ export class SettingsPanelComponent {
     });
     effect(() => {
       if (this.mode() !== 'cache') return;
+      const buildActive = this.cacheBuildActive();
       this.cacheFolderPath();
+      // Cache summary performs physical cache-file checks. Do not compete
+      // with the recursive builder's SQLite writes and filesystem traversal.
+      if (buildActive) return;
       void this.updateCacheSummary();
     });
     let previousSummaryBuildState: boolean | null = null;
@@ -556,11 +560,16 @@ export class SettingsPanelComponent {
       const buildActive = this.cacheBuildActive();
       const clearing = this.isClearing();
       if (clearing) return;
-      const buildFinished = previousSummaryBuildState === true && !buildActive;
+      // If the panel is created while a build is already running, treat that
+      // state as the active interval and wait for its completion.
+      if (buildActive) {
+        previousSummaryBuildState = true;
+        return;
+      }
+      const buildFinished = previousSummaryBuildState === true;
       const firstSummaryPass = previousSummaryBuildState === null;
-      previousSummaryBuildState = buildActive;
-      // Do not rescan every drive while a build is progressing. Refresh once
-      // after completion so the comparison remains stable during the build.
+      previousSummaryBuildState = false;
+      // Never scan drives during a build. Refresh once after it has completed.
       if (firstSummaryPass || buildFinished) void this.updateCacheSummary(undefined, true);
     });
     this.cacheManager.getBuildLogPath().then(path => this.cacheBuildLogPath.set(path)).catch(error => this.clearError.set(error instanceof Error ? error.message : String(error)));
