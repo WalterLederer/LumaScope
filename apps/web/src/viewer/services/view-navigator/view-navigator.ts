@@ -56,9 +56,9 @@ export class ViewNavigator {
       if (loadedPosition !== null) {
         return of(this.galleryState.getLoadedGalleryFileAtPosition(loadedPosition));
       }
-      return from(this.galleryState.getGalleryFilePosition(path)).pipe(
-        switchMap(position => position > 0
-          ? from(this.galleryState.getGalleryFileAtPosition(position))
+      return from(firstValueFrom(this.galleryState.selectedLocation().pipe(take(1)))).pipe(
+        switchMap(folder => folder
+          ? from(this.cacheManager.getGalleryFileByPath(folder, path))
           : of(null)),
         catchError(error => {
           console.error('Failed to load selected gallery file', path, error);
