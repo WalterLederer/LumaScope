@@ -43,6 +43,7 @@
                     (sortDirChanged)="onSortDirChange($event)"
                     (thumbSizeChanged)="onThumbSizeChange($event)"
                     (selected)="onImageSelected($event)"
+                    (openRequested)="openImage($event)"
                     (activeSelectionChanged)="activeSelectionChanged.emit($event)"
                      (folderRefreshRequested)="refreshSelectedFolder($event)" />
   </ui-side-panel>
