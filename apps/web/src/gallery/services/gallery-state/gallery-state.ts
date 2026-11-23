@@ -313,7 +313,7 @@ export class GalleryState {
             this.deferredGalleryCountTimer = setTimeout(() => {
               this.deferredGalleryCountTimer = null;
               if (request !== this.navigationRequest || this.selectedLocation$.value !== path) return;
-              void this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, 1, this.nameFilterActive$.value ? this.nameFilter$.value : '', 'GalleryState.deferredCount').then(countPage => {
+              void this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, this.sortMode$.value.sortBy, this.sortMode$.value.sortDir, 0, 1, this.nameFilterActive$.value ? this.nameFilter$.value : '', 'GalleryState.deferredCount').then(countPage => {
                 if (request !== this.navigationRequest || this.selectedLocation$.value !== path) return;
                 if (countPage.totalCount >= 0) {
                   this.galleryTotalCount = countPage.totalCount;
