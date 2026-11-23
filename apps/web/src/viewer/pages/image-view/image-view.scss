@@ -3008,3 +3008,16 @@
 :host-context(html[data-theme='dark']) .image-controls-sidebar .mode-row .mode-option-label {
   color: inherit;
 }
+
+
+/* Explain why HDR comparison modes are unavailable for SDR source images. */
+:host .image-controls-sidebar .mode-sdr-unavailable-hint {
+  margin: 8px 2px 4px;
+  padding: 7px 9px;
+  border-left: 3px solid var(--color-border-strong, #888);
+  border-radius: 3px;
+  background: var(--color-surface-default-low, #eee);
+  color: var(--color-text-secondary, #555);
+  font-size: 11px;
+  line-height: 1.4;
+}
