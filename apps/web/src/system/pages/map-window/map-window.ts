@@ -2549,9 +2549,43 @@ export class MapWindow implements OnInit, OnDestroy {
     const language = navigator.language || 'en';
     const offlineLookup = this.desktop
       ? this.desktop.OsmAndAtlas.reverseGeocode(latitude, longitude, language)
-        .then(result => result.found
-          ? [result.building, result.street, result.place].filter(Boolean).join(', ') || 'No result'
-          : 'No result')
+        .then(result => {
+          if (!result.found) return 'No result';
+
+          const areas = result.administrative_areas ?? [];
+          const namesForLevels = (...levels: number[]): string[] => areas
+            .filter(area => levels.includes(area.admin_level))
+            .map(area => area.name.trim())
+            .filter(Boolean);
+          const knownLevels = new Set([2, 4, 6, 8, 9]);
+          const additionalAreas = areas
+            .filter(area => !knownLevels.has(area.admin_level))
+            .sort((left, right) => right.admin_level - left.admin_level)
+            .map(area => area.name.trim())
+            .filter(Boolean);
+          const addressParts = [
+            result.building,
+            result.street,
+            ...namesForLevels(9),
+            result.place,
+            ...namesForLevels(8),
+            ...namesForLevels(6),
+            ...namesForLevels(4),
+            result.postcode,
+            ...namesForLevels(2),
+            ...additionalAreas
+          ];
+          const uniqueParts: string[] = [];
+          const seenParts = new Set<string>();
+          for (const part of addressParts) {
+            const value = part.trim();
+            const key = value.toLocaleLowerCase();
+            if (!value || seenParts.has(key)) continue;
+            seenParts.add(key);
+            uniqueParts.push(value);
+          }
+          return uniqueParts.join(', ') || 'No address details available';
+        })
         .catch(error => `Error: ${error instanceof Error ? error.message : String(error)}`)
       : Promise.resolve('Unavailable');
     const onlineLookup = lookupReverseGeocoding(latitude, longitude, language)
