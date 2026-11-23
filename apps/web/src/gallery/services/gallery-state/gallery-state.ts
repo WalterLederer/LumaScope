@@ -67,6 +67,7 @@ export class GalleryState {
   private galleryPageLoading = false;
   private pendingGalleryWindowOffset: number | null = null;
   private galleryFilesRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private deferredGalleryCountTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly includeUnsupportedFiles$ = new BehaviorSubject(false);
   private readonly includeFilesRecursive$ = new BehaviorSubject(false);
   private readonly nameFilter$ = new BehaviorSubject('');
@@ -257,6 +258,8 @@ export class GalleryState {
     }
 
     const request = ++this.navigationRequest;
+    if (this.deferredGalleryCountTimer !== null) clearTimeout(this.deferredGalleryCountTimer);
+    this.deferredGalleryCountTimer = null;
     this.selectedLocation$.next(path);
     this.galleryLoading$.next(true);
     this.galleryRefreshing$.next(false);
