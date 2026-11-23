@@ -120,7 +120,7 @@
             <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger" [cdkMenuTriggerFor]="folderActionsMenu" aria-label="Folder actions" title="Folder actions">☰</button>
           </th>
         </tr>
-        <tr class="detail-header detail-header-statistics" [class.cache-build-active]="cacheRunActive()">
+        <tr class="detail-header detail-header-statistics" [class.cache-build-active]="cacheRunActive() || !cacheStatsLoaded()">
           <th class="detail-actions-statistics" scope="col" [hidden]="detailActionsColumnPosition() !== 'left'" aria-label="Folder actions statistics"></th>
           <th class="thumb-statistics" scope="col"><small>{{ dimensions().width }} × {{ dimensions().height }}</small></th>
           <th scope="col" class="name-filter-header">
