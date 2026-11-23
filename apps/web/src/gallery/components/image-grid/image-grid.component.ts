@@ -183,6 +183,7 @@ export class ImageGridComponent {
 
   /* Outputs */
   readonly selected = output<FileInfo>();
+  readonly openRequested = output<FileInfo>();
   readonly activeSelectionChanged = output<string | null>();
   readonly folderRefreshRequested = output<string>();
 
