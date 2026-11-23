@@ -47,6 +47,7 @@ export class SettingsPanelComponent {
     this.reverseGeocodingStatus().resolved + this.reverseGeocodingStatus().errors
   );
   protected readonly runCacheBuild = (): void => {
+    if (this.physicalCacheVerificationLoading()) return;
     this.cacheOutputMode.set('build');
     this.cacheCheckLog.set([]);
     this.cacheCheckResult.set(null);
@@ -682,8 +683,12 @@ export class SettingsPanelComponent {
     this.physicalCacheVerificationLoading.set(true);
     this.cacheSummaryError.set(null);
     try {
-      const results = await Promise.all(keys.map(key => this.cacheManager.verifyCacheSummary(key)));
-      const byKey = new Map(results.map(summary => [summary.selectedDatabaseKey, summary]));
+      const byKey = new Map<string | null, CacheSummary>();
+      for (const key of keys) {
+        if (this.cacheBuildActive()) throw new Error('Cache verification stopped because a cache build started.');
+        const summary = await this.cacheManager.verifyCacheSummary(key);
+        byKey.set(summary.selectedDatabaseKey, summary);
+      }
       this.cacheSummaryColumns.update(columns => columns.map(column => ({ ...column, summary: byKey.get(column.key) ?? column.summary })));
     } catch (error) {
       this.cacheSummaryError.set(error instanceof Error ? error.message : String(error));
