@@ -544,6 +544,11 @@ export class ImagesComponent {
     this.selected.emit(image);
   };
 
+  protected readonly openThumbnail = (image: FileInfo): void => {
+    this.selectThumbnail(image);
+    this.openRequested.emit(image);
+  };
+
   protected readonly onDetailRowSelected = (image: FileInfo): void => {
     this.activeSelectionPath.set(image.path);
     // Keep the Image tab's explicit-open target in sync with row selection.
@@ -827,7 +832,8 @@ export class ImagesComponent {
 
     const images = this.displayedImages();
     if (images.length === 0) return;
-    const currentIndex = images.findIndex(image => image.path === this.activeSelectionPath());
+    const selectedPath = this.activeSelectionPath() ?? this.selectedImagePath();
+    const currentIndex = images.findIndex(image => image.path === selectedPath);
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       event.stopPropagation();
