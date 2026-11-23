@@ -2578,6 +2578,10 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.coordinatesAvailable()) return;
     const latitude = this.currentLatitude;
     const longitude = this.currentLongitude;
+    if (latitude === null || longitude === null) {
+      this.photoAddress.set('Photo coordinates are not available.');
+      return;
+    }
     this.photoAddress.set('Looking up address…');
     void (async () => {
       try {
