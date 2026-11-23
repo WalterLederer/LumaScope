@@ -5,7 +5,7 @@ import { ProcessMemorySnapshot, SystemPathMapping, formatOsDateTime } from 'inte
 import * as fs from 'node:fs/promises';
 import { stat } from 'node:fs/promises';
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import App from '../app/app';
@@ -302,6 +302,9 @@ export class ProcessManager {
 
   @IpcHandler({ name: 'ProcessManager.openConfigFile' })
   readonly openConfigFile = async (): Promise<string> => shell.openPath(App.startupConfig.configPath());
+
+  @IpcHandler({ name: 'ProcessManager.openConfigFolder' })
+  readonly openConfigFolder = async (): Promise<string> => shell.openPath(dirname(App.startupConfig.configPath()));
 
   @IpcHandler({ name: 'ProcessManager.getPlatform' })
   readonly getPlatform = async (): Promise<string> => process.platform;
