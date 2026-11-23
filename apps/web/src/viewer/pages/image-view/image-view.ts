@@ -1216,7 +1216,11 @@ export class ImageView {
     if (tab === 'image') {
       const markedPath = this.galleryActiveSelectionPath();
       const currentlyOpenedPath = this.selectedImageSignal()?.path ?? null;
-      if (markedPath && markedPath !== currentlyOpenedPath) {
+      const normalizeFilePath = (path: string | null): string =>
+        (path ?? '').replace(/\\/g, '/').replace(/\\/+$/, '').toLocaleLowerCase();
+      // The same Windows file can be reported with different separator or
+      // casing conventions. Do not reload it just because the path strings differ.
+      if (markedPath && normalizeFilePath(markedPath) !== normalizeFilePath(currentlyOpenedPath)) {
         this.viewNavigator.selectImage(markedPath).pipe(take(1)).subscribe(found => {
           if (!found) console.warn('[GalleryNavigation] Marked file is not present in the current gallery:', markedPath);
         });
