@@ -708,6 +708,14 @@ QString OsmAndSearchService::reverseGeocode(
     for (auto it = administrativeData.constBegin(); it != administrativeData.constEnd(); ++it)
         payload.insert(it.key(), it.value());
 
+    // A coordinate can be inside a mapped administrative boundary even when
+    // OsmAnd's address reverse-geocoder finds no building or street group.
+    // Treat that as a successful reverse-geocoding result as well.
+    const bool hasAdministrativeData =
+        !administrativeData.value(QStringLiteral("administrative_areas")).toArray().isEmpty()
+        || !administrativeData.value(QStringLiteral("postcode")).toString().trimmed().isEmpty();
+    payload.insert(QStringLiteral("found"), static_cast<bool>(result) || hasAdministrativeData);
+
     if (result)
     {
         const auto buildingName = result->building
