@@ -611,7 +611,7 @@ export interface OsmAndReverseGeocodeResult {
   postcode: string;
   administrative_areas: Array<{ admin_level: number; name: string }>;
   helper_version: string;
-  diagnostics: { loaded_map_objects: number; administrative_boundary_objects: number; loaded_address_boundary_groups: number; matching_address_boundary_groups: number; resolved_administrative_areas: number };
+  diagnostics: { loaded_map_objects: number; administrative_boundary_objects: number; loaded_address_boundary_groups: number; matching_address_boundary_groups: number; matched_address_boundary_object_ids: number; map_boundary_object_ids: string[]; address_boundary_object_ids: string[]; matched_boundary_object_ids: string[]; resolved_administrative_areas: number };
   distance_m: number | null;
   source: string;
 }
