@@ -1211,21 +1211,26 @@ export class ImageView {
     this.galleryActiveSelectionPath.set(path);
   };
 
-  protected readonly setActiveImageSidebarTab = (tab: string): void => {
-    if (!this.imageSidebarTabs.some(item => item.id === tab)) return;
+  protected readonly onImageSidebarTabClick = (tab: string): void => {
     if (tab === 'image') {
       const markedPath = this.galleryActiveSelectionPath();
       const currentlyOpenedPath = this.selectedImageSignal()?.path ?? null;
       const normalizeFilePath = (path: string | null): string =>
         (path ?? '').replace(/\\/g, '/').replace(/[\\/]+$/, '').toLocaleLowerCase();
-      // The same Windows file can be reported with different separator or
-      // casing conventions. Do not reload it just because the path strings differ.
+      // Only a deliberate click on the Image tab opens the selected Gallery row.
+      // Normalize Windows paths so casing or separator differences do not reload
+      // the file that is already displayed.
       if (markedPath && normalizeFilePath(markedPath) !== normalizeFilePath(currentlyOpenedPath)) {
         this.viewNavigator.selectImage(markedPath).pipe(take(1)).subscribe(found => {
           if (!found) console.warn('[GalleryNavigation] Marked file is not present in the current gallery:', markedPath);
         });
       }
     }
+    this.setActiveImageSidebarTab(tab);
+  };
+
+  protected readonly setActiveImageSidebarTab = (tab: string): void => {
+    if (!this.imageSidebarTabs.some(item => item.id === tab)) return;
     if (tab === 'gallery') this.browseWorkspaceInitialized.set(true);
     this.activeImageSidebarTab.set(tab);
     // Browse stays mounted after first use; its cache statistics already react to
@@ -2744,13 +2749,10 @@ export class ImageView {
       )
       .subscribe(image => {
         this.debugSelectedImagePath = image?.path ?? 'none';
-        // Browse can emit the current selection again while its directory tree and
-        // thumbnail grid are initializing. Only an explicit Gallery imageSelected
-        // event should leave Browse; background selection updates must not do so.
+        // Changing the selected Gallery row must never switch tabs automatically.
+        // The Image tab is entered only through an explicit tab click.
         if (!image) {
           this.setActiveImageSidebarTab('gallery');
-        } else if (this.activeImageSidebarTab() !== 'gallery') {
-          this.setActiveImageSidebarTab('image');
         }
         if (image && this.sidebarSectionExpanded('database')) void this.loadPhotoDatabaseRecord();
         if (image) void this.refreshSourceFileCount(image.path);
@@ -3246,15 +3248,6 @@ export class ImageView {
     // Escape no longer switches to a separate Gallery mode. Only standalone file
     // launches retain their previous close/quit behavior.
     if (this.viewNavigator.standalone()) this.processManager.quit(0).then();
-  };
-
-  protected readonly onGalleryImageSelected = (file: { path: string }): void => {
-    // Carry the exact row selected in Browse into the Image-tab navigation.
-    // The tab handler compares this path with the currently opened file and
-    // opens it only when it is a different file.
-    this.galleryActiveSelectionPath.set(file.path);
-    console.trace('[GalleryNavigationTrace] ImageView received GalleryPage.imageSelected; switching to Image tab:', file.path);
-    this.setActiveImageSidebarTab('image');
   };
 
   protected readonly onGalleryFolderSelected = (): void => {
