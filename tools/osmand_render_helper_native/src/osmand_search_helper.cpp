@@ -116,12 +116,12 @@ int main(int argc, char* argv[])
             }
 
             const auto object = request.object();
-            bool latitudeOk = false;
-            bool longitudeOk = false;
-            const auto latitude = object.value(QStringLiteral("latitude")).toDouble(&latitudeOk);
-            const auto longitude = object.value(QStringLiteral("longitude")).toDouble(&longitudeOk);
+            const auto latitudeValue = object.value(QStringLiteral("latitude"));
+            const auto longitudeValue = object.value(QStringLiteral("longitude"));
+            const auto latitude = latitudeValue.toDouble();
+            const auto longitude = longitudeValue.toDouble();
             const auto locale = object.value(QStringLiteral("locale")).toString(defaultLocale);
-            if (!latitudeOk || !longitudeOk
+            if (!latitudeValue.isDouble() || !longitudeValue.isDouble()
                 || latitude < -90.0 || latitude > 90.0
                 || longitude < -180.0 || longitude > 180.0)
             {
