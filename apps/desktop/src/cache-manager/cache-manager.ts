@@ -59,6 +59,7 @@ export interface CacheSummary {
   gpsUnresolved: number;
   selectedDatabaseKey: string | null;
   databases: Array<{ key: string; path: string; bytes: number }>;
+  physicalFilesVerified: boolean;
 }
 
 interface PhotoRow {
@@ -1262,7 +1263,7 @@ export class CacheManager {
     };
     const keys = new Set([...this.databases.keys(), selectedDatabaseKey]);
     for (const key of keys) {
-      const databasePath = join(key + '\\\\', '.cache', 'LumaScope.cache.sqlite');
+      const databasePath = join(key + '\\', '.cache', 'LumaScope.cache.sqlite');
       try { const info = await stat(databasePath); summary.databases.push({ key, path: databasePath, bytes: info.size }); } catch { /* Database may be removed. */ }
     }
     summary.databases.sort((left, right) => left.path.localeCompare(right.path, undefined, { sensitivity: 'base' }));
