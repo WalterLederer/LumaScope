@@ -113,9 +113,33 @@ const backupUserAppSettings = async (): Promise<void> => {
   const directory = dirname(path);
   const backupPrefix = appConfigName + '.backup-';
   const dailyBackupPath = join(directory, backupPrefix + new Date().toISOString().slice(0, 10));
-  await copyFile(path, path + '.bak');
+  // The rolling .bak file can be temporarily locked by Windows (for example
+  // by an antivirus scanner or a backup/indexing process). A dated snapshot is
+  // an independent valid recovery point, so failure to refresh .bak alone must
+  // not prevent otherwise safe settings updates.
+  let rollingBackupError: unknown;
+  try {
+    await copyFile(path, path + '.bak');
+  } catch (error) {
+    rollingBackupError = error;
+  }
+
   if (!existsSync(dailyBackupPath)) {
-    await copyFile(path, dailyBackupPath);
+    try {
+      await copyFile(path, dailyBackupPath);
+    } catch (error) {
+      if (rollingBackupError) {
+        throw new AggregateError(
+          [rollingBackupError, error],
+          'Could not create either the rolling or dated configuration backup.'
+        );
+      }
+      throw error;
+    }
+  }
+
+  if (rollingBackupError) {
+    console.warn('[Settings] Could not refresh the rolling configuration backup; using the dated snapshot:', rollingBackupError);
   }
 
   try {
