@@ -597,9 +597,21 @@ export interface OsmAndAddressSearchResult {
   match_kind: string;
 }
 
+export interface OsmAndReverseGeocodeResult {
+  found: boolean;
+  latitude: number;
+  longitude: number;
+  building: string;
+  street: string;
+  place: string;
+  distance_m: number | null;
+  source: string;
+}
+
 export interface DesktopOsmAndAtlas {
   readonly getObfMetadata: (paths: string[]) => Promise<OsmAndObfMetadata[]>;
   readonly searchAddresses: (paths: string[], query: string, limit?: number) => Promise<OsmAndAddressSearchResult[]>;
+  readonly reverseGeocode: (latitude: number, longitude: number, locale?: string) => Promise<OsmAndReverseGeocodeResult>;
   readonly getHillshadeDatabases: () => Promise<OsmAndHillshadeDatabase[]>;
   readonly addHillshadeDatabases: () => Promise<OsmAndHillshadeDatabase[]>;
   readonly addHillshadeDatabasePaths: (paths: string[]) => Promise<OsmAndHillshadeDatabase[]>;
