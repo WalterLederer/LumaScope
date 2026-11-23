@@ -1239,11 +1239,14 @@ export class CacheManager {
     if (!databaseKey || !/^[a-z]:$/i.test(databaseKey)) throw new Error('A valid cache database drive must be selected.');
     const selectedDatabaseKey = databaseKey.toUpperCase();
     const db = this.databases.get(selectedDatabaseKey) ?? this.databaseForPath(selectedDatabaseKey + '\\');
-    const rows = db.prepare(`SELECT photos.*, paths.relative_folder_path FROM photos
+    const rows = db.prepare(`SELECT photos.*, paths.relative_folder_path,
+        location_names.display_name AS location_display_name
+      FROM photos
       JOIN paths ON paths.id = photos.path_id
+      LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
       WHERE photos.thumbnail_cache_id IS NOT NULL OR photos.fullsize_cache_id IS NOT NULL
       OR (photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL)`)
-      .all() as unknown as Array<PhotoRow & { relative_folder_path: string }>;
+      .all() as unknown as Array<PhotoRow & { relative_folder_path: string; location_display_name: string | null }>;
     const summary: CacheSummary = {
       total: { entries: 0, bytes: 0 },
       fullSize: { entries: 0, bytes: 0 },
