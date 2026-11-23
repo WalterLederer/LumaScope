@@ -23,6 +23,7 @@
 #include <OsmAndCore/CollatorStringMatcher.h>
 #include <OsmAndCore/CommonTypes.h>
 #include <OsmAndCore/ObfDataInterface.h>
+#include <OsmAndCore/Data/Road.h>
 #include <OsmAndCore/Data/ObfMapSectionInfo.h>
 #include <OsmAndCore/Data/ObfAddressSectionInfo.h>
 #include <OsmAndCore/Data/ObfMapSectionReader.h>
@@ -1286,9 +1287,7 @@ QString OsmAndSearchService::reverseGeocode(
             if (roadName.isEmpty())
                 continue;
 
-            const QString dedupeKey = QStringLiteral("%1|%2")
-                .arg(road->id.isOsmId() ? QString::number(road->id.getOsmId()) : QString::number(road->id.id))
-                .arg(roadName);
+            const QString dedupeKey = roadName + QLatin1Char('|') + roadRef;
             if (seenRoads.contains(dedupeKey))
                 continue;
             seenRoads.insert(dedupeKey);
@@ -1301,9 +1300,7 @@ QString OsmAndSearchService::reverseGeocode(
                 {QStringLiteral("ref"), roadRef},
                 {QStringLiteral("distance_m"), std::sqrt(roadInfo->distSquare)},
                 {QStringLiteral("connection_point"), QJsonArray{roadPoint.latitude, roadPoint.longitude}},
-                {QStringLiteral("osm_id"), road->id.isOsmId()
-                    ? QString::number(road->id.getOsmId()) : QString()},
-                {QStringLiteral("is_relation"), road->id.isIdFromRelation()}
+                {QStringLiteral("candidate_index"), roadLocatorDiagnostics.size()}
             });
             if (roadLocatorDiagnostics.size() >= 40)
                 break;
