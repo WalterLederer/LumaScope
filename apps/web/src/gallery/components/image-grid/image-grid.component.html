@@ -2,6 +2,15 @@
 @let sortType = sortBy();
 @let sortDir = sortDirection();
 
+@if (cacheCompleteness(); as cacheStatus) {
+  @if (cacheStatus.thumbnails < cacheStatus.total && !cacheRunActive()) {
+    <div class="gallery-cache-incomplete-banner" role="status" aria-live="polite">
+      <span><strong>Cache incomplete</strong> — {{ formatNumber(cacheStatus.thumbnails) }} of {{ formatNumber(cacheStatus.total) }} thumbnails are ready.</span>
+      <button type="button" class="gallery-build-cache-button" (click)="buildCurrentFolderCache()">Build cache</button>
+    </div>
+  }
+}
+
 <ui-toolbar>
   <ui-title>
     @if (location === null) {
