@@ -82,6 +82,7 @@ export class GalleryPage {
   readonly showFolderTree = input(true);
 
   readonly showImageGrid = input(true);
+  readonly selectImageOnThumbnailClick = input(true);
   readonly selectedImagePath = input<string | null>(null);
   readonly actionsColumnPosition = signal<'left' | 'right'>('left');
   protected readonly toggleActionsColumnPosition = (): void => {
@@ -378,7 +379,9 @@ export class GalleryPage {
     this.galleryState.navigateTo(node.id).subscribe();
 
   protected readonly onImageSelected = (file: FileInfo) => {
-    console.trace('[GalleryNavigationTrace] GalleryPage received thumbnail selection:', file.path);
+    // The embedded Image View gallery only tracks the active row. Opening the
+    // file is reserved for an explicit click on the Image tab.
+    if (!this.selectImageOnThumbnailClick()) return;
     this.viewNavigator
       .selectImage(file.path)
       .subscribe(selected => {
