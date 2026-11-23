@@ -913,7 +913,7 @@ export class ImagesComponent {
       // full-size conversions start, so a previously unindexed favorite folder
       // does not remain empty while its cache is being built.
       if (this.folderPath() === folder) {
-        this.galleryState.navigateTo(folder, false).subscribe({
+        this.galleryState.navigateTo(folder, false, true).subscribe({
           error: error => console.error('Failed to refresh gallery after folder indexing', folder, error)
         });
       }
