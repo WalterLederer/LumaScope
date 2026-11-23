@@ -201,6 +201,56 @@ QJsonObject administrativeAreasForCoordinate(
         }
     }
 
+    // Some OBF files keep administrative boundary names and their bounding
+    // boxes in the address index, but do not expose a corresponding polygon
+    // in every map level. Read those boundary groups as a fallback so that
+    // municipality, district and state names are not silently omitted.
+    //
+    // Address-index boundary entries contain only a bounding box here, not
+    // the original polygon or admin_level. Keep these entries explicitly
+    // unclassified and use their bounding-box size only for display order;
+    // map-section polygons above remain the authoritative exact matches.
+    QList<std::shared_ptr<const OsmAnd::StreetGroup>> addressBoundaryGroups;
+    dataInterface->loadStreetGroups(
+        &addressBoundaryGroups,
+        nullptr,
+        OsmAnd::ObfAddressStreetGroupTypesMask().set(OsmAnd::ObfAddressStreetGroupType::Boundary));
+
+    for (const auto& streetGroup : addressBoundaryGroups)
+    {
+        if (!streetGroup || streetGroup->type != OsmAnd::ObfAddressStreetGroupSubtype::Boundary
+            || streetGroup->bbox31.size() < 4)
+            continue;
+
+        const auto left = streetGroup->bbox31[0];
+        const auto top = streetGroup->bbox31[1];
+        const auto right = streetGroup->bbox31[2];
+        const auto bottom = streetGroup->bbox31[3];
+        if (point31.x < left || point31.x > right || point31.y < top || point31.y > bottom)
+            continue;
+
+        const auto localizedName = streetGroup->getName(locale, false).trimmed();
+        const auto objectName = localizedName.isEmpty()
+            ? streetGroup->nativeName.trimmed()
+            : localizedName;
+        if (objectName.isEmpty())
+            continue;
+
+        const auto objectKey = QStringLiteral("99|%1")
+            .arg(OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed());
+        if (seenAreas.contains(objectKey))
+            continue;
+
+        seenAreas.insert(objectKey);
+        const auto width = static_cast<qint64>(right) - left;
+        const auto height = static_cast<qint64>(bottom) - top;
+        candidates.push_back({
+            99,
+            objectName,
+            std::max<qint64>(0, width) * std::max<qint64>(0, height)
+        });
+    }
+
     std::sort(candidates.begin(), candidates.end(),
         [](const AdministrativeAreaCandidate& left, const AdministrativeAreaCandidate& right)
         {
