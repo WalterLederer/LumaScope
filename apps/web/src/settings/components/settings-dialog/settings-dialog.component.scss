@@ -978,6 +978,23 @@ section {
   border-top: 1px solid var(--color-content-default-low);
 }
 
+.cache-summary-column-heading,
+.cache-summary-databases-heading {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: var(--dim-small);
+}
+
+.cache-summary-open-button {
+  min-height: 24px;
+  padding: 1px 7px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  box-shadow: none;
+}
+
 .cache-summary-database {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
