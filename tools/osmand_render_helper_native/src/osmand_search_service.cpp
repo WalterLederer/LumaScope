@@ -125,6 +125,10 @@ QJsonObject administrativeAreasForCoordinate(
     int administrativeBoundaryObjectCount = 0;
     int loadedAddressBoundaryGroupCount = 0;
     int matchingAddressBoundaryGroupCount = 0;
+    int matchedAddressBoundaryObjectIdCount = 0;
+    QJsonArray mapBoundaryObjectIds;
+    QJsonArray addressBoundaryObjectIds;
+    QJsonArray matchedBoundaryObjectIds;
     QSet<QString> seenAreas;
     for (const auto& reader : dataInterface->obfReaders)
     {
@@ -173,7 +177,11 @@ QJsonObject administrativeAreasForCoordinate(
                     {
                         ++administrativeBoundaryObjectCount;
                         if (mapObject->id.isOsmId())
+                        {
                             administrativeLevelsByObjectId.insert(mapObject->id.id, adminLevel);
+                            if (mapBoundaryObjectIds.size() < 20)
+                                mapBoundaryObjectIds.push_back(QString::number(mapObject->id.id));
+                        }
                     }
 
                     // Keep the exact-polygon test for normal candidates. The
@@ -249,9 +257,14 @@ QJsonObject administrativeAreasForCoordinate(
             continue;
 
         ++matchingAddressBoundaryGroupCount;
+        if (addressBoundaryObjectIds.size() < 20)
+            addressBoundaryObjectIds.push_back(QString::number(streetGroup->id.id));
         const auto levelIt = administrativeLevelsByObjectId.constFind(streetGroup->id.id);
         if (levelIt == administrativeLevelsByObjectId.cend())
             continue;
+        ++matchedAddressBoundaryObjectIdCount;
+        if (matchedBoundaryObjectIds.size() < 20)
+            matchedBoundaryObjectIds.push_back(QString::number(streetGroup->id.id));
 
         const auto localizedName = streetGroup->getName(locale, false).trimmed();
         const auto objectName = localizedName.isEmpty()
@@ -305,6 +318,10 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("administrative_boundary_objects"), administrativeBoundaryObjectCount},
         {QStringLiteral("loaded_address_boundary_groups"), loadedAddressBoundaryGroupCount},
         {QStringLiteral("matching_address_boundary_groups"), matchingAddressBoundaryGroupCount},
+        {QStringLiteral("matched_address_boundary_object_ids"), matchedAddressBoundaryObjectIdCount},
+        {QStringLiteral("map_boundary_object_ids"), mapBoundaryObjectIds},
+        {QStringLiteral("address_boundary_object_ids"), addressBoundaryObjectIds},
+        {QStringLiteral("matched_boundary_object_ids"), matchedBoundaryObjectIds},
         {QStringLiteral("resolved_administrative_areas"), areas.size()}
     });
     if (!postcode.isEmpty())
