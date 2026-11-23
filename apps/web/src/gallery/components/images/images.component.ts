@@ -543,6 +543,7 @@ export class ImagesComponent {
   protected readonly onDetailRowSelected = (image: FileInfo): void => {
     this.activeSelectionPath.set(image.path);
     (this.elementRef.nativeElement as HTMLElement).focus({ preventScroll: true });
+    this.selected.emit(image);
   };
 
   readonly detailColumnWidths = signal<Record<number, number>>({});
