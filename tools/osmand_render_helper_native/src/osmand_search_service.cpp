@@ -1294,6 +1294,68 @@ QString OsmAndSearchService::reverseGeocode(
         payload.insert(QStringLiteral("result_text"), result->toString());
         if (!result->buildingInterpolation.isEmpty())
             payload.insert(QStringLiteral("building_interpolation"), result->buildingInterpolation);
+
+        // Optional diagnostics for the exact Address objects selected by the
+        // native reverse geocoder. This exposes the source of the displayed
+        // municipality/region names without changing geocoding behavior.
+        if (qEnvironmentVariableIsSet("LUMASCOPE_OSMAND_RESULT_DIAGNOSTICS"))
+        {
+            const auto serializeAddress = [&effectiveLocale](
+                const std::shared_ptr<const OsmAnd::Address>& address) -> QJsonObject
+            {
+                if (!address)
+                    return QJsonObject();
+
+                QJsonObject localizedNames;
+                for (auto it = address->localizedNames.constBegin();
+                    it != address->localizedNames.constEnd(); ++it)
+                    localizedNames.insert(it.key(), it.value());
+
+                QJsonObject object{
+                    {QStringLiteral("address_type"), OsmAnd::ADDRESS_TYPE_NAMES.value(address->addressType)},
+                    {QStringLiteral("name"), address->getName(effectiveLocale, false)},
+                    {QStringLiteral("native_name"), address->nativeName},
+                    {QStringLiteral("localized_names"), localizedNames},
+                    {QStringLiteral("osm_id"), address->id.isOsmId()
+                        ? QString::number(address->id.getOsmId()) : QString()},
+                    {QStringLiteral("raw_id"), QString::number(address->id.id)},
+                    {QStringLiteral("is_relation"), address->id.isIdFromRelation()},
+                    {QStringLiteral("position31"), QJsonArray{
+                        address->position31.x, address->position31.y
+                    }}
+                };
+                return object;
+            };
+
+            QJsonObject addressDiagnostics{
+                {QStringLiteral("result_text"), result->toString()},
+                {QStringLiteral("building"), serializeAddress(result->building)},
+                {QStringLiteral("street"), serializeAddress(result->street)},
+                {QStringLiteral("street_group"), serializeAddress(result->streetGroup)},
+                {QStringLiteral("street_group_type"), result->streetGroup
+                    ? static_cast<int>(result->streetGroup->type) : -1}
+            };
+
+            if (result->streetGroup)
+            {
+                QJsonArray groupBbox;
+                for (const auto coordinate : result->streetGroup->bbox31)
+                    groupBbox.push_back(coordinate);
+                addressDiagnostics.insert(QStringLiteral("street_group_bbox31"), groupBbox);
+            }
+            if (result->street)
+            {
+                addressDiagnostics.insert(QStringLiteral("street_parent_group"),
+                    serializeAddress(result->street->streetGroup));
+            }
+            if (result->building)
+            {
+                addressDiagnostics.insert(QStringLiteral("building_postcode"), result->building->postcode);
+                addressDiagnostics.insert(QStringLiteral("building_parent_group"),
+                    serializeAddress(result->building->streetGroup));
+            }
+            payload.insert(QStringLiteral("address_diagnostics"), addressDiagnostics);
+        }
     }
 
     return QString::fromUtf8(QJsonDocument(payload).toJson(QJsonDocument::Compact));
