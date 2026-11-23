@@ -275,6 +275,17 @@ export default class App {
         : level === 'debug' ? console.debug
         : console.log;
       log(`[Renderer ${label}] ${message} ( ${sourceId}:${lineNumber} )`);
+
+      // Angular has completed its initial bootstrap and the main view is mounted.
+      // Show at this point instead of waiting for Chromium's later ready-to-show
+      // event, which can be delayed by large gallery layouts. Keep ready-to-show
+      // below as a fallback for startup paths that do not emit this timing marker.
+      if (message.includes('[StartupTiming] Angular bootstrap completed')
+        && (App.application.isPackaged || !App.startupConfig.minimiseOnStart())
+        && App.mainWindow && !App.mainWindow.isDestroyed() && !App.mainWindow.isVisible()) {
+        logRendererStartup('Renderer bootstrap completed; showing main window');
+        App.mainWindow.show();
+      }
     });
     App.mainWindow.webContents.on('paint', () => logRendererStartup('First renderer paint'));
     App.mainWindow.webContents.on('did-fail-load', (_event, code, description, validatedURL, isMainFrame) => {
