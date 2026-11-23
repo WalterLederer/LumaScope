@@ -684,7 +684,7 @@ app-map-window {
     .fix-location-position-table td:nth-child(3){white-space:nowrap}
     .fix-location-coordinate-value,.fix-location-photo-coordinates{min-width:0;overflow-wrap:anywhere;font-family:inherit;font-size:inherit;line-height:1.45;font-variant-numeric:tabular-nums;color:var(--color-content-default-medium,#aaa)}
     .fix-location-address-cell{min-width:150px}
-    .fix-location-address{display:block;min-width:0;margin-top:3px;overflow-wrap:anywhere;white-space:normal}
+    .fix-location-address{display:block;min-width:0;margin-top:3px;overflow-wrap:anywhere;white-space:pre-line}
     .fix-location-controls .fix-location-toggle{display:inline-flex;align-items:center;gap:6px;margin:0}
     .fix-location-gps-file-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:2px}
     .fix-location-save-button{align-self:flex-start;margin-top:0}
