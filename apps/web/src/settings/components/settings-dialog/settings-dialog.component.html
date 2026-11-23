@@ -22,7 +22,12 @@
                   <tr>
                     <th scope="col">Metric</th>
                     @for (column of cacheSummaryColumns(); track column.key) {
-                      <th scope="col">{{ column.key }}</th>
+                      <th scope="col">
+                        <div class="cache-summary-column-heading">
+                          <strong>{{ column.key }}</strong>
+                          <button class="cache-button cache-summary-open-button" type="button" (click)="openCacheFolder(column.key)" [attr.aria-label]="'Open ' + column.key + ' cache folder'">Open .cache</button>
+                        </div>
+                      </th>
                     }
                   </tr>
                 </thead>
@@ -58,6 +63,18 @@
                     }
                   </tr>
                   <tr>
+                    <th scope="row">GPS Locations resolved</th>
+                    @for (column of cacheSummaryColumns(); track column.key) {
+                      <td>{{ column.summary.gpsResolved }} files</td>
+                    }
+                  </tr>
+                  <tr>
+                    <th scope="row">GPS Locations unresolved</th>
+                    @for (column of cacheSummaryColumns(); track column.key) {
+                      <td>{{ column.summary.gpsUnresolved }} files</td>
+                    }
+                  </tr>
+                  <tr>
                     <th scope="row">GPX track data</th>
                     @for (column of cacheSummaryColumns(); track column.key) {
                       <td>{{ column.gpx.files }} files · {{ column.gpx.segments }} segments · {{ column.gpx.points }} points</td>
@@ -70,7 +87,10 @@
             <p class="cache-status">No cache databases found in the selected or favorite drives.</p>
           }
           <div class="cache-summary-databases">
-            <strong>SQLite database files</strong>
+            <div class="cache-summary-databases-heading">
+              <strong>SQLite database files</strong>
+              <button class="cache-button cache-summary-open-button" type="button" (click)="openAppConfigFolder()">Open app config folder</button>
+            </div>
             @for (database of cacheSummaryDatabaseFiles(); track database.path) {
               <div class="cache-summary-database">
                 <code>{{ database.path }}</code>
