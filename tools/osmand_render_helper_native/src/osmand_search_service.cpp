@@ -841,7 +841,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.2")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.3")},
     };
 
     // Administrative areas are resolved independently from the address
