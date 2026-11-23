@@ -6,8 +6,9 @@ import { dirname, join } from 'node:path';
 // Atomic replacement prevents readers from seeing a partially written JSON file.
 const pendingWrites = new Map<string, Promise<void>>();
 
-const staleTemporaryFileAgeMs = 24 * 60 * 60 * 1000;
-const atomicJsonTemporaryFilePattern = /^\\.[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.tmp$/i;
+// Atomic writes normally finish in milliseconds. One minute is a generous
+// grace period for a write that is still active when startup cleanup runs.
+const atomicJsonTemporaryFilePattern = /^\.[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.tmp$/i;
 
 /**
  * Remove abandoned atomic-JSON write files from a directory.
