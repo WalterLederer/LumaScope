@@ -33,6 +33,7 @@
 #include <OsmAndCore/Utilities.h>
 #include <OsmAndCore/Data/Address.h>
 #include <OsmAndCore/Data/Amenity.h>
+#include <OsmAndCore/Data/StreetGroup.h>
 
 namespace
 {
