@@ -82,7 +82,6 @@ export class GalleryPage {
   readonly showFolderTree = input(true);
 
   readonly showImageGrid = input(true);
-  readonly selectImageOnThumbnailClick = input(true);
   readonly selectedImagePath = input<string | null>(null);
   readonly actionsColumnPosition = signal<'left' | 'right'>('left');
   protected readonly toggleActionsColumnPosition = (): void => {
@@ -391,12 +390,6 @@ export class GalleryPage {
 
   protected readonly selectLocation = (node: TreeNode<string>) =>
     this.galleryState.navigateTo(node.id).subscribe();
-
-  protected readonly onImageSelected = (file: FileInfo) => {
-    // A single click only opens images in the standalone gallery.
-    if (!this.selectImageOnThumbnailClick()) return;
-    this.openImage(file);
-  };
 
   protected readonly openImage = (file: FileInfo): void => {
     this.viewNavigator
