@@ -1251,9 +1251,79 @@ QString OsmAndSearchService::reverseGeocode(
     std::fprintf(stderr, "[reverse-geocode] Calling performSearch at %.7f, %.7f\\n", latitude, longitude);
 
     QJsonArray roadLocatorDiagnostics;
+    QJsonArray roadMapObjectDiagnostics;
     if (qEnvironmentVariableIsSet("LUMASCOPE_OSMAND_ROAD_DIAGNOSTICS"))
     {
         const auto point31 = OsmAnd::Utilities::convertLatLonTo31(OsmAnd::LatLon(latitude, longitude));
+
+        // Compare RoadLocator's routing geometry with map-index geometry for
+        // the same OSM relation. This is diagnostic only and does not affect
+        // the native reverse-geocoding result.
+        constexpr int mapGeometrySearchRadius31 = 100000;
+        OsmAnd::AreaI mapGeometryQueryArea;
+        mapGeometryQueryArea.left() = point31.x - mapGeometrySearchRadius31;
+        mapGeometryQueryArea.right() = point31.x + mapGeometrySearchRadius31;
+        mapGeometryQueryArea.top() = point31.y - mapGeometrySearchRadius31;
+        mapGeometryQueryArea.bottom() = point31.y + mapGeometrySearchRadius31;
+        constexpr quint64 targetRoadOsmId = 957880;
+        for (const auto& reader : _dataInterface->obfReaders)
+        {
+            if (!reader)
+                continue;
+            const auto info = reader->obtainInfo();
+            if (!info)
+                continue;
+            for (const auto& mapSection : info->mapSections)
+            {
+                if (!mapSection)
+                    continue;
+                for (const auto& mapLevel : mapSection->levels)
+                {
+                    if (!mapLevel)
+                        continue;
+                    QList<std::shared_ptr<const OsmAnd::BinaryMapObject>> mapObjects;
+                    OsmAnd::ObfMapSectionReader::loadMapObjects(
+                        reader, mapSection, nullptr, mapLevel->minZoom,
+                        &mapGeometryQueryArea, &mapObjects);
+                    for (const auto& mapObject : mapObjects)
+                    {
+                        if (!mapObject || !mapObject->id.isOsmId()
+                            || mapObject->id.getOsmId() != targetRoadOsmId
+                            || !mapObject->id.isIdFromRelation())
+                            continue;
+                        QJsonArray geometryPoints;
+                        for (const auto& mapPoint : mapObject->points31)
+                        {
+                            if (mapPoint.x == 0 && mapPoint.y == 0)
+                            {
+                                geometryPoints.push_back(QJsonValue(QJsonValue::Null));
+                                continue;
+                            }
+                            geometryPoints.push_back(QJsonArray{
+                                OsmAnd::Utilities::get31LatitudeY(mapPoint.y),
+                                OsmAnd::Utilities::get31LongitudeX(mapPoint.x)
+                            });
+                        }
+                        const auto mapName = mapObject->getName(effectiveLocale, false).trimmed();
+                        const auto mapCaption = mapName.isEmpty()
+                            ? mapObject->getCaptionInNativeLanguage().trimmed()
+                            : mapName;
+                        roadMapObjectDiagnostics.push_back(QJsonObject{
+                            {QStringLiteral("name"), mapCaption},
+                            {QStringLiteral("raw_id"), QString::number(mapObject->id.id)},
+                            {QStringLiteral("is_split"), mapObject->id.isIdFromSplit()},
+                            {QStringLiteral("is_area"), mapObject->isArea},
+                            {QStringLiteral("min_zoom"), mapLevel->minZoom},
+                            {QStringLiteral("geometry_point_count"), mapObject->points31.size()},
+                            {QStringLiteral("geometry_points"), geometryPoints},
+                            {QStringLiteral("geometry_bbox31"), QJsonArray{
+                                mapObject->bbox31.left(), mapObject->bbox31.top(),
+                                mapObject->bbox31.right(), mapObject->bbox31.bottom()}}
+                        });
+                    }
+                }
+            }
+        }
         const auto roadFilter =
             [](const std::shared_ptr<const OsmAnd::Road>& road) -> bool
             {
@@ -1441,7 +1511,10 @@ QString OsmAndSearchService::reverseGeocode(
         || !administrativeData.value(QStringLiteral("postcode")).toString().trimmed().isEmpty();
     payload.insert(QStringLiteral("found"), static_cast<bool>(result) || hasAdministrativeData);
     if (qEnvironmentVariableIsSet("LUMASCOPE_OSMAND_ROAD_DIAGNOSTICS"))
+    {
         payload.insert(QStringLiteral("road_locator_candidates"), roadLocatorDiagnostics);
+        payload.insert(QStringLiteral("road_map_object_matches"), roadMapObjectDiagnostics);
+    }
 
     if (result)
     {
