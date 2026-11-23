@@ -3,7 +3,7 @@ import { DOCUMENT } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, ElementRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { distinctUntilChanged, firstValueFrom, fromEvent, map } from 'rxjs';
+import { distinctUntilChanged, fromEvent, map } from 'rxjs';
 import {
   ActionButtonComponent,
   IconComponent,
@@ -526,21 +526,15 @@ export class ImageGridComponent {
         cacheRunCurrentOperation: images.cacheRunCurrentOperation,
         start: async (directory, importGpx, verifyCacheFiles) => {
           await images.cacheAllImages(directory, importGpx, verifyCacheFiles);
-          // A direct folder scan can finish after the initial database page was
-          // read. Reload once indexing is complete so unsupported-only folders
-          // are displayed even if the change notification raced navigation.
-          if (this.selectedLocation() === directory) {
-            await firstValueFrom(this.galleryState.navigateTo(directory, false));
-          }
+          // scanGalleryDirectory emits the gallery-files-changed notification
+          // after indexing. GalleryState coalesces it into one page refresh;
+          // do not start a second full navigation here.
         },
         startRecursive: async (directory, importGpx, verifyCacheFiles) => {
           await images.cacheAllImagesRecursive(directory, importGpx, verifyCacheFiles);
-          // Recursive indexing writes files folder by folder. Do one definitive
-          // reload after the scan so the list cannot remain stuck on the empty
-          // first page if an intermediate change notification was missed.
-          if (this.selectedLocation() === directory) {
-            await firstValueFrom(this.galleryState.navigateTo(directory, false));
-          }
+          // Recursive indexing suppresses per-folder notifications and emits
+          // one final notification when the complete scan finishes. GalleryState
+          // performs the single required refresh from that notification.
         },
         cancel: () => images.cancelCacheRun(),
         refreshDetailCacheStatus: () => {
