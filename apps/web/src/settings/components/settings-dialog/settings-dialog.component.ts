@@ -153,6 +153,16 @@ export class SettingsPanelComponent {
     }
     return [...files.values()].sort((left, right) => left.key.localeCompare(right.key));
   });
+  protected readonly openCacheFolder = async (drive: string): Promise<void> => {
+    const error = await this.processManager.openPath(`${drive}\\.cache`);
+    if (error) this.cacheSummaryError.set(error);
+  };
+
+  protected readonly openAppConfigFolder = async (): Promise<void> => {
+    const error = await this.processManager.openConfigFolder();
+    if (error) this.cacheSummaryError.set(error);
+  };
+
   protected readonly cacheSummaryLoading = signal(false);
   protected readonly cacheSummaryLoadingDrives = signal<string[]>([]);
   protected readonly cacheSummaryError = signal<string | null>(null);
