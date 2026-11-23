@@ -187,7 +187,7 @@
           }
           @if (hexPositionLabel()) { <div class="image-hex-position-label">{{hexPositionLabel()}}</div> }
           @if (hexFilePath() && hexTotalRows() > 0) {
-            <div class="image-hex-cursor-offset" aria-live="polite">Cursor offset: <strong>0x{{formatHexOffset(hexCursorOffset())}}</strong> <span class="image-hex-cursor-decimal">({{formatNumber(hexCursorOffset())}} dec)</span></div>
+            <div class="image-hex-cursor-offset" aria-live="polite">Cursor offset: <strong>0x{{formatHexOffset(hexCursorOffset())}}</strong> <span class="image-hex-cursor-decimal"> ({{formatNumber(hexCursorOffset())}} dec)</span></div>
           }
           @if (hexStatus()) {
             <div class="image-hex-status" role="status">{{hexStatus()}}</div>
