@@ -551,6 +551,11 @@ QString OsmAndSearchService::reverseGeocode(
         payload.insert(QStringLiteral("building"), buildingName);
         payload.insert(QStringLiteral("street"), streetName);
         payload.insert(QStringLiteral("place"), placeName);
+        // OsmAnd stores the postcode on the resolved building. Keep it as a
+        // separate field so callers can compose a structured address instead
+        // of having to parse the localized result string.
+        if (result->building && !result->building->postcode.trimmed().isEmpty())
+            payload.insert(QStringLiteral("postcode"), result->building->postcode.trimmed());
         payload.insert(QStringLiteral("distance_m"), result->getDistance());
         payload.insert(QStringLiteral("result_text"), result->toString());
         if (!result->buildingInterpolation.isEmpty())
