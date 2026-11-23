@@ -11,6 +11,7 @@
 #include <QFileInfo>
 #include <QPoint>
 #include <QPolygon>
+#include <QSet>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -166,7 +167,7 @@ QJsonObject administrativeAreasForCoordinate(
 
                 const auto objectKey = QStringLiteral("%1|%2")
                     .arg(adminLevelOk ? adminLevel : 99)
-                    .arg(normalizeForMatch(objectName));
+                    .arg(OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed());
                 if (!seenAreas.contains(objectKey))
                 {
                     seenAreas.insert(objectKey);
