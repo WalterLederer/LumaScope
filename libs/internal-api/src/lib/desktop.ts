@@ -39,6 +39,7 @@ export interface DesktopProcessManager {
   readonly argv: () => Promise<Arguments>;
   readonly getSystemPaths: () => Promise<SystemPathMapping>;
   readonly openConfigFile: () => Promise<string>;
+  readonly openConfigFolder: () => Promise<string>;
   readonly openPath: (filePath: string) => Promise<string>;
   readonly openWith: (filePath: string) => Promise<void>;
   readonly showWindowsContextMenu: (filePath: string, screenX: number, screenY: number) => Promise<void>;
@@ -155,6 +156,8 @@ export interface CacheSummary {
   thumbnails: CacheClearResult;
   sidecar: CacheClearResult;
   gps: CacheClearResult;
+  gpsResolved: number;
+  gpsUnresolved: number;
   selectedDatabaseKey: string | null;
   databases: Array<{ key: string; path: string; bytes: number }>;
 }
