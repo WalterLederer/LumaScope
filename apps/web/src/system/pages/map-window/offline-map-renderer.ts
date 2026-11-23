@@ -899,6 +899,7 @@ export class OfflineMapRenderer {
   private trackHoverHandler: ((path: string, latitude: number, longitude: number) => void) | null = null;
   readonly ready: Promise<void>;
   private currentMarkerElement: HTMLElement | null = null;
+  private currentPhotoPreview: { path: string; fileName: string } | null = null;
   private hillshadeDatabases: OsmAndHillshadeDatabase[] = [];
   private hillshadeSourceRevision = 0;
   private hillshadeRerenderPending = false;
@@ -2038,7 +2039,7 @@ export class OfflineMapRenderer {
           : `<polygon points="20,2 38,20 20,38 2,20" fill="${color}" stroke="#fff" stroke-width="3"/><circle cx="20" cy="20" r="6" fill="#fff" stroke="#222" stroke-width="1.5"/>`;
     const width = shape === 'pin' ? 36 : 36;
     const height = shape === 'pin' ? 44 : 36;
-    element.style.cssText = `width:${width}px;height:${height}px;display:block;pointer-events:none;filter:drop-shadow(0 1px 3px #000b);opacity:${opacity};`;
+    element.style.cssText = `width:${width}px;height:${height}px;display:block;pointer-events:auto;filter:drop-shadow(0 1px 3px #000b);opacity:${opacity};`;
     element.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${shape === 'pin' ? '0 0 48 58' : '0 0 40 40'}" style="display:block;overflow:visible">${shapeMarkup}</svg>`;
     if (this.currentMarkerElement) this.currentMarkerElement.remove();
     element.style.position = 'absolute';
@@ -2049,7 +2050,26 @@ export class OfflineMapRenderer {
     this.currentMarkerElement = element;
     this.currentLocation = [longitude, latitude];
     this.overlayElement.appendChild(element);
+    this.attachCurrentPhotoPreviewHandlers();
     this.updateOverlayPositions();
+  }
+
+  setCurrentPhotoPreview(path: string | null, fileName = ''): void {
+    this.currentPhotoPreview = path ? { path, fileName: fileName || path.split(/[\\/]/).pop() || path } : null;
+    this.attachCurrentPhotoPreviewHandlers();
+  }
+
+  private attachCurrentPhotoPreviewHandlers(): void {
+    const marker = this.currentMarkerElement;
+    if (!marker) return;
+    marker.onmouseenter = null;
+    marker.onmouseleave = null;
+    if (!this.currentPhotoPreview) return;
+    marker.onmouseenter = () => {
+      if (!this.currentLocation || !this.currentPhotoPreview) return;
+      this.showPhotoPreview(this.currentPhotoPreview.path, this.currentPhotoPreview.fileName, this.currentLocation);
+    };
+    marker.onmouseleave = () => this.clearPhotoPreview();
   }
 
   updateCurrentLocation(latitude: number, longitude: number): void {
@@ -2690,6 +2710,7 @@ export class OfflineMapRenderer {
     this.clearWalkingFigure();
     this.currentMarkerElement?.remove();
     this.currentMarkerElement = null;
+    this.currentPhotoPreview = null;
     this.currentLocation = null;
     for (const marker of this.clusterLabels.values()) marker.element.remove();
     this.clusterLabels.clear();
