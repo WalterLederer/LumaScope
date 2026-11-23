@@ -451,6 +451,7 @@ export default class App {
       if (!openedByHotkey) App.capturePreviewWindow.show();
     });
     App.capturePreviewWindow.on('closed', () => {
+      App.pendingCaptureHotkey = null;
       App.logShutdown('window-closed', { window: 'capture-preview' });
       App.capturePreviewWindow = null;
       if (App.mainWindow && !App.mainWindow.isDestroyed()) {
