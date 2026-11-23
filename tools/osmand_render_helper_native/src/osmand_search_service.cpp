@@ -132,61 +132,70 @@ QJsonObject administrativeAreasForCoordinate(
             if (!mapSection || mapSection->levels.isEmpty())
                 continue;
 
-            QList<std::shared_ptr<const OsmAnd::BinaryMapObject>> mapObjects;
-            OsmAnd::ObfMapSectionReader::loadMapObjects(
-                reader,
-                mapSection,
-                nullptr,
-                mapSection->levels.first()->minZoom,
-                &queryArea,
-                &mapObjects);
-
-            for (const auto& mapObject : mapObjects)
+            // Administrative boundaries may be encoded only in a more detailed
+            // or generalized map level. Inspect every level instead of relying
+            // on the first level, while de-duplicating matching areas below.
+            for (const auto& mapLevel : mapSection->levels)
             {
-                if (!mapObject || !mapObjectContainsPoint(*mapObject, point))
+                if (!mapLevel)
                     continue;
 
-                const auto attributes = mapObject->getResolvedAttributes();
-                for (const auto& postcodeKey : {
-                    QStringLiteral("postal_code"),
-                    QStringLiteral("addr:postcode"),
-                    QStringLiteral("postcode")
-                })
+                QList<std::shared_ptr<const OsmAnd::BinaryMapObject>> mapObjects;
+                OsmAnd::ObfMapSectionReader::loadMapObjects(
+                    reader,
+                    mapSection,
+                    nullptr,
+                    mapLevel->minZoom,
+                    &queryArea,
+                    &mapObjects);
+
+                for (const auto& mapObject : mapObjects)
                 {
-                    const auto value = attributes.value(postcodeKey).trimmed();
-                    if (postcode.isEmpty() && !value.isEmpty())
-                        postcode = value;
-                }
+                    if (!mapObject || !mapObjectContainsPoint(*mapObject, point))
+                        continue;
 
-                const auto boundaryType = attributes.value(QStringLiteral("boundary"));
-                const auto adminLevelText = attributes.value(QStringLiteral("admin_level"));
-                bool adminLevelOk = false;
-                const int adminLevel = adminLevelText.toInt(&adminLevelOk);
-                const bool isAdministrativeBoundary = boundaryType == QStringLiteral("administrative")
-                    && adminLevelOk && adminLevel > 0;
-                if (!isAdministrativeBoundary)
-                    continue;
+                    const auto attributes = mapObject->getResolvedAttributes();
+                    for (const auto& postcodeKey : {
+                        QStringLiteral("postal_code"),
+                        QStringLiteral("addr:postcode"),
+                        QStringLiteral("postcode")
+                    })
+                    {
+                        const auto value = attributes.value(postcodeKey).trimmed();
+                        if (postcode.isEmpty() && !value.isEmpty())
+                            postcode = value;
+                    }
 
-                const auto localizedName = mapObject->getName(locale, false).trimmed();
-                const auto objectName = localizedName.isEmpty()
-                    ? mapObject->getCaptionInNativeLanguage().trimmed()
-                    : localizedName;
-                if (objectName.isEmpty())
-                    continue;
+                    const auto boundaryType = attributes.value(QStringLiteral("boundary"));
+                    const auto adminLevelText = attributes.value(QStringLiteral("admin_level"));
+                    bool adminLevelOk = false;
+                    const int adminLevel = adminLevelText.toInt(&adminLevelOk);
+                    const bool isAdministrativeBoundary = boundaryType == QStringLiteral("administrative")
+                        && adminLevelOk && adminLevel > 0;
+                    if (!isAdministrativeBoundary)
+                        continue;
 
-                const auto objectKey = QStringLiteral("%1|%2")
-                    .arg(adminLevel)
-                    .arg(OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed());
-                if (!seenAreas.contains(objectKey))
-                {
-                    seenAreas.insert(objectKey);
-                    const auto width = static_cast<qint64>(mapObject->bbox31.right()) - mapObject->bbox31.left();
-                    const auto height = static_cast<qint64>(mapObject->bbox31.bottom()) - mapObject->bbox31.top();
-                    candidates.push_back({
-                        adminLevel,
-                        objectName,
-                        std::max<qint64>(0, width) * std::max<qint64>(0, height)
-                    });
+                    const auto localizedName = mapObject->getName(locale, false).trimmed();
+                    const auto objectName = localizedName.isEmpty()
+                        ? mapObject->getCaptionInNativeLanguage().trimmed()
+                        : localizedName;
+                    if (objectName.isEmpty())
+                        continue;
+
+                    const auto objectKey = QStringLiteral("%1|%2")
+                        .arg(adminLevel)
+                        .arg(OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed());
+                    if (!seenAreas.contains(objectKey))
+                    {
+                        seenAreas.insert(objectKey);
+                        const auto width = static_cast<qint64>(mapObject->bbox31.right()) - mapObject->bbox31.left();
+                        const auto height = static_cast<qint64>(mapObject->bbox31.bottom()) - mapObject->bbox31.top();
+                        candidates.push_back({
+                            adminLevel,
+                            objectName,
+                            std::max<qint64>(0, width) * std::max<qint64>(0, height)
+                        });
+                    }
                 }
             }
         }
