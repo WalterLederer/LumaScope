@@ -2780,3 +2780,91 @@
   border-radius: 2px !important;
   box-shadow: inset 0 0 0 4px #30343a !important;
 }
+
+/* Keep the Image/View tabs and all comparison modes independent of the
+   configurable blue action-button theme. Inactive controls stay white;
+   the selected control uses a light-gray neutral surface. */
+:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab,
+:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:hover,
+:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:focus,
+:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:active,
+:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:focus-visible,
+:host .image-controls-sidebar .mode-row > button.mode-button,
+:host .image-controls-sidebar .mode-row > button.mode-button:hover,
+:host .image-controls-sidebar .mode-row > button.mode-button:focus,
+:host .image-controls-sidebar .mode-row > button.mode-button:active,
+:host .image-controls-sidebar .mode-row > button.mode-button:focus-visible {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: #fff !important;
+  background-color: #fff !important;
+  background-image: none !important;
+  color: #202124 !important;
+  border: 1px solid #999 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab.active,
+:host .image-controls-sidebar .mode-row > button.mode-button.selected {
+  background: #d9d9d9 !important;
+  background-color: #d9d9d9 !important;
+  color: #111 !important;
+  border: 2px solid #666 !important;
+  box-shadow: inset 0 0 0 1px #fff !important;
+  font-weight: 700 !important;
+}
+:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:focus-visible,
+:host .image-controls-sidebar .mode-row > button.mode-button:focus-visible {
+  outline: 2px solid #777 !important;
+  outline-offset: 2px !important;
+}
+
+/* The two overlay/split indicators previously relied on a tiny text glyph.
+   Draw them as matching, full-size overlapping frames instead. */
+:host .image-controls-sidebar .mode-row > button.mode-button {
+  position: relative;
+}
+:host .image-controls-sidebar .mode-row .mode-layout-icon {
+  position: absolute !important;
+  top: 5px !important;
+  right: 6px !important;
+  z-index: 3 !important;
+  display: block !important;
+  width: 34px !important;
+  height: 34px !important;
+  box-sizing: border-box !important;
+  opacity: 1 !important;
+}
+:host .image-controls-sidebar .mode-row .mode-layout-icon.overlay {
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+:host .image-controls-sidebar .mode-row .mode-layout-icon.overlay::before,
+:host .image-controls-sidebar .mode-row .mode-layout-icon.overlay::after {
+  content: "";
+  position: absolute;
+  width: 21px;
+  height: 21px;
+  box-sizing: border-box;
+  border: 2px solid #30343a;
+  border-radius: 2px;
+  background: #fff;
+}
+:host .image-controls-sidebar .mode-row .mode-layout-icon.overlay::before {
+  top: 1px;
+  left: 1px;
+}
+:host .image-controls-sidebar .mode-row .mode-layout-icon.overlay::after {
+  right: 1px;
+  bottom: 1px;
+  background: #c9c9c9;
+}
+:host .image-controls-sidebar .mode-row .mode-layout-icon.fullsize span {
+  inset: 2px !important;
+  border: 3px solid #30343a !important;
+  border-radius: 2px !important;
+  box-shadow: inset 0 0 0 4px #c9c9c9 !important;
+}
+
