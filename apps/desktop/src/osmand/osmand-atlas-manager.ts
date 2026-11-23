@@ -650,12 +650,12 @@ export class OsmAndAtlasManager {
     child.stderr.setEncoding('utf8');
     child.stdout.on('data', chunk => {
       this.searchWorkerBuffer += String(chunk);
-      let newline = this.searchWorkerBuffer.indexOf('\\n');
+      let newline = this.searchWorkerBuffer.indexOf('\n');
       while (newline >= 0) {
         const line = this.searchWorkerBuffer.slice(0, newline).trim();
         this.searchWorkerBuffer = this.searchWorkerBuffer.slice(newline + 1);
         if (!line) {
-          newline = this.searchWorkerBuffer.indexOf('\\n');
+          newline = this.searchWorkerBuffer.indexOf('\n');
           continue;
         }
         if (!this.searchWorkerIsReady) {
@@ -677,12 +677,17 @@ export class OsmAndAtlasManager {
           if (pending) pending.resolve(line);
           else console.warn('[OsmAnd Search] Ignoring unsolicited worker output:', line);
         }
-        newline = this.searchWorkerBuffer.indexOf('\\n');
+        newline = this.searchWorkerBuffer.indexOf('\n');
       }
     });
     child.stderr.on('data', chunk => {
       this.searchWorkerStderr += String(chunk);
       if (this.searchWorkerStderr.length > 12000) this.searchWorkerStderr = this.searchWorkerStderr.slice(-12000);
+    });
+    child.stdin.on('error', error => {
+      this.rejectSearchWorkerReady?.(error);
+      this.rejectSearchWorkerReady = null;
+      for (const pending of this.searchWorkerPending.splice(0)) pending.reject(error);
     });
     child.once('error', error => {
       this.rejectSearchWorkerReady?.(error);
@@ -715,7 +720,7 @@ export class OsmAndAtlasManager {
     }
     return new Promise<string>((resolve, reject) => {
       this.searchWorkerPending.push({ resolve, reject });
-      child.stdin.write(JSON.stringify({ latitude, longitude, locale }) + '\\n');
+      child.stdin.write(JSON.stringify({ latitude, longitude, locale }) + '\n');
     });
   }
 
@@ -1068,6 +1073,7 @@ export class OsmAndAtlasManager {
       return [...this.obfPaths];
     }
     this.runtimeObfSelection = true;
+    this.stopSearchWorker();
     if (selectedPaths.length === this.obfPaths.length
       && selectedPaths.every((path, index) => path === this.obfPaths[index])) return [...this.obfPaths];
     await this.cancelRendering();
