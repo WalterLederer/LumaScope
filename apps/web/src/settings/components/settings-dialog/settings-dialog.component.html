@@ -131,7 +131,7 @@
                   [class.cache-check-complete]="cacheCheckState() === 'complete'"
                   [class.cache-check-missing]="cacheCheckState() === 'missing' || cacheCheckState() === 'error'"
                   [class.cache-check-running]="cacheCheckState() === 'checking'"
-                  [disabled]="!cacheFolderPath().trim() || cacheBuildActive() || cacheCheckState() === 'checking' || locationLookupActive()"
+                  [disabled]="!cacheFolderPath().trim() || cacheBuildActive() || cacheCheckState() === 'checking' || locationLookupActive() || physicalCacheVerificationLoading()"
                   (click)="checkCache()">Check cache</button>
           <button class="cache-button" type="button" [disabled]="!cacheFolderPath().trim() || cacheBuildActive() || physicalCacheVerificationLoading() || locationLookupActive() || !startCacheBuild() || (recursiveBuild() && !startRecursiveCacheBuild())" (click)="runCacheBuild()">Build cache</button>
           <button class="cache-button" type="button"
