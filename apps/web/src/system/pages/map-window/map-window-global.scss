@@ -501,7 +501,7 @@ app-map-window {
     .marker-summary-table td{min-width:0;overflow-wrap:anywhere;color:var(--color-content-default,#eee)}
     .marker-summary-table tr:nth-child(even) td{background:color-mix(in srgb,var(--color-surface-default-low,#202124) 45%,transparent)}
     @media(max-width:560px){.marker-summary-table th{width:125px}}
-    .location-address{min-width:0;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa)}
+    .location-address{display:block;min-width:0;overflow-wrap:anywhere;white-space:pre-line;color:var(--color-content-default-medium,#aaa)}
     .gpx-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);border-bottom:0;padding:7px 0 0;gap:8px}
     .gpx-filename{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-content-default-medium,#aaa)}.gpx-error{color:#ff8a80}
     .color-picker{position:relative}.color-picker-trigger{display:flex;align-items:center;gap:7px;min-width:132px}.color-picker-chevron{margin-left:auto}
