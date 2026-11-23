@@ -959,7 +959,18 @@ export class OsmAndAtlasManager {
     latitude: number,
     longitude: number,
     locale = ''
-  ): Promise<{ found: boolean; latitude: number; longitude: number; building: string; street: string; place: string; distance_m: number | null; source: string }> => {
+  ): Promise<{
+    found: boolean;
+    latitude: number;
+    longitude: number;
+    building: string;
+    street: string;
+    place: string;
+    postcode: string;
+    administrative_areas: Array<{ admin_level: number; name: string }>;
+    distance_m: number | null;
+    source: string;
+  }> => {
     if (typeof latitude !== 'number' || !Number.isFinite(latitude) || latitude < -90 || latitude > 90
       || typeof longitude !== 'number' || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
       throw new Error('Reverse geocoding requires valid latitude and longitude coordinates.');
@@ -999,7 +1010,24 @@ export class OsmAndAtlasManager {
     if (!parsed || typeof parsed !== 'object' || typeof (parsed as { found?: unknown }).found !== 'boolean') {
       throw new Error('Offline reverse geocoding returned an invalid result.');
     }
-    const result = parsed as { found: boolean; latitude?: number; longitude?: number; building?: string; street?: string; place?: string; distance_m?: number; source?: string };
+    const result = parsed as {
+      found: boolean;
+      building?: string;
+      street?: string;
+      place?: string;
+      postcode?: string;
+      administrative_areas?: unknown;
+      distance_m?: number;
+      source?: string;
+    };
+    const administrativeAreas = Array.isArray(result.administrative_areas)
+      ? result.administrative_areas.filter((area): area is { admin_level: number; name: string } =>
+        !!area && typeof area === 'object'
+        && typeof (area as { admin_level?: unknown }).admin_level === 'number'
+        && Number.isInteger((area as { admin_level: number }).admin_level)
+        && typeof (area as { name?: unknown }).name === 'string'
+        && (area as { name: string }).name.trim().length > 0)
+      : [];
     return {
       found: result.found,
       latitude,
@@ -1007,6 +1035,8 @@ export class OsmAndAtlasManager {
       building: typeof result.building === 'string' ? result.building : '',
       street: typeof result.street === 'string' ? result.street : '',
       place: typeof result.place === 'string' ? result.place : '',
+      postcode: typeof result.postcode === 'string' ? result.postcode : '',
+      administrative_areas: administrativeAreas,
       distance_m: typeof result.distance_m === 'number' && Number.isFinite(result.distance_m) ? result.distance_m : null,
       source: typeof result.source === 'string' ? result.source : 'OsmAnd'
     };
