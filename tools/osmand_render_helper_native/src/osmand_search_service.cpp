@@ -585,7 +585,7 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("boundary_line_diagnostics_enabled"), boundaryLineDiagnosticsEnabled},
         {QStringLiteral("boundary_line_counts"), boundaryConnectivity},
         {QStringLiteral("boundary_line_relation_groups"), boundaryRelationGroups},
-        {QStringLiteral("boundary_line_relation_group_count"), boundaryRelationGroupObjects.size()},
+        {QStringLiteral("boundary_line_relation_group_count"), relationGroupObjects.size()},
         {QStringLiteral("boundary_geometry_points"), boundaryGeometryPointCount},
         {QStringLiteral("boundary_area_objects"), boundaryAreaObjectCount},
         {QStringLiteral("boundary_line_samples"), boundaryLineSamples}
