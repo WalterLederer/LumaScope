@@ -254,10 +254,11 @@ class OsmAndHillshadeWorker {
     if (payload.length < 8 || payload.toString('hex', 0, 8) !== '89504e470d0a1a0a') {
       throw new Error('OsmAnd Hillshade helper returned invalid PNG data.');
     }
-    console.info('[OsmAnd Hillshade] tile_read_complete', {
-      z, x, y, database: databasePath.split(/[\\\\/]/).pop(),
-      totalMs: Date.now() - readStartedAt, pngBytes: payload.length
-    });
+    console.info('[OsmAnd Hillshade] tile_read_complete z=' + z
+      + ' x=' + x + ' y=' + y
+      + ' database=' + databasePath.split(/[\\\\/]/).pop()
+      + ' totalMs=' + (Date.now() - readStartedAt)
+      + ' pngBytes=' + payload.length);
     return new Uint8Array(payload);
   }
 
