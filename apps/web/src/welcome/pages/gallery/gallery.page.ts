@@ -190,12 +190,34 @@ export class GalleryPage {
       this.actionsColumnPosition.set(config.system.galleryFavoritesActionsColumnPosition === 'right' ? 'right' : 'left');
     });
 
-    // Changing or restoring a gallery folder is navigation only.
-    // Cache generation is started exclusively by the explicit Build cache action.
+    // Only the image-grid instance owns window-title and automatic cache-build side effects.
     effect(onCleanup => {
       if (!this.showImageGrid()) return;
       const subscription = this.selectedLocation$.subscribe(location => {
         this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
+        if (!location) return;
+
+        // A cache build belongs to the folder that started it. Stop work for
+        // the previous favorite before scheduling the newly selected folder.
+        const activeDirectory = this.galleryCacheBuild.cacheRunDirectory();
+        const normalizePath = (value: string): string =>
+          value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
+        if (this.galleryCacheBuild.cacheRunActive()
+          && activeDirectory
+          && normalizePath(activeDirectory) !== normalizePath(location)) {
+          this.galleryCacheBuild.cancelCacheBuild();
+        }
+
+        // Restored and manually selected favorite folders both start caching.
+        // GalleryCacheBuild queues this until the ImageGrid controller is ready
+        // or the previous folder's cancellation has completed.
+        const startCacheBuild = this.galleryState.includeFilesRecursiveValue()
+          ? this.galleryCacheBuild.startRecursiveCacheBuild(location, true)
+          : this.galleryCacheBuild.startCacheBuild(location, true);
+        void startCacheBuild.catch(error => {
+          const message = error instanceof Error ? error.message : String(error);
+          this.galleryLocationError.set(`Cache folder action failed: ${message}`);
+        });
       });
       onCleanup(() => subscription.unsubscribe());
     });
