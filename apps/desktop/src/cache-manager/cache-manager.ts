@@ -2081,6 +2081,31 @@ export class CacheManager {
     return Number(row?.position) || 0;
   };
 
+  @IpcHandler({ name: 'CacheManager.getGalleryFileByPath' })
+  readonly getGalleryFileByPath = async (_event: IpcMainInvokeEvent, directory: string, sourcePath: string): Promise<FileInfo | null> => {
+    if (!directory?.trim() || !sourcePath?.trim()) return null;
+    const databaseKey = this.databaseKeyForPath(directory);
+    const db = this.databaseForPath(directory);
+    const targetFolder = this.toRelativeFolderPath(dirname(sourcePath), databaseKey);
+    if (targetFolder === null) return null;
+    const folder = this.toRelativeFolderPath(directory, databaseKey) ?? '';
+    const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
+    const row = db.prepare(
+      "SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path " +
+      "FROM photos JOIN paths ON paths.id = photos.path_id " +
+      "WHERE lower(photos.file_name) = lower(:targetName) " +
+      "AND lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) = lower(replace(rtrim(:targetFolder, char(92) || '/'), '/', char(92))) " +
+      "AND (lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) = lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92))) " +
+      "OR substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix)) LIMIT 1"
+    ).get({ targetName: basename(sourcePath), targetFolder, folder, folderPrefix }) as {
+      file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
+    } | undefined;
+    if (!row) return null;
+    const parent = this.resolveStoredFolderPath(row.relative_folder_path, databaseKey);
+    return { path: join(parent, row.file_name), name: row.file_name, parent, isDirectory: false,
+      ext: extname(row.file_name), createdAt: row.modified_at, size: row.file_size, modifiedAt: row.modified_at };
+  };
+
   @IpcHandler({ name: 'CacheManager.getGalleryFileAtPosition' })
   readonly getGalleryFileAtPosition = async (
     _event: IpcMainInvokeEvent,
