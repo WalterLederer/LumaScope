@@ -3,7 +3,12 @@ import { setPackagedMode } from 'internal-api';
 import { App } from './app/app';
 import { appConfig } from './app/app.config';
 
-console.warn('[Startup] Renderer entry reached; requesting ProcessManager.isPackaged');
+const startupTimingStartedAt = performance.now();
+const logStartupTiming = (phase: string): void => {
+  console.warn('[StartupTiming]', phase, { elapsedMs: Math.round(performance.now() - startupTimingStartedAt) });
+};
+
+logStartupTiming('Renderer entry reached; requesting ProcessManager.isPackaged');
 
 // Capture renderer failures before Angular and the router start bootstrapping.
 window.addEventListener('error', event => {
@@ -26,6 +31,7 @@ window.desktop
   .isPackaged()
   .then(isPackaged => {
     console.warn('[Startup] ProcessManager.isPackaged resolved', isPackaged);
+    logStartupTiming('ProcessManager.isPackaged resolved');
     setPackagedMode(isPackaged);
     console.warn('[Startup] Loading startup theme and application settings');
 
@@ -46,6 +52,7 @@ window.desktop
       .catch(error => console.warn('[Startup] Could not read saved startup theme; using Light Mode.', error));
 
     return Promise.all([window.desktop.ProcessManager.getAppSettings(), startupTheme]).then(async ([settings]) => {
+      logStartupTiming('Startup theme and application settings loaded');
       const mapWindow = settings['mapWindow'] && typeof settings['mapWindow'] === 'object'
         ? { ...(settings['mapWindow'] as Record<string, unknown>) } : {};
       const preferences = settings['preferences'] && typeof settings['preferences'] === 'object'
@@ -106,6 +113,8 @@ window.desktop
         osmandResourcesPath: undefined
       });
 
+      logStartupTiming('Legacy settings migration completed');
+
       const persistValue = (key: string, value: string | null): void => {
         if (key.startsWith(mapPrefix)) {
           void window.desktop.ProcessManager.setAppSettingsSection('mapWindow', {
@@ -149,6 +158,7 @@ window.desktop
 
       // Remove the old duplicate store after importing its values.
       legacyStorage.clear();
+      logStartupTiming('Legacy browser storage cleared; memory storage installed');
       Object.defineProperty(window, 'localStorage', {
         configurable: true,
         enumerable: true,
@@ -156,9 +166,13 @@ window.desktop
       });
 
       console.warn('[Startup] Starting Angular bootstrap');
+      logStartupTiming('Angular bootstrap starting');
       return bootstrapApplication(App, appConfig);
     })
-      .then(() => console.warn('[Startup] Angular bootstrap completed'))
+      .then(() => {
+        console.warn('[Startup] Angular bootstrap completed');
+        logStartupTiming('Angular bootstrap completed');
+      })
       .catch(err => console.error('[Startup] Angular bootstrap failed', err));
   })
   .catch(err => console.error('[Startup] ProcessManager.isPackaged failed', err));
