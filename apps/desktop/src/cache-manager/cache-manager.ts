@@ -2086,7 +2086,20 @@ export class CacheManager {
       return `instr(lower(photos.file_name), :nameFilter${index}) > 0`;
     });
     const where = scope + supportedFilter + (nameFilterSql.length ? ` AND (${nameFilterSql.join(' AND ')})` : '');
-    const extensionSql = "lower(substr(photos.file_name, length(photos.file_name) - instr(reverse(photos.file_name), '.') + 2))";
+    // Match extensions with SQLite's case-insensitive LIKE instead of extracting
+    // each extension through reverse()/substr() for every row in a large gallery.
+    const extensionPatterns = new Map<string, string>();
+    const extensionPattern = (extension: string): string => {
+      const normalized = extension.toLowerCase().replace(/^\\./, '');
+      let pattern = extensionPatterns.get(normalized);
+      if (!pattern) {
+        const parameter = `fileExtension${extensionPatterns.size}`;
+        parameters[parameter] = `%.${normalized}`;
+        pattern = `photos.file_name LIKE :${parameter}`;
+        extensionPatterns.set(normalized, pattern);
+      }
+      return pattern;
+    };
     const fullSizeVersions = new Map<string, number>();
     for (const extension of FULL_SIZE_EXTENSIONS) {
       const normalized = extension.slice(1);
@@ -2098,18 +2111,20 @@ export class CacheManager {
       if (version !== null) fullSizeVersions.set(normalized, version);
     }
     const fullSizeCases = [...fullSizeVersions].map(([extension, version]) =>
-      `(${extensionSql} = '${extension}' AND photos.fullsize_cache_id IS NOT NULL AND photos.fullsize_cache_version = ${version})`);
-    const ohspThumbnail = `(${extensionSql} = 'ohsp' AND (${fullSizeCases.find(value => value.includes("= 'ohsp'")) ?? '0'}))`;
+      `(${extensionPattern(extension)} AND photos.fullsize_cache_id IS NOT NULL AND photos.fullsize_cache_version = ${version})`);
+    const ohspExtension = extensionPattern('ohsp');
+    const dngExtension = extensionPattern('dng');
     const thumbnailValid = `(
-      (${extensionSql} = 'dng' AND photos.thumbnail_cache_id = ${CACHE_STORAGE_TYPE.SIDECAR} AND photos.thumbnail_cache_version = ${DNG_THUMBNAIL_CACHE_VERSION})
-      OR (${extensionSql} <> 'dng' AND ${extensionSql} <> 'ohsp' AND photos.thumbnail_cache_id = ${CACHE_STORAGE_TYPE.SIDECAR} AND photos.thumbnail_cache_version = ${THUMBNAIL_CACHE_VERSION})
-      OR ${ohspThumbnail}
+      (${dngExtension} AND photos.thumbnail_cache_id = ${CACHE_STORAGE_TYPE.SIDECAR} AND photos.thumbnail_cache_version = ${DNG_THUMBNAIL_CACHE_VERSION})
+      OR (NOT (${dngExtension}) AND NOT (${ohspExtension}) AND photos.thumbnail_cache_id = ${CACHE_STORAGE_TYPE.SIDECAR} AND photos.thumbnail_cache_version = ${THUMBNAIL_CACHE_VERSION})
+      OR (${ohspExtension} AND (${fullSizeCases.find(value => value.includes('ohsp')) ?? '0'}))
     )`;
     const fullSizeValid = fullSizeCases.length ? `(${fullSizeCases.join(' OR ')})` : '0';
+    const fullSizeConversionTotalFilter = [...fullSizeVersions.keys()].map(extension => extensionPattern(extension)).join(' OR ') || '0';
     const sql = `SELECT COUNT(*) AS total,
         COALESCE(SUM(CASE WHEN ${thumbnailValid} THEN 1 ELSE 0 END), 0) AS thumbnails,
         COALESCE(SUM(CASE WHEN ${fullSizeValid} THEN 1 ELSE 0 END), 0) AS fullSizeConversions,
-        COALESCE(SUM(CASE WHEN ${[...fullSizeVersions.keys()].map(extension => `${extensionSql} = '${extension}'`).join(' OR ') || '0'} THEN 1 ELSE 0 END), 0) AS fullSizeConversionTotal,
+        COALESCE(SUM(CASE WHEN ${fullSizeConversionTotalFilter} THEN 1 ELSE 0 END), 0) AS fullSizeConversionTotal,
         COALESCE(SUM(CASE WHEN photos.latitude IS NOT NULL AND photos.longitude IS NOT NULL THEN 1 ELSE 0 END), 0) AS gps,
         COALESCE(SUM(CASE WHEN photos.is_hdr = 1 THEN 1 ELSE 0 END), 0) AS hdr,
         COALESCE(SUM(CASE WHEN trim(COALESCE(location_names.display_name, '')) <> '' THEN 1 ELSE 0 END), 0) AS location
