@@ -30,7 +30,22 @@ QString decodeArgument(const char* argument)
 
 void printUsage()
 {
-    std::cerr << "Usage: osmand_search_helper --search <obf-paths-json> <resources-root> <query> [locale] [limit]" << std::endl;
+    std::cerr
+        << "Usage:\n"
+        << "  osmand_search_helper --search <obf-paths-json> <resources-root> <query> [locale] [limit]\n"
+        << "  osmand_search_helper --reverse-geocode <obf-paths-json> <resources-root> <latitude> <longitude> [locale]"
+        << std::endl;
+}
+
+bool parseCoordinates(const char* latitudeArg, const char* longitudeArg, double& latitude, double& longitude)
+{
+    bool latitudeOk = false;
+    bool longitudeOk = false;
+    latitude = QString::fromLatin1(latitudeArg ? latitudeArg : "").toDouble(&latitudeOk);
+    longitude = QString::fromLatin1(longitudeArg ? longitudeArg : "").toDouble(&longitudeOk);
+    return latitudeOk && longitudeOk
+        && latitude >= -90.0 && latitude <= 90.0
+        && longitude >= -180.0 && longitude <= 180.0;
 }
 }
 
@@ -38,38 +53,35 @@ int main(int argc, char* argv[])
 {
     QCoreApplication application(argc, argv);
     OsmAnd::Logger::get()->setSeverityLevelThreshold(static_cast<OsmAnd::LogSeverityLevel>(999));
-    if (argc < 5 || QString::fromLatin1(argv[1]) != QStringLiteral("--search"))
+
+    const auto mode = argc > 1 ? QString::fromLatin1(argv[1]) : QString();
+    const bool reverseGeocodeMode = mode == QStringLiteral("--reverse-geocode");
+    const bool searchMode = mode == QStringLiteral("--search");
+    if ((!reverseGeocodeMode && !searchMode) || argc < (reverseGeocodeMode ? 6 : 5))
     {
         printUsage();
         return 2;
     }
+
     const auto pathsJson = QJsonDocument::fromJson(decodeArgument(argv[2]).toUtf8());
     if (!pathsJson.isArray() || pathsJson.array().isEmpty())
     {
-        std::cerr << "Search requires a non-empty JSON array of active OBF paths." << std::endl;
+        std::cerr << "The OBF path list must be a non-empty JSON array." << std::endl;
         return 2;
     }
+
     QStringList obfPaths;
     for (const auto& value : pathsJson.array())
     {
         if (!value.isString() || value.toString().trimmed().isEmpty())
         {
-            std::cerr << "The active OBF path list contains an invalid entry." << std::endl;
+            std::cerr << "The OBF path list contains an invalid entry." << std::endl;
             return 2;
         }
         obfPaths.append(value.toString());
     }
-    const auto resourcesRoot = decodeArgument(argv[3]);
-    const auto query = decodeArgument(argv[4]);
-    const auto locale = argc > 5 ? decodeArgument(argv[5]) : QString();
-    bool limitOk = true;
-    const auto limit = argc > 6 ? QString::fromLatin1(argv[6]).toInt(&limitOk) : 0;
-    if (!limitOk || limit < 0 || limit > 1000000)
-    {
-        std::cerr << "Search result limit must be zero (unlimited) or between 1 and 1000000." << std::endl;
-        return 2;
-    }
 
+    const auto resourcesRoot = decodeArgument(argv[3]);
     OsmAndSearchService service({obfPaths, resourcesRoot});
     QString errorMessage;
     if (!service.initialize(errorMessage))
@@ -77,7 +89,34 @@ int main(int argc, char* argv[])
         std::cerr << errorMessage.toUtf8().constData() << std::endl;
         return 1;
     }
-    const auto result = service.search(query, limit, locale, false, errorMessage);
+
+    QString result;
+    if (reverseGeocodeMode)
+    {
+        double latitude = 0.0;
+        double longitude = 0.0;
+        if (!parseCoordinates(argv[4], argv[5], latitude, longitude))
+        {
+            std::cerr << "Latitude or longitude is invalid or outside its valid range." << std::endl;
+            return 2;
+        }
+        const auto locale = argc > 6 ? decodeArgument(argv[6]) : QString();
+        result = service.reverseGeocode(latitude, longitude, locale, errorMessage);
+    }
+    else
+    {
+        const auto query = decodeArgument(argv[4]);
+        const auto locale = argc > 5 ? decodeArgument(argv[5]) : QString();
+        bool limitOk = true;
+        const auto limit = argc > 6 ? QString::fromLatin1(argv[6]).toInt(&limitOk) : 0;
+        if (!limitOk || limit < 0 || limit > 1000000)
+        {
+            std::cerr << "Search result limit must be zero (unlimited) or between 1 and 1000000." << std::endl;
+            return 2;
+        }
+        result = service.search(query, limit, locale, false, errorMessage);
+    }
+
     if (!errorMessage.isEmpty())
     {
         std::cerr << errorMessage.toUtf8().constData() << std::endl;
