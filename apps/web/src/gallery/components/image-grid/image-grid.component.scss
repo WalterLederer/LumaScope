@@ -484,3 +484,46 @@ ui-toolbar {
   font-weight: 400;
 }
 
+
+
+.gallery-cache-incomplete-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 12px;
+  color: var(--text-color, #202124);
+  background: var(--surface-secondary, #f2f2f2);
+  border-bottom: 1px solid var(--border-color, #c8c8c8);
+  font-size: 12px;
+}
+
+.gallery-build-cache-button {
+  flex: 0 0 auto;
+  padding: 5px 12px;
+  border: 1px solid var(--border-color, #999);
+  border-radius: 4px;
+  background: var(--surface-color, #fff);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gallery-build-cache-button:hover:not(:disabled) {
+  background: var(--surface-hover, #e6e6e6);
+}
+
+.gallery-build-cache-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+@media (max-width: 620px) {
+  .gallery-cache-incomplete-banner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
