@@ -421,7 +421,7 @@ export class ThumbnailComponent implements OnDestroy {
         let cached = false;
         let cacheCheckFailed = false;
         const preflightStartedAt = performance.now();
-        let statusUrl: URL;
+        let statusUrl: URL | null = null;
         try {
           statusUrl = new URL(imageUrl);
           statusUrl.searchParams.set('status', '1');
@@ -452,7 +452,7 @@ export class ThumbnailComponent implements OnDestroy {
             console.warn('[Thumbnail] Cache status check failed; continuing with image request: ' + JSON.stringify({
               path: image.path,
               elapsedMs: Math.round(performance.now() - preflightStartedAt),
-              statusUrl: statusUrl.toString(),
+              statusUrl: statusUrl?.toString() ?? imageUrl,
               error: details
             }));
           }
