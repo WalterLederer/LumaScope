@@ -35,6 +35,11 @@ public:
         const QString& locale,
         bool includePoiFallback,
         QString& errorMessage) const;
+    QString reverseGeocode(
+        double latitude,
+        double longitude,
+        const QString& locale,
+        QString& errorMessage) const;
 
 private:
     Configuration _configuration;
