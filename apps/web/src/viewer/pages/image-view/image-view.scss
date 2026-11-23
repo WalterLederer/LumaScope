@@ -2890,7 +2890,7 @@
   background: #d9d9d9;
   color: #111;
   border: 2px solid #555;
-  box-shadow: inset 0 0 0 1px #fff;
+  box-shadow: none;
 }
 :host .image-controls-sidebar .mode-row > .mode-option.disabled {
   opacity: .45;
@@ -2908,10 +2908,7 @@
   clip-path: inset(50%);
   border: 0;
 }
-:host .image-controls-sidebar .mode-radio-input:focus-visible + .mode-option-content {
-  outline: 2px solid #777;
-  outline-offset: 3px;
-}
+:host .image-controls-sidebar .mode-radio-input:focus-visible + .mode-option-content { outline: none; }
 :host .image-controls-sidebar .mode-option-content {
   display: flex;
   align-items: center;
@@ -2928,7 +2925,7 @@
   background: #555b62;
   color: #fff;
   border: 2px solid #c5cbd2;
-  box-shadow: inset 0 0 0 1px #25282c;
+  box-shadow: none;
 }
 
 
