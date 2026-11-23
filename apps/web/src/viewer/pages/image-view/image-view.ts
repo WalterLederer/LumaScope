@@ -3248,8 +3248,12 @@ export class ImageView {
     if (this.viewNavigator.standalone()) this.processManager.quit(0).then();
   };
 
-  protected readonly onGalleryImageSelected = (): void => {
-    console.trace('[GalleryNavigationTrace] ImageView received GalleryPage.imageSelected; switching to Image tab.');
+  protected readonly onGalleryImageSelected = (file: { path: string }): void => {
+    // Carry the exact row selected in Browse into the Image-tab navigation.
+    // The tab handler compares this path with the currently opened file and
+    // opens it only when it is a different file.
+    this.galleryActiveSelectionPath.set(file.path);
+    console.trace('[GalleryNavigationTrace] ImageView received GalleryPage.imageSelected; switching to Image tab:', file.path);
     this.setActiveImageSidebarTab('image');
   };
 
