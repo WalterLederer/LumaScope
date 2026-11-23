@@ -1307,10 +1307,82 @@ QString OsmAndSearchService::reverseGeocode(
                 : OsmAnd::LatLon(
                     OsmAnd::Utilities::get31LatitudeY(roadPoints.last().y),
                     OsmAnd::Utilities::get31LongitudeX(roadPoints.last().x));
+
+            // RoadLocator's distSquare can point to a shared connection node.
+            // Independently measure the query point against every actual
+            // geometry segment so touching roads are not mistaken for equally
+            // close roads merely because they share that endpoint.
+            const double latitudeRadians = latitude * 3.14159265358979323846 / 180.0;
+            const double metersPerDegreeLatitude = 111132.92;
+            const double metersPerDegreeLongitude = 111412.84 * std::cos(latitudeRadians)
+                - 93.5 * std::cos(3.0 * latitudeRadians);
+            double nearestGeometryDistance = std::numeric_limits<double>::max();
+            OsmAnd::LatLon nearestGeometryPoint;
+            int nearestGeometrySegment = -1;
+            const auto toLocalMeters = [&](const OsmAnd::LatLon& location) -> QPointF
+            {
+                return QPointF(
+                    (location.longitude - longitude) * metersPerDegreeLongitude,
+                    (location.latitude - latitude) * metersPerDegreeLatitude);
+            };
+            const QPointF queryLocal(0.0, 0.0);
+            for (int pointIndex = 0; pointIndex < roadPoints.size(); ++pointIndex)
+            {
+                const auto& point31 = roadPoints.at(pointIndex);
+                // A zero/zero coordinate separates split geometry parts.
+                if (point31.x == 0 && point31.y == 0)
+                    continue;
+                const OsmAnd::LatLon currentPoint(
+                    OsmAnd::Utilities::get31LatitudeY(point31.y),
+                    OsmAnd::Utilities::get31LongitudeX(point31.x));
+                const QPointF currentLocal = toLocalMeters(currentPoint);
+                const double pointDistance = std::hypot(currentLocal.x(), currentLocal.y());
+                if (pointDistance < nearestGeometryDistance)
+                {
+                    nearestGeometryDistance = pointDistance;
+                    nearestGeometryPoint = currentPoint;
+                    nearestGeometrySegment = pointIndex;
+                }
+
+                if (pointIndex == 0)
+                    continue;
+                const auto& previous31 = roadPoints.at(pointIndex - 1);
+                if (previous31.x == 0 && previous31.y == 0)
+                    continue;
+                const OsmAnd::LatLon previousPoint(
+                    OsmAnd::Utilities::get31LatitudeY(previous31.y),
+                    OsmAnd::Utilities::get31LongitudeX(previous31.x));
+                const QPointF previousLocal = toLocalMeters(previousPoint);
+                const QPointF segment = currentLocal - previousLocal;
+                const double segmentLengthSquared =
+                    segment.x() * segment.x() + segment.y() * segment.y();
+                if (segmentLengthSquared <= 0.0)
+                    continue;
+                const QPointF fromStart = queryLocal - previousLocal;
+                const double projection = std::clamp(
+                    (fromStart.x() * segment.x() + fromStart.y() * segment.y())
+                        / segmentLengthSquared,
+                    0.0, 1.0);
+                const QPointF projected = previousLocal + segment * projection;
+                const double distance = std::hypot(projected.x(), projected.y());
+                if (distance < nearestGeometryDistance)
+                {
+                    nearestGeometryDistance = distance;
+                    nearestGeometryPoint = OsmAnd::LatLon(
+                        previousPoint.latitude + (currentPoint.latitude - previousPoint.latitude) * projection,
+                        previousPoint.longitude + (currentPoint.longitude - previousPoint.longitude) * projection);
+                    nearestGeometrySegment = pointIndex - 1;
+                }
+            }
             roadLocatorDiagnostics.push_back(QJsonObject{
                 {QStringLiteral("name"), roadName},
                 {QStringLiteral("ref"), roadRef},
                 {QStringLiteral("distance_m"), std::sqrt(roadInfo->distSquare)},
+                {QStringLiteral("geometry_distance_m"), nearestGeometryDistance < std::numeric_limits<double>::max()
+                    ? nearestGeometryDistance : -1.0},
+                {QStringLiteral("geometry_nearest_point"), nearestGeometrySegment >= 0
+                    ? QJsonArray{nearestGeometryPoint.latitude, nearestGeometryPoint.longitude} : QJsonArray{}},
+                {QStringLiteral("geometry_nearest_segment_index"), nearestGeometrySegment},
                 {QStringLiteral("connection_point"), QJsonArray{roadPoint.latitude, roadPoint.longitude}},
                 {QStringLiteral("candidate_index"), roadLocatorDiagnostics.size()},
                 {QStringLiteral("osm_id"), roadId.isOsmId()
