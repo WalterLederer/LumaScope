@@ -386,6 +386,7 @@ QJsonObject administrativeAreasForCoordinate(
     QHash<QString, bool> boundaryRelationIsRelations;
     QHash<QString, bool> boundaryRelationHasSplitIds;
     QJsonArray boundaryLineSamples;
+    QJsonArray targetBoundaryLineSegments;
     int boundaryAreaObjectCount = 0;
     int boundaryGeometryPointCount = 0;
     // This broad scan is diagnostic-only and can be expensive on large OBF
@@ -448,6 +449,25 @@ QJsonObject administrativeAreasForCoordinate(
                             .arg(normalizedObjectId.isEmpty()
                                 ? QStringLiteral("obf:%1").arg(mapObject->id.id)
                                 : normalizedObjectId);
+                        if (targetBoundaryRelationKeys.contains(relationObjectKey)
+                            && targetBoundaryLineSegments.size() < 100)
+                        {
+                            const auto firstPoint = mapObject->points31.first();
+                            const auto lastPoint = mapObject->points31.last();
+                            targetBoundaryLineSegments.push_back(QJsonObject{
+                                {QStringLiteral("admin_level"), level},
+                                {QStringLiteral("osm_id"), mapObject->id.isOsmId()
+                                    ? QString::number(mapObject->id.getOsmId()) : QString()},
+                                {QStringLiteral("raw_id"), QString::number(mapObject->id.id)},
+                                {QStringLiteral("point_count"), mapObject->points31.size()},
+                                {QStringLiteral("first"), QStringLiteral("%1,%2").arg(firstPoint.x).arg(firstPoint.y)},
+                                {QStringLiteral("last"), QStringLiteral("%1,%2").arg(lastPoint.x).arg(lastPoint.y)},
+                                {QStringLiteral("bbox"), QStringLiteral("%1,%2,%3,%4")
+                                    .arg(mapObject->bbox31.left()).arg(mapObject->bbox31.top())
+                                    .arg(mapObject->bbox31.right()).arg(mapObject->bbox31.bottom())},
+                                {QStringLiteral("name"), mapObject->getName(locale, false).trimmed()}
+                            });
+                        }
                         ++boundaryRelationLineCounts[relationObjectKey];
                         ++boundaryRelationEndpointDegrees[relationObjectKey][firstKey];
                         ++boundaryRelationEndpointDegrees[relationObjectKey][lastKey];
@@ -605,6 +625,7 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("boundary_line_relation_groups"), boundaryRelationGroups},
         {QStringLiteral("boundary_line_relation_group_count"), relationGroupObjects.size()},
         {QStringLiteral("target_boundary_line_relation_groups"), targetBoundaryRelationGroups},
+        {QStringLiteral("target_boundary_line_segments"), targetBoundaryLineSegments},
         {QStringLiteral("target_boundary_line_relation_group_count"), targetBoundaryRelationGroups.size()},
         {QStringLiteral("boundary_geometry_points"), boundaryGeometryPointCount},
         {QStringLiteral("boundary_area_objects"), boundaryAreaObjectCount},
