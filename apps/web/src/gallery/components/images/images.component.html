@@ -299,7 +299,7 @@
                   <app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="selectedImagePath() === image.path" [image]="image" [viewMode]="viewMode()"
                                  (hovered)="hovered.emit($event)"
                                  (cacheUpdated)="cacheUpdated.emit($event)"
-                                 (rowSelected)="selectThumbnail($event)"\n                     (doubleClicked)="selectThumbnail($event)" />
+                                 (rowSelected)="selectThumbnail($event)"\n                     (doubleClicked)="openThumbnail($event)" />
                 }
               </div>
             </section>
