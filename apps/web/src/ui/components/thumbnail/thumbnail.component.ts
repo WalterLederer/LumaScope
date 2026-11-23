@@ -390,6 +390,7 @@ export class ThumbnailComponent implements OnDestroy {
     });
 
     effect(onCleanup => {
+      const image = this.image();
       this.hasError.set(false);
       this.thumbnailError.set(null);
       this.isLoading.set(true);
