@@ -2589,7 +2589,7 @@ export class MapWindow implements OnInit, OnDestroy {
           }
           const address = uniqueParts.join(', ') || 'No address details available';
           const diagnostics = result.diagnostics;
-          const helperInfo = `OsmAnd offline helper v${result.helper_version}; areas=${diagnostics.resolved_administrative_areas}; mapObjects=${diagnostics.loaded_map_objects}; adminBoundaries=${diagnostics.administrative_boundary_objects}; addressBoundaries=${diagnostics.matching_address_boundary_groups}/${diagnostics.loaded_address_boundary_groups}`;
+          const helperInfo = `OsmAnd offline helper v${result.helper_version}; areas=${diagnostics.resolved_administrative_areas}; mapObjects=${diagnostics.loaded_map_objects}; adminBoundaries=${diagnostics.administrative_boundary_objects}; addressBoundaries=${diagnostics.matching_address_boundary_groups}/${diagnostics.loaded_address_boundary_groups}; idMatches=${diagnostics.matched_address_boundary_object_ids}; mapIds=${diagnostics.map_boundary_object_ids.join(',') || '-'}; addressIds=${diagnostics.address_boundary_object_ids.join(',') || '-'}; matchedIds=${diagnostics.matched_boundary_object_ids.join(',') || '-'}`;
           return `${address} (${helperInfo})`;
         })
         .catch(error => `Error: ${error instanceof Error ? error.message : String(error)}`)
