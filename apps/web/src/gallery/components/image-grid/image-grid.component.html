@@ -136,6 +136,7 @@
 <div class="wrapper" [class.details-mode]="viewMode() === 'details' || viewMode() === 'details-no-thumbnails'" #scrollBox (scroll)="onGalleryScroll($event)">
   <app-images [images]="images()" [selectedImagePath]="selectedImagePath()"
               [cacheStats]="cacheStats()"
+              [cacheStatsLoaded]="cacheStatsLoaded()"
               [folderPath]="selectedLocation()"
               [includeUnsupportedFiles]="includeUnsupportedFiles()"
               [includeFilesRecursive]="includeFilesRecursive()"
