@@ -1936,7 +1936,8 @@ export class CacheManager {
     offset = 0,
     limit = 250,
     nameFilter = '',
-    sourceId = 'unknown'
+    sourceId = 'unknown',
+    deferCount = false
   ): Promise<{ files: FileInfo[]; totalCount: number; offset: number; limit: number }> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid gallery folder path is required.');
     const safeOffset = Number.isFinite(offset) ? Math.max(0, Math.trunc(offset)) : 0;
@@ -1996,7 +1997,7 @@ export class CacheManager {
       file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
     }>;
     console.info(`[SQL] ${sqlLogTimestamp()} END   #${queryLogId} getGalleryFilesPage | ${Date.now() - queryStartedAt}ms | rows=${rows.length}`);
-    if (totalCount < 0) {
+    if (totalCount < 0 && !deferCount) {
       if (rows.length < safeLimit) {
         totalCount = safeOffset + rows.length;
         this.galleryCountCache.set(countCacheKey, totalCount);
