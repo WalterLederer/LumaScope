@@ -297,8 +297,7 @@ QJsonObject administrativeAreasForCoordinate(
             }
         }
     }
-    // The address index stores boundary groups with their OSM object IDs
-    // and bounding boxes, but no admin_level. Resolve the level through the
+    // The address index stores boundary groups with their OSM object IDs    // and bounding boxes, but no admin_level. Resolve the level through the
     // map object with the same OSM ID. This also recovers boundaries whose
     // generalized polygon does not quite contain the coordinate.
     // Inspect the address-section block metadata before loading groups. Some
@@ -395,10 +394,11 @@ QJsonObject administrativeAreasForCoordinate(
         });
     }
 
-    // Diagnostic reconstruction probe: scan all map objects, then retain every
-    // split geometry belonging to the administrative relation IDs found at the
-    // requested coordinate. Relation fragments can lie far outside the local
-    // object bounding box, so limiting this scan to the query extent loses them.
+    // Diagnostic reconstruction probe: scan only the combined bounding area
+    // of the administrative boundary objects that intersect the coordinate.
+    // Keep the scan spatially bounded: loading every map object from every zoom
+    // level of a country-sized OBF can take an excessive amount of time and RAM.
+    // Within this area, retain only fragments belonging to the target relation IDs.
     // This intentionally does not change address resolution yet.
     for (const auto& streetGroup : addressBoundaryGroups)
     {
@@ -466,7 +466,7 @@ QJsonObject administrativeAreasForCoordinate(
                     QList<std::shared_ptr<const OsmAnd::BinaryMapObject>> mapObjects;
                     OsmAnd::ObfMapSectionReader::loadMapObjects(
                         reader, mapSection, nullptr, mapLevel->minZoom,
-                        nullptr, &mapObjects);
+                        &boundarySearchArea, &mapObjects);
                     for (const auto& mapObject : mapObjects)
                     {
                         if (!mapObject)
@@ -597,8 +597,7 @@ QJsonObject administrativeAreasForCoordinate(
         const auto degrees = boundaryRelationEndpointDegrees.value(it.key());
         int danglingEndpoints = 0;
         int joinedEndpoints = 0;
-        int highDegreeEndpoints = 0;
-        for (auto degreeIt = degrees.constBegin(); degreeIt != degrees.constEnd(); ++degreeIt)        {
+        int highDegreeEndpoints = 0;        for (auto degreeIt = degrees.constBegin(); degreeIt != degrees.constEnd(); ++degreeIt)        {
             if (degreeIt.value() == 1)
                 ++danglingEndpoints;
             else if (degreeIt.value() == 2)
@@ -897,8 +896,7 @@ SearchCandidate makeAmenityCandidate(
         amenity->nativeName,
         transliteratedName,
     });
-    candidate.displayName = bestDisplayName(query, names, preferredName);
-    candidate.secondaryText = secondaryTextFor(candidate.displayName, names, descriptor);
+    candidate.displayName = bestDisplayName(query, names, preferredName);    candidate.secondaryText = secondaryTextFor(candidate.displayName, names, descriptor);
 
     const auto latLon = OsmAnd::Utilities::convert31ToLatLon(amenity->position31);
     candidate.latitude = latLon.latitude;
@@ -1184,7 +1182,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.9")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.10")},
     };
 
     // Administrative areas are resolved independently from the address
@@ -1197,8 +1195,7 @@ QString OsmAndSearchService::reverseGeocode(
     // A coordinate can be inside a mapped administrative boundary even when
     // OsmAnd's address reverse-geocoder finds no building or street group.
     // Treat that as a successful reverse-geocoding result as well.
-    const bool hasAdministrativeData =
-        !administrativeData.value(QStringLiteral("administrative_areas")).toArray().isEmpty()
+    const bool hasAdministrativeData =        !administrativeData.value(QStringLiteral("administrative_areas")).toArray().isEmpty()
         || !administrativeData.value(QStringLiteral("postcode")).toString().trimmed().isEmpty();
     payload.insert(QStringLiteral("found"), static_cast<bool>(result) || hasAdministrativeData);
 
