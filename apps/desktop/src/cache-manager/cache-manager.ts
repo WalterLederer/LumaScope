@@ -1863,7 +1863,7 @@ export class CacheManager {
       WHERE paths.relative_folder_path = :folder COLLATE NOCASE
         OR (:recursive = 1
           AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
-          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)`)
+          AND paths.relative_folder_path < (:folderPrefix || char(1114111)) COLLATE NOCASE)`)
       .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as Array<{ file_name: string; relative_folder_path: string }>;
     const suffixes = new Set<string>();
     let count = 0;
@@ -1896,7 +1896,7 @@ export class CacheManager {
       WHERE paths.relative_folder_path = :folder COLLATE NOCASE
         OR (:recursive = 1
           AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
-          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)`)
+          AND paths.relative_folder_path < (:folderPrefix || char(1114111)) COLLATE NOCASE)`)
       .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as Array<{
         file_name: string; file_size: number; modified_at: number; gps_timestamp: number | null; relative_folder_path: string;
       }>;
@@ -1955,7 +1955,7 @@ export class CacheManager {
         paths.relative_folder_path = :folder COLLATE NOCASE
         OR (:recursive = 1
           AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
-          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)
+          AND paths.relative_folder_path < (:folderPrefix || char(1114111)) COLLATE NOCASE)
       )`;
     const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `photos.file_name LIKE :extension${index}`).join(' OR ')})`;
     const normalizedNameFilter = typeof nameFilter === 'string' ? nameFilter.trim().toLocaleLowerCase() : '';
@@ -1968,7 +1968,7 @@ export class CacheManager {
     }
     const nameFilterSql = nameFilterTerms.map((term, index) => {
       filterParams[`nameFilter${index}`] = term;
-      return `photos.file_name LIKE '%' || :nameFilter${index} || '%' COLLATE NOCASE`;
+      return `instr(lower(photos.file_name), :nameFilter${index}) > 0`;
     });
     const where = `${scope}${supportedFilter}${nameFilterSql.length ? ` AND ${nameFilterSql.join(' AND ')}` : ''}`;
     // Load the requested page first. When fewer than the requested limit are
@@ -2050,7 +2050,7 @@ export class CacheManager {
         paths.relative_folder_path = :folder COLLATE NOCASE
         OR (:recursive = 1
           AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
-          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)
+          AND paths.relative_folder_path < (:folderPrefix || char(1114111)) COLLATE NOCASE)
       )`;
     const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `photos.file_name LIKE :extension${index}`).join(' OR ')})`;
     const parameters: Record<string, string | number> = {
@@ -2100,7 +2100,7 @@ export class CacheManager {
       "WHERE lower(photos.file_name) = lower(:targetName) " +
       "AND paths.relative_folder_path = :targetFolder COLLATE NOCASE " +
       "AND (paths.relative_folder_path = :folder COLLATE NOCASE " +
-      "OR (:recursive = 1 AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)) LIMIT 1"
+      "OR (:recursive = 1 AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE AND paths.relative_folder_path < (:folderPrefix || char(1114111)) COLLATE NOCASE)) LIMIT 1"
     ).get({ targetName: basename(sourcePath), targetFolder, folder, folderPrefix, recursive: recursive ? 1 : 0 }) as {
       file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
     } | undefined;
@@ -2133,7 +2133,7 @@ export class CacheManager {
         paths.relative_folder_path = :folder COLLATE NOCASE
         OR (:recursive = 1
           AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
-          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)
+          AND paths.relative_folder_path < (:folderPrefix || char(1114111)) COLLATE NOCASE)
       )`;
     const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `photos.file_name LIKE :extension${index}`).join(' OR ')})`;
     const parameters: Record<string, string | number> = {
@@ -2192,7 +2192,7 @@ export class CacheManager {
         paths.relative_folder_path = :folder COLLATE NOCASE
         OR (:recursive = 1
           AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
-          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)
+          AND paths.relative_folder_path < (:folderPrefix || char(1114111)) COLLATE NOCASE)
       )`;
     const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `photos.file_name LIKE :extension${index}`).join(' OR ')})`;
     const terms = typeof nameFilter === 'string' ? nameFilter.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean) : [];
@@ -2200,7 +2200,7 @@ export class CacheManager {
     if (!includeUnsupported) supportedFileExtensions.forEach((extension, index) => { parameters[`extension${index}`] = `%.${extension.toLowerCase()}`; });
     const nameFilterSql = terms.map((term, index) => {
       parameters[`nameFilter${index}`] = term;
-      return `photos.file_name LIKE '%' || :nameFilter${index} || '%' COLLATE NOCASE`;
+      return `instr(lower(photos.file_name), :nameFilter${index}) > 0`;
     });
     const where = scope + supportedFilter + (nameFilterSql.length ? ` AND (${nameFilterSql.join(' AND ')})` : '');
     // Match extensions with SQLite's case-insensitive LIKE instead of extracting
@@ -2412,7 +2412,7 @@ export class CacheManager {
       WHERE paths.relative_folder_path = :folder COLLATE NOCASE
         OR (:recursive = 1
           AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
-          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)`);
+          AND paths.relative_folder_path < (:folderPrefix || char(1114111)) COLLATE NOCASE)`);
     const insertStale = db.prepare('INSERT OR IGNORE INTO temp.lumascope_stale_photo_ids (id) VALUES (:id)');
     const deleteStale = db.prepare('DELETE FROM photos WHERE id IN (SELECT id FROM temp.lumascope_stale_photo_ids)');
     db.exec('CREATE TEMP TABLE IF NOT EXISTS lumascope_stale_photo_ids (id INTEGER PRIMARY KEY);');
@@ -2479,7 +2479,7 @@ export class CacheManager {
       WHERE paths.relative_folder_path = :folder COLLATE NOCASE
         OR (:recursive = 1
           AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
-          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)
+          AND paths.relative_folder_path < (:folderPrefix || char(1114111)) COLLATE NOCASE)
       ORDER BY paths.relative_folder_path COLLATE NOCASE, photos.file_name COLLATE NOCASE`)
       .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as unknown as Array<{ file_name: string; relative_folder_path: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null; location_display_name: string | null }>;
     return rows.map(row => ({
