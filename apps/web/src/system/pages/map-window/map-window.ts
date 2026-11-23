@@ -1255,11 +1255,14 @@ export class MapWindow implements OnInit, OnDestroy {
     this.routePointActionMenuOpen.set(index);
     this.routePointActionMenuPosition.set(this.getRowActionMenuPosition(event, 190, 112));
   };
-  protected readonly runRoutePointAction = (index: number, action: 'remove' | 'up' | 'down'): void => {
+  protected readonly runRoutePointAction = (index: number, action: 'remove' | 'up' | 'down' | 'resolve-name'): void => {
     this.routePointActionMenuOpen.set(null);
     this.autoFixLogMenuOpen.set(false);
     if (action === 'remove') this.removeRouteWaypoint(index);
-    else this.moveRouteWaypoint(index, action === 'up' ? -1 : 1);
+    else if (action === 'resolve-name') {
+      const waypoint = this.routeWaypoints()[index];
+      if (waypoint) void this.resolveRouteWaypointName(waypoint);
+    } else this.moveRouteWaypoint(index, action === 'up' ? -1 : 1);
   };
   private getRowActionMenuPosition(event: MouseEvent, width: number, estimatedHeight: number, anchorAtPointer = false): { top: number; left: number } {
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
@@ -6531,7 +6534,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.routeWaypoints.update(points => [...points, waypoint]);
     this.persistRouteWaypoints();
     this.updateRouteWaypointMarkers();
-    void this.resolveRouteWaypointName(waypoint);
   };
 
   protected readonly changeRouteWaypointActive = (index: number, active: boolean): void => {
