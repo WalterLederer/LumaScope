@@ -1,4 +1,4 @@
-import { BrowserWindow, globalShortcut, ipcMain, protocol, screen, shell } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain, protocol, screen, shell } from 'electron';
 import { appProtocol, GlobalShortcutStatus, formatOsDateTime } from 'internal-api';
 import { join } from 'path';
 import { appendFileSync, mkdirSync, statSync } from 'node:fs';
@@ -8,6 +8,13 @@ import { protocolHandler } from '../protocol-handler/protocol-handler';
 import { StartupConfig } from '../startup-config/startup-config';
 import { flushAppSettingsWrites, startAppSettingsCheckpoint } from '../settings/app-settings';
 import { rendererAppName, rendererAppPort } from './constants';
+
+// Electron's renderer otherwise may inherit the application language (for
+// example en-US) instead of Windows' regional settings. Use the OS locale so
+// Intl.NumberFormat(undefined) follows the user's configured separators.
+if (process.platform === 'win32') {
+  app.commandLine.appendSwitch('lang', app.getSystemLocale());
+}
 
 export default class App {
   // Keep a global reference of the window object, if you don't, the window will
