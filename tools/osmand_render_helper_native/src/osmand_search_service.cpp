@@ -3,6 +3,7 @@
 #include "osmand_core_runtime.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <limits>
 #include <utility>
 #include <vector>
@@ -517,12 +518,17 @@ QString OsmAndSearchService::reverseGeocode(
     }
 
     const auto effectiveLocale = locale.trimmed().isEmpty() ? _defaultLocale : locale.trimmed().toLower();
+    std::fprintf(stderr, "[reverse-geocode] Creating RoadLocator\\n");
     const auto roadLocator = std::make_shared<OsmAnd::RoadLocator>(_obfsCollection);
+    std::fprintf(stderr, "[reverse-geocode] RoadLocator created\\n");
     const OsmAnd::ReverseGeocoder reverseGeocoder(_obfsCollection, roadLocator);
+    std::fprintf(stderr, "[reverse-geocode] ReverseGeocoder created\\n");
     OsmAnd::ReverseGeocoder::Criteria criteria;
     criteria.latLon = OsmAnd::LatLon(latitude, longitude);
+    std::fprintf(stderr, "[reverse-geocode] Calling performSearch at %.7f, %.7f\\n", latitude, longitude);
 
     const auto result = reverseGeocoder.performSearch(criteria);
+    std::fprintf(stderr, "[reverse-geocode] performSearch returned: %s\\n", result ? "result" : "no result");
     QJsonObject payload{
         {QStringLiteral("found"), static_cast<bool>(result)},
         {QStringLiteral("latitude"), latitude},
