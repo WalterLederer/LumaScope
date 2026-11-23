@@ -97,7 +97,11 @@
                 <span>{{ database.bytes | byteSize }}</span>
               </div>
             } @empty {
-              <span>No SQLite database files found.</span>
+              @if (cacheBuildActive()) {
+                <span>Cache summary will refresh after the cache build completes.</span>
+              } @else if (!cacheSummaryLoading()) {
+                <span>No SQLite database files found.</span>
+              }
             }
           </div>
         </div>
