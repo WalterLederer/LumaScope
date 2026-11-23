@@ -8,14 +8,10 @@
       <span><strong>Building cache…</strong></span>
     } @else if (cacheCompleteness(); as cacheStatus) {
       <span>
-        @if (cacheStatus.thumbnails < cacheStatus.total) {
-          <strong>Cache incomplete</strong> — {{ formatNumber(cacheStatus.thumbnails) }} of {{ formatNumber(cacheStatus.total) }} thumbnails are ready.
-        } @else {
-          <strong>Cache complete</strong> — {{ formatNumber(cacheStatus.total) }} thumbnails are ready.
-        }
+        <strong>Cached thumbnails:</strong> {{ formatNumber(cacheStatus.thumbnails) }}
       </span>
     } @else {
-      <span><strong>Cache status not checked</strong> — build or check the cache for this folder.</span>
+      <span><strong>Thumbnail cache count not measured yet.</span>
     }
     <button type="button" class="gallery-build-cache-button" [disabled]="cacheRunActive()" (click)="buildCurrentFolderCache()">Build cache</button>
   </div>
