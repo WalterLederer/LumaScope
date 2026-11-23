@@ -53,6 +53,7 @@ const supportedThumbnailExtensions = new Set([
     '(mouseenter)': 'hovered.emit(image())',
     '(mouseleave)': 'hovered.emit(null)',
     '(click)': 'rowSelected.emit(image())',
+    '(dblclick)': 'doubleClicked.emit(image())',
     '(contextmenu)': 'openWindowsContextMenu($event)'
   }
 })
@@ -122,6 +123,8 @@ export class ThumbnailComponent implements OnDestroy {
   readonly refreshToken = input(0);
 
   readonly clicked = output<FileInfo>();
+
+  readonly doubleClicked = output<FileInfo>();
 
   readonly rowSelected = output<FileInfo>();
 
