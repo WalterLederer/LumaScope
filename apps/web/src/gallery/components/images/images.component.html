@@ -299,7 +299,7 @@
                   <app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="selectedImagePath() === image.path" [image]="image" [viewMode]="viewMode()"
                                  (hovered)="hovered.emit($event)"
                                  (cacheUpdated)="cacheUpdated.emit($event)"
-                                 (clicked)="this.selected.emit($event)" />
+                                 (rowSelected)="selectThumbnail($event)" />
                 }
               </div>
             </section>
@@ -326,7 +326,7 @@
       <app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="selectedImagePath() === image.path" [image]="image" [viewMode]="viewMode()"
                      (hovered)="hovered.emit($event)"
                      (cacheUpdated)="cacheUpdated.emit($event)"
-                     (clicked)="this.selected.emit($event)" />
+                     (rowSelected)="selectThumbnail($event)" />
     }
     @if ((viewMode() === 'thumbnails' || viewMode() === 'tiles') && thumbnailVirtualBottomSpacer() > 0) {
       <div class="gallery-window-spacer gallery-window-spacer-bottom" aria-hidden="true" [style.height.px]="thumbnailVirtualBottomSpacer()"></div>
