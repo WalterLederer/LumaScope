@@ -9,6 +9,8 @@
 #include <vector>
 
 #include <QFileInfo>
+#include <QPoint>
+#include <QPolygon>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -18,6 +20,11 @@
 #include <OsmAndCore/CollatorStringMatcher.h>
 #include <OsmAndCore/CommonTypes.h>
 #include <OsmAndCore/ObfDataInterface.h>
+#include <OsmAndCore/Data/ObfMapSectionInfo.h>
+#include <OsmAndCore/Data/ObfMapSectionReader.h>
+#include <OsmAndCore/Data/BinaryMapObject.h>
+#include <OsmAndCore/Data/ObfReader.h>
+#include <OsmAndCore/Data/ObfInfo.h>
 #include <OsmAndCore/ObfsCollection.h>
 #include <OsmAndCore/RoadLocator.h>
 #include <OsmAndCore/Search/ReverseGeocoder.h>
@@ -49,6 +56,165 @@ struct SearchCandidate
     int typeRank = 99;
     QString dedupeKey;
 };
+
+struct AdministrativeAreaCandidate
+{
+    int adminLevel = 99;
+    QString name;
+    qint64 bboxArea = 0;
+};
+
+bool polygonContainsPoint(
+    const QVector<OsmAnd::PointI>& points,
+    const QPoint& point)
+{
+    if (points.size() < 4)
+        return false;
+
+    QPolygon polygon;
+    polygon.reserve(points.size());
+    for (const auto& coordinate : points)
+        polygon.push_back(QPoint(coordinate.x, coordinate.y));
+    return polygon.containsPoint(point, Qt::OddEvenFill);
+}
+
+bool mapObjectContainsPoint(
+    const OsmAnd::BinaryMapObject& mapObject,
+    const QPoint& point)
+{
+    if (!mapObject.isArea || !polygonContainsPoint(mapObject.points31, point))
+        return false;
+
+    for (const auto& innerPolygon : mapObject.innerPolygonsPoints31)
+    {
+        if (polygonContainsPoint(innerPolygon, point))
+            return false;
+    }
+    return true;
+}
+
+QJsonObject administrativeAreasForCoordinate(
+    const std::shared_ptr<OsmAnd::ObfDataInterface>& dataInterface,
+    double latitude,
+    double longitude,
+    const QString& locale)
+{
+    QJsonObject result;
+    QJsonArray areas;
+    QString postcode;
+    if (!dataInterface)
+    {
+        result.insert(QStringLiteral("administrative_areas"), areas);
+        return result;
+    }
+
+    const auto point31 = OsmAnd::Utilities::convertLatLonTo31(OsmAnd::LatLon(latitude, longitude));
+    const QPoint point(point31.x, point31.y);
+    OsmAnd::AreaI queryArea;
+    queryArea.left() = point31.x - 2;
+    queryArea.right() = point31.x + 2;
+    queryArea.top() = point31.y - 2;
+    queryArea.bottom() = point31.y + 2;
+
+    QList<AdministrativeAreaCandidate> candidates;
+    QSet<QString> seenAreas;
+    for (const auto& reader : dataInterface->obfReaders)
+    {
+        if (!reader)
+            continue;
+        const auto info = reader->obtainInfo();
+        if (!info)
+            continue;
+
+        for (const auto& mapSection : info->mapSections)
+        {
+            if (!mapSection || mapSection->levels.isEmpty())
+                continue;
+
+            QList<std::shared_ptr<const OsmAnd::BinaryMapObject>> mapObjects;
+            OsmAnd::ObfMapSectionReader::loadMapObjects(
+                reader,
+                mapSection,
+                nullptr,
+                mapSection->levels.first()->minZoom,
+                &queryArea,
+                &mapObjects);
+
+            for (const auto& mapObject : mapObjects)
+            {
+                if (!mapObject || !mapObjectContainsPoint(*mapObject, point))
+                    continue;
+
+                const auto attributes = mapObject->getResolvedAttributes();
+                const auto boundaryType = attributes.value(QStringLiteral("boundary"));
+                const auto placeType = attributes.value(QStringLiteral("place"));
+                const auto adminLevelText = attributes.value(QStringLiteral("admin_level"));
+                bool adminLevelOk = false;
+                const int adminLevel = adminLevelText.toInt(&adminLevelOk);
+                const bool isAdministrativeBoundary = boundaryType == QStringLiteral("administrative")
+                    && adminLevelOk && adminLevel > 0;
+                const bool isNamedPlaceArea = !placeType.isEmpty()
+                    && mapObject->isArea;
+                if (!isAdministrativeBoundary && !isNamedPlaceArea)
+                    continue;
+
+                const auto objectName = mapObject->getName(locale, false).trimmed().isEmpty()
+                    ? mapObject->getCaptionInNativeLanguage().trimmed()
+                    : mapObject->getName(locale, false).trimmed();
+                if (objectName.isEmpty())
+                    continue;
+
+                const auto objectKey = QStringLiteral("%1|%2")
+                    .arg(adminLevelOk ? adminLevel : 99)
+                    .arg(normalizeForMatch(objectName));
+                if (!seenAreas.contains(objectKey))
+                {
+                    seenAreas.insert(objectKey);
+                    const auto width = static_cast<qint64>(mapObject->bbox31.right()) - mapObject->bbox31.left();
+                    const auto height = static_cast<qint64>(mapObject->bbox31.bottom()) - mapObject->bbox31.top();
+                    candidates.push_back({
+                        adminLevelOk ? adminLevel : 99,
+                        objectName,
+                        std::max<qint64>(0, width) * std::max<qint64>(0, height)
+                    });
+                }
+
+                for (const auto& postcodeKey : {
+                    QStringLiteral("postal_code"),
+                    QStringLiteral("addr:postcode"),
+                    QStringLiteral("postcode")
+                })
+                {
+                    const auto value = attributes.value(postcodeKey).trimmed();
+                    if (postcode.isEmpty() && !value.isEmpty())
+                        postcode = value;
+                }
+            }
+        }
+    }
+
+    std::sort(candidates.begin(), candidates.end(),
+        [](const AdministrativeAreaCandidate& left, const AdministrativeAreaCandidate& right)
+        {
+            if (left.adminLevel != right.adminLevel)
+                return left.adminLevel < right.adminLevel;
+            if (left.bboxArea != right.bboxArea)
+                return left.bboxArea < right.bboxArea;
+            return QString::compare(left.name, right.name, Qt::CaseInsensitive) < 0;
+        });
+
+    for (const auto& candidate : candidates)
+    {
+        areas.push_back(QJsonObject{
+            {QStringLiteral("admin_level"), candidate.adminLevel},
+            {QStringLiteral("name"), candidate.name}
+        });
+    }
+    result.insert(QStringLiteral("administrative_areas"), areas);
+    if (!postcode.isEmpty())
+        result.insert(QStringLiteral("postcode"), postcode);
+    return result;
+}
 
 QString normalizeForMatch(const QString& value)
 {
@@ -536,6 +702,13 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
     };
 
+    // Administrative areas are resolved independently from the address
+    // reverse-geocoder result, so they remain available without a building.
+    const auto administrativeData = administrativeAreasForCoordinate(
+        _dataInterface, latitude, longitude, effectiveLocale);
+    for (auto it = administrativeData.constBegin(); it != administrativeData.constEnd(); ++it)
+        payload.insert(it.key(), it.value());
+
     if (result)
     {
         const auto buildingName = result->building
@@ -554,7 +727,8 @@ QString OsmAndSearchService::reverseGeocode(
         // OsmAnd stores the postcode on the resolved building. Keep it as a
         // separate field so callers can compose a structured address instead
         // of having to parse the localized result string.
-        if (result->building && !result->building->postcode.trimmed().isEmpty())
+        if (result->building && !result->building->postcode.trimmed().isEmpty()
+            && payload.value(QStringLiteral("postcode")).toString().isEmpty())
             payload.insert(QStringLiteral("postcode"), result->building->postcode.trimmed());
         payload.insert(QStringLiteral("distance_m"), result->getDistance());
         payload.insert(QStringLiteral("result_text"), result->toString());
