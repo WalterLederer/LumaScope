@@ -536,12 +536,17 @@ export class ImagesComponent {
 
   protected readonly selectThumbnail = (image: FileInfo): void => {
     this.activeSelectionPath.set(image.path);
+    // Forward the selected path immediately; the parent Image tab can be
+    // clicked before the signal-driven synchronization effect runs.
+    this.activeSelectionChanged.emit(image.path);
     (this.elementRef.nativeElement as HTMLElement).focus({ preventScroll: true });
     this.selected.emit(image);
   };
 
   protected readonly onDetailRowSelected = (image: FileInfo): void => {
     this.activeSelectionPath.set(image.path);
+    // Keep the Image tab's explicit-open target in sync with row selection.
+    this.activeSelectionChanged.emit(image.path);
     (this.elementRef.nativeElement as HTMLElement).focus({ preventScroll: true });
     this.selected.emit(image);
   };
