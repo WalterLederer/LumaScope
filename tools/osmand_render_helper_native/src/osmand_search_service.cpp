@@ -369,6 +369,13 @@ QJsonObject administrativeAreasForCoordinate(
 
     QHash<int, QHash<QString, int>> boundaryEndpointDegrees;
     QHash<int, int> boundaryLineCounts;
+    QHash<QString, QHash<QString, int>> boundaryRelationEndpointDegrees;
+    QHash<QString, int> boundaryRelationLineCounts;
+    QHash<QString, QString> boundaryRelationOsmIds;
+    QHash<QString, QString> boundaryRelationNames;
+    QHash<QString, int> boundaryRelationLevels;
+    QHash<QString, bool> boundaryRelationIsRelations;
+    QHash<QString, bool> boundaryRelationHasSplitIds;
     QJsonArray boundaryLineSamples;
     int boundaryAreaObjectCount = 0;
     int boundaryGeometryPointCount = 0;
@@ -422,9 +429,33 @@ QJsonObject administrativeAreasForCoordinate(
                         const auto lastKey = QStringLiteral("%1,%2").arg(last.x).arg(last.y);
                         ++boundaryEndpointDegrees[level][firstKey];
                         ++boundaryEndpointDegrees[level][lastKey];
+
+                        // A multipolygon relation may be emitted as several
+                        // split map objects. Aggregate endpoints only after
+                        // normalizing each object ID back to its source OSM ID.
+                        const auto normalizedObjectId = administrativeObjectKey(mapObject->id);
+                        const auto relationObjectKey = QStringLiteral("%1|%2")
+                            .arg(level)
+                            .arg(normalizedObjectId.isEmpty()
+                                ? QStringLiteral("obf:%1").arg(mapObject->id.id)
+                                : normalizedObjectId);
+                        ++boundaryRelationLineCounts[relationObjectKey];
+                        ++boundaryRelationEndpointDegrees[relationObjectKey][firstKey];
+                        ++boundaryRelationEndpointDegrees[relationObjectKey][lastKey];
+                        boundaryRelationOsmIds.insert(relationObjectKey,
+                            mapObject->id.isOsmId()
+                                ? QString::number(mapObject->id.getOsmId())
+                                : QString());
+                        boundaryRelationLevels.insert(relationObjectKey, level);
+                        boundaryRelationIsRelations.insert(relationObjectKey, mapObject->id.isIdFromRelation());
+                        boundaryRelationHasSplitIds.insert(relationObjectKey, mapObject->id.isIdFromSplit());
+                        const auto lineName = mapObject->getName(locale, false).trimmed();
+                        if (!lineName.isEmpty() && !boundaryRelationNames.contains(relationObjectKey))
+                            boundaryRelationNames.insert(relationObjectKey, lineName);
+
                         if (boundaryLineSamples.size() < 40)
                         {
-                            const auto name = mapObject->getName(locale, false).trimmed();
+                            const auto name = lineName;
                             boundaryLineSamples.push_back(QJsonObject{
                                 {QStringLiteral("id"), QString::number(mapObject->id.id)},
                                 {QStringLiteral("osm_id"), QString::number(mapObject->id.getOsmId())},
@@ -468,6 +499,53 @@ QJsonObject administrativeAreasForCoordinate(
         });
     }
 
+    QList<QJsonObject> relationGroupObjects;
+    for (auto it = boundaryRelationLineCounts.constBegin(); it != boundaryRelationLineCounts.constEnd(); ++it)
+    {
+        const auto degrees = boundaryRelationEndpointDegrees.value(it.key());
+        int danglingEndpoints = 0;
+        int joinedEndpoints = 0;
+        int highDegreeEndpoints = 0;
+        for (auto degreeIt = degrees.constBegin(); degreeIt != degrees.constEnd(); ++degreeIt)
+        {
+            if (degreeIt.value() == 1)
+                ++danglingEndpoints;
+            else if (degreeIt.value() == 2)
+                ++joinedEndpoints;
+            else
+                ++highDegreeEndpoints;
+        }
+        relationGroupObjects.push_back(QJsonObject{
+            {QStringLiteral("admin_level"), boundaryRelationLevels.value(it.key())},
+            {QStringLiteral("osm_id"), boundaryRelationOsmIds.value(it.key())},
+            {QStringLiteral("is_relation"), boundaryRelationIsRelations.value(it.key())},
+            {QStringLiteral("has_split_ids"), boundaryRelationHasSplitIds.value(it.key())},
+            {QStringLiteral("name"), boundaryRelationNames.value(it.key())},
+            {QStringLiteral("line_segments"), it.value()},
+            {QStringLiteral("unique_endpoints"), degrees.size()},
+            {QStringLiteral("dangling_endpoints"), danglingEndpoints},
+            {QStringLiteral("degree_two_endpoints"), joinedEndpoints},
+            {QStringLiteral("branch_or_duplicate_endpoints"), highDegreeEndpoints}
+        });
+    }
+    std::sort(relationGroupObjects.begin(), relationGroupObjects.end(),
+        [](const QJsonObject& left, const QJsonObject& right)
+        {
+            const int leftCount = left.value(QStringLiteral("line_segments")).toInt();
+            const int rightCount = right.value(QStringLiteral("line_segments")).toInt();
+            if (leftCount != rightCount)
+                return leftCount > rightCount;
+            if (left.value(QStringLiteral("admin_level")).toInt()
+                != right.value(QStringLiteral("admin_level")).toInt())
+                return left.value(QStringLiteral("admin_level")).toInt()
+                    < right.value(QStringLiteral("admin_level")).toInt();
+            return left.value(QStringLiteral("osm_id")).toString()
+                < right.value(QStringLiteral("osm_id")).toString();
+        });
+    QJsonArray boundaryRelationGroups;
+    for (int index = 0; index < std::min(40, relationGroupObjects.size()); ++index)
+        boundaryRelationGroups.push_back(relationGroupObjects.at(index));
+
     std::sort(candidates.begin(), candidates.end(),
         [](const AdministrativeAreaCandidate& left, const AdministrativeAreaCandidate& right)
         {
@@ -506,6 +584,8 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("boundary_search_area_available"), hasBoundarySearchArea},
         {QStringLiteral("boundary_line_diagnostics_enabled"), boundaryLineDiagnosticsEnabled},
         {QStringLiteral("boundary_line_counts"), boundaryConnectivity},
+        {QStringLiteral("boundary_line_relation_groups"), boundaryRelationGroups},
+        {QStringLiteral("boundary_line_relation_group_count"), boundaryRelationGroupObjects.size()},
         {QStringLiteral("boundary_geometry_points"), boundaryGeometryPointCount},
         {QStringLiteral("boundary_area_objects"), boundaryAreaObjectCount},
         {QStringLiteral("boundary_line_samples"), boundaryLineSamples}
