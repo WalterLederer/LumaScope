@@ -48,7 +48,10 @@ export class Keyboard {
   private readonly keydown$ = fromEvent<KeyboardEvent>(this.document, 'keydown', { capture: true })
     .pipe(filter(event => !this.isTextInputTarget(event)), share());
 
-  private readonly keyup$ = fromEvent<KeyboardEvent>(this.document, 'keyup')
+  // Capture keyup as well as keydown. A child view can stop bubbling keyup
+  // events (for example, image canvases or gallery controls), which would
+  // otherwise suppress global image navigation shortcuts.
+  private readonly keyup$ = fromEvent<KeyboardEvent>(this.document, 'keyup', { capture: true })
     .pipe(filter(event => !this.isTextInputTarget(event)), share());
 
   readonly keydown = () => this.keydown$;
