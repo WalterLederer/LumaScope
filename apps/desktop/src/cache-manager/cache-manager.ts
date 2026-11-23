@@ -2041,7 +2041,7 @@ export class CacheManager {
 
   @IpcHandler({ name: 'CacheManager.getGalleryFileAtPosition' })
   readonly getGalleryFileAtPosition = async (
-    event: IpcMainInvokeEvent,
+    _event: IpcMainInvokeEvent,
     directory: string,
     recursive = false,
     includeUnsupported = false,
@@ -2049,11 +2049,55 @@ export class CacheManager {
     sortDir: SortDirection = 'asc',
     position = 1
   ): Promise<FileInfo | null> => {
+    if (typeof directory !== 'string' || !directory.trim()) return null;
     const safePosition = Number.isFinite(position) ? Math.max(1, Math.trunc(position)) : 1;
-    const page = await this.getGalleryFilesPage(
-      event, directory, recursive, includeUnsupported, sortBy, sortDir, safePosition - 1, 1, '', 'CacheManager.getGalleryFileAtPosition'
-    );
-    return page.files[0] ?? null;
+    const databaseKey = this.databaseKeyForPath(directory);
+    const db = this.databaseForPath(directory);
+    this.activeDatabaseKey = databaseKey;
+    const folder = this.toRelativeFolderPath(directory, databaseKey) ?? '';
+    const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
+    const scope = `FROM photos JOIN paths ON paths.id = photos.path_id
+      LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
+      WHERE (
+        lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
+          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
+        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))
+      )`;
+    const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `lower(photos.file_name) LIKE :extension${index}`).join(' OR ')})`;
+    const parameters: Record<string, string | number> = {
+      folder, recursive: recursive ? 1 : 0, folderPrefix, limit: 1, offset: safePosition - 1
+    };
+    if (!includeUnsupported) supportedFileExtensions.forEach((extension, index) => {
+      parameters[`extension${index}`] = `%.${extension.toLowerCase()}`;
+    });
+    const direction = sortDir === 'desc' ? 'DESC' : 'ASC';
+    const orderBy = sortBy === 'path'
+      ? `paths.relative_folder_path COLLATE NOCASE ${direction}, photos.file_name COLLATE NOCASE ${direction}`
+      : sortBy === 'gpsDate'
+        ? `photos.gps_timestamp IS NULL ASC, photos.gps_timestamp ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`
+        : sortBy === 'gps'
+          ? `(photos.latitude IS NULL OR photos.longitude IS NULL) ASC, (photos.latitude * 1000 + photos.longitude) ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`
+          : sortBy === 'location'
+            ? `(location_names.display_name IS NULL OR trim(location_names.display_name) = '') ASC, location_names.display_name COLLATE NOCASE ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`
+            : sortBy === 'suffix'
+              ? `lower(substr(photos.file_name, length(photos.file_name) - instr(reverse(photos.file_name), '.') + 2)) ${direction}, photos.file_name COLLATE NOCASE ASC, paths.relative_folder_path COLLATE NOCASE ASC`
+              : `${sortBy === 'date' ? 'photos.modified_at' : sortBy === 'size' ? 'photos.file_size' : 'photos.file_name COLLATE NOCASE'} ${direction}, paths.relative_folder_path COLLATE NOCASE ASC, photos.file_name COLLATE NOCASE ASC`;
+    const startedAt = Date.now();
+    const logId = nextSqlLogId();
+    console.info(`[SQL] ${sqlLogTimestamp()} START #${logId} getGalleryFileAtPosition | folder=${directory} | recursive=${recursive} | unsupported=${includeUnsupported} | sort=${sortBy} ${sortDir} | position=${safePosition}`);
+    const row = db.prepare(`SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path
+      ${scope}${supportedFilter}
+      ORDER BY ${orderBy}
+      LIMIT :limit OFFSET :offset`).get(parameters) as {
+        file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
+      } | undefined;
+    console.info(`[SQL] ${sqlLogTimestamp()} END   #${logId} getGalleryFileAtPosition | ${Date.now() - startedAt}ms | found=${Boolean(row)}`);
+    if (!row) return null;
+    const parent = this.resolveStoredFolderPath(row.relative_folder_path, databaseKey);
+    return {
+      path: join(parent, row.file_name), name: row.file_name, parent, isDirectory: false,
+      ext: extname(row.file_name), createdAt: row.modified_at, size: row.file_size, modifiedAt: row.modified_at
+    };
   };
 
   @IpcHandler({ name: 'CacheManager.getGalleryCacheStats' })
