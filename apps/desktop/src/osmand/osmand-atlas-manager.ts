@@ -577,6 +577,15 @@ export class OsmAndAtlasManager {
     ...process.env,
     PATH: [dirname(this.helperPath), process.env.PATH || ''].filter(Boolean).join(delimiter)
   };
+  private searchWorker: ChildProcessWithoutNullStreams | null = null;
+  private searchWorkerKey = '';
+  private searchWorkerBuffer = '';
+  private searchWorkerStderr = '';
+  private searchWorkerReady: Promise<void> | null = null;
+  private resolveSearchWorkerReady: (() => void) | null = null;
+  private rejectSearchWorkerReady: ((error: Error) => void) | null = null;
+  private searchWorkerIsReady = false;
+  private searchWorkerPending: Array<{ resolve: (line: string) => void; reject: (error: Error) => void }> = [];
   private displayScale = 1.0;
   private scaleChange: Promise<void> = Promise.resolve();
   private workers = this.createWorkers();
@@ -590,6 +599,123 @@ export class OsmAndAtlasManager {
     app.once('will-quit', () => {
       for (const worker of this.workers) void worker.shutdown();
       for (const worker of this.hillshadeWorkers) void worker.shutdown();
+      this.stopSearchWorker();
+    });
+  }
+
+  private stopSearchWorker(): void {
+    const child = this.searchWorker;
+    this.searchWorker = null;
+    this.searchWorkerKey = '';
+    this.searchWorkerIsReady = false;
+    this.searchWorkerReady = null;
+    const error = new Error('OsmAnd reverse-geocoding worker was stopped.');
+    this.rejectSearchWorkerReady?.(error);
+    this.resolveSearchWorkerReady = null;
+    this.rejectSearchWorkerReady = null;
+    for (const pending of this.searchWorkerPending.splice(0)) pending.reject(error);
+    child?.kill();
+  }
+
+  private async ensureSearchWorker(activePaths: string[]): Promise<void> {
+    const workerKey = JSON.stringify({ paths: activePaths, resourcesPath: this.resourcesPath });
+    if (this.searchWorker && this.searchWorker.exitCode === null && this.searchWorkerKey === workerKey) {
+      if (this.searchWorkerIsReady) return;
+      if (this.searchWorkerReady) return this.searchWorkerReady;
+    }
+
+    this.stopSearchWorker();
+    if (!existsSync(this.searchHelperPath)) {
+      throw new Error('OsmAnd reverse geocoding helper not found: ' + this.searchHelperPath);
+    }
+    const encodeArgument = (value: string): string => 'utf8hex:' + Buffer.from(value, 'utf8').toString('hex');
+    const child = spawn(this.searchHelperPath, [
+      '--reverse-geocode-worker',
+      encodeArgument(JSON.stringify(activePaths)),
+      encodeArgument(this.resourcesPath)
+    ], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: this.environment });
+    this.searchWorker = child;
+    this.searchWorkerKey = workerKey;
+    this.searchWorkerBuffer = '';
+    this.searchWorkerStderr = '';
+    this.searchWorkerIsReady = false;
+
+    const readyPromise = new Promise<void>((resolve, reject) => {
+      this.resolveSearchWorkerReady = resolve;
+      this.rejectSearchWorkerReady = reject;
+    });
+    this.searchWorkerReady = readyPromise;
+
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', chunk => {
+      this.searchWorkerBuffer += String(chunk);
+      let newline = this.searchWorkerBuffer.indexOf('\\n');
+      while (newline >= 0) {
+        const line = this.searchWorkerBuffer.slice(0, newline).trim();
+        this.searchWorkerBuffer = this.searchWorkerBuffer.slice(newline + 1);
+        if (!line) {
+          newline = this.searchWorkerBuffer.indexOf('\\n');
+          continue;
+        }
+        if (!this.searchWorkerIsReady) {
+          try {
+            const ready = JSON.parse(line) as { worker_ready?: unknown; error?: unknown };
+            if (ready.worker_ready !== true) throw new Error(String(ready.error ?? 'Invalid worker startup response.'));
+            this.searchWorkerIsReady = true;
+            this.resolveSearchWorkerReady?.();
+            this.resolveSearchWorkerReady = null;
+            this.rejectSearchWorkerReady = null;
+          } catch (error) {
+            const startupError = error instanceof Error ? error : new Error(String(error));
+            this.rejectSearchWorkerReady?.(startupError);
+            this.rejectSearchWorkerReady = null;
+            child.kill();
+          }
+        } else {
+          const pending = this.searchWorkerPending.shift();
+          if (pending) pending.resolve(line);
+          else console.warn('[OsmAnd Search] Ignoring unsolicited worker output:', line);
+        }
+        newline = this.searchWorkerBuffer.indexOf('\\n');
+      }
+    });
+    child.stderr.on('data', chunk => {
+      this.searchWorkerStderr += String(chunk);
+      if (this.searchWorkerStderr.length > 12000) this.searchWorkerStderr = this.searchWorkerStderr.slice(-12000);
+    });
+    child.once('error', error => {
+      this.rejectSearchWorkerReady?.(error);
+      this.rejectSearchWorkerReady = null;
+      for (const pending of this.searchWorkerPending.splice(0)) pending.reject(error);
+    });
+    child.once('close', code => {
+      const closeError = new Error('OsmAnd reverse-geocoding worker exited (code '
+        + String(code) + '). ' + this.searchWorkerStderr.trim());
+      if (this.searchWorker === child) {
+        this.searchWorker = null;
+        this.searchWorkerKey = '';
+        this.searchWorkerIsReady = false;
+        this.searchWorkerReady = null;
+      }
+      this.rejectSearchWorkerReady?.(closeError);
+      this.resolveSearchWorkerReady = null;
+      this.rejectSearchWorkerReady = null;
+      for (const pending of this.searchWorkerPending.splice(0)) pending.reject(closeError);
+    });
+
+    return readyPromise;
+  }
+
+  private async requestSearchWorker(activePaths: string[], latitude: number, longitude: number, locale: string): Promise<string> {
+    await this.ensureSearchWorker(activePaths);
+    const child = this.searchWorker;
+    if (!child || !child.stdin.writable || child.stdin.destroyed || child.stdin.writableEnded) {
+      throw new Error('OsmAnd reverse-geocoding worker input is unavailable.');
+    }
+    return new Promise<string>((resolve, reject) => {
+      this.searchWorkerPending.push({ resolve, reject });
+      child.stdin.write(JSON.stringify({ latitude, longitude, locale }) + '\\n');
     });
   }
 
@@ -982,34 +1108,11 @@ export class OsmAndAtlasManager {
     const activePaths = [...new Set(this.obfPaths.filter(path => existsSync(path)))];
     if (!activePaths.length) throw new Error('Enable at least one available OsmAnd OBF map in Offline Files.');
     if (!this.resourcesPath || !existsSync(this.resourcesPath)) throw new Error('Select an available OsmAnd resources folder first.');
-    if (!existsSync(this.searchHelperPath)) throw new Error('OsmAnd reverse geocoding helper not found: ' + this.searchHelperPath);
-
-    const encodeArgument = (value: string): string => 'utf8hex:' + Buffer.from(value, 'utf8').toString('hex');
-    const output = await new Promise<string>((resolveOutput, rejectOutput) => {
-      const child = spawn(this.searchHelperPath, [
-        '--reverse-geocode',
-        encodeArgument(JSON.stringify(activePaths)),
-        encodeArgument(this.resourcesPath),
-        String(latitude),
-        String(longitude),
-        encodeArgument(locale)
-      ], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: this.environment });
-      let stdout = '';
-      let stderr = '';
-      child.stdout.setEncoding('utf8');
-      child.stderr.setEncoding('utf8');
-      child.stdout.on('data', chunk => { stdout += String(chunk); });
-      child.stderr.on('data', chunk => { stderr += String(chunk); });
-      child.once('error', rejectOutput);
-      child.once('close', code => {
-        if (code !== 0) {
-          rejectOutput(new Error('Offline reverse geocoding failed (exit ' + String(code) + '). ' + stderr.trim()));
-          return;
-        }
-        resolveOutput(stdout);
-      });
-    });
+    const output = await this.requestSearchWorker(activePaths, latitude, longitude, locale);
     const parsed: unknown = JSON.parse(output.trim());
+    if (parsed && typeof parsed === 'object' && typeof (parsed as { error?: unknown }).error === 'string') {
+      throw new Error('Offline reverse geocoding failed: ' + String((parsed as { error: string }).error));
+    }
     if (!parsed || typeof parsed !== 'object' || typeof (parsed as { found?: unknown }).found !== 'boolean') {
       throw new Error('Offline reverse geocoding returned an invalid result.');
     }
