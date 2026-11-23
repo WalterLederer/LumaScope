@@ -12,6 +12,7 @@
 #include <QFileInfo>
 #include <QHash>
 #include <QPoint>
+#include <QPointF>
 #include <QPolygon>
 #include <QSet>
 #include <QJsonArray>
