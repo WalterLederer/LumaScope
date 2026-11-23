@@ -535,7 +535,7 @@ app-map-window {
     .location-tab .location-icon-settings-box .marker-current-appearance-settings>span{font-weight:600}
     .location-tab .location-icon-settings-box .color-picker{position:relative}
     .location-reverse-geocoding .fix-location-position-table{width:100%;table-layout:auto}
-    .location-reverse-geocoding .fix-location-position-table .fix-location-toggle-cell{width:1%;white-space:nowrap}
+    .location-reverse-geocoding .fix-location-position-table .fix-location-toggle-cell{width:1%;white-space:nowrap;vertical-align:top}.location-reverse-geocoding .fix-location-position-table .fix-location-toggle-cell .map-toolbar-button{display:block;margin-top:5px;white-space:nowrap}.location-reverse-geocoding .fix-location-position-table .fix-location-toggle-cell .fix-location-toggle{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .location-reverse-geocoding .fix-location-position-table .fix-location-coordinate-value,.location-reverse-geocoding .fix-location-position-table .fix-location-photo-coordinates{min-width:180px}
     .location-reverse-geocoding .fix-location-position-table .fix-location-address-cell{display:flex;align-items:flex-start;gap:8px;min-width:0;white-space:normal}
     .location-reverse-geocoding .fix-location-position-table .fix-location-address-cell .fix-location-address{min-width:0;overflow-wrap:anywhere}
