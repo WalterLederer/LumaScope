@@ -472,6 +472,7 @@ export interface DesktopCapture {
   readonly onGlobalShortcutStatusChanged: (callback: (statuses: GlobalShortcutStatus[]) => void) => () => void;
   readonly onTopWindowClipboardHotkey: (callback: () => void) => () => void;
   readonly onRectangleClipboardHotkey: (callback: () => void) => () => void;
+  readonly notifyPreviewRendererReady: () => void;
 }
 
 export interface DesktopHistogram {
