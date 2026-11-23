@@ -1368,6 +1368,22 @@ QString OsmAndSearchService::reverseGeocode(
                     int within50m = 0;
                     int within100m = 0;
                     const OsmAnd::LatLon searchLocation(latitude, longitude);
+                    const bool hasNativeSearchPoint = result->searchPoint.isSet();
+                    const bool hasNativeConnectionPoint = result->connectionPoint.isSet();
+                    const OsmAnd::LatLon nativeSearchPoint = hasNativeSearchPoint
+                        ? *result->searchPoint : searchLocation;
+                    const OsmAnd::LatLon nativeConnectionPoint = hasNativeConnectionPoint
+                        ? *result->connectionPoint : searchLocation;
+                    int nativeSearchPointWithin100m = 0;
+                    int nativeConnectionPointWithin100m = 0;
+                    addressDiagnostics.insert(QStringLiteral("native_search_point"), QJsonArray{
+                        nativeSearchPoint.latitude, nativeSearchPoint.longitude
+                    });
+                    addressDiagnostics.insert(QStringLiteral("native_connection_point"), QJsonArray{
+                        nativeConnectionPoint.latitude, nativeConnectionPoint.longitude
+                    });
+                    addressDiagnostics.insert(QStringLiteral("has_native_search_point"), hasNativeSearchPoint);
+                    addressDiagnostics.insert(QStringLiteral("has_native_connection_point"), hasNativeConnectionPoint);
                     for (const auto& building : buildings)
                     {
                         if (!building)
@@ -1376,14 +1392,24 @@ QString OsmAndSearchService::reverseGeocode(
                             OsmAnd::Utilities::convert31ToLatLon(building->position31);
                         const double distance = OsmAnd::Utilities::distance(
                             searchLocation, buildingLocation);
+                        const double nativeSearchDistance = OsmAnd::Utilities::distance(
+                            nativeSearchPoint, buildingLocation);
+                        const double nativeConnectionDistance = OsmAnd::Utilities::distance(
+                            nativeConnectionPoint, buildingLocation);
                         if (distance <= 50.0)
                             ++within50m;
                         if (distance <= 100.0)
                             ++within100m;
+                        if (nativeSearchDistance < 100.0)
+                            ++nativeSearchPointWithin100m;
+                        if (nativeConnectionDistance < 100.0)
+                            ++nativeConnectionPointWithin100m;
 
                         QJsonObject buildingObject = serializeAddress(building);
                         buildingObject.insert(QStringLiteral("postcode"), building->postcode);
                         buildingObject.insert(QStringLiteral("distance_m"), distance);
+                        buildingObject.insert(QStringLiteral("native_search_distance_m"), nativeSearchDistance);
+                        buildingObject.insert(QStringLiteral("native_connection_distance_m"), nativeConnectionDistance);
                         buildingObject.insert(QStringLiteral("interpolation"),
                             static_cast<int>(building->interpolation));
                         buildingObject.insert(QStringLiteral("interpolation_interval"),
@@ -1412,6 +1438,10 @@ QString OsmAndSearchService::reverseGeocode(
                         buildings.size());
                     addressDiagnostics.insert(QStringLiteral("buildings_within_50m"), within50m);
                     addressDiagnostics.insert(QStringLiteral("buildings_within_100m"), within100m);
+                    addressDiagnostics.insert(QStringLiteral("buildings_within_100m_of_native_search_point"),
+                        nativeSearchPointWithin100m);
+                    addressDiagnostics.insert(QStringLiteral("buildings_within_100m_of_native_connection_point"),
+                        nativeConnectionPointWithin100m);
                     addressDiagnostics.insert(QStringLiteral("nearest_buildings"), nearestBuildings);
                 }
             }
