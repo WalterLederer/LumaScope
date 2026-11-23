@@ -62,24 +62,39 @@ const renameWithRetry = async (source: string, destination: string): Promise<voi
   }
 };
 
-export const writeJsonAtomically = async (filePath: string, data: unknown): Promise<void> => {
-  const previous = pendingWrites.get(filePath) ?? Promise.resolve();
-  const operation = previous.catch(() => undefined).then(async () => {
-    const temporaryPath = join(dirname(filePath), `.${randomUUID()}.tmp`);
-    try {
-      await writeFile(temporaryPath, JSON.stringify(data, null, 2), 'utf-8');
-      await renameWithRetry(temporaryPath, filePath);
-    } finally {
-      await unlink(temporaryPath).catch(() => undefined);
-    }
-  });
-
-  pendingWrites.set(filePath, operation);
+const writeJsonAtomicallyUnlocked = async (filePath: string, data: unknown): Promise<void> => {
+  const temporaryPath = join(dirname(filePath), `.${randomUUID()}.tmp`);
   try {
-    await operation;
+    await writeFile(temporaryPath, JSON.stringify(data, null, 2), 'utf-8');
+    await renameWithRetry(temporaryPath, filePath);
   } finally {
-    if (pendingWrites.get(filePath) === operation) {
+    await unlink(temporaryPath).catch(() => undefined);
+  }
+};
+
+/**
+ * Run a complete read/backup/update/write transaction under the same per-file
+ * queue used by all atomic JSON writes. The supplied writer is valid only
+ * inside the transaction and deliberately does not acquire the lock again.
+ */
+export const withJsonFileTransaction = async <T>(
+  filePath: string,
+  transaction: (write: (data: unknown) => Promise<void>) => Promise<T>
+): Promise<T> => {
+  const previous = pendingWrites.get(filePath) ?? Promise.resolve();
+  const operation = previous.catch(() => undefined).then(() =>
+    transaction(data => writeJsonAtomicallyUnlocked(filePath, data))
+  );
+  const queuedOperation = operation.then(() => undefined);
+  pendingWrites.set(filePath, queuedOperation);
+  try {
+    return await operation;
+  } finally {
+    if (pendingWrites.get(filePath) === queuedOperation) {
       pendingWrites.delete(filePath);
     }
   }
 };
+
+export const writeJsonAtomically = async (filePath: string, data: unknown): Promise<void> =>
+  withJsonFileTransaction(filePath, write => write(data));
