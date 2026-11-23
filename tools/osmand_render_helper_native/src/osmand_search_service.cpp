@@ -335,6 +335,74 @@ QJsonObject administrativeAreasForCoordinate(
         OsmAnd::fullObfAddressStreetGroupTypesMask());
     loadedAddressStreetGroupCount = addressBoundaryGroups.size();
 
+    // Probe the separate AddressNameIndexData path. Boundary atoms are indexed
+    // by name, so query the known local hierarchy names and inspect their
+    // resolved StreetGroup references and bounding boxes. This is diagnostic
+    // only; it does not affect the reverse-geocoding result.
+    QJsonArray nameIndexBoundaryQueryResults;
+    const bool nameIndexDiagnosticsEnabled =
+        qEnvironmentVariableIsSet("LUMASCOPE_OSMAND_NAMEINDEX_DIAGNOSTICS");
+    if (nameIndexDiagnosticsEnabled)
+    {
+        const QStringList boundaryNameQueries{
+            QStringLiteral("Stockerau"),
+            QStringLiteral("Spillern"),
+            QStringLiteral("Korneuburg"),
+            QStringLiteral("Niederösterreich"),
+            QStringLiteral("Lower Austria"),
+            QStringLiteral("Austria")
+        };
+        const auto boundaryOnlyMask = OsmAnd::ObfAddressStreetGroupTypesMask()
+            .set(OsmAnd::ObfAddressStreetGroupType::Boundary);
+        for (const auto& query : boundaryNameQueries)
+        {
+            QList<std::shared_ptr<const OsmAnd::Address>> foundAddresses;
+            const bool completed = dataInterface->scanAddressesByName(
+                query,
+                OsmAnd::StringMatcherMode::CHECK_EQUALS_FROM_SPACE,
+                &foundAddresses,
+                nullptr,
+                boundaryOnlyMask,
+                false,
+                true);
+            for (const auto& address : foundAddresses)
+            {
+                if (!address || address->addressType != OsmAnd::AddressType::StreetGroup)
+                    continue;
+                const auto streetGroup = std::static_pointer_cast<const OsmAnd::StreetGroup>(address);
+                const auto groupName = streetGroup->getName(locale, false).trimmed();
+                const auto displayName = groupName.isEmpty()
+                    ? streetGroup->nativeName.trimmed() : groupName;
+                const auto bbox = streetGroup->bbox31;
+                const bool bboxContainsPoint = bbox.size() >= 4
+                    && point31.x >= bbox[0] && point31.x <= bbox[2]
+                    && point31.y >= bbox[1] && point31.y <= bbox[3];
+                nameIndexBoundaryQueryResults.push_back(QJsonObject{
+                    {QStringLiteral("query"), query},
+                    {QStringLiteral("completed"), completed},
+                    {QStringLiteral("name"), displayName},
+                    {QStringLiteral("osm_id"), streetGroup->id.isOsmId()
+                        ? QString::number(streetGroup->id.getOsmId()) : QString()},
+                    {QStringLiteral("raw_id"), QString::number(streetGroup->id.id)},
+                    {QStringLiteral("is_relation"), streetGroup->id.isIdFromRelation()},
+                    {QStringLiteral("group_type"), static_cast<int>(streetGroup->type)},
+                    {QStringLiteral("position31"), QJsonArray{streetGroup->position31.x, streetGroup->position31.y}},
+                    {QStringLiteral("bbox31"), bbox.size() >= 4
+                        ? QJsonArray{bbox[0], bbox[1], bbox[2], bbox[3]} : QJsonArray{}},
+                    {QStringLiteral("bbox_contains_point"), bboxContainsPoint}
+                });
+            }
+            if (foundAddresses.isEmpty())
+            {
+                nameIndexBoundaryQueryResults.push_back(QJsonObject{
+                    {QStringLiteral("query"), query},
+                    {QStringLiteral("completed"), completed},
+                    {QStringLiteral("matches"), 0}
+                });
+            }
+        }
+    }
+
     for (const auto& streetGroup : addressBoundaryGroups)
     {
         if (!streetGroup || streetGroup->type != OsmAnd::ObfAddressStreetGroupSubtype::Boundary)
@@ -675,6 +743,8 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("administrative_boundary_objects"), administrativeBoundaryObjectCount},
         {QStringLiteral("loaded_address_boundary_groups"), loadedAddressBoundaryGroupCount},
         {QStringLiteral("loaded_address_street_groups"), loadedAddressStreetGroupCount},
+        {QStringLiteral("name_index_diagnostics_enabled"), nameIndexDiagnosticsEnabled},
+        {QStringLiteral("name_index_boundary_query_results"), nameIndexBoundaryQueryResults},
         {QStringLiteral("address_boundary_blocks"), addressBoundaryBlockCount},
         {QStringLiteral("address_block_type_counts"), addressBlockTypeCounts},
         {QStringLiteral("matching_address_boundary_groups"), matchingAddressBoundaryGroupCount},
@@ -1182,7 +1252,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.10")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.11")},
     };
 
     // Administrative areas are resolved independently from the address
