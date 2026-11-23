@@ -969,7 +969,7 @@ export class OsmAndAtlasManager {
     postcode: string;
     administrative_areas: Array<{ admin_level: number; name: string }>;
     helper_version: string;
-    diagnostics: { loaded_map_objects: number; administrative_boundary_objects: number; loaded_address_boundary_groups: number; matching_address_boundary_groups: number; resolved_administrative_areas: number };
+    diagnostics: { loaded_map_objects: number; administrative_boundary_objects: number; loaded_address_boundary_groups: number; matching_address_boundary_groups: number; matched_address_boundary_object_ids: number; map_boundary_object_ids: string[]; address_boundary_object_ids: string[]; matched_boundary_object_ids: string[]; resolved_administrative_areas: number };
     distance_m: number | null;
     source: string;
   }> => {
@@ -1054,6 +1054,10 @@ export class OsmAndAtlasManager {
         administrative_boundary_objects: diagnosticCount('administrative_boundary_objects'),
         loaded_address_boundary_groups: diagnosticCount('loaded_address_boundary_groups'),
         matching_address_boundary_groups: diagnosticCount('matching_address_boundary_groups'),
+        matched_address_boundary_object_ids: diagnosticCount('matched_address_boundary_object_ids'),
+        map_boundary_object_ids: Array.isArray(rawDiagnostics['map_boundary_object_ids']) ? rawDiagnostics['map_boundary_object_ids'].filter((value): value is string => typeof value === 'string').slice(0, 20) : [],
+        address_boundary_object_ids: Array.isArray(rawDiagnostics['address_boundary_object_ids']) ? rawDiagnostics['address_boundary_object_ids'].filter((value): value is string => typeof value === 'string').slice(0, 20) : [],
+        matched_boundary_object_ids: Array.isArray(rawDiagnostics['matched_boundary_object_ids']) ? rawDiagnostics['matched_boundary_object_ids'].filter((value): value is string => typeof value === 'string').slice(0, 20) : [],
         resolved_administrative_areas: diagnosticCount('resolved_administrative_areas')
       },
       distance_m: typeof result.distance_m === 'number' && Number.isFinite(result.distance_m) ? result.distance_m : null,
