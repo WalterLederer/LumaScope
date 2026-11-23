@@ -1602,9 +1602,22 @@
 .detail-native-table > tbody.images.details-list > tr.detail-virtual-row {
   display: table-row !important;
   height: var(--detail-row-height, 44px) !important;
+  min-height: var(--detail-row-height, 44px) !important;
+  max-height: var(--detail-row-height, 44px) !important;
+  overflow: hidden !important;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-row > td {
+  height: var(--detail-row-height, 44px) !important;
   min-height: 0 !important;
-  max-height: none !important;
-  overflow: visible !important;
+  max-height: var(--detail-row-height, 44px) !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  overflow: hidden !important;
+  vertical-align: middle !important;
+}
+.detail-native-table > tbody.images.details-list > tr.detail-virtual-row > td.detail-thumb {
+  padding-left: 2px !important;
+  padding-right: 2px !important;
 }
 /* The virtual spacer rows carry their height as an inline pixel value from
    detailVirtualTopSpacer()/detailVirtualBottomSpacer(). Never force them to
