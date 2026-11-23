@@ -168,7 +168,22 @@ export class GalleryState {
     );
   };
 
+  readonly getLoadedGalleryFileAtPosition = (position: number): FileInfo | null => {
+    if (!Number.isFinite(position) || position < 1) return null;
+    const index = Math.trunc(position) - 1 - this.galleryWindowStart();
+    return index >= 0 && index < this.images$.value.length
+      ? this.images$.value[index]
+      : null;
+  };
+
+  readonly getLoadedGalleryFilePosition = (sourcePath: string): number | null => {
+    const index = this.images$.value.findIndex(image => image.path.toLocaleLowerCase() === sourcePath.toLocaleLowerCase());
+    return index < 0 ? null : this.galleryWindowStart() + index + 1;
+  };
+
   readonly getGalleryFileAtPosition = async (position: number): Promise<FileInfo | null> => {
+    const loaded = this.getLoadedGalleryFileAtPosition(position);
+    if (loaded) return loaded;
     const directory = this.selectedLocation$.value;
     if (!directory || !Number.isFinite(position) || position < 1) return null;
     const sort = this.sortMode$.value;
