@@ -5,11 +5,11 @@ The **Fix location MANUAL** section in the Fix tab assigns a geographic position
 ## Workflow
 
 1. Select the photo whose GPS position needs correction.
-2. Open **Location → Location tools**.
+2. Open **Location → Reverse Geocoding offline (Position -> Location name)**.
 3. Enable **Show crosshair**. The same setting is also available in **View → View settings**; both checkboxes stay synchronized. The crosshair is fixed at the map centre.
 4. Pan the active map until the crosshair is positioned over the photo's actual location. The currently selected online or offline map source is used; this operation does not switch map sources.
-5. In **Location → Location tools**, optionally select **Show address** in the Crosshair row to resolve the crosshair position, or **Show address** in the Photo row to resolve the selected photo's existing GPS coordinates.
-6. Address lookup uses the enabled local OsmAnd OBF maps first and falls back to the online reverse-geocoding provider when no offline result is available. The lookup is read-only: it does not write a location record to the cache database.
+5. In **Location → Reverse Geocoding offline (Position -> Location name)**, select **Show address** in the Crosshair row to resolve the crosshair position, or **Show address** in the Photo row to resolve the selected photo's existing GPS coordinates.
+6. Each **Show address** action queries the enabled local OsmAnd OBF maps and the online reverse-geocoding provider in parallel, and displays both results. The lookup is read-only: It does not write a location record to the cache database.
 7. Select **Update GPS infos in file...** to write the crosshair latitude and longitude to the selected image's GPS EXIF metadata.
 
 ## Important behaviour
