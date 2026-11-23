@@ -240,6 +240,7 @@ export interface DesktopCacheManager {
   readonly removeGalleryFile: (sourceName: string) => Promise<boolean>;
   readonly getGalleryFiles: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection) => Promise<FileInfo[]>;
   readonly getGalleryFilesPage: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection, offset?: number, limit?: number, nameFilter?: string, sourceId?: string, deferCount?: boolean) => Promise<GalleryFilesPage>;
+  readonly getGalleryFileByPath: (directory: string, sourcePath: string) => Promise<FileInfo | null>;
   readonly getGalleryFileAtPosition: (directory: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection, position?: number) => Promise<FileInfo | null>;
   readonly getGalleryFilePosition: (directory: string, sourcePath: string, recursive?: boolean, includeUnsupported?: boolean, sortBy?: SortType, sortDir?: SortDirection) => Promise<number>;
   readonly getGalleryUnsupportedSummary: (directory: string, recursive?: boolean) => Promise<{ count: number; suffixes: string[] }>;
