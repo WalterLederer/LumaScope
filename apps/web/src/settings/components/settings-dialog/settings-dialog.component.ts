@@ -752,7 +752,7 @@ export class SettingsPanelComponent {
   protected readonly checkCache = async (): Promise<void> => {
     const directory = this.cacheFolderPath().trim();
     const recursive = this.recursiveBuild();
-    if (!directory || this.cacheCheckState() === 'checking' || this.cacheBuildActive() || this.locationLookupActive()) return;
+    if (!directory || this.cacheCheckState() === 'checking' || this.cacheBuildActive() || this.locationLookupActive() || this.physicalCacheVerificationLoading()) return;
 
     const requestId = ++this.cacheCheckRequestId;
     this.cacheOutputMode.set('check');
