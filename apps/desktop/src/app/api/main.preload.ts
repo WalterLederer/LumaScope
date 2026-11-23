@@ -211,6 +211,7 @@ const api: Desktop = {
   },
 
   OsmAndAtlas: {
+    reverseGeocode: (latitude: number, longitude: number, locale = '') => ipcRenderer.invoke('OsmAndAtlas.reverseGeocode', latitude, longitude, locale),
     searchAddresses: (paths: string[], query: string, limit = 5) => ipcRenderer.invoke('OsmAndAtlas.searchAddresses', paths, query, limit),
     getObfMetadata: (paths: string[]) => ipcRenderer.invoke('OsmAndAtlas.getObfMetadata', paths),
     getHillshadeDatabases: () => ipcRenderer.invoke('OsmAndAtlas.getHillshadeDatabases'),
