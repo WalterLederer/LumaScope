@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <QFileInfo>
+#include <QHash>
 #include <QPoint>
 #include <QPolygon>
 #include <QSet>
@@ -119,6 +120,7 @@ QJsonObject administrativeAreasForCoordinate(
     queryArea.bottom() = point31.y + 2;
 
     QList<AdministrativeAreaCandidate> candidates;
+    QHash<quint64, int> administrativeLevelsByObjectId;
     QSet<QString> seenAreas;
     for (const auto& reader : dataInterface->obfReaders)
     {
@@ -152,10 +154,27 @@ QJsonObject administrativeAreasForCoordinate(
 
                 for (const auto& mapObject : mapObjects)
                 {
-                    if (!mapObject || !mapObjectContainsPoint(*mapObject, point))
+                    if (!mapObject)
                         continue;
 
                     const auto attributes = mapObject->getResolvedAttributes();
+                    const auto boundaryType = attributes.value(QStringLiteral("boundary"));
+                    const auto adminLevelText = attributes.value(QStringLiteral("admin_level"));
+                    bool adminLevelOk = false;
+                    const int adminLevel = adminLevelText.toInt(&adminLevelOk);
+                    const bool isAdministrativeBoundary = boundaryType == QStringLiteral("administrative")
+                        && adminLevelOk && adminLevel > 0;
+                    if (isAdministrativeBoundary && mapObject->id.isOsmId())
+                        administrativeLevelsByObjectId.insert(mapObject->id.id, adminLevel);
+
+                    // Keep the exact-polygon test for normal candidates. The
+                    // address index may still reference the same OSM boundary
+                    // when a generalized map-level polygon no longer covers
+                    // this precise coordinate; its OSM ID lets us recover the
+                    // correct admin_level without guessing from its bbox.
+                    if (!mapObjectContainsPoint(*mapObject, point))
+                        continue;
+
                     for (const auto& postcodeKey : {
                         QStringLiteral("postal_code"),
                         QStringLiteral("addr:postcode"),
@@ -167,12 +186,6 @@ QJsonObject administrativeAreasForCoordinate(
                             postcode = value;
                     }
 
-                    const auto boundaryType = attributes.value(QStringLiteral("boundary"));
-                    const auto adminLevelText = attributes.value(QStringLiteral("admin_level"));
-                    bool adminLevelOk = false;
-                    const int adminLevel = adminLevelText.toInt(&adminLevelOk);
-                    const bool isAdministrativeBoundary = boundaryType == QStringLiteral("administrative")
-                        && adminLevelOk && adminLevel > 0;
                     if (!isAdministrativeBoundary)
                         continue;
 
@@ -202,29 +215,20 @@ QJsonObject administrativeAreasForCoordinate(
         }
     }
 
-    // Some OBF files keep administrative boundary names and their bounding
-    // boxes in the address index, but do not expose a corresponding polygon
-    // in every map level. Read those boundary groups as a fallback so that
-    // municipality, district and state names are not silently omitted.
-    //
-    // Address-index boundary entries contain only a bounding box here, not
-    // the original polygon or admin_level. Keep these entries explicitly
-    // unclassified and use their bounding-box size only for display order;
-    // map-section polygons above remain the authoritative exact matches.
+    // The address index stores boundary groups with their OSM object IDs
+    // and bounding boxes, but no admin_level. Resolve the level through the
+    // map object with the same OSM ID. This also recovers boundaries whose
+    // generalized polygon does not quite contain the coordinate.
     QList<std::shared_ptr<const OsmAnd::StreetGroup>> addressBoundaryGroups;
     dataInterface->loadStreetGroups(
         &addressBoundaryGroups,
         nullptr,
         OsmAnd::ObfAddressStreetGroupTypesMask().set(OsmAnd::ObfAddressStreetGroupType::Boundary));
 
-    // Address-index entries provide only bounding boxes, not exact geometry or
-    // an admin_level. Do not mix these approximate hits with verified polygons.
-    if (candidates.isEmpty())
+    for (const auto& streetGroup : addressBoundaryGroups)
     {
-      for (const auto& streetGroup : addressBoundaryGroups)
-      {
         if (!streetGroup || streetGroup->type != OsmAnd::ObfAddressStreetGroupSubtype::Boundary
-            || streetGroup->bbox31.size() < 4)
+            || streetGroup->bbox31.size() < 4 || !streetGroup->id.isOsmId())
             continue;
 
         const auto left = streetGroup->bbox31[0];
@@ -232,6 +236,10 @@ QJsonObject administrativeAreasForCoordinate(
         const auto right = streetGroup->bbox31[2];
         const auto bottom = streetGroup->bbox31[3];
         if (point31.x < left || point31.x > right || point31.y < top || point31.y > bottom)
+            continue;
+
+        const auto levelIt = administrativeLevelsByObjectId.constFind(streetGroup->id.id);
+        if (levelIt == administrativeLevelsByObjectId.cend())
             continue;
 
         const auto localizedName = streetGroup->getName(locale, false).trimmed();
@@ -242,25 +250,18 @@ QJsonObject administrativeAreasForCoordinate(
             continue;
 
         const auto normalizedName = OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed();
-        const auto objectKey = QStringLiteral("99|%1").arg(normalizedName);
-        const bool alreadyResolvedByMapGeometry = std::any_of(
-            candidates.cbegin(), candidates.cend(),
-            [&normalizedName](const AdministrativeAreaCandidate& candidate)
-            {
-                return OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(candidate.name).trimmed() == normalizedName;
-            });
-        if (seenAreas.contains(objectKey) || alreadyResolvedByMapGeometry)
+        const auto objectKey = QStringLiteral("%1|%2").arg(levelIt.value()).arg(normalizedName);
+        if (seenAreas.contains(objectKey))
             continue;
 
         seenAreas.insert(objectKey);
         const auto width = static_cast<qint64>(right) - left;
         const auto height = static_cast<qint64>(bottom) - top;
         candidates.push_back({
-            99,
+            levelIt.value(),
             objectName,
             std::max<qint64>(0, width) * std::max<qint64>(0, height)
         });
-      }
     }
 
     std::sort(candidates.begin(), candidates.end(),
