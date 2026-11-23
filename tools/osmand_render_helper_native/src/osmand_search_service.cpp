@@ -316,6 +316,135 @@ QJsonObject administrativeAreasForCoordinate(
         });
     }
 
+    // Diagnostic reconstruction probe: load map geometry across the union of
+    // address-index boundary bounding boxes that contain the requested point.
+    // This intentionally does not change address resolution yet.
+    OsmAnd::AreaI boundarySearchArea;
+    bool hasBoundarySearchArea = false;
+    for (const auto& streetGroup : addressBoundaryGroups)
+    {
+        if (!streetGroup || streetGroup->type != OsmAnd::ObfAddressStreetGroupSubtype::Boundary
+            || streetGroup->bbox31.size() < 4)
+            continue;
+        const auto left = streetGroup->bbox31[0];
+        const auto top = streetGroup->bbox31[1];
+        const auto right = streetGroup->bbox31[2];
+        const auto bottom = streetGroup->bbox31[3];
+        if (point31.x < left || point31.x > right || point31.y < top || point31.y > bottom)
+            continue;
+        if (!hasBoundarySearchArea)
+        {
+            boundarySearchArea.left() = left;
+            boundarySearchArea.top() = top;
+            boundarySearchArea.right() = right;
+            boundarySearchArea.bottom() = bottom;
+            hasBoundarySearchArea = true;
+        }
+        else
+        {
+            boundarySearchArea.left() = std::min(boundarySearchArea.left(), left);
+            boundarySearchArea.top() = std::min(boundarySearchArea.top(), top);
+            boundarySearchArea.right() = std::max(boundarySearchArea.right(), right);
+            boundarySearchArea.bottom() = std::max(boundarySearchArea.bottom(), bottom);
+        }
+    }
+
+    QHash<int, QHash<QString, int>> boundaryEndpointDegrees;
+    QHash<int, int> boundaryLineCounts;
+    QJsonArray boundaryLineSamples;
+    int boundaryAreaObjectCount = 0;
+    int boundaryGeometryPointCount = 0;
+    if (hasBoundarySearchArea)
+    {
+        for (const auto& reader : dataInterface->obfReaders)
+        {
+            if (!reader)
+                continue;
+            const auto info = reader->obtainInfo();
+            if (!info)
+                continue;
+            for (const auto& mapSection : info->mapSections)
+            {
+                if (!mapSection || mapSection->levels.isEmpty())
+                    continue;
+                for (const auto& mapLevel : mapSection->levels)
+                {
+                    if (!mapLevel)
+                        continue;
+                    QList<std::shared_ptr<const OsmAnd::BinaryMapObject>> mapObjects;
+                    OsmAnd::ObfMapSectionReader::loadMapObjects(
+                        reader, mapSection, nullptr, mapLevel->minZoom,
+                        &boundarySearchArea, &mapObjects);
+                    for (const auto& mapObject : mapObjects)
+                    {
+                        if (!mapObject)
+                            continue;
+                        const auto attributes = mapObject->getResolvedAttributes();
+                        if (attributes.value(QStringLiteral("boundary")) != QStringLiteral("administrative"))
+                            continue;
+                        bool levelOk = false;
+                        const int level = attributes.value(QStringLiteral("admin_level")).toInt(&levelOk);
+                        if (!levelOk || level <= 0 || mapObject->points31.size() < 2)
+                            continue;
+                        if (mapObject->isArea)
+                        {
+                            ++boundaryAreaObjectCount;
+                            continue;
+                        }
+                        ++boundaryLineCounts[level];
+                        boundaryGeometryPointCount += mapObject->points31.size();
+                        const auto first = mapObject->points31.first();
+                        const auto last = mapObject->points31.last();
+                        const auto firstKey = QStringLiteral("%1,%2").arg(first.x).arg(first.y);
+                        const auto lastKey = QStringLiteral("%1,%2").arg(last.x).arg(last.y);
+                        ++boundaryEndpointDegrees[level][firstKey];
+                        ++boundaryEndpointDegrees[level][lastKey];
+                        if (boundaryLineSamples.size() < 40)
+                        {
+                            const auto name = mapObject->getName(locale, false).trimmed();
+                            boundaryLineSamples.push_back(QJsonObject{
+                                {QStringLiteral("id"), QString::number(mapObject->id.id)},
+                                {QStringLiteral("osm_id"), QString::number(mapObject->id.getOsmId())},
+                                {QStringLiteral("admin_level"), level},
+                                {QStringLiteral("is_area"), mapObject->isArea},
+                                {QStringLiteral("point_count"), mapObject->points31.size()},
+                                {QStringLiteral("first"), firstKey},
+                                {QStringLiteral("last"), lastKey},
+                                {QStringLiteral("name"), name}
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    QJsonArray boundaryConnectivity;
+    for (auto it = boundaryLineCounts.constBegin(); it != boundaryLineCounts.constEnd(); ++it)
+    {
+        const auto degrees = boundaryEndpointDegrees.value(it.key());
+        int danglingEndpoints = 0;
+        int joinedEndpoints = 0;
+        int highDegreeEndpoints = 0;
+        for (auto degreeIt = degrees.constBegin(); degreeIt != degrees.constEnd(); ++degreeIt)
+        {
+            if (degreeIt.value() == 1)
+                ++danglingEndpoints;
+            else if (degreeIt.value() == 2)
+                ++joinedEndpoints;
+            else
+                ++highDegreeEndpoints;
+        }
+        boundaryConnectivity.push_back(QJsonObject{
+            {QStringLiteral("admin_level"), it.key()},
+            {QStringLiteral("line_segments"), it.value()},
+            {QStringLiteral("unique_endpoints"), degrees.size()},
+            {QStringLiteral("dangling_endpoints"), danglingEndpoints},
+            {QStringLiteral("degree_two_endpoints"), joinedEndpoints},
+            {QStringLiteral("branch_or_duplicate_endpoints"), highDegreeEndpoints}
+        });
+    }
+
     std::sort(candidates.begin(), candidates.end(),
         [](const AdministrativeAreaCandidate& left, const AdministrativeAreaCandidate& right)
         {
@@ -350,7 +479,12 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("map_boundary_object_ids"), mapBoundaryObjectIds},
         {QStringLiteral("address_boundary_object_ids"), addressBoundaryObjectIds},
         {QStringLiteral("matched_boundary_object_ids"), matchedBoundaryObjectIds},
-        {QStringLiteral("resolved_administrative_areas"), areas.size()}
+        {QStringLiteral("resolved_administrative_areas"), areas.size()},
+        {QStringLiteral("boundary_search_area_available"), hasBoundarySearchArea},
+        {QStringLiteral("boundary_line_counts"), boundaryConnectivity},
+        {QStringLiteral("boundary_geometry_points"), boundaryGeometryPointCount},
+        {QStringLiteral("boundary_area_objects"), boundaryAreaObjectCount},
+        {QStringLiteral("boundary_line_samples"), boundaryLineSamples}
     });
     if (!postcode.isEmpty())
         result.insert(QStringLiteral("postcode"), postcode);
