@@ -2102,7 +2102,7 @@ export class CacheManager {
     };
     const fullSizeVersions = new Map<string, number>();
     for (const extension of FULL_SIZE_EXTENSIONS) {
-      const normalized = extension.slice(1);
+      const normalized = extension.slice(1).toLowerCase();
       const version = getFullSizeCacheVersionCode(
         normalized === 'ohsp' ? 'ohsp-full-spectrum-v15' :
         ['dng', 'rw2', 'raw'].includes(normalized) ? (normalized === 'dng' ? 'dng-full-raw-v2' : 'camera-raw-full-v1') :
