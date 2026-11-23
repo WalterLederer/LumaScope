@@ -9,11 +9,10 @@ import { StartupConfig } from '../startup-config/startup-config';
 import { flushAppSettingsWrites, startAppSettingsCheckpoint } from '../settings/app-settings';
 import { rendererAppName, rendererAppPort } from './constants';
 
-// Electron's renderer otherwise may inherit the application language (for
-// example en-US) instead of Windows' regional settings. Use the OS locale so
-// Intl.NumberFormat(undefined) follows the user's configured separators.
+// Set Chromium's language before startup. getLocale() is available before
+// Electron is ready; getSystemLocale() is not and would crash during startup.
 if (process.platform === 'win32') {
-  app.commandLine.appendSwitch('lang', app.getSystemLocale());
+  app.commandLine.appendSwitch('lang', app.getLocale());
 }
 
 export default class App {
