@@ -133,7 +133,7 @@
                   [class.cache-check-running]="cacheCheckState() === 'checking'"
                   [disabled]="!cacheFolderPath().trim() || cacheBuildActive() || cacheCheckState() === 'checking' || locationLookupActive()"
                   (click)="checkCache()">Check cache</button>
-          <button class="cache-button" type="button" [disabled]="!cacheFolderPath().trim() || cacheBuildActive() || locationLookupActive() || !startCacheBuild() || (recursiveBuild() && !startRecursiveCacheBuild())" (click)="runCacheBuild()">Build cache</button>
+          <button class="cache-button" type="button" [disabled]="!cacheFolderPath().trim() || cacheBuildActive() || physicalCacheVerificationLoading() || locationLookupActive() || !startCacheBuild() || (recursiveBuild() && !startRecursiveCacheBuild())" (click)="runCacheBuild()">Build cache</button>
           <button class="cache-button" type="button"
                   [disabled]="!cacheFolderPath().trim() || cacheBuildActive() || cacheCheckState() === 'checking' || locationLookupActive() || isClearing()"
                   (click)="resolveMissingLocations()">{{ locationLookupActive() ? 'Resolving locations…' : 'Resolve locations' }}</button>
