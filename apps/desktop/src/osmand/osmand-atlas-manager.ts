@@ -1207,6 +1207,16 @@ export class OsmAndAtlasManager {
       degree_two_endpoints: typeof value['degree_two_endpoints'] === 'number' ? value['degree_two_endpoints'] : 0,
       branch_or_duplicate_endpoints: typeof value['branch_or_duplicate_endpoints'] === 'number' ? value['branch_or_duplicate_endpoints'] : 0
     }));
+    const targetBoundaryLineSegments = diagnosticRecords('target_boundary_line_segments').map(value => ({
+      admin_level: typeof value['admin_level'] === 'number' ? value['admin_level'] : 0,
+      osm_id: typeof value['osm_id'] === 'string' ? value['osm_id'] : '',
+      raw_id: typeof value['raw_id'] === 'string' ? value['raw_id'] : '',
+      point_count: typeof value['point_count'] === 'number' ? value['point_count'] : 0,
+      first: typeof value['first'] === 'string' ? value['first'] : '',
+      last: typeof value['last'] === 'string' ? value['last'] : '',
+      bbox: typeof value['bbox'] === 'string' ? value['bbox'] : '',
+      name: typeof value['name'] === 'string' ? value['name'] : ''
+    }));
     const boundaryLineSamples = diagnosticRecords('boundary_line_samples').map(value => ({
       id: typeof value['id'] === 'string' ? value['id'] : '',
       osm_id: typeof value['osm_id'] === 'string' ? value['osm_id'] : '',
@@ -1244,6 +1254,7 @@ export class OsmAndAtlasManager {
         boundary_line_relation_groups: boundaryLineRelationGroups,
         target_boundary_line_relation_group_count: diagnosticCount('target_boundary_line_relation_group_count'),
         target_boundary_line_relation_groups: targetBoundaryLineRelationGroups,
+        target_boundary_line_segments: targetBoundaryLineSegments,
         boundary_geometry_points: diagnosticCount('boundary_geometry_points'),
         boundary_area_objects: diagnosticCount('boundary_area_objects'),
         boundary_line_samples: boundaryLineSamples
