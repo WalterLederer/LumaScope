@@ -514,6 +514,9 @@ app-map-window {
     .location-tab .fix-location-step-title{box-sizing:border-box;width:100%;margin:8px 0 5px;padding:5px 8px;border-left:3px solid var(--theme-button-color,#287fc4);background:color-mix(in srgb,var(--theme-button-color,#287fc4) 12%,transparent);color:inherit;font-size:12px;font-weight:700;letter-spacing:.35px}
     html[data-theme='light'] & .location-tab .fix-location-step-title{background:color-mix(in srgb,var(--theme-button-color,#287fc4) 9%,#fff)}
     .location-tools-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
+    .location-reverse-geocoding{min-width:0;width:100%;overflow-x:auto}
+    .location-reverse-geocoding .fix-location-position-table{max-width:100%}
+    .location-reverse-geocoding .fix-location-position-table td{vertical-align:top}
     .fix-location-automatic-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
     .fix-location-check-only,.fix-location-max-difference{display:inline-flex;align-items:center;gap:6px;color:inherit;font-size:12px}
     .fix-location-check-only-panel{display:inline-flex;flex:0 0 auto;align-items:center;justify-content:center;min-height:34px;padding:7px 9px;background:color-mix(in srgb,CanvasText 6%,Canvas);border:1px solid color-mix(in srgb,CanvasText 16%,Canvas);border-radius:9px}
