@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, DestroyRef, HostListener,
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmationDialogComponent, SliderComponent, ButtonTooltipDirective} from '@light-matter/ui';
-import { CapturePreview, Desktop, ExifTags, HexReadRow, ImageHistogram, PhotoDatabaseRecord, formatGpsCoordinate as formatSystemGpsCoordinate, formatGpsCoordinates, formatOsDateTime } from 'internal-api';
+import { CapturePreview, Desktop, ExifTags, HexReadRow, ImageHistogram, PhotoDatabaseRecord, FileInfo, formatGpsCoordinate as formatSystemGpsCoordinate, formatGpsCoordinates, formatOsDateTime } from 'internal-api';
 import { catchError, distinctUntilChanged, filter, firstValueFrom, from, fromEvent, map, of, startWith, switchMap, take, tap } from 'rxjs';
 import { ExifService } from '../../../ipc/exif';
 import { HistogramService } from '../../../ipc/histogram';
@@ -1209,6 +1209,12 @@ export class ImageView {
 
   protected readonly onGalleryActiveSelectionChanged = (path: string | null): void => {
     this.galleryActiveSelectionPath.set(path);
+  };
+
+  protected readonly openGalleryImage = (file: FileInfo): void => {
+    this.viewNavigator.selectImage(file.path).pipe(take(1)).subscribe(opened => {
+      if (opened) this.setActiveImageSidebarTab('image');
+    });
   };
 
   protected readonly onImageSidebarTabClick = (tab: string): void => {
