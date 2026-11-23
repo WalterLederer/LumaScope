@@ -64,27 +64,29 @@
               <details class="location-tools-section app-disclosure">
                 <summary class="settings-row-title">Reverse Geocoding offline (Position -> Location name)</summary>
                 <div class="location-tools-content">
-                  <div class="location-coordinate-display"><span>{{ photoCoordinateLabel() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</span></div>
-                  <div class="location-coordinate-display"><span>Mouse: {{ mouseCoordinateLabel() }}</span></div>
                   <div class="location-reverse-geocoding">
-                    <table class="fix-location-position-table" aria-label="Crosshair and photo address lookup">
+                    <table class="fix-location-position-table" aria-label="Mouse, image and crosshair positions">
                       <tbody>
                         <tr>
-                          <td class="fix-location-toggle-cell"><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></td>
-                          <td class="fix-location-coordinate-value" role="status"><strong>Crosshair</strong> · {{ crosshairCoordinates() }}</td>
-                          <td class="fix-location-address-cell"><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span></td>
+                          <td class="fix-location-toggle-cell"></td>
+                          <td class="fix-location-coordinate-value" role="status"><strong>Mouse</strong> · {{ mouseCoordinateLabel() || '—' }}</td>
+                          <td class="fix-location-address-cell"></td>
                         </tr>
                         <tr>
-                          <td class="fix-location-toggle-cell"></td>
-                          <td class="fix-location-photo-coordinates" role="status"><strong>Photo</strong> · {{ photoGpsCoordinates() }}</td>
-                          <td class="fix-location-address-cell"><button type="button" class="map-toolbar-button" (click)="showPhotoAddress()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">⌖</span> Show address</button><span class="location-address fix-location-address" role="status">{{ photoAddress() }}</span></td>
+                          <td class="fix-location-toggle-cell"><button type="button" class="map-toolbar-button" (click)="showPhotoAddress()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">⌖</span> Show address</button></td>
+                          <td class="fix-location-photo-coordinates" role="status"><strong>Image</strong> · {{ photoGpsCoordinates() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</td>
+                          <td class="fix-location-address-cell"><span class="location-address fix-location-address" role="status">{{ photoAddress() }}</span></td>
+                        </tr>
+                        <tr>
+                          <td class="fix-location-toggle-cell">
+                            <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label>
+                            <button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button>
+                          </td>
+                          <td class="fix-location-coordinate-value" role="status"><strong>Crosshair</strong> · {{ crosshairCoordinates() }}</td>
+                          <td class="fix-location-address-cell"><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span></td>
                         </tr>
                       </tbody>
                     </table>
-                  </div>
-                  <div class="address-settings">
-                    <span class="settings-row-title">Address:</span>
-                    <span class="location-address" role="status" [class.location-address-error]="locationAddress().startsWith('Reverse geocoding failed:')">{{ locationAddress() || (coordinatesAvailable() ? 'Looking up address…' : '') }}</span>
                   </div>
                 </div>
               </details>
