@@ -217,8 +217,12 @@ QJsonObject administrativeAreasForCoordinate(
         nullptr,
         OsmAnd::ObfAddressStreetGroupTypesMask().set(OsmAnd::ObfAddressStreetGroupType::Boundary));
 
-    for (const auto& streetGroup : addressBoundaryGroups)
+    // Address-index entries provide only bounding boxes, not exact geometry or
+    // an admin_level. Do not mix these approximate hits with verified polygons.
+    if (candidates.isEmpty())
     {
+      for (const auto& streetGroup : addressBoundaryGroups)
+      {
         if (!streetGroup || streetGroup->type != OsmAnd::ObfAddressStreetGroupSubtype::Boundary
             || streetGroup->bbox31.size() < 4)
             continue;
@@ -256,6 +260,7 @@ QJsonObject administrativeAreasForCoordinate(
             objectName,
             std::max<qint64>(0, width) * std::max<qint64>(0, height)
         });
+      }
     }
 
     std::sort(candidates.begin(), candidates.end(),
@@ -268,8 +273,15 @@ QJsonObject administrativeAreasForCoordinate(
             return QString::compare(left.name, right.name, Qt::CaseInsensitive) < 0;
         });
 
+    // One coordinate can belong to only one matching area at each
+    // administrative level. Generalized OBF levels can return overlapping
+    // alternatives; the smallest exact containing polygon is the local match.
+    QSet<int> emittedAdminLevels;
     for (const auto& candidate : candidates)
     {
+        if (emittedAdminLevels.contains(candidate.adminLevel))
+            continue;
+        emittedAdminLevels.insert(candidate.adminLevel);
         areas.push_back(QJsonObject{
             {QStringLiteral("admin_level"), candidate.adminLevel},
             {QStringLiteral("name"), candidate.name}
