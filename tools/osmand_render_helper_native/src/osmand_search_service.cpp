@@ -147,39 +147,6 @@ QJsonObject administrativeAreasForCoordinate(
                     continue;
 
                 const auto attributes = mapObject->getResolvedAttributes();
-                const auto boundaryType = attributes.value(QStringLiteral("boundary"));
-                const auto placeType = attributes.value(QStringLiteral("place"));
-                const auto adminLevelText = attributes.value(QStringLiteral("admin_level"));
-                bool adminLevelOk = false;
-                const int adminLevel = adminLevelText.toInt(&adminLevelOk);
-                const bool isAdministrativeBoundary = boundaryType == QStringLiteral("administrative")
-                    && adminLevelOk && adminLevel > 0;
-                const bool isNamedPlaceArea = !placeType.isEmpty()
-                    && mapObject->isArea;
-                if (!isAdministrativeBoundary && !isNamedPlaceArea)
-                    continue;
-
-                const auto objectName = mapObject->getName(locale, false).trimmed().isEmpty()
-                    ? mapObject->getCaptionInNativeLanguage().trimmed()
-                    : mapObject->getName(locale, false).trimmed();
-                if (objectName.isEmpty())
-                    continue;
-
-                const auto objectKey = QStringLiteral("%1|%2")
-                    .arg(adminLevelOk ? adminLevel : 99)
-                    .arg(OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed());
-                if (!seenAreas.contains(objectKey))
-                {
-                    seenAreas.insert(objectKey);
-                    const auto width = static_cast<qint64>(mapObject->bbox31.right()) - mapObject->bbox31.left();
-                    const auto height = static_cast<qint64>(mapObject->bbox31.bottom()) - mapObject->bbox31.top();
-                    candidates.push_back({
-                        adminLevelOk ? adminLevel : 99,
-                        objectName,
-                        std::max<qint64>(0, width) * std::max<qint64>(0, height)
-                    });
-                }
-
                 for (const auto& postcodeKey : {
                     QStringLiteral("postal_code"),
                     QStringLiteral("addr:postcode"),
@@ -189,6 +156,37 @@ QJsonObject administrativeAreasForCoordinate(
                     const auto value = attributes.value(postcodeKey).trimmed();
                     if (postcode.isEmpty() && !value.isEmpty())
                         postcode = value;
+                }
+
+                const auto boundaryType = attributes.value(QStringLiteral("boundary"));
+                const auto adminLevelText = attributes.value(QStringLiteral("admin_level"));
+                bool adminLevelOk = false;
+                const int adminLevel = adminLevelText.toInt(&adminLevelOk);
+                const bool isAdministrativeBoundary = boundaryType == QStringLiteral("administrative")
+                    && adminLevelOk && adminLevel > 0;
+                if (!isAdministrativeBoundary)
+                    continue;
+
+                const auto localizedName = mapObject->getName(locale, false).trimmed();
+                const auto objectName = localizedName.isEmpty()
+                    ? mapObject->getCaptionInNativeLanguage().trimmed()
+                    : localizedName;
+                if (objectName.isEmpty())
+                    continue;
+
+                const auto objectKey = QStringLiteral("%1|%2")
+                    .arg(adminLevel)
+                    .arg(OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed());
+                if (!seenAreas.contains(objectKey))
+                {
+                    seenAreas.insert(objectKey);
+                    const auto width = static_cast<qint64>(mapObject->bbox31.right()) - mapObject->bbox31.left();
+                    const auto height = static_cast<qint64>(mapObject->bbox31.bottom()) - mapObject->bbox31.top();
+                    candidates.push_back({
+                        adminLevel,
+                        objectName,
+                        std::max<qint64>(0, width) * std::max<qint64>(0, height)
+                    });
                 }
             }
         }
