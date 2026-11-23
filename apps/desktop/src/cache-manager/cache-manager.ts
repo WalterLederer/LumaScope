@@ -2078,9 +2078,8 @@ export class CacheManager {
           ROW_NUMBER() OVER (ORDER BY ${orderBy}) AS position
         ${scope}${supportedFilter}
       )
-      WHERE lower(file_name) = :targetName
-        AND lower(replace(rtrim(relative_folder_path, char(92) || '/'), '/', char(92))) =
-            lower(replace(rtrim(:targetFolder, char(92) || '/'), '/', char(92)))
+      WHERE file_name = :targetName COLLATE NOCASE
+        AND relative_folder_path = :targetFolder COLLATE NOCASE
       LIMIT 1`).get(parameters) as { position?: number } | undefined;
     return Number(row?.position) || 0;
   };
