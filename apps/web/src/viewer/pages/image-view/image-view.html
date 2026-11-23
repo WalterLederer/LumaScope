@@ -153,16 +153,6 @@
               <strong>{{hexFileName()}}</strong>
               <span>{{hexFileSize() ? formatFileSize(hexFileSize()) : ''}}</span>
             </div>
-            <label class="image-hex-format-control lumascope-surface-box">Byte format
-              <select [value]="hexByteDisplayMode()" (change)="setHexByteDisplayMode($any($event.target).value)" aria-label="Byte display format">
-                <option value="decimal">Decimal</option>
-                <option value="hex">Hex</option>
-                <option value="octal">Octal</option>
-                <option value="binary">Binary</option>
-                <option value="utf16">UTF-16</option>
-                <option value="utf16-shifted">UTF-16 +1</option>
-              </select>
-            </label>
           </header>
           <div class="image-hex-search-toolbar">
             <div class="image-hex-search-box lumascope-surface-box">
@@ -176,9 +166,21 @@
                 <button type="button" (click)="searchHexFile(1)" [disabled]="hexSearchBusy() || !hexFilePath()" title="Find next">↓</button>
               </div>
             </div>
-            <label class="image-hex-font-control">Font size
+            <label class="image-hex-font-control lumascope-surface-box">Font size
               <input type="range" min="9" max="22" step="1" [value]="hexFontSize()" (input)="setHexFontSize($any($event.target).value)" aria-label="HEX table font size" />
               <span>{{hexFontSize()}} px</span>
+            </label>
+          </div>
+          <div class="image-hex-format-row">
+            <label class="image-hex-format-control lumascope-surface-box">Byte format
+              <select [value]="hexByteDisplayMode()" (change)="setHexByteDisplayMode($any($event.target).value)" aria-label="Byte display format">
+                <option value="decimal">Decimal</option>
+                <option value="hex">Hex</option>
+                <option value="octal">Octal</option>
+                <option value="binary">Binary</option>
+                <option value="utf16">UTF-16</option>
+                <option value="utf16-shifted">UTF-16 +1</option>
+              </select>
             </label>
           </div>
           @if (hexSearchStatus()) { <div class="image-hex-search-status" role="status">{{hexSearchStatus()}}</div> }
