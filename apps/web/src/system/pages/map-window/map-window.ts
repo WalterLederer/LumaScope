@@ -15,7 +15,7 @@ import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimation
 import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, setOfflineRenderConcurrency, runOfflineRenderTask, subscribeOfflineRenderStatus, type OfflineRenderTaskStatus, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapPresetOption { id: string; name: string; osmAndRegex: string; mapsForgeRegex?: string; hillshadeRegex?: string; }
-interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; }
+interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; unbindTooltip(): MapMarker; }
 interface MapBounds { isValid(): boolean; }
 interface ObfBoundsPreview { name: string; bounds: string | null; zoom: string; error: string | null; rectangles: Array<{ x: number; y: number; width: number; height: number }>; }
 type BoundsMapKind = 'world' | 'europe';
@@ -1990,6 +1990,7 @@ export class MapWindow implements OnInit, OnDestroy {
         && location.latitude! >= -90 && location.latitude! <= 90
         && location.longitude! >= -180 && location.longitude! <= 180);
       void this.loadCurrentImagePreview(this.currentImagePath);
+      this.updateCurrentMarkerPhotoPreview();
       this.applyCurrentPhotoVisibility();
       if (this.directoryMarkersEnabled() && (previousImagePath?.toLowerCase() !== this.currentImagePath?.toLowerCase() || previousFolderPath?.toLowerCase() !== this.currentFolderPath?.toLowerCase() || previousFolderRecursive !== this.currentFolderRecursive)) void this.scanDirectoryMarkers();
       const nextLatitude = location.latitude;
@@ -2329,6 +2330,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.marker = this.leaflet.marker([latitude!, longitude!], { icon: this.createCurrentLocationIcon() }).addTo(this.map);
       }
       this.marker.setOpacity(markerOpacity);
+      this.updateCurrentMarkerPhotoPreview();
     }
     this.applyCurrentPhotoVisibility();
     this.locationAddress.set('Looking up address…');
@@ -2873,6 +2875,19 @@ export class MapWindow implements OnInit, OnDestroy {
     const size = 13, color = '#2688e8';
     return this.leaflet!.divIcon({ className: 'folder-image-marker', html: `<span style=\"display:block;width:${size}px;height:${size}px;border:2px solid #fff;border-radius:50%;background:${color};box-shadow:0 1px 5px #0009\"></span>`, iconSize: [size + 4, size + 4], iconAnchor: [(size + 4) / 2, (size + 4) / 2] });
   }
+  private updateCurrentMarkerPhotoPreview(): void {
+    if (!this.marker) return;
+    const path = this.currentImagePath;
+    if (!path) {
+      this.marker.unbindTooltip();
+      return;
+    }
+    const fileName = path.split(/[\\/]/).pop() ?? path;
+    this.marker.bindTooltip(buildPhotoMarkerPreviewHtml(path, fileName, this.photoPreviewSize()), {
+      direction: 'top', className: 'folder-marker-tooltip', opacity: 1
+    });
+  }
+
   private createCurrentLocationIcon(): unknown {
     const color = this.currentMarkerColor();
     const shape = this.currentMarkerShape();
@@ -3696,6 +3711,7 @@ export class MapWindow implements OnInit, OnDestroy {
       .on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
     this.updateRouteWaypointMarkers();
     this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((!this.coordinatesAvailable() ? 0 : this.locationVisible() ? this.locationOpacity() / 100 : 0));
+    this.updateCurrentMarkerPhotoPreview();
     this.updateCrosshairCoordinates();
     this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
       chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
