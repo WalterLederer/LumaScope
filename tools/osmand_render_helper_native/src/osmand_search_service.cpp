@@ -121,6 +121,10 @@ QJsonObject administrativeAreasForCoordinate(
 
     QList<AdministrativeAreaCandidate> candidates;
     QHash<quint64, int> administrativeLevelsByObjectId;
+    int loadedMapObjectCount = 0;
+    int administrativeBoundaryObjectCount = 0;
+    int loadedAddressBoundaryGroupCount = 0;
+    int matchingAddressBoundaryGroupCount = 0;
     QSet<QString> seenAreas;
     for (const auto& reader : dataInterface->obfReaders)
     {
@@ -152,6 +156,7 @@ QJsonObject administrativeAreasForCoordinate(
                     &queryArea,
                     &mapObjects);
 
+                loadedMapObjectCount += mapObjects.size();
                 for (const auto& mapObject : mapObjects)
                 {
                     if (!mapObject)
@@ -164,8 +169,12 @@ QJsonObject administrativeAreasForCoordinate(
                     const int adminLevel = adminLevelText.toInt(&adminLevelOk);
                     const bool isAdministrativeBoundary = boundaryType == QStringLiteral("administrative")
                         && adminLevelOk && adminLevel > 0;
-                    if (isAdministrativeBoundary && mapObject->id.isOsmId())
-                        administrativeLevelsByObjectId.insert(mapObject->id.id, adminLevel);
+                    if (isAdministrativeBoundary)
+                    {
+                        ++administrativeBoundaryObjectCount;
+                        if (mapObject->id.isOsmId())
+                            administrativeLevelsByObjectId.insert(mapObject->id.id, adminLevel);
+                    }
 
                     // Keep the exact-polygon test for normal candidates. The
                     // address index may still reference the same OSM boundary
@@ -224,6 +233,7 @@ QJsonObject administrativeAreasForCoordinate(
         &addressBoundaryGroups,
         nullptr,
         OsmAnd::ObfAddressStreetGroupTypesMask().set(OsmAnd::ObfAddressStreetGroupType::Boundary));
+    loadedAddressBoundaryGroupCount = addressBoundaryGroups.size();
 
     for (const auto& streetGroup : addressBoundaryGroups)
     {
@@ -238,6 +248,7 @@ QJsonObject administrativeAreasForCoordinate(
         if (point31.x < left || point31.x > right || point31.y < top || point31.y > bottom)
             continue;
 
+        ++matchingAddressBoundaryGroupCount;
         const auto levelIt = administrativeLevelsByObjectId.constFind(streetGroup->id.id);
         if (levelIt == administrativeLevelsByObjectId.cend())
             continue;
@@ -289,6 +300,13 @@ QJsonObject administrativeAreasForCoordinate(
         });
     }
     result.insert(QStringLiteral("administrative_areas"), areas);
+    result.insert(QStringLiteral("diagnostics"), QJsonObject{
+        {QStringLiteral("loaded_map_objects"), loadedMapObjectCount},
+        {QStringLiteral("administrative_boundary_objects"), administrativeBoundaryObjectCount},
+        {QStringLiteral("loaded_address_boundary_groups"), loadedAddressBoundaryGroupCount},
+        {QStringLiteral("matching_address_boundary_groups"), matchingAddressBoundaryGroupCount},
+        {QStringLiteral("resolved_administrative_areas"), areas.size()}
+    });
     if (!postcode.isEmpty())
         result.insert(QStringLiteral("postcode"), postcode);
     return result;
@@ -778,6 +796,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.2")},
     };
 
     // Administrative areas are resolved independently from the address
