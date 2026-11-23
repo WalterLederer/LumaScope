@@ -2436,21 +2436,30 @@
 }
 
 
-/* The six image view-mode selectors use a clear white/grey selection contrast. */
-:host .image-controls-sidebar .mode-row button.mode-button,
-:host .image-controls-sidebar .mode-row button.mode-button:hover,
-:host .image-controls-sidebar .mode-row button.mode-button:focus,
-:host .image-controls-sidebar .mode-row button.mode-button:focus-visible {
-  background: #fff !important;
-  background-color: #fff !important;
+/* Image comparison modes are neutral controls, not accent-colored action buttons. */
+:host .image-controls-sidebar .mode-row > button.mode-button,
+:host .image-controls-sidebar .mode-row > button.mode-button:hover,
+:host .image-controls-sidebar .mode-row > button.mode-button:focus,
+:host .image-controls-sidebar .mode-row > button.mode-button:focus-visible,
+:host .image-controls-sidebar .mode-row > button.mode-button:active {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: #f1f1f1 !important;
+  background-color: #f1f1f1 !important;
   background-image: none !important;
   color: #202124 !important;
-  border: 1px solid #b8b8b8 !important;
+  border: 1px solid #a8a8a8 !important;
+  text-shadow: none !important;
   box-shadow: none !important;
-  outline-color: #9a9a9a !important;
+  outline: none !important;
+  transform: none !important;
 }
-:host .image-controls-sidebar .mode-row button.mode-button:disabled {
-  opacity: 1;
+:host .image-controls-sidebar .mode-row > button.mode-button:focus-visible {
+  outline: 2px solid #777 !important;
+  outline-offset: 1px;
+}
+:host .image-controls-sidebar .mode-row > button.mode-button:disabled {
+  opacity: .45;
   cursor: not-allowed;
 }
 
