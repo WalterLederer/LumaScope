@@ -237,9 +237,15 @@ QJsonObject administrativeAreasForCoordinate(
         if (objectName.isEmpty())
             continue;
 
-        const auto objectKey = QStringLiteral("99|%1")
-            .arg(OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed());
-        if (seenAreas.contains(objectKey))
+        const auto normalizedName = OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed();
+        const auto objectKey = QStringLiteral("99|%1").arg(normalizedName);
+        const bool alreadyResolvedByMapGeometry = std::any_of(
+            candidates.cbegin(), candidates.cend(),
+            [&normalizedName](const AdministrativeAreaCandidate& candidate)
+            {
+                return OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(candidate.name).trimmed() == normalizedName;
+            });
+        if (seenAreas.contains(objectKey) || alreadyResolvedByMapGeometry)
             continue;
 
         seenAreas.insert(objectKey);
