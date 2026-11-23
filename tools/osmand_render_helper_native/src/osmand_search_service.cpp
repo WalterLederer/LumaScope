@@ -454,12 +454,23 @@ QJsonObject administrativeAreasForCoordinate(
                         {
                             const auto firstPoint = mapObject->points31.first();
                             const auto lastPoint = mapObject->points31.last();
+                            QJsonArray points31;
+                            for (const auto& point31 : mapObject->points31)
+                            {
+                                points31.push_back(QJsonArray{
+                                    point31.x,
+                                    point31.y
+                                });
+                            }
                             targetBoundaryLineSegments.push_back(QJsonObject{
                                 {QStringLiteral("admin_level"), level},
+                                {QStringLiteral("min_zoom"), mapLevel->minZoom},
                                 {QStringLiteral("osm_id"), mapObject->id.isOsmId()
                                     ? QString::number(mapObject->id.getOsmId()) : QString()},
                                 {QStringLiteral("raw_id"), QString::number(mapObject->id.id)},
+                                {QStringLiteral("is_area"), mapObject->isArea},
                                 {QStringLiteral("point_count"), mapObject->points31.size()},
+                                {QStringLiteral("points31"), points31},
                                 {QStringLiteral("first"), QStringLiteral("%1,%2").arg(firstPoint.x).arg(firstPoint.y)},
                                 {QStringLiteral("last"), QStringLiteral("%1,%2").arg(lastPoint.x).arg(lastPoint.y)},
                                 {QStringLiteral("bbox"), QStringLiteral("%1,%2,%3,%4")
@@ -1120,7 +1131,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.6")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.7")},
     };
 
     // Administrative areas are resolved independently from the address
