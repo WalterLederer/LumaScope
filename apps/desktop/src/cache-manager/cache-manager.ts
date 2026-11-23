@@ -2082,7 +2082,7 @@ export class CacheManager {
   };
 
   @IpcHandler({ name: 'CacheManager.getGalleryFileByPath' })
-  readonly getGalleryFileByPath = async (_event: IpcMainInvokeEvent, directory: string, sourcePath: string): Promise<FileInfo | null> => {
+  readonly getGalleryFileByPath = async (_event: IpcMainInvokeEvent, directory: string, sourcePath: string, recursive = false): Promise<FileInfo | null> => {
     if (!directory?.trim() || !sourcePath?.trim()) return null;
     const databaseKey = this.databaseKeyForPath(directory);
     const db = this.databaseForPath(directory);
@@ -2096,8 +2096,8 @@ export class CacheManager {
       "WHERE lower(photos.file_name) = lower(:targetName) " +
       "AND lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) = lower(replace(rtrim(:targetFolder, char(92) || '/'), '/', char(92))) " +
       "AND (lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) = lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92))) " +
-      "OR substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix)) LIMIT 1"
-    ).get({ targetName: basename(sourcePath), targetFolder, folder, folderPrefix }) as {
+      "OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))) LIMIT 1"
+    ).get({ targetName: basename(sourcePath), targetFolder, folder, folderPrefix, recursive: recursive ? 1 : 0 }) as {
       file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
     } | undefined;
     if (!row) return null;
