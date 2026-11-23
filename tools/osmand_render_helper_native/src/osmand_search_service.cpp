@@ -3,6 +3,7 @@
 #include "osmand_core_runtime.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <limits>
 #include <utility>
@@ -1247,6 +1248,68 @@ QString OsmAndSearchService::reverseGeocode(
     criteria.latLon = OsmAnd::LatLon(latitude, longitude);
     std::fprintf(stderr, "[reverse-geocode] Calling performSearch at %.7f, %.7f\\n", latitude, longitude);
 
+    QJsonArray roadLocatorDiagnostics;
+    if (qEnvironmentVariableIsSet("LUMASCOPE_OSMAND_ROAD_DIAGNOSTICS"))
+    {
+        const auto point31 = OsmAnd::Utilities::convertLatLonTo31(OsmAnd::LatLon(latitude, longitude));
+        const auto roadFilter =
+            [](const std::shared_ptr<const OsmAnd::Road>& road) -> bool
+            {
+                const bool isTransportStop =
+                    road->containsAttribute(QStringLiteral("railway"), QStringLiteral("platform")) ||
+                    road->containsAttribute(QStringLiteral("public_transport"), QStringLiteral("platform"));
+                return !road->captions.isEmpty() && !isTransportStop;
+            };
+
+        auto nearestRoads = roadLocator->findNearestRoads(
+            point31, 800.0, OsmAnd::RoutingDataLevel::Detailed, roadFilter);
+        if (nearestRoads.isEmpty())
+        {
+            nearestRoads = roadLocator->findNearestRoads(
+                point31, 4000.0, OsmAnd::RoutingDataLevel::Detailed, roadFilter);
+        }
+
+        QSet<QString> seenRoads;
+        for (const auto& candidate : nearestRoads)
+        {
+            const auto& road = candidate.first;
+            const auto& roadInfo = candidate.second;
+            if (!road || !roadInfo)
+                continue;
+
+            QString roadName = road->getCaptionInNativeLanguage();
+            QString roadRef;
+            if (roadName.isEmpty() && road->attributeMapping)
+                roadRef = road->captions.value(road->attributeMapping->refAttributeId);
+            if (roadName.isEmpty())
+                roadName = roadRef;
+            if (roadName.isEmpty())
+                continue;
+
+            const QString dedupeKey = QStringLiteral("%1|%2")
+                .arg(road->id.isOsmId() ? QString::number(road->id.getOsmId()) : QString::number(road->id.id))
+                .arg(roadName);
+            if (seenRoads.contains(dedupeKey))
+                continue;
+            seenRoads.insert(dedupeKey);
+
+            const OsmAnd::LatLon roadPoint(
+                OsmAnd::Utilities::get31LatitudeY(roadInfo->preciseY),
+                OsmAnd::Utilities::get31LongitudeX(roadInfo->preciseX));
+            roadLocatorDiagnostics.push_back(QJsonObject{
+                {QStringLiteral("name"), roadName},
+                {QStringLiteral("ref"), roadRef},
+                {QStringLiteral("distance_m"), std::sqrt(roadInfo->distSquare)},
+                {QStringLiteral("connection_point"), QJsonArray{roadPoint.latitude, roadPoint.longitude}},
+                {QStringLiteral("osm_id"), road->id.isOsmId()
+                    ? QString::number(road->id.getOsmId()) : QString()},
+                {QStringLiteral("is_relation"), road->id.isIdFromRelation()}
+            });
+            if (roadLocatorDiagnostics.size() >= 40)
+                break;
+        }
+    }
+
     const auto result = reverseGeocoder.performSearch(criteria);
     std::fprintf(stderr, "[reverse-geocode] performSearch returned: %s\\n", result ? "result" : "no result");
     QJsonObject payload{
@@ -1254,7 +1317,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.12")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.13")},
     };
 
     // Administrative areas are resolved independently from the address
@@ -1270,6 +1333,8 @@ QString OsmAndSearchService::reverseGeocode(
     const bool hasAdministrativeData =        !administrativeData.value(QStringLiteral("administrative_areas")).toArray().isEmpty()
         || !administrativeData.value(QStringLiteral("postcode")).toString().trimmed().isEmpty();
     payload.insert(QStringLiteral("found"), static_cast<bool>(result) || hasAdministrativeData);
+    if (qEnvironmentVariableIsSet("LUMASCOPE_OSMAND_ROAD_DIAGNOSTICS"))
+        payload.insert(QStringLiteral("road_locator_candidates"), roadLocatorDiagnostics);
 
     if (result)
     {
