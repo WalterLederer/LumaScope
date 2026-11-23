@@ -12,6 +12,9 @@
           <div class="cache-summary-databases-heading">
             <span>Physical cache-file sizes are checked only on request.</span>
             <button class="cache-button cache-summary-open-button" type="button"
+                    [disabled]="cacheSummaryLoading() || physicalCacheVerificationLoading() || cacheBuildActive()"
+                    (click)="refreshCacheSummary()">{{ cacheSummaryLoading() ? 'Updating summary…' : 'Refresh summary' }}</button>
+            <button class="cache-button cache-summary-open-button" type="button"
                     [disabled]="physicalCacheVerificationLoading() || cacheSummaryLoading() || cacheBuildActive() || !cacheSummaryColumns().length"
                     (click)="verifyPhysicalCacheFiles()">{{ physicalCacheVerificationLoading() ? 'Verifying cache files…' : 'Verify physical cache files' }}</button>
           </div>
