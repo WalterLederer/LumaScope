@@ -2940,3 +2940,71 @@
 :host .image-controls-sidebar .mode-logo-image.sdr-logo-image {
   filter: brightness(.72) drop-shadow(0 2px 5px rgb(0 0 0 / 30%));
 }
+
+
+/* Arrange each comparison mode vertically: centered logo artwork, then its
+   readable caption. Keep the layout indicator in its own corner of the logo
+   area so it cannot collide with the caption. */
+:host .image-controls-sidebar .mode-row {
+  gap: 12px 8px !important;
+}
+:host .image-controls-sidebar .mode-row > .mode-option {
+  height: 136px !important;
+  min-height: 136px !important;
+  padding: 7px 6px 8px !important;
+  overflow: visible !important;
+}
+:host .image-controls-sidebar .mode-row .mode-option-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+  height: 100% !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-area {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-area > .mode-logo-image {
+  width: 60px !important;
+  height: 60px !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-area > .mode-logo-pair .mode-logo-image {
+  width: 54px !important;
+  height: 54px !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-area > .mode-logo-pair.vertical .mode-logo-image {
+  width: 44px !important;
+  height: 44px !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-area > .mode-logo-pair.vertical.overlay-pair .mode-logo-image + .mode-logo-image {
+  margin-top: -22px !important;
+}
+:host .image-controls-sidebar .mode-row .mode-logo-area > .mode-layout-icon {
+  top: 0 !important;
+  right: 0 !important;
+}
+:host .image-controls-sidebar .mode-row .mode-option-label {
+  display: block;
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  color: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+:host-context(html[data-theme='dark']) .image-controls-sidebar .mode-row .mode-option-label {
+  color: inherit;
+}
