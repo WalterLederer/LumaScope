@@ -172,7 +172,7 @@
               (reCacheFolderRequested)="reCacheDisplayedFiles()"
               (hovered)="hovered.emit($event)"
               (rowSelected)="onDetailRowSelected($event)"
-              (clicked)="selectThumbnail($event)"\n              (doubleClicked)="selectThumbnail($event)"></tr>
+              (clicked)="selectThumbnail($event)"\n              (doubleClicked)="openThumbnail($event)"></tr>
         }
         @if (detailVirtualBottomSpacer() > 0) {
           <tr class="detail-virtual-spacer" aria-hidden="true" [style.height.px]="detailVirtualBottomSpacer()"><td colspan="14"></td></tr>
@@ -326,7 +326,8 @@
       <app-thumbnail [attr.data-image-path]="image.path" [class.selected-image]="selectedImagePath() === image.path" [image]="image" [viewMode]="viewMode()"
                      (hovered)="hovered.emit($event)"
                      (cacheUpdated)="cacheUpdated.emit($event)"
-                     (rowSelected)="selectThumbnail($event)" />
+                     (rowSelected)="selectThumbnail($event)"
+                     (doubleClicked)="openThumbnail($event)" />
     }
     @if ((viewMode() === 'thumbnails' || viewMode() === 'tiles') && thumbnailVirtualBottomSpacer() > 0) {
       <div class="gallery-window-spacer gallery-window-spacer-bottom" aria-hidden="true" [style.height.px]="thumbnailVirtualBottomSpacer()"></div>
