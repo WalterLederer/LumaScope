@@ -11,6 +11,7 @@
 #include <OsmAndCore/Logging.h>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QJsonObject>
 
 namespace
 {
