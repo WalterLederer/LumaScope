@@ -528,6 +528,18 @@ app-map-window {
     .location-tab .fix-location-step-title{box-sizing:border-box;width:100%;margin:8px 0 5px;padding:5px 8px;border-left:3px solid var(--theme-button-color,#287fc4);background:color-mix(in srgb,var(--theme-button-color,#287fc4) 12%,transparent);color:inherit;font-size:12px;font-weight:700;letter-spacing:.35px}
     html[data-theme='light'] & .location-tab .fix-location-step-title{background:color-mix(in srgb,var(--theme-button-color,#287fc4) 9%,#fff)}
     .location-tools-content{display:flex;flex-direction:column;align-items:stretch;gap:8px;min-width:0}
+    .location-command-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;width:100%;min-width:0;margin-top:6px}
+    .location-command-row>.location-actions{flex:0 1 auto;width:auto;min-width:0}
+    .location-icon-settings-box{display:flex;align-items:center;min-width:0;padding:5px 9px;border:1px solid var(--color-content-default-low,#626a75);border-radius:9px;background:var(--color-surface-default,#292a2d);box-sizing:border-box}
+    .location-tab .location-icon-settings-box .marker-current-appearance-settings{flex:0 1 auto;width:auto;gap:8px;white-space:nowrap}
+    .location-tab .location-icon-settings-box .marker-current-appearance-settings>span{font-weight:600}
+    .location-tab .location-icon-settings-box .color-picker{position:relative}
+    .location-reverse-geocoding .fix-location-position-table{width:100%;table-layout:auto}
+    .location-reverse-geocoding .fix-location-position-table .fix-location-toggle-cell{width:1%;white-space:nowrap}
+    .location-reverse-geocoding .fix-location-position-table .fix-location-coordinate-value,.location-reverse-geocoding .fix-location-position-table .fix-location-photo-coordinates{min-width:180px}
+    .location-reverse-geocoding .fix-location-position-table .fix-location-address-cell{display:flex;align-items:flex-start;gap:8px;min-width:0}
+    .location-reverse-geocoding .fix-location-position-table .fix-location-address-cell .fix-location-address{min-width:0;overflow-wrap:anywhere}
+
     .location-reverse-geocoding{min-width:0;width:100%;overflow-x:auto}
     .location-reverse-geocoding .fix-location-position-table{max-width:100%}
     .location-reverse-geocoding .fix-location-position-table td{vertical-align:top}
