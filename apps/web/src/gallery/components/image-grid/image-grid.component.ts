@@ -170,9 +170,9 @@ export class ImageGridComponent {
 
   protected readonly setViewMode = (mode: GalleryViewMode): void => {
     this.viewMode.set(mode);
-    const folder = this.selectedLocation();
-    if (folder) this.galleryState.navigateTo(folder, false).subscribe();
-    else this.galleryState.loadGalleryWindow(0);
+    // A view-mode change does not change the folder query. Reuse the loaded
+    // window, or return to its first window if the user had scrolled far away.
+    this.galleryState.loadGalleryWindow(0);
     const viewport = this.scrollBox()?.nativeElement;
     if (viewport) viewport.scrollTop = 0;
     this.detailScrollTop.set(0);
