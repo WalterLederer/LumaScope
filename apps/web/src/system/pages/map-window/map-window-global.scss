@@ -23,6 +23,16 @@ app-map-window {
     & ::ng-deep .maplibregl-ctrl-scale,& ::ng-deep .leaflet-control-scale-line{opacity:.9;transition:opacity .15s ease;background:rgba(255,255,255,.94);color:#111;border:0!important;border-left:2px solid #111!important;border-right:2px solid #111!important;border-bottom:3px solid #111!important;border-top:0!important;box-shadow:0 1px 3px rgba(0,0,0,.45);font-size:10px;font-weight:700;line-height:1.1;text-shadow:none;padding:2px 5px 1px}
     & ::ng-deep .maplibregl-ctrl-scale:hover,& ::ng-deep .leaflet-control-scale-line:hover{opacity:1}
     .scale-visibility-toggle{flex-basis:100%;margin-left:0}
+    .view-settings-section .render-statistics-content{display:grid;grid-template-columns:max-content max-content minmax(220px,1fr);align-items:center;column-gap:16px;row-gap:8px;min-width:0;padding-top:8px}
+    .view-settings-section .render-statistics-content>.visibility-toggle{display:inline-flex;align-items:center;align-self:center;gap:6px;min-height:22px;margin:0;line-height:18px;white-space:nowrap}
+    .view-settings-section .render-statistics-content>.visibility-toggle input[type="checkbox"]{position:static!important;top:auto!important;transform:none!important;align-self:center;flex:0 0 14px;width:14px;height:14px;min-width:14px;min-height:14px;margin:0!important;padding:0;vertical-align:middle}
+    .view-settings-section .render-statistics-content>.scale-visibility-toggle{flex-basis:auto;margin-left:0}
+    .view-settings-section .photo-preview-size-setting{display:flex;grid-column:3;align-items:center;gap:8px;min-width:220px;margin:0;white-space:nowrap}
+    .view-settings-section .photo-preview-size-setting>label{flex:0 0 auto;margin:0;white-space:nowrap}
+    .view-settings-section .photo-preview-size-setting>ui-slider{flex:1 1 auto;min-width:80px;width:auto}
+    .view-settings-section .photo-preview-size-setting>.range-value{flex:0 0 auto;white-space:nowrap}
+    @media(max-width:760px){.view-settings-section .render-statistics-content{grid-template-columns:max-content max-content;}.view-settings-section .photo-preview-size-setting{grid-column:1/-1}}
+
     .map-titlebar{position:relative;z-index:1100;-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .titlebar-mouse-coordinate{display:block;flex:0 1 auto;min-width:0;max-width:min(260px,30vw);margin-left:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:18px;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums;-webkit-app-region:no-drag}
     .map-title{display:flex;align-items:center;gap:8px;min-width:0;flex:0 0 auto;font-size:13px}.map-title-icon{font-size:18px;color:#8ab4f8}
