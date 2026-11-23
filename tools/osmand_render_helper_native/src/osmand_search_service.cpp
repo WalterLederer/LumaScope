@@ -23,6 +23,7 @@
 #include <OsmAndCore/CommonTypes.h>
 #include <OsmAndCore/ObfDataInterface.h>
 #include <OsmAndCore/Data/ObfMapSectionInfo.h>
+#include <OsmAndCore/Data/ObfAddressSectionInfo.h>
 #include <OsmAndCore/Data/ObfMapSectionReader.h>
 #include <OsmAndCore/Data/BinaryMapObject.h>
 #include <OsmAndCore/Data/ObfReader.h>
@@ -137,6 +138,9 @@ QJsonObject administrativeAreasForCoordinate(
     int loadedMapObjectCount = 0;
     int administrativeBoundaryObjectCount = 0;
     int loadedAddressBoundaryGroupCount = 0;
+    int loadedAddressStreetGroupCount = 0;
+    int addressBoundaryBlockCount = 0;
+    QJsonObject addressBlockTypeCounts;
     int matchingAddressBoundaryGroupCount = 0;
     int matchedAddressBoundaryObjectIdCount = 0;
     QJsonArray mapBoundaryObjectIds;
@@ -298,17 +302,47 @@ QJsonObject administrativeAreasForCoordinate(
     // and bounding boxes, but no admin_level. Resolve the level through the
     // map object with the same OSM ID. This also recovers boundaries whose
     // generalized polygon does not quite contain the coordinate.
+    // Inspect the address-section block metadata before loading groups. Some
+    // OBF producers may place boundary CityIndex records in a block whose
+    // CitiesIndex type is not the expected Boundary value. Loading all group
+    // types and checking the actual CityIndex subtype avoids losing those
+    // records at the block-level filter.
+    for (const auto& reader : dataInterface->obfReaders)
+    {
+        if (!reader)
+            continue;
+        const auto info = reader->obtainInfo();
+        if (!info)
+            continue;
+        for (const auto& addressSection : info->addressSections)
+        {
+            if (!addressSection)
+                continue;
+            for (const auto& block : addressSection->cities)
+            {
+                if (!block)
+                    continue;
+                const auto key = QString::number(block->type);
+                addressBlockTypeCounts.insert(key, addressBlockTypeCounts.value(key).toInt() + 1);
+                if (block->type == static_cast<int>(OsmAnd::ObfAddressStreetGroupType::Boundary))
+                    ++addressBoundaryBlockCount;
+            }
+        }
+    }
+
     QList<std::shared_ptr<const OsmAnd::StreetGroup>> addressBoundaryGroups;
     dataInterface->loadStreetGroups(
         &addressBoundaryGroups,
         nullptr,
-        OsmAnd::ObfAddressStreetGroupTypesMask().set(OsmAnd::ObfAddressStreetGroupType::Boundary));
-    loadedAddressBoundaryGroupCount = addressBoundaryGroups.size();
+        OsmAnd::fullObfAddressStreetGroupTypesMask());
+    loadedAddressStreetGroupCount = addressBoundaryGroups.size();
 
     for (const auto& streetGroup : addressBoundaryGroups)
     {
-        if (!streetGroup || streetGroup->type != OsmAnd::ObfAddressStreetGroupSubtype::Boundary
-            || streetGroup->bbox31.size() < 4 || !streetGroup->id.isOsmId())
+        if (!streetGroup || streetGroup->type != OsmAnd::ObfAddressStreetGroupSubtype::Boundary)
+            continue;
+        ++loadedAddressBoundaryGroupCount;
+        if (streetGroup->bbox31.size() < 4)
             continue;
 
         const auto left = streetGroup->bbox31[0];
@@ -641,6 +675,9 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("loaded_map_objects"), loadedMapObjectCount},
         {QStringLiteral("administrative_boundary_objects"), administrativeBoundaryObjectCount},
         {QStringLiteral("loaded_address_boundary_groups"), loadedAddressBoundaryGroupCount},
+        {QStringLiteral("loaded_address_street_groups"), loadedAddressStreetGroupCount},
+        {QStringLiteral("address_boundary_blocks"), addressBoundaryBlockCount},
+        {QStringLiteral("address_block_type_counts"), addressBlockTypeCounts},
         {QStringLiteral("matching_address_boundary_groups"), matchingAddressBoundaryGroupCount},
         {QStringLiteral("matched_address_boundary_object_ids"), matchedAddressBoundaryObjectIdCount},
         {QStringLiteral("map_boundary_object_ids"), mapBoundaryObjectIds},
