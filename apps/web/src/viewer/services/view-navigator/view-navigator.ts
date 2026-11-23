@@ -28,15 +28,18 @@ export class ViewNavigator {
     this.galleryState.includeUnsupportedFiles(),
     this.galleryState.includeFilesRecursive()
   ]).pipe(
-    switchMap(([path]) => path === null
-      ? of(-1)
-      : from(this.galleryState.getGalleryFilePosition(path)).pipe(
-          map(position => position > 0 ? position - 1 : -1),
-          catchError(error => {
-            console.error('Failed to resolve selected gallery file position', path, error);
-            return of(-1);
-          })
-        )),
+    switchMap(([path]) => {
+      if (path === null) return of(-1);
+      const loadedPosition = this.galleryState.getLoadedGalleryFilePosition(path);
+      if (loadedPosition !== null) return of(loadedPosition - 1);
+      return from(this.galleryState.getGalleryFilePosition(path)).pipe(
+        map(position => position > 0 ? position - 1 : -1),
+        catchError(error => {
+          console.error('Failed to resolve selected gallery file position', path, error);
+          return of(-1);
+        })
+      );
+    }),
     // imagePosition, hasPrevious and hasNext all consume this same index.
     // Share the database lookup instead of running one per subscriber.
     shareReplay({ bufferSize: 1, refCount: true })
@@ -49,6 +52,10 @@ export class ViewNavigator {
     distinctUntilChanged(),
     switchMap(path => {
       if (path === null) return of(null);
+      const loadedPosition = this.galleryState.getLoadedGalleryFilePosition(path);
+      if (loadedPosition !== null) {
+        return of(this.galleryState.getLoadedGalleryFileAtPosition(loadedPosition));
+      }
       return from(this.galleryState.getGalleryFilePosition(path)).pipe(
         switchMap(position => position > 0
           ? from(this.galleryState.getGalleryFileAtPosition(position))
