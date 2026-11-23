@@ -2592,7 +2592,7 @@ export class MapWindow implements OnInit, OnDestroy {
       .then(result => result?.displayName?.trim() || 'No result')
       .catch(error => `Error: ${error instanceof Error ? error.message : String(error)}`);
     const [offline, online] = await Promise.all([offlineLookup, onlineLookup]);
-    return `Offline: ${offline} | Online: ${online}`;
+    return `Offline: ${offline}\nOnline: ${online}`;
   }
 
   protected readonly showCrosshairAddress = (): void => {
