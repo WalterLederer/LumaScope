@@ -1271,7 +1271,10 @@ QString OsmAndSearchService::reverseGeocode(
                 point31, 4000.0, OsmAnd::RoutingDataLevel::Detailed, roadFilter);
         }
 
-        QSet<QString> seenRoads;
+        // Keep every RoadLocator geometry segment in this diagnostic.
+        // Multiple OBF road objects can share the same displayed name/ref;
+        // de-duplicating by name here would hide precisely the split segments
+        // that need to be inspected.
         for (const auto& candidate : nearestRoads)
         {
             const auto& road = candidate.first;
@@ -1287,11 +1290,6 @@ QString OsmAndSearchService::reverseGeocode(
                 roadName = roadRef;
             if (roadName.isEmpty())
                 continue;
-
-            const QString dedupeKey = roadName + QLatin1Char('|') + roadRef;
-            if (seenRoads.contains(dedupeKey))
-                continue;
-            seenRoads.insert(dedupeKey);
 
             const OsmAnd::LatLon roadPoint(
                 OsmAnd::Utilities::get31LatitudeY(roadInfo->preciseY),
@@ -1414,7 +1412,7 @@ QString OsmAndSearchService::reverseGeocode(
                 {QStringLiteral("geometry_end"), roadPoints.isEmpty()
                     ? QJsonArray{} : QJsonArray{roadEnd.latitude, roadEnd.longitude}}
             });
-            if (roadLocatorDiagnostics.size() >= 40)
+            if (roadLocatorDiagnostics.size() >= 200)
                 break;
         }
     }
