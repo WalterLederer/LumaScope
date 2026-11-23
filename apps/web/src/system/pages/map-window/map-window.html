@@ -530,7 +530,7 @@
                  [attr.aria-label]="'Use route point ' + (i + 1)" title="Include this point in route calculation">
           <span class="routing-point-endpoint-column">@if (routeWaypoints().length >= 2 && i === 0) { <span class="routing-point-endpoint start">▶</span> } @else if (routeWaypoints().length >= 2 && i === routeWaypoints().length - 1) { <span class="routing-point-endpoint end">■</span> }</span>
           <span class="routing-point-index">{{ i + 1 }}.</span>
-          <span class="routing-point-location"><strong>{{ point.name || 'Resolving location…' }}</strong><small>{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</small></span>
+          <span class="routing-point-location"><strong>{{ point.name || 'Location name not resolved' }}</strong><small>{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</small></span>
           <div class="routing-point-actions">
             <button type="button" class="file-row-menu-trigger" (click)="toggleRoutePointActionMenu(i, $event); $event.stopPropagation()"
                     [attr.aria-expanded]="routePointActionMenuOpen() === i" aria-haspopup="menu"
@@ -547,6 +547,7 @@
       <div class="gpx-row-action-menu gpx-row-action-menu-floating routing-point-action-menu" role="menu"
            [style.top.px]="routePointActionMenuPosition().top" [style.left.px]="routePointActionMenuPosition().left"
            (click)="$event.stopPropagation()">
+        <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'resolve-name')"><span aria-hidden="true">⌖</span> Resolve location name</button>
         <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'remove')"><span aria-hidden="true">×</span> Remove point</button>
         <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'up')" [disabled]="pointIndex === 0"><span aria-hidden="true">↑</span> Move up</button>
         <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'down')" [disabled]="pointIndex === routeWaypoints().length - 1"><span aria-hidden="true">↓</span> Move down</button>
