@@ -1968,7 +1968,7 @@ export class CacheManager {
     }
     const nameFilterSql = nameFilterTerms.map((term, index) => {
       filterParams[`nameFilter${index}`] = term;
-      return `instr(photos.file_name COLLATE NOCASE, :nameFilter${index}) > 0`;
+      return `photos.file_name LIKE '%' || :nameFilter${index} || '%' COLLATE NOCASE`;
     });
     const where = `${scope}${supportedFilter}${nameFilterSql.length ? ` AND ${nameFilterSql.join(' AND ')}` : ''}`;
     // Load the requested page first. When fewer than the requested limit are
@@ -2098,9 +2098,9 @@ export class CacheManager {
       "SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path " +
       "FROM photos JOIN paths ON paths.id = photos.path_id " +
       "WHERE lower(photos.file_name) = lower(:targetName) " +
-      "AND lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) = lower(replace(rtrim(:targetFolder, char(92) || '/'), '/', char(92))) " +
-      "AND (lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) = lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92))) " +
-      "OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))) LIMIT 1"
+      "AND paths.relative_folder_path = :targetFolder COLLATE NOCASE " +
+      "AND (paths.relative_folder_path = :folder COLLATE NOCASE " +
+      "OR (:recursive = 1 AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)) LIMIT 1"
     ).get({ targetName: basename(sourcePath), targetFolder, folder, folderPrefix, recursive: recursive ? 1 : 0 }) as {
       file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
     } | undefined;
@@ -2200,7 +2200,7 @@ export class CacheManager {
     if (!includeUnsupported) supportedFileExtensions.forEach((extension, index) => { parameters[`extension${index}`] = `%.${extension.toLowerCase()}`; });
     const nameFilterSql = terms.map((term, index) => {
       parameters[`nameFilter${index}`] = term;
-      return `instr(photos.file_name COLLATE NOCASE, :nameFilter${index}) > 0`;
+      return `photos.file_name LIKE '%' || :nameFilter${index} || '%' COLLATE NOCASE`;
     });
     const where = scope + supportedFilter + (nameFilterSql.length ? ` AND (${nameFilterSql.join(' AND ')})` : '');
     // Match extensions with SQLite's case-insensitive LIKE instead of extracting
