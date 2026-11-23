@@ -68,7 +68,9 @@
                     <table class="fix-location-position-table" aria-label="Mouse, image and crosshair positions">
                       <tbody>
                         <tr>
-                          <td class="fix-location-toggle-cell"></td>
+                          <td class="fix-location-toggle-cell">
+                            <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label>
+                          </td>
                           <td class="fix-location-coordinate-value" role="status"><strong>Mouse</strong> · {{ mouseCoordinateLabel() || '—' }}</td>
                           <td class="fix-location-address-cell"></td>
                         </tr>
@@ -79,7 +81,6 @@
                         </tr>
                         <tr>
                           <td class="fix-location-toggle-cell">
-                            <label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label>
                             <button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button>
                           </td>
                           <td class="fix-location-coordinate-value" role="status"><strong>Crosshair</strong> · {{ crosshairCoordinates() }}</td>
