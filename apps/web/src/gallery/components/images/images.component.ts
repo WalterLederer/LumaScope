@@ -863,12 +863,13 @@ export class ImagesComponent {
     if (event.key === 'Enter' && currentIndex >= 0) {
       event.preventDefault();
       event.stopPropagation();
-      this.selected.emit(images[currentIndex]);
+      this.openRequested.emit(images[currentIndex]);
     }
   }
 
   /* Outputs */
   readonly selected = output<FileInfo>();
+  readonly openRequested = output<FileInfo>();
 
   readonly hovered = output<FileInfo | null>();
 
