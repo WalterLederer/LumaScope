@@ -1375,6 +1375,19 @@ QString OsmAndSearchService::reverseGeocode(
                     nearestGeometrySegment = pointIndex - 1;
                 }
             }
+            QJsonArray geometryPoints;
+            for (const auto& geometryPoint31 : roadPoints)
+            {
+                if (geometryPoint31.x == 0 && geometryPoint31.y == 0)
+                {
+                    geometryPoints.push_back(QJsonValue(QJsonValue::Null));
+                    continue;
+                }
+                geometryPoints.push_back(QJsonArray{
+                    OsmAnd::Utilities::get31LatitudeY(geometryPoint31.y),
+                    OsmAnd::Utilities::get31LongitudeX(geometryPoint31.x)
+                });
+            }
             roadLocatorDiagnostics.push_back(QJsonObject{
                 {QStringLiteral("name"), roadName},
                 {QStringLiteral("ref"), roadRef},
@@ -1392,6 +1405,7 @@ QString OsmAndSearchService::reverseGeocode(
                 {QStringLiteral("is_relation"), roadId.isIdFromRelation()},
                 {QStringLiteral("is_split"), roadId.isIdFromSplit()},
                 {QStringLiteral("geometry_point_count"), roadPoints.size()},
+                {QStringLiteral("geometry_points"), geometryPoints},
                 {QStringLiteral("geometry_bbox31"), QJsonArray{
                     road->bbox31.left(), road->bbox31.top(),
                     road->bbox31.right(), road->bbox31.bottom()}},
