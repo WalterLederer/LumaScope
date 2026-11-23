@@ -34,6 +34,8 @@
 #include <OsmAndCore/SimpleQueryController.h>
 #include <OsmAndCore/Utilities.h>
 #include <OsmAndCore/Data/Address.h>
+#include <OsmAndCore/Data/Building.h>
+#include <OsmAndCore/Data/Street.h>
 #include <OsmAndCore/Data/Amenity.h>
 #include <OsmAndCore/Data/StreetGroup.h>
 
@@ -1347,6 +1349,71 @@ QString OsmAndSearchService::reverseGeocode(
             {
                 addressDiagnostics.insert(QStringLiteral("street_parent_group"),
                     serializeAddress(result->street->streetGroup));
+                addressDiagnostics.insert(QStringLiteral("street_offset"),
+                    static_cast<qint64>(result->street->offset));
+                addressDiagnostics.insert(QStringLiteral("street_first_building_inner_offset"),
+                    static_cast<qint64>(result->street->firstBuildingInnerOffset));
+
+                // Re-read the building records attached to the exact street
+                // selected by ReverseGeocoder. This diagnostic is opt-in and
+                // intentionally does not alter the native result selection.
+                if (_dataInterface)
+                {
+                    QHash<std::shared_ptr<const OsmAnd::Street>,
+                        QList<std::shared_ptr<const OsmAnd::Building>>> buildingsByStreet;
+                    _dataInterface->loadBuildingsFromStreets(
+                        { result->street }, &buildingsByStreet, nullptr, nullptr, nullptr);
+                    const auto buildings = buildingsByStreet.value(result->street);
+                    QVector<QPair<double, QJsonObject>> sortedBuildings;
+                    int within50m = 0;
+                    int within100m = 0;
+                    const OsmAnd::LatLon searchLocation(latitude, longitude);
+                    for (const auto& building : buildings)
+                    {
+                        if (!building)
+                            continue;
+                        const auto buildingLocation =
+                            OsmAnd::Utilities::convert31ToLatLon(building->position31);
+                        const double distance = OsmAnd::Utilities::distance(
+                            searchLocation, buildingLocation);
+                        if (distance <= 50.0)
+                            ++within50m;
+                        if (distance <= 100.0)
+                            ++within100m;
+
+                        QJsonObject buildingObject = serializeAddress(building);
+                        buildingObject.insert(QStringLiteral("postcode"), building->postcode);
+                        buildingObject.insert(QStringLiteral("distance_m"), distance);
+                        buildingObject.insert(QStringLiteral("interpolation"),
+                            static_cast<int>(building->interpolation));
+                        buildingObject.insert(QStringLiteral("interpolation_interval"),
+                            building->interpolationInterval);
+                        buildingObject.insert(QStringLiteral("interpolation_native_name"),
+                            building->interpolationNativeName);
+                        buildingObject.insert(QStringLiteral("interpolation_position31"),
+                            QJsonArray{
+                                building->interpolationPosition31.x,
+                                building->interpolationPosition31.y
+                            });
+                        sortedBuildings.append(qMakePair(distance, buildingObject));
+                    }
+                    std::sort(sortedBuildings.begin(), sortedBuildings.end(),
+                        [](const auto& left, const auto& right)
+                        {
+                            return left.first < right.first;
+                        });
+
+                    QJsonArray nearestBuildings;
+                    const int diagnosticLimit = std::min(100, sortedBuildings.size());
+                    for (int index = 0; index < diagnosticLimit; ++index)
+                        nearestBuildings.push_back(sortedBuildings.at(index).second);
+
+                    addressDiagnostics.insert(QStringLiteral("loaded_building_count"),
+                        buildings.size());
+                    addressDiagnostics.insert(QStringLiteral("buildings_within_50m"), within50m);
+                    addressDiagnostics.insert(QStringLiteral("buildings_within_100m"), within100m);
+                    addressDiagnostics.insert(QStringLiteral("nearest_buildings"), nearestBuildings);
+                }
             }
             if (result->building)
             {
