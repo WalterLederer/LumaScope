@@ -702,11 +702,11 @@ export class OsmAndAtlasManager {
         this.searchWorkerKey = '';
         this.searchWorkerIsReady = false;
         this.searchWorkerReady = null;
+        this.rejectSearchWorkerReady?.(closeError);
+        this.resolveSearchWorkerReady = null;
+        this.rejectSearchWorkerReady = null;
+        for (const pending of this.searchWorkerPending.splice(0)) pending.reject(closeError);
       }
-      this.rejectSearchWorkerReady?.(closeError);
-      this.resolveSearchWorkerReady = null;
-      this.rejectSearchWorkerReady = null;
-      for (const pending of this.searchWorkerPending.splice(0)) pending.reject(closeError);
     });
 
     return readyPromise;
@@ -1073,9 +1073,9 @@ export class OsmAndAtlasManager {
       return [...this.obfPaths];
     }
     this.runtimeObfSelection = true;
-    this.stopSearchWorker();
     if (selectedPaths.length === this.obfPaths.length
       && selectedPaths.every((path, index) => path === this.obfPaths[index])) return [...this.obfPaths];
+    this.stopSearchWorker();
     await this.cancelRendering();
     const previousWorkers = this.workers;
     this.obfPaths = selectedPaths;
