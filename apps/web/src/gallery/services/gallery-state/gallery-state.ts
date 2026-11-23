@@ -59,7 +59,8 @@ export class GalleryState {
     this.navigateTo(path, false).subscribe();
   };
   private readonly galleryPageSize = 250;
-  private readonly galleryWindowSize = 1000;
+  // Keep the first renderer workload bounded; subsequent pages load on demand.
+  private readonly galleryWindowSize = 250;
   private galleryLoadedCount = 0;
   readonly galleryWindowStart = signal(0);
   private galleryTotalCount = 0;
