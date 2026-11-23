@@ -825,7 +825,10 @@ export class ImagesComponent {
   protected onThumbnailListKeydown(event: KeyboardEvent): void {
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     const target = event.target;
-    if (target instanceof HTMLElement && target.matches('input, textarea, select, button, a, [contenteditable="true"], [role="menuitem"]')) return;
+    if (target instanceof HTMLElement) {
+      if (target.matches('input, textarea, select, a, [contenteditable="true"], [role="menuitem"]')) return;
+      if (target.matches('button') && !target.closest('[data-image-path]')) return;
+    }
     const host = this.elementRef.nativeElement as HTMLElement;
     if (target instanceof Node && !host.contains(target)
       && target !== host.ownerDocument.body && target !== host.ownerDocument.documentElement) return;
