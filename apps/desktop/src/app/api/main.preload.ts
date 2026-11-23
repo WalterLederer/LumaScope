@@ -43,6 +43,7 @@ const api: Desktop = {
     argv: () => ipcRenderer.invoke('ProcessManager.argv'),
     getSystemPaths: () => ipcRenderer.invoke('ProcessManager.getSystemPaths'),
     openConfigFile: () => ipcRenderer.invoke('ProcessManager.openConfigFile'),
+    openConfigFolder: () => ipcRenderer.invoke('ProcessManager.openConfigFolder'),
     openPath: (filePath: string) => ipcRenderer.invoke('ProcessManager.openPath', filePath),
     openWith: (filePath: string) => ipcRenderer.invoke('ProcessManager.openWith', filePath),
     showWindowsContextMenu: (filePath: string, screenX: number, screenY: number) => ipcRenderer.invoke('ProcessManager.showWindowsContextMenu', filePath, screenX, screenY),
