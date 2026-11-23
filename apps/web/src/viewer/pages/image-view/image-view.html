@@ -21,7 +21,7 @@
                  [style.width]="'100%'"
                  [style.min-width]="'0'"
                  [style.margin-right.px]="0"
-                 (imageSelected)="onGalleryImageSelected()"
+                 (imageSelected)="onGalleryImageSelected($event)"
                  (activeSelectionChanged)="onGalleryActiveSelectionChanged($event)"
                  (locationSelected)="onGalleryFolderSelected()" />
   @if (controlsSidebarVisible()) {
