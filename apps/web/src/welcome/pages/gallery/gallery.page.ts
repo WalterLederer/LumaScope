@@ -189,50 +189,12 @@ export class GalleryPage {
       this.actionsColumnPosition.set(config.system.galleryFavoritesActionsColumnPosition === 'right' ? 'right' : 'left');
     });
 
-    // Signal inputs are not initialized until after the constructor. Use an
-    // effect so the tree-only GalleryPage instance cannot accidentally start a
-    // second cache build or refresh the image-grid cache statistics.
+    // Changing or restoring a gallery folder is navigation only.
+    // Cache generation is started exclusively by the explicit Build cache action.
     effect(onCleanup => {
       if (!this.showImageGrid()) return;
-      let initialLocationHandled = false;
-      const subscription = combineLatest([
-        this.configuration.config().pipe(take(1)),
-        this.selectedLocation$
-      ]).subscribe(([config, location]) => {
+      const subscription = this.selectedLocation$.subscribe(location => {
         this.processManager.setWindowTitle(location ?? '').catch(() => undefined);
-        if (!location) return;
-
-        // Restoring the last selected favorite on application startup is only
-        // navigation. It must not implicitly start a potentially long cache build.
-        // Keep automatic cache preparation for folders selected afterwards.
-        if (!initialLocationHandled) {
-          initialLocationHandled = true;
-          const restoredLocation = config.gallery.selectedLocation || config.gallery.locations[0] || null;
-          if (restoredLocation && location.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase()
-            === restoredLocation.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase()) {
-            return;
-          }
-        }
-
-        // A cache build belongs to the folder that started it. Cancel that run
-        // before scheduling work for a newly selected favorite, so the old
-        // folder cannot keep the shared cache worker occupied or queue stale work.
-        const activeDirectory = this.galleryCacheBuild.cacheRunDirectory();
-        const normalizePath = (value: string): string =>
-          value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
-        if (this.galleryCacheBuild.cacheRunActive()
-          && activeDirectory
-          && normalizePath(activeDirectory) !== normalizePath(location)) {
-          this.galleryCacheBuild.cancelCacheBuild();
-        }
-
-        const startCacheBuild = this.galleryState.includeFilesRecursiveValue()
-          ? this.galleryCacheBuild.startRecursiveCacheBuild(location, true)
-          : this.galleryCacheBuild.startCacheBuild(location, true);
-        void startCacheBuild.catch(error => {
-          const message = error instanceof Error ? error.message : String(error);
-          this.galleryLocationError.set(`Cache folder action failed: ${message}`);
-        });
       });
       onCleanup(() => subscription.unsubscribe());
     });
