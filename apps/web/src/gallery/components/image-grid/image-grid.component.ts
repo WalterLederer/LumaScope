@@ -273,6 +273,7 @@ export class ImageGridComponent {
   private readonly processManager = inject(ProcessManager);
 
   readonly cacheStats = signal<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, fullSizeConversionTotal: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
+  readonly cacheStatsLoaded = signal(false);
 
   readonly cacheCompleteness = signal<{ total: number; thumbnails: number } | null>(null);
   private cacheCompletenessScope = '';
@@ -324,6 +325,7 @@ export class ImageGridComponent {
   private lastCacheRevision: number | null = null;
 
   private readonly resetDirectoryCacheStats = (): void => {
+    this.cacheStatsLoaded.set(false);
     this.cacheStatsRequest++;
     this.cacheStatsScanActive = false;
     this.cacheStatsScanComplete = false;
@@ -365,6 +367,7 @@ export class ImageGridComponent {
         return;
       }
       this.cacheStats.set(stats);
+      this.cacheStatsLoaded.set(true);
       this.cacheStatsScanComplete = true;
     } catch (error) {
       console.error('Failed to refresh gallery cache statistics', error);
