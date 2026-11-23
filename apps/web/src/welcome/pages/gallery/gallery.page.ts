@@ -208,16 +208,8 @@ export class GalleryPage {
           this.galleryCacheBuild.cancelCacheBuild();
         }
 
-        // Restored and manually selected favorite folders both start caching.
-        // GalleryCacheBuild queues this until the ImageGrid controller is ready
-        // or the previous folder's cancellation has completed.
-        const startCacheBuild = this.galleryState.includeFilesRecursiveValue()
-          ? this.galleryCacheBuild.startRecursiveCacheBuild(location, true)
-          : this.galleryCacheBuild.startCacheBuild(location, true);
-        void startCacheBuild.catch(error => {
-          const message = error instanceof Error ? error.message : String(error);
-          this.galleryLocationError.set(`Cache folder action failed: ${message}`);
-        });
+        // Folder navigation only displays already indexed records. Cache generation
+        // is started explicitly by the user from the gallery's Build cache action.
       });
       onCleanup(() => subscription.unsubscribe());
     });
