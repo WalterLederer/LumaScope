@@ -853,7 +853,7 @@
  .control-row {display:flex;align-items:center;gap:6px}.control-row ui-slider {flex:1;min-width:0}
  .shape-row,.mode-row {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.shape-row {grid-template-columns:repeat(4,minmax(0,1fr))}.shape-row button {font-size:20px}
   .mode-row {align-items:stretch}
-  .mode-row .mode-button {position:relative;display:flex;align-items:center;justify-content:center;min-height:80px;padding:7px 5px 5px;overflow:hidden}
+  .mode-row .mode-option {position:relative;display:flex;align-items:center;justify-content:center;min-height:80px;padding:7px 5px 5px;overflow:hidden}
   .mode-logo-pair {display:flex;align-items:center;justify-content:center;gap:3px;min-width:0}
   .mode-logo-pair.vertical {flex-direction:column;gap:3px}
   .mode-logo-pair.overlay-pair {gap:0}
