@@ -297,7 +297,6 @@ QJsonObject administrativeAreasForCoordinate(
             }
         }
     }
-
     // The address index stores boundary groups with their OSM object IDs
     // and bounding boxes, but no admin_level. Resolve the level through the
     // map object with the same OSM ID. This also recovers boundaries whose
@@ -396,8 +395,10 @@ QJsonObject administrativeAreasForCoordinate(
         });
     }
 
-    // Diagnostic reconstruction probe: load map geometry across the union of
-    // address-index boundary bounding boxes that contain the requested point.
+    // Diagnostic reconstruction probe: scan all map objects, then retain every
+    // split geometry belonging to the administrative relation IDs found at the
+    // requested coordinate. Relation fragments can lie far outside the local
+    // object bounding box, so limiting this scan to the query extent loses them.
     // This intentionally does not change address resolution yet.
     for (const auto& streetGroup : addressBoundaryGroups)
     {
@@ -445,7 +446,7 @@ QJsonObject administrativeAreasForCoordinate(
     // traverse every map section and zoom level.
     const bool boundaryLineDiagnosticsEnabled =
         qEnvironmentVariableIsSet("LUMASCOPE_OSMAND_BOUNDARY_DIAGNOSTICS");
-    if (hasBoundarySearchArea && boundaryLineDiagnosticsEnabled)
+    if (!targetBoundaryRelationKeys.isEmpty() && boundaryLineDiagnosticsEnabled)
     {
         for (const auto& reader : dataInterface->obfReaders)
         {
@@ -465,7 +466,7 @@ QJsonObject administrativeAreasForCoordinate(
                     QList<std::shared_ptr<const OsmAnd::BinaryMapObject>> mapObjects;
                     OsmAnd::ObfMapSectionReader::loadMapObjects(
                         reader, mapSection, nullptr, mapLevel->minZoom,
-                        &boundarySearchArea, &mapObjects);
+                        nullptr, &mapObjects);
                     for (const auto& mapObject : mapObjects)
                     {
                         if (!mapObject)
@@ -597,8 +598,7 @@ QJsonObject administrativeAreasForCoordinate(
         int danglingEndpoints = 0;
         int joinedEndpoints = 0;
         int highDegreeEndpoints = 0;
-        for (auto degreeIt = degrees.constBegin(); degreeIt != degrees.constEnd(); ++degreeIt)
-        {
+        for (auto degreeIt = degrees.constBegin(); degreeIt != degrees.constEnd(); ++degreeIt)        {
             if (degreeIt.value() == 1)
                 ++danglingEndpoints;
             else if (degreeIt.value() == 2)
@@ -897,7 +897,6 @@ SearchCandidate makeAmenityCandidate(
         amenity->nativeName,
         transliteratedName,
     });
-
     candidate.displayName = bestDisplayName(query, names, preferredName);
     candidate.secondaryText = secondaryTextFor(candidate.displayName, names, descriptor);
 
@@ -1185,7 +1184,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.8")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.9")},
     };
 
     // Administrative areas are resolved independently from the address
