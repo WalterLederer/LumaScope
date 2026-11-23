@@ -1241,6 +1241,40 @@ export class CacheManager {
     if (!databaseKey || !/^[a-z]:$/i.test(databaseKey)) throw new Error('A valid cache database drive must be selected.');
     const selectedDatabaseKey = databaseKey.toUpperCase();
     const db = this.databases.get(selectedDatabaseKey) ?? this.databaseForPath(selectedDatabaseKey + '\\');
+    const counts = db.prepare(`SELECT
+      SUM(CASE WHEN thumbnail_cache_id IS NOT NULL THEN 1 ELSE 0 END) AS thumbnails,
+      SUM(CASE WHEN fullsize_cache_id IS NOT NULL THEN 1 ELSE 0 END) AS fullsize,
+      SUM(CASE WHEN thumbnail_cache_id = :sidecar THEN 1 ELSE 0 END) + SUM(CASE WHEN fullsize_cache_id = :sidecar THEN 1 ELSE 0 END) AS sidecar,
+      SUM(CASE WHEN latitude IS NOT NULL AND longitude IS NOT NULL THEN 1 ELSE 0 END) AS gps,
+      SUM(CASE WHEN latitude IS NOT NULL AND longitude IS NOT NULL AND location_name_id IS NOT NULL AND location_name_id <> 0 THEN 1 ELSE 0 END) AS gpsResolved,
+      SUM(CASE WHEN latitude IS NOT NULL AND longitude IS NOT NULL AND (location_name_id IS NULL OR location_name_id = 0) THEN 1 ELSE 0 END) AS gpsUnresolved,
+      SUM(CASE WHEN latitude IS NOT NULL AND longitude IS NOT NULL THEN file_size ELSE 0 END) AS gpsBytes
+      FROM photos`).get({ sidecar: CACHE_STORAGE_TYPE.SIDECAR }) as Record<string, number | null>;
+    const thumbnails = Number(counts.thumbnails ?? 0), fullSize = Number(counts.fullsize ?? 0);
+    const summary: CacheSummary = {
+      total: { entries: thumbnails + fullSize, bytes: 0 },
+      fullSize: { entries: fullSize, bytes: 0 },
+      thumbnails: { entries: thumbnails, bytes: 0 },
+      sidecar: { entries: Number(counts.sidecar ?? 0), bytes: 0 },
+      gps: { entries: Number(counts.gps ?? 0), bytes: Number(counts.gpsBytes ?? 0) },
+      gpsResolved: Number(counts.gpsResolved ?? 0), gpsUnresolved: Number(counts.gpsUnresolved ?? 0),
+      physicalFilesVerified: false, selectedDatabaseKey, databases: []
+    };
+    const keys = new Set([...this.databases.keys(), selectedDatabaseKey]);
+    for (const key of keys) {
+      const databasePath = join(key + '\\\\', '.cache', 'LumaScope.cache.sqlite');
+      try { const info = await stat(databasePath); summary.databases.push({ key, path: databasePath, bytes: info.size }); } catch { /* Database may be removed. */ }
+    }
+    summary.databases.sort((left, right) => left.path.localeCompare(right.path, undefined, { sensitivity: 'base' }));
+    return summary;
+  };
+
+  @IpcHandler({ name: 'CacheManager.verifyCacheSummary' })
+  readonly verifyCacheSummary = async (_event?: IpcMainInvokeEvent, requestedDatabaseKey?: string): Promise<CacheSummary> => {
+    const databaseKey = requestedDatabaseKey ?? this.activeDatabaseKey;
+    if (!databaseKey || !/^[a-z]:$/i.test(databaseKey)) throw new Error('A valid cache database drive must be selected.');
+    const selectedDatabaseKey = databaseKey.toUpperCase();
+    const db = this.databases.get(selectedDatabaseKey) ?? this.databaseForPath(selectedDatabaseKey + '\\');
     const rows = db.prepare(`SELECT photos.*, paths.relative_folder_path,
         location_names.display_name AS location_display_name
       FROM photos
@@ -1257,6 +1291,7 @@ export class CacheManager {
       gps: { entries: 0, bytes: 0 },
       gpsResolved: 0,
       gpsUnresolved: 0,
+      physicalFilesVerified: true,
       selectedDatabaseKey,
       databases: []
     };
