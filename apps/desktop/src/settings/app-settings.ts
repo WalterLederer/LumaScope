@@ -3,7 +3,7 @@ import { appConfigName } from 'internal-api';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { copyFile, readdir, unlink } from 'node:fs/promises';
 import { basename, dirname, extname, join, resolve } from 'node:path';
-import { writeJsonAtomically } from '../file-system/json-file';
+import { withJsonFileTransaction } from '../file-system/json-file';
 
 export type AppSettings = Record<string, unknown>;
 
@@ -308,6 +308,7 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
     return Promise.reject(new Error('Invalid application settings section.'));
   }
   const operation = writeQueue.then(async () => {
+    await withJsonFileTransaction(settingsPath(), async writeSettings => {
     let settings: AppSettings;
     try {
       settings = readUserAppSettingsForUpdate();
@@ -324,7 +325,7 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
     if (section === 'root') {
       const updated = { ...settings, ...values };
       for (const [key, value] of Object.entries(values)) if (value === undefined) delete updated[key];
-      await writeJsonAtomically(settingsPath(), updated);
+      await writeSettings(updated);
       return;
     }
 
@@ -441,7 +442,8 @@ export const updateAppSettingsSection = (section: string, values: Record<string,
     removeLegacyOfflinePathSettings(settings);
     delete settings['offlineMaps'];
     delete settings['Maps'];
-    await writeJsonAtomically(settingsPath(), settings);
+    await writeSettings(settings);
+    });
   });
   writeQueue = operation.catch(() => undefined);
   return operation;
