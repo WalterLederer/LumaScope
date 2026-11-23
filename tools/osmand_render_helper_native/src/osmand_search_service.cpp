@@ -543,7 +543,7 @@ QJsonObject administrativeAreasForCoordinate(
                 < right.value(QStringLiteral("osm_id")).toString();
         });
     QJsonArray boundaryRelationGroups;
-    for (int index = 0; index < std::min(40, relationGroupObjects.size()); ++index)
+    for (int index = 0; index < std::min(40, static_cast<int>(relationGroupObjects.size())); ++index)
         boundaryRelationGroups.push_back(relationGroupObjects.at(index));
 
     std::sort(candidates.begin(), candidates.end(),
