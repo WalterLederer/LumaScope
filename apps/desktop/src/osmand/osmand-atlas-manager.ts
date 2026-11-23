@@ -1119,6 +1119,7 @@ export class OsmAndAtlasManager {
       boundary_line_relation_group_count: number;
       target_boundary_line_relation_group_count: number;
       target_boundary_line_relation_groups: Array<{ admin_level: number; osm_id: string; is_relation: boolean; has_split_ids: boolean; name: string; line_segments: number; unique_endpoints: number; dangling_endpoints: number; degree_two_endpoints: number; branch_or_duplicate_endpoints: number }>;
+      target_boundary_line_segments: Array<{ admin_level: number; osm_id: string; raw_id: string; point_count: number; first: string; last: string; bbox: string; name: string }>;
       boundary_geometry_points: number;
       boundary_area_objects: number;
       boundary_line_samples: Array<{ id: string; osm_id: string; admin_level: number; is_area: boolean; point_count: number; first: string; last: string; name: string }>;
