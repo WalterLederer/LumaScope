@@ -424,6 +424,8 @@ export class CapturePanelComponent {
       if (action === 'top-window') void this.copyToClipboardTopWindow(true);
       else void this.copyToClipboardRectangle();
     });
+    // Signal only after the capture component has installed its hotkey effect.
+    window.desktop.Capture.notifyPreviewRendererReady();
     this.destroyRef.onDestroy(() => this.disposeHdrPreview());
     effect(() => {
       const frame = this.previewFrame();
