@@ -140,6 +140,7 @@ QJsonObject administrativeAreasForCoordinate(
     int matchingAddressBoundaryGroupCount = 0;
     int matchedAddressBoundaryObjectIdCount = 0;
     QJsonArray mapBoundaryObjectIds;
+    QSet<QString> targetBoundaryRelationKeys;
     QJsonArray addressBoundaryObjectIds;
     QJsonArray matchedBoundaryObjectIds;
     QSet<QString> seenAreas;
@@ -193,7 +194,15 @@ QJsonObject administrativeAreasForCoordinate(
                         {
                             const auto objectKey = administrativeObjectKey(mapObject->id);
                             if (!objectKey.isEmpty())
+                            {
                                 administrativeLevelsByObjectId.insert(objectKey, adminLevel);
+                                const bool bboxContainsPoint = mapObject->bbox31.left() <= point31.x
+                                    && mapObject->bbox31.right() >= point31.x
+                                    && mapObject->bbox31.top() <= point31.y
+                                    && mapObject->bbox31.bottom() >= point31.y;
+                                if (bboxContainsPoint)
+                                    targetBoundaryRelationKeys.insert(QStringLiteral("%1|%2").arg(adminLevel).arg(objectKey));
+                            }
                             if (mapBoundaryObjectIds.size() < 20)
                             {
                                 const auto mapName = mapObject->getName(locale, false).trimmed();
@@ -543,6 +552,15 @@ QJsonObject administrativeAreasForCoordinate(
                 < right.value(QStringLiteral("osm_id")).toString();
         });
     QJsonArray boundaryRelationGroups;
+    QJsonArray targetBoundaryRelationGroups;
+    for (const auto& relationGroup : relationGroupObjects)
+    {
+        const auto relationKey = QStringLiteral("%1|relation:%2")
+            .arg(relationGroup.value(QStringLiteral("admin_level")).toInt())
+            .arg(relationGroup.value(QStringLiteral("osm_id")).toString());
+        if (targetBoundaryRelationKeys.contains(relationKey))
+            targetBoundaryRelationGroups.push_back(relationGroup);
+    }
     for (int index = 0; index < std::min(40, static_cast<int>(relationGroupObjects.size())); ++index)
         boundaryRelationGroups.push_back(relationGroupObjects.at(index));
 
@@ -586,6 +604,8 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("boundary_line_counts"), boundaryConnectivity},
         {QStringLiteral("boundary_line_relation_groups"), boundaryRelationGroups},
         {QStringLiteral("boundary_line_relation_group_count"), relationGroupObjects.size()},
+        {QStringLiteral("target_boundary_line_relation_groups"), targetBoundaryRelationGroups},
+        {QStringLiteral("target_boundary_line_relation_group_count"), targetBoundaryRelationGroups.size()},
         {QStringLiteral("boundary_geometry_points"), boundaryGeometryPointCount},
         {QStringLiteral("boundary_area_objects"), boundaryAreaObjectCount},
         {QStringLiteral("boundary_line_samples"), boundaryLineSamples}
