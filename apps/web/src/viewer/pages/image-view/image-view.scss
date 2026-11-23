@@ -2767,3 +2767,27 @@
   box-shadow: inset 0 0 0 1px #25282c !important;
   font-weight: 700 !important;
 }
+
+
+/* Make the four comparison-layout indicators clearly legible. */
+:host .image-controls-sidebar .mode-row .mode-layout-icon {
+  top: 5px !important;
+  right: 6px !important;
+  z-index: 3;
+  width: 34px !important;
+  height: 34px !important;
+  opacity: 1 !important;
+}
+:host .image-controls-sidebar .mode-row .mode-layout-icon.overlay span {
+  width: 21px !important;
+  height: 21px !important;
+  border-width: 2px !important;
+  border-radius: 2px !important;
+  background: #30343a !important;
+}
+:host .image-controls-sidebar .mode-row .mode-layout-icon.fullsize span {
+  inset: 2px !important;
+  border-width: 3px !important;
+  border-radius: 2px !important;
+  box-shadow: inset 0 0 0 4px #30343a !important;
+}
