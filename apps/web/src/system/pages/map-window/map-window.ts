@@ -165,7 +165,6 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly configuration = inject(Configuration);
   private unsubscribeLocation: (() => void) | null = null;
   private locationUpdateVersion = 0;
-  private locationLookupVersion = 0;
   private mapInitialization: Promise<void> | null = null;
   private mapWindowConfigRestore: Promise<void> = Promise.resolve();
   private rendererTransition: Promise<void> = Promise.resolve();
@@ -1949,7 +1948,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.currentLatitude = latitude; this.currentLongitude = longitude;
       this.coordinateLabel.set(this.formatCoordinates(latitude, longitude));
       this.photoCoordinateLabel.set(this.formatCoordinates(latitude, longitude).replace(/^Coordinates: /, 'Photo: '));
-      void this.lookupLocationAddress(latitude, longitude);
+      this.locationAddress.set('');
       void this.initialize(latitude, longitude);
     } else {
       const savedLatitude = Number(this.readSetting('lastLatitude', ''));
@@ -1963,7 +1962,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.coordinatesAvailable.set(true);
         this.coordinateLabel.set(this.formatCoordinates(savedLatitude, savedLongitude));
         this.photoCoordinateLabel.set(this.formatCoordinates(savedLatitude, savedLongitude).replace(/^Coordinates: /, 'Photo: '));
-        void this.lookupLocationAddress(savedLatitude, savedLongitude);
+        this.locationAddress.set('');
         void this.initialize(savedLatitude, savedLongitude);
       } else {
         this.locationAddress.set('');
@@ -1997,7 +1996,6 @@ export class MapWindow implements OnInit, OnDestroy {
       const nextLongitude = location.longitude;
       if (!Number.isFinite(nextLatitude) || !Number.isFinite(nextLongitude)
         || nextLatitude! < -90 || nextLatitude! > 90 || nextLongitude! < -180 || nextLongitude! > 180) {
-        this.locationLookupVersion++;
         // A photo without GPS must not cancel an in-flight map initialization.
         // Keep the last valid map position so the Track tab and its GPX overlays
         // remain available while the cache is still processing the current folder.
@@ -2028,7 +2026,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.photoCoordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!).replace(/^Coordinates: /, 'Photo: '));
       this.photoGpsCoordinates.set(this.formatManualGpsPosition(nextLatitude!, nextLongitude!));
       this.photoAddress.set('');
-      void this.lookupLocationAddress(nextLatitude!, nextLongitude!);
+      this.locationAddress.set('');
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
       if (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge') {
         // Re-evaluate the geographic coverage for every selected photo. This
@@ -2333,8 +2331,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.updateCurrentMarkerPhotoPreview();
     }
     this.applyCurrentPhotoVisibility();
-    this.locationAddress.set('Looking up address…');
-    void this.lookupLocationAddress(latitude!, longitude!);
+    this.locationAddress.set('');
   }
 
   protected readonly refreshGpsPosition = async (showStatus = true): Promise<{ latitude: number | null; longitude: number | null } | null> => {
@@ -2625,26 +2622,6 @@ export class MapWindow implements OnInit, OnDestroy {
     );
   };
 
-  private async lookupLocationAddress(latitude: number, longitude: number): Promise<void> {
-    const lookupVersion = ++this.locationLookupVersion;
-    const imagePath = this.currentImagePath;
-    this.locationAddress.set('Looking up address…');
-    try {
-      let displayName: string | null = null;
-      if (imagePath && this.desktop) {
-        displayName = await this.desktop.CacheManager.resolvePhotoLocation(imagePath, latitude, longitude);
-      } else {
-        const result = await lookupReverseGeocoding(latitude, longitude, navigator.language || 'en');
-        displayName = result?.displayName ?? null;
-      }
-      if (lookupVersion !== this.locationLookupVersion) return;
-      this.locationAddress.set(displayName || 'No street address available for this location.');
-    } catch (error) {
-      if (lookupVersion !== this.locationLookupVersion) return;
-      console.error('Could not resolve and save the photo location:', error);
-      this.locationAddress.set(`Reverse geocoding failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
 
   protected readonly openLocationIn = (provider: string): void => {
     const marker = this.marker?.getLatLng();
