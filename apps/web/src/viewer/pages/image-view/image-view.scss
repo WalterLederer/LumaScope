@@ -2436,7 +2436,11 @@
 }
 
 
-/* Image comparison modes are neutral controls, not accent-colored action buttons. */
+/* Image and View subtabs, plus comparison modes, are neutral controls. */
+:host .image-controls-sidebar .image-sidebar-subtabs > button[role="tab"],
+:host .image-controls-sidebar .image-sidebar-subtabs > button[role="tab"]:hover,
+:host .image-controls-sidebar .image-sidebar-subtabs > button[role="tab"]:focus,
+:host .image-controls-sidebar .image-sidebar-subtabs > button[role="tab"]:active,
 :host .image-controls-sidebar .mode-row > button.mode-button,
 :host .image-controls-sidebar .mode-row > button.mode-button:hover,
 :host .image-controls-sidebar .mode-row > button.mode-button:focus,
