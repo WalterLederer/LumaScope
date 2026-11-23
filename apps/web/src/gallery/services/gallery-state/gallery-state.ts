@@ -308,6 +308,20 @@ export class GalleryState {
           this.totalFileCount.set(this.galleryTotalCount >= 0 ? this.galleryTotalCount : page.files.length);
           this.images$.next(page.files);
           this.loadedNavigationKey = navigationKey;
+          if (page.totalCount < 0 && page.files.length === this.galleryWindowSize) {
+            // Defer the expensive COUNT until the initial Gallery window is visible.
+            this.deferredGalleryCountTimer = setTimeout(() => {
+              this.deferredGalleryCountTimer = null;
+              if (request !== this.navigationRequest || this.selectedLocation$.value !== path) return;
+              void this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, 1, this.nameFilterActive$.value ? this.nameFilter$.value : '', 'GalleryState.deferredCount').then(countPage => {
+                if (request !== this.navigationRequest || this.selectedLocation$.value !== path) return;
+                if (countPage.totalCount >= 0) {
+                  this.galleryTotalCount = countPage.totalCount;
+                  this.totalFileCount.set(countPage.totalCount);
+                }
+              }).catch(error => console.error('Failed to refresh deferred gallery count', path, error));
+            }, 25000);
+          }
         }),
         map(() => true),
         finalize(() => {
