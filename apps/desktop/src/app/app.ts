@@ -394,6 +394,7 @@ export default class App {
       App.focusWindow(App.capturePreviewWindow);
       return true;
     }
+    const openedByHotkey = App.pendingCaptureHotkey !== null;
     const display = screen.getDisplayMatching(App.mainWindow.getBounds());
     const savedBounds = App.restoreAuxiliaryBounds(App.startupConfig.capturePreviewBounds(), display.workArea, 1100, 760);
     App.capturePreviewWindow = new BrowserWindow({
@@ -416,9 +417,18 @@ export default class App {
       App.capturePreviewWindow?.setTitle(capturePreviewWindowTitle);
     });
     App.capturePreviewWindow.setTitle(capturePreviewWindowTitle);
+    const onPreviewRendererReady = (event: Electron.IpcMainEvent): void => {
+      if (event.sender !== App.capturePreviewWindow?.webContents) return;
+      const pendingHotkey = App.pendingCaptureHotkey;
+      if (!pendingHotkey || !App.isCapturePreviewWindowOpen()) return;
+      App.pendingCaptureHotkey = null;
+      App.capturePreviewWindow.webContents.send(pendingHotkey);
+    };
+    ipcMain.on('CapturePreviewWindow.rendererReady', onPreviewRendererReady);
     App.capturePreviewWindow.on('move', () => App.scheduleAuxiliaryBoundsSave('capture'));
     App.capturePreviewWindow.on('resize', () => App.scheduleAuxiliaryBoundsSave('capture'));
     App.capturePreviewWindow.on('close', () => {
+      ipcMain.removeListener('CapturePreviewWindow.rendererReady', onPreviewRendererReady);
       App.logShutdown('window-close', { window: 'capture-preview' });
       void App.startupConfig.saveCapturePreviewBounds(App.capturePreviewWindow.getNormalBounds());
     });
@@ -436,12 +446,9 @@ export default class App {
     App.capturePreviewWindow.once('ready-to-show', () => {
       if (!App.isCapturePreviewWindowOpen()) return;
       if (App.startupConfig.devToolsOpen()) App.capturePreviewWindow.webContents.openDevTools();
-      const pendingHotkey = App.pendingCaptureHotkey;
-      App.pendingCaptureHotkey = null;
-      if (pendingHotkey) App.capturePreviewWindow.webContents.send(pendingHotkey);
-      // Keep a hotkey-opened preview hidden. The shortcut should not alter
-      // foreground activation or Z-order; users can open it explicitly later.
-      if (!pendingHotkey) App.capturePreviewWindow.show();
+      // Hotkey actions are delivered only after CapturePanel confirms that its
+      // listener/effect is installed. A hotkey-opened preview remains hidden.
+      if (!openedByHotkey) App.capturePreviewWindow.show();
     });
     App.capturePreviewWindow.on('closed', () => {
       App.logShutdown('window-closed', { window: 'capture-preview' });
