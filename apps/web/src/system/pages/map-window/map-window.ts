@@ -2321,6 +2321,7 @@ export class MapWindow implements OnInit, OnDestroy {
       // updateCurrentLocation only moves an existing overlay; setCurrentLocation
       // also creates the marker when the previous image had no GPS position.
       this.offlineRenderer.setCurrentLocation(latitude!, longitude!, this.currentMarkerColor(), markerOpacity, this.currentMarkerShape());
+      this.offlineRenderer.setCurrentPhotoPreview(this.currentImagePath, this.currentImagePath?.split(/[\\/]/).pop() ?? '');
     } else if (this.map && this.leaflet) {
       if (this.marker) {
         this.marker.setLatLng([latitude!, longitude!]);
@@ -3263,6 +3264,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const latestLatitude = this.currentLatitude ?? latitude;
     const latestLongitude = this.currentLongitude ?? longitude;
     renderer.setCurrentLocation(latestLatitude, latestLongitude, this.currentMarkerColor(), (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape());
+    renderer.setCurrentPhotoPreview(this.currentImagePath, this.currentImagePath?.split(/[\\/]/).pop() ?? '');
     renderer.setTextLabelOpacity(this.labelsVisible() ? this.labelOpacity() / 100 : 0);
     renderer.map.jumpTo({ center: [latestLongitude, latestLatitude] });
     this.applyMapColor(); this.applyMapOpacity();
