@@ -548,15 +548,6 @@ export class SettingsPanelComponent {
         void this.updateBuildCacheInfo(directory || null, this.recursiveBuild());
       }
     });
-    effect(() => {
-      if (this.mode() !== 'cache') return;
-      const buildActive = this.cacheBuildActive();
-      this.cacheFolderPath();
-      // Cache summary performs physical cache-file checks. Do not compete
-      // with the recursive builder's SQLite writes and filesystem traversal.
-      if (buildActive) return;
-      void this.updateCacheSummary();
-    });
     let previousSummaryBuildState: boolean | null = null;
     effect(() => {
       const buildActive = this.cacheBuildActive();
@@ -674,6 +665,11 @@ export class SettingsPanelComponent {
         this.clearError.set(error instanceof Error ? error.message : String(error));
       }
     }
+  };
+
+  protected readonly refreshCacheSummary = async (): Promise<void> => {
+    if (this.cacheBuildActive() || this.cacheSummaryLoading() || this.physicalCacheVerificationLoading()) return;
+    await this.updateCacheSummary(undefined, true);
   };
 
   protected readonly verifyPhysicalCacheFiles = async (): Promise<void> => {
