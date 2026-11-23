@@ -11,7 +11,7 @@
         <strong>Cached thumbnails:</strong> {{ formatNumber(cacheStatus.thumbnails) }}
       </span>
     } @else {
-      <span><strong>Thumbnail cache count not measured yet.</span>
+      <span><strong>Thumbnail cache count not measured yet.</strong></span>
     }
     <button type="button" class="gallery-build-cache-button" [disabled]="cacheRunActive()" (click)="buildCurrentFolderCache()">Build cache</button>
   </div>
