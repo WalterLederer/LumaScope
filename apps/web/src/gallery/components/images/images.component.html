@@ -124,7 +124,7 @@
           <th class="detail-actions-statistics" scope="col" [hidden]="detailActionsColumnPosition() !== 'left'" aria-label="Folder actions statistics"></th>
           <th class="thumb-statistics" scope="col"><small>{{ dimensions().width }} × {{ dimensions().height }}</small></th>
           <th scope="col" class="name-filter-header">
-            <small class="column-count" [class.incomplete]="nameFilterActive()">{{ nameFilterActive() ? totalFileCount() + ' / ' + cacheStats().total : cacheStats().total }}</small>
+            <small class="column-count" [class.incomplete]="nameFilterActive()">{{ cacheStatsLoaded() ? (nameFilterActive() ? totalFileCount() + ' / ' + cacheStats().total : cacheStats().total) : '?' }}</small>
           </th>
           <th scope="col"><small class="column-summary"><span>Min: {{ detailSummary().date[0] }}</span><span>Max: {{ detailSummary().date[1] }}</span></small></th>
           <th scope="col">
@@ -136,12 +136,12 @@
           <th scope="col" [attr.title]="distinctSuffixTooltip()">
             <small class="column-count">{{ distinctSuffixCount() }}</small>
           </th>
-          <th scope="col"><small class="column-count" [class.incomplete]="cacheStats().hdr < cacheStats().total">{{ cacheStats().hdr }}</small></th>
-          <th scope="col"><small class="column-count" [class.incomplete]="cacheStats().thumbnails < cacheStats().total">{{ cacheStats().thumbnails }}</small></th>
-          <th scope="col"><small class="column-count" [class.incomplete]="!cacheStatusLoading() && cacheStats().fullSizeConversions < fullSizeConversionTotal()">{{ cacheStats().fullSizeConversions }} / {{ cacheStatusLoading() ? "…" : fullSizeConversionTotal() }}</small></th>
-          <th scope="col"><small class="column-count" [class.incomplete]="cacheStats().gps < cacheStats().total">{{ cacheStats().gps }}</small></th>
+          <th scope="col"><small class="column-count" [class.incomplete]="cacheStats().hdr < cacheStats().total">{{ cacheStatsLoaded() ? cacheStats().hdr : '?' }}</small></th>
+          <th scope="col"><small class="column-count" [class.incomplete]="cacheStats().thumbnails < cacheStats().total">{{ cacheStatsLoaded() ? cacheStats().thumbnails : '?' }}</small></th>
+          <th scope="col"><small class="column-count" [class.incomplete]="!cacheStatusLoading() && cacheStats().fullSizeConversions < fullSizeConversionTotal()">{{ cacheStatsLoaded() ? cacheStats().fullSizeConversions + ' / ' + fullSizeConversionTotal() : '?' }}</small></th>
+          <th scope="col"><small class="column-count" [class.incomplete]="cacheStats().gps < cacheStats().total">{{ cacheStatsLoaded() ? cacheStats().gps : '?' }}</small></th>
           <th scope="col">
-            <small class="column-count" [class.incomplete]="cacheStats().location < cacheStats().total">{{ cacheStats().location }}</small>
+            <small class="column-count" [class.incomplete]="cacheStats().location < cacheStats().total">{{ cacheStatsLoaded() ? cacheStats().location : '?' }}</small>
             @if (reverseGeocodingStatus().status === 'running' && !reverseGeocodingStatus().paused) {
               <small class="worker-progress" aria-live="polite">Running: {{ reverseGeocodingStatus().resolved + reverseGeocodingStatus().errors + reverseGeocodingStatus().inProgress }} / {{ reverseGeocodingStatus().total }}</small>
             }
