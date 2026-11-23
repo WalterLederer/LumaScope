@@ -444,7 +444,7 @@ export class ImagesComponent {
   readonly detailThumbnailHeight = computed(() => Math.round(this.detailThumbnailWidth() * 0.75));
   readonly detailVirtualRowHeight = computed(() => Math.max(
     Math.ceil(this.detailFontSize() * 1.25),
-    this.viewMode() === 'details-no-thumbnails' ? 0 : this.detailThumbnailHeight()
+    this.viewMode() === 'details-no-thumbnails' ? 22 : this.detailThumbnailHeight()
   ));
   private readonly detailVirtualOverscan = 12;
   readonly detailVirtualCount = computed(() =>
