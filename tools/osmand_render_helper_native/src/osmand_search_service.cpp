@@ -1404,7 +1404,7 @@ QString OsmAndSearchService::reverseGeocode(
                         });
 
                     QJsonArray nearestBuildings;
-                    const int diagnosticLimit = std::min(100, sortedBuildings.size());
+                    const int diagnosticLimit = static_cast<int>(std::min<qsizetype>(100, sortedBuildings.size()));
                     for (int index = 0; index < diagnosticLimit; ++index)
                         nearestBuildings.push_back(sortedBuildings.at(index).second);
 
