@@ -1217,7 +1217,7 @@ export class ImageView {
       const markedPath = this.galleryActiveSelectionPath();
       const currentlyOpenedPath = this.selectedImageSignal()?.path ?? null;
       const normalizeFilePath = (path: string | null): string =>
-        (path ?? '').replace(/\\/g, '/').replace(/\\/+$/, '').toLocaleLowerCase();
+        (path ?? '').replace(/\\/g, '/').replace(/[\\/]+$/, '').toLocaleLowerCase();
       // The same Windows file can be reported with different separator or
       // casing conventions. Do not reload it just because the path strings differ.
       if (markedPath && normalizeFilePath(markedPath) !== normalizeFilePath(currentlyOpenedPath)) {
