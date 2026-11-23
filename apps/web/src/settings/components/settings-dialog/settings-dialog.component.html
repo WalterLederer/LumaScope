@@ -9,6 +9,12 @@
       <details class="cache-summary-box app-disclosure">
         <summary>Summary</summary>
         <div class="cache-summary-content">
+          <div class="cache-summary-databases-heading">
+            <span>Physical cache-file sizes are checked only on request.</span>
+            <button class="cache-button cache-summary-open-button" type="button"
+                    [disabled]="physicalCacheVerificationLoading() || cacheSummaryLoading() || cacheBuildActive() || !cacheSummaryColumns().length"
+                    (click)="verifyPhysicalCacheFiles()">{{ physicalCacheVerificationLoading() ? 'Verifying cache files…' : 'Verify physical cache files' }}</button>
+          </div>
           @if (cacheSummaryLoading()) {
             <p class="cache-status" role="status">Updating cache summary… ({{ cacheSummaryLoadingDrives().join(', ') }})</p>
           }
@@ -35,25 +41,25 @@
                   <tr>
                     <th scope="row">Total cache entries</th>
                     @for (column of cacheSummaryColumns(); track column.key) {
-                      <td><strong>{{ column.summary.total.entries }} files · {{ column.summary.total.bytes | byteSize }}</strong></td>
+                      <td><strong>{{ column.summary.total.entries }} registered · {{ column.summary.physicalFilesVerified ? (column.summary.total.bytes | byteSize) : 'size not verified' }}</strong></td>
                     }
                   </tr>
                   <tr>
                     <th scope="row">Full-size conversions</th>
                     @for (column of cacheSummaryColumns(); track column.key) {
-                      <td>{{ column.summary.fullSize.entries }} files · {{ column.summary.fullSize.bytes | byteSize }}</td>
+                      <td>{{ column.summary.fullSize.entries }} registered · {{ column.summary.physicalFilesVerified ? (column.summary.fullSize.bytes | byteSize) : 'size not verified' }}</td>
                     }
                   </tr>
                   <tr>
                     <th scope="row">Thumbnail files</th>
                     @for (column of cacheSummaryColumns(); track column.key) {
-                      <td>{{ column.summary.thumbnails.entries }} files · {{ column.summary.thumbnails.bytes | byteSize }}</td>
+                      <td>{{ column.summary.thumbnails.entries }} registered · {{ column.summary.physicalFilesVerified ? (column.summary.thumbnails.bytes | byteSize) : 'size not verified' }}</td>
                     }
                   </tr>
                   <tr>
                     <th scope="row">Sidecar cache</th>
                     @for (column of cacheSummaryColumns(); track column.key) {
-                      <td>{{ column.summary.sidecar.entries }} files · {{ column.summary.sidecar.bytes | byteSize }}</td>
+                      <td>{{ column.summary.sidecar.entries }} registered · {{ column.summary.physicalFilesVerified ? (column.summary.sidecar.bytes | byteSize) : 'size not verified' }}</td>
                     }
                   </tr>
                   <tr>
