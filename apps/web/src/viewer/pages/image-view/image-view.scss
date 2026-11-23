@@ -2781,14 +2781,8 @@
   box-shadow: inset 0 0 0 4px #30343a !important;
 }
 
-/* Keep the Image/View tabs and all comparison modes independent of the
-   configurable blue action-button theme. Inactive controls stay white;
-   the selected control uses a light-gray neutral surface. */
-:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab,
-:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:hover,
-:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:focus,
-:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:active,
-:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:focus-visible,
+/* Keep the View-mode buttons independent of the configurable blue
+   action-button theme. The Image/View tabs themselves are not modified. */
 :host .image-controls-sidebar .mode-row > button.mode-button,
 :host .image-controls-sidebar .mode-row > button.mode-button:hover,
 :host .image-controls-sidebar .mode-row > button.mode-button:focus,
@@ -2806,7 +2800,6 @@
   filter: none !important;
   transform: none !important;
 }
-:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab.active,
 :host .image-controls-sidebar .mode-row > button.mode-button.selected {
   background: #d9d9d9 !important;
   background-color: #d9d9d9 !important;
@@ -2815,7 +2808,6 @@
   box-shadow: inset 0 0 0 1px #fff !important;
   font-weight: 700 !important;
 }
-:host .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:focus-visible,
 :host .image-controls-sidebar .mode-row > button.mode-button:focus-visible {
   outline: 2px solid #777 !important;
   outline-offset: 2px !important;
@@ -2867,4 +2859,3 @@
   border-radius: 2px !important;
   box-shadow: inset 0 0 0 4px #c9c9c9 !important;
 }
-
