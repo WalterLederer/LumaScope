@@ -18,6 +18,8 @@
 #include <OsmAndCore/CommonTypes.h>
 #include <OsmAndCore/ObfDataInterface.h>
 #include <OsmAndCore/ObfsCollection.h>
+#include <OsmAndCore/RoadLocator.h>
+#include <OsmAndCore/Search/ReverseGeocoder.h>
 #include <OsmAndCore/SimpleQueryController.h>
 #include <OsmAndCore/Utilities.h>
 #include <OsmAndCore/Data/Address.h>
@@ -492,5 +494,62 @@ QString OsmAndSearchService::search(
         std::lock_guard<std::mutex> lock(_queryMutex);
         _activeQueryController.reset();
     }
+    return QString::fromUtf8(QJsonDocument(payload).toJson(QJsonDocument::Compact));
+}
+
+
+QString OsmAndSearchService::reverseGeocode(
+    double latitude,
+    double longitude,
+    const QString& locale,
+    QString& errorMessage) const
+{
+    if (!_initialized || !_obfsCollection)
+    {
+        errorMessage = QStringLiteral("reverse geocoding service was not initialized");
+        return QString();
+    }
+
+    if (latitude < -90.0 || latitude > 90.0 || longitude < -180.0 || longitude > 180.0)
+    {
+        errorMessage = QStringLiteral("Reverse geocoding coordinates are outside the valid latitude/longitude range.");
+        return QString();
+    }
+
+    const auto effectiveLocale = locale.trimmed().isEmpty() ? _defaultLocale : locale.trimmed().toLower();
+    const auto roadLocator = std::make_shared<OsmAnd::RoadLocator>(_obfsCollection);
+    const OsmAnd::ReverseGeocoder reverseGeocoder(_obfsCollection, roadLocator);
+    OsmAnd::ReverseGeocoder::Criteria criteria;
+    criteria.latLon = OsmAnd::LatLon(latitude, longitude);
+
+    const auto result = reverseGeocoder.performSearch(criteria);
+    QJsonObject payload{
+        {QStringLiteral("found"), static_cast<bool>(result)},
+        {QStringLiteral("latitude"), latitude},
+        {QStringLiteral("longitude"), longitude},
+        {QStringLiteral("source"), QStringLiteral("OsmAnd")},
+    };
+
+    if (result)
+    {
+        const auto buildingName = result->building
+            ? result->building->getName(effectiveLocale, false)
+            : QString();
+        const auto streetName = result->street
+            ? result->street->getName(effectiveLocale, false)
+            : result->streetName;
+        const auto placeName = result->streetGroup
+            ? result->streetGroup->getName(effectiveLocale, false)
+            : QString();
+
+        payload.insert(QStringLiteral("building"), buildingName);
+        payload.insert(QStringLiteral("street"), streetName);
+        payload.insert(QStringLiteral("place"), placeName);
+        payload.insert(QStringLiteral("distance_m"), result->getDistance());
+        payload.insert(QStringLiteral("result_text"), result->toString());
+        if (!result->buildingInterpolation.isEmpty())
+            payload.insert(QStringLiteral("building_interpolation"), result->buildingInterpolation);
+    }
+
     return QString::fromUtf8(QJsonDocument(payload).toJson(QJsonDocument::Compact));
 }
