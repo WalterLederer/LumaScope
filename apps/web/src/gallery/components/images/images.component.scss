@@ -1971,3 +1971,14 @@
   font-style: italic;
   text-align: center;
 }
+
+
+/* app-thumbnail is the actual virtual table row (not a native TR).
+   Keep its host height tied to the same value used by virtual scrolling. */
+.detail-native-table > tbody.images.details-list > app-thumbnail.detail-virtual-row {
+  display: table-row !important;
+  height: var(--detail-row-height, 27px) !important;
+  min-height: var(--detail-row-height, 27px) !important;
+  max-height: var(--detail-row-height, 27px) !important;
+  overflow: hidden !important;
+}
