@@ -8,12 +8,13 @@ const pendingWrites = new Map<string, Promise<void>>();
 
 // Atomic writes normally finish in milliseconds. One minute is a generous
 // grace period for a write that is still active when startup cleanup runs.
+const staleTemporaryFileAgeMs = 60 * 1000;
 const atomicJsonTemporaryFilePattern = /^\.[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.tmp$/i;
 
 /**
  * Remove abandoned atomic-JSON write files from a directory.
- * Only UUID-named files older than 24 hours are eligible, so active writes
- * and unrelated application temporary files are never touched.
+ * Only matching UUID-named files older than one minute are eligible, so
+ * active writes and unrelated application temporary files are never touched.
  */
 export const cleanupStaleJsonTemporaryFiles = async (directory: string): Promise<number> => {
   let entries;
