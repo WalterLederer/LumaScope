@@ -141,6 +141,11 @@ QJsonObject administrativeAreasForCoordinate(
     int matchedAddressBoundaryObjectIdCount = 0;
     QJsonArray mapBoundaryObjectIds;
     QSet<QString> targetBoundaryRelationKeys;
+    // Fall back to the bounding boxes of map boundary objects that contain the
+    // requested coordinate. The address index may not expose Boundary groups
+    // for every OBF, but these map objects still provide a usable scan extent.
+    OsmAnd::AreaI boundarySearchArea;
+    bool hasBoundarySearchArea = false;
     QJsonArray addressBoundaryObjectIds;
     QJsonArray matchedBoundaryObjectIds;
     QSet<QString> seenAreas;
@@ -201,7 +206,21 @@ QJsonObject administrativeAreasForCoordinate(
                                     && mapObject->bbox31.top() <= point31.y
                                     && mapObject->bbox31.bottom() >= point31.y;
                                 if (bboxContainsPoint)
+                                {
                                     targetBoundaryRelationKeys.insert(QStringLiteral("%1|%2").arg(adminLevel).arg(objectKey));
+                                    if (!hasBoundarySearchArea)
+                                    {
+                                        boundarySearchArea = mapObject->bbox31;
+                                        hasBoundarySearchArea = true;
+                                    }
+                                    else
+                                    {
+                                        boundarySearchArea.left() = std::min(boundarySearchArea.left(), mapObject->bbox31.left());
+                                        boundarySearchArea.top() = std::min(boundarySearchArea.top(), mapObject->bbox31.top());
+                                        boundarySearchArea.right() = std::max(boundarySearchArea.right(), mapObject->bbox31.right());
+                                        boundarySearchArea.bottom() = std::max(boundarySearchArea.bottom(), mapObject->bbox31.bottom());
+                                    }
+                                }
                             }
                             if (mapBoundaryObjectIds.size() < 20)
                             {
@@ -346,8 +365,6 @@ QJsonObject administrativeAreasForCoordinate(
     // Diagnostic reconstruction probe: load map geometry across the union of
     // address-index boundary bounding boxes that contain the requested point.
     // This intentionally does not change address resolution yet.
-    OsmAnd::AreaI boundarySearchArea;
-    bool hasBoundarySearchArea = false;
     for (const auto& streetGroup : addressBoundaryGroups)
     {
         if (!streetGroup || streetGroup->type != OsmAnd::ObfAddressStreetGroupSubtype::Boundary
