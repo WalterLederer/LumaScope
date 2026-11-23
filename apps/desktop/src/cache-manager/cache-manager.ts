@@ -1860,9 +1860,10 @@ export class CacheManager {
     const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
     const rows = db.prepare(`SELECT photos.file_name, paths.relative_folder_path
       FROM photos JOIN paths ON paths.id = photos.path_id
-      WHERE lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
-          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
-        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))`)
+      WHERE paths.relative_folder_path = :folder COLLATE NOCASE
+        OR (:recursive = 1
+          AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
+          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)`)
       .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as Array<{ file_name: string; relative_folder_path: string }>;
     const suffixes = new Set<string>();
     let count = 0;
@@ -1892,9 +1893,10 @@ export class CacheManager {
     const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
     const rows = db.prepare(`SELECT photos.file_name, photos.file_size, photos.modified_at, photos.gps_timestamp, paths.relative_folder_path
       FROM photos JOIN paths ON paths.id = photos.path_id
-      WHERE lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
-          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
-        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))`)
+      WHERE paths.relative_folder_path = :folder COLLATE NOCASE
+        OR (:recursive = 1
+          AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
+          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)`)
       .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as Array<{
         file_name: string; file_size: number; modified_at: number; gps_timestamp: number | null; relative_folder_path: string;
       }>;
@@ -1950,11 +1952,12 @@ export class CacheManager {
     const scope = `FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
       WHERE (
-        lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
-          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
-        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))
+        paths.relative_folder_path = :folder COLLATE NOCASE
+        OR (:recursive = 1
+          AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
+          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)
       )`;
-    const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `lower(photos.file_name) LIKE :extension${index}`).join(' OR ')})`;
+    const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `photos.file_name LIKE :extension${index}`).join(' OR ')})`;
     const normalizedNameFilter = typeof nameFilter === 'string' ? nameFilter.trim().toLocaleLowerCase() : '';
     const nameFilterTerms = normalizedNameFilter.split(/\s+/).filter(Boolean);
     const filterParams: Record<string, string | number> = {
@@ -1965,7 +1968,7 @@ export class CacheManager {
     }
     const nameFilterSql = nameFilterTerms.map((term, index) => {
       filterParams[`nameFilter${index}`] = term;
-      return `instr(lower(photos.file_name), :nameFilter${index}) > 0`;
+      return `instr(photos.file_name COLLATE NOCASE, :nameFilter${index}) > 0`;
     });
     const where = `${scope}${supportedFilter}${nameFilterSql.length ? ` AND ${nameFilterSql.join(' AND ')}` : ''}`;
     // Load the requested page first. When fewer than the requested limit are
@@ -2044,11 +2047,12 @@ export class CacheManager {
     const scope = `FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
       WHERE (
-        lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
-          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
-        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))
+        paths.relative_folder_path = :folder COLLATE NOCASE
+        OR (:recursive = 1
+          AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
+          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)
       )`;
-    const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `lower(photos.file_name) LIKE :extension${index}`).join(' OR ')})`;
+    const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `photos.file_name LIKE :extension${index}`).join(' OR ')})`;
     const parameters: Record<string, string | number> = {
       folder, recursive: recursive ? 1 : 0, folderPrefix,
       targetFolder: this.toRelativeFolderPath(dirname(sourcePath), databaseKey) ?? '',
@@ -2126,11 +2130,12 @@ export class CacheManager {
     const scope = `FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
       WHERE (
-        lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
-          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
-        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))
+        paths.relative_folder_path = :folder COLLATE NOCASE
+        OR (:recursive = 1
+          AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
+          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)
       )`;
-    const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `lower(photos.file_name) LIKE :extension${index}`).join(' OR ')})`;
+    const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `photos.file_name LIKE :extension${index}`).join(' OR ')})`;
     const parameters: Record<string, string | number> = {
       folder, recursive: recursive ? 1 : 0, folderPrefix, limit: 1, offset: safePosition - 1
     };
@@ -2184,17 +2189,18 @@ export class CacheManager {
     const scope = `FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
       WHERE (
-        lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
-          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
-        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))
+        paths.relative_folder_path = :folder COLLATE NOCASE
+        OR (:recursive = 1
+          AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
+          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)
       )`;
-    const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `lower(photos.file_name) LIKE :extension${index}`).join(' OR ')})`;
+    const supportedFilter = includeUnsupported ? '' : ` AND (${supportedFileExtensions.map((_, index) => `photos.file_name LIKE :extension${index}`).join(' OR ')})`;
     const terms = typeof nameFilter === 'string' ? nameFilter.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean) : [];
     const parameters: Record<string, string | number> = { folder, recursive: recursive ? 1 : 0, folderPrefix };
     if (!includeUnsupported) supportedFileExtensions.forEach((extension, index) => { parameters[`extension${index}`] = `%.${extension.toLowerCase()}`; });
     const nameFilterSql = terms.map((term, index) => {
       parameters[`nameFilter${index}`] = term;
-      return `instr(lower(photos.file_name), :nameFilter${index}) > 0`;
+      return `instr(photos.file_name COLLATE NOCASE, :nameFilter${index}) > 0`;
     });
     const where = scope + supportedFilter + (nameFilterSql.length ? ` AND (${nameFilterSql.join(' AND ')})` : '');
     // Match extensions with SQLite's case-insensitive LIKE instead of extracting
@@ -2403,9 +2409,10 @@ export class CacheManager {
     const select = db.prepare(`SELECT photos.id, photos.file_name, paths.relative_folder_path
       FROM photos
       JOIN paths ON paths.id = photos.path_id
-      WHERE lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
-          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
-        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))`);
+      WHERE paths.relative_folder_path = :folder COLLATE NOCASE
+        OR (:recursive = 1
+          AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
+          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)`);
     const insertStale = db.prepare('INSERT OR IGNORE INTO temp.lumascope_stale_photo_ids (id) VALUES (:id)');
     const deleteStale = db.prepare('DELETE FROM photos WHERE id IN (SELECT id FROM temp.lumascope_stale_photo_ids)');
     db.exec('CREATE TEMP TABLE IF NOT EXISTS lumascope_stale_photo_ids (id INTEGER PRIMARY KEY);');
@@ -2469,9 +2476,10 @@ export class CacheManager {
         location_names.display_name AS location_display_name
       FROM photos JOIN paths ON paths.id = photos.path_id
       LEFT JOIN location_names ON location_names.id = photos.location_name_id AND photos.location_name_id <> 0
-      WHERE lower(replace(rtrim(paths.relative_folder_path, char(92) || '/'), '/', char(92))) =
-          lower(replace(rtrim(:folder, char(92) || '/'), '/', char(92)))
-        OR (:recursive = 1 AND substr(lower(replace(paths.relative_folder_path, '/', char(92))), 1, length(:folderPrefix)) = lower(:folderPrefix))
+      WHERE paths.relative_folder_path = :folder COLLATE NOCASE
+        OR (:recursive = 1
+          AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
+          AND paths.relative_folder_path < (:folderPrefix || char(65535)) COLLATE NOCASE)
       ORDER BY paths.relative_folder_path COLLATE NOCASE, photos.file_name COLLATE NOCASE`)
       .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as unknown as Array<{ file_name: string; relative_folder_path: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null; location_display_name: string | null }>;
     return rows.map(row => ({
