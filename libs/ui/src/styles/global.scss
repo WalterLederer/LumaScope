@@ -1221,3 +1221,55 @@ html body button.gpx-track-menu-icon:focus-visible {
   outline: 1px solid var(--color-content-default-low, #666) !important;
   outline-offset: 1px !important;
 }
+
+
+/* Image viewer exceptions: the Image and View tabs and comparison-mode
+   buttons are state selectors, not action buttons. Keep them neutral even
+   when a global button or tab-bar theme is configured. */
+html[data-tab-bar-style] body .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab,
+html[data-tab-bar-style] body .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:hover,
+html[data-tab-bar-style] body .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:focus,
+html[data-tab-bar-style] body .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:active,
+html[data-tab-bar-style] body .image-controls-sidebar .mode-row > button.mode-button,
+html[data-tab-bar-style] body .image-controls-sidebar .mode-row > button.mode-button:hover,
+html[data-tab-bar-style] body .image-controls-sidebar .mode-row > button.mode-button:focus,
+html[data-tab-bar-style] body .image-controls-sidebar .mode-row > button.mode-button:active {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: #ededed !important;
+  background-color: #ededed !important;
+  background-image: none !important;
+  color: #202124 !important;
+  border: 1px solid #999 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+html[data-tab-bar-style] body .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab.active,
+html[data-tab-bar-style] body .image-controls-sidebar .mode-row > button.mode-button.selected {
+  background: #c9c9c9 !important;
+  background-color: #c9c9c9 !important;
+  color: #111 !important;
+  border: 2px solid #555 !important;
+  box-shadow: inset 0 0 0 1px #fff !important;
+  font-weight: 700 !important;
+}
+html[data-theme='dark'][data-tab-bar-style] body .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab,
+html[data-theme='dark'][data-tab-bar-style] body .image-controls-sidebar .mode-row > button.mode-button,
+html[data-theme='dark'][data-tab-bar-style] body .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab:hover,
+html[data-theme='dark'][data-tab-bar-style] body .image-controls-sidebar .mode-row > button.mode-button:hover {
+  background: #34373b !important;
+  background-color: #34373b !important;
+  color: #e8e8e8 !important;
+  border-color: #777 !important;
+}
+html[data-theme='dark'][data-tab-bar-style] body .image-controls-sidebar .image-sidebar-tabs > button.image-neutral-tab.active,
+html[data-theme='dark'][data-tab-bar-style] body .image-controls-sidebar .mode-row > button.mode-button.selected {
+  background: #555b62 !important;
+  background-color: #555b62 !important;
+  color: #fff !important;
+  border: 2px solid #c5cbd2 !important;
+  box-shadow: inset 0 0 0 1px #25282c !important;
+  font-weight: 700 !important;
+}
