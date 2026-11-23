@@ -70,6 +70,12 @@
                     <table class="fix-location-position-table" aria-label="Crosshair and photo address lookup">
                       <tbody>
                         <tr>
+                          <th scope="row">Crosshair</th>
+                          <td class="fix-location-coordinate-value" role="status">{{ crosshairCoordinates() }}</td>
+                          <td><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></td>
+                          <td class="fix-location-address-cell"><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span></td>
+                        </tr>
+                        <tr>
                           <th scope="row">Photo</th>
                           <td class="fix-location-photo-coordinates" role="status">{{ photoGpsCoordinates() }}</td>
                           <td></td>
@@ -200,17 +206,12 @@
                   <div class="fix-location-controls">
                     <table class="fix-location-position-table" aria-label="Crosshair and image GPS positions">
                       <tbody>
-                        <tr>
-                          <th scope="row">Crosshair</th>
-                          <td class="fix-location-coordinate-value" role="status">{{ crosshairCoordinates() }}</td>
-                          <td><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></td>
-                          <td class="fix-location-address-cell"><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button><span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span></td>
-                        </tr>
+                        
                         <tr>
                           <th scope="row">Image</th>
                           <td class="fix-location-photo-coordinates" role="status">{{ photoGpsCoordinates() }}</td>
                           <td><button type="button" class="map-toolbar-button" (click)="centerMapOnPhoto()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">◎</span> Center on image</button></td>
-                          <td><div class="fix-location-gps-file-actions"><button type="button" class="map-toolbar-button" (click)="centerMapOnPhoto()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">◎</span> Center on image</button><button type="button" class="map-toolbar-button" (click)="refreshGpsPosition()" [disabled]="!currentImagePath || gpsRefreshBusy()"><span aria-hidden="true">↻</span> {{ gpsRefreshBusy() ? 'Refreshing…' : 'Refresh GPS from file' }}</button></div></td>
+                          <td><div class="fix-location-gps-file-actions"><button type="button" class="map-toolbar-button" (click)="refreshGpsPosition()" [disabled]="!currentImagePath || gpsRefreshBusy()"><span aria-hidden="true">↻</span> {{ gpsRefreshBusy() ? 'Refreshing…' : 'Refresh GPS from file' }}</button></div></td>
                         </tr>
                       </tbody>
                     </table>
