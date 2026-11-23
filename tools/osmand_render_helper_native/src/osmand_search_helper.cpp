@@ -34,7 +34,8 @@ void printUsage()
     std::cerr
         << "Usage:\n"
         << "  osmand_search_helper --search <obf-paths-json> <resources-root> <query> [locale] [limit]\n"
-        << "  osmand_search_helper --reverse-geocode <obf-paths-json> <resources-root> <latitude> <longitude> [locale]"
+        << "  osmand_search_helper --reverse-geocode <obf-paths-json> <resources-root> <latitude> <longitude> [locale]\\n"
+        << "  osmand_search_helper --reverse-geocode-worker <obf-paths-json> <resources-root> [locale]"
         << std::endl;
 }
 
@@ -57,8 +58,10 @@ int main(int argc, char* argv[])
 
     const auto mode = argc > 1 ? QString::fromLatin1(argv[1]) : QString();
     const bool reverseGeocodeMode = mode == QStringLiteral("--reverse-geocode");
+    const bool reverseGeocodeWorkerMode = mode == QStringLiteral("--reverse-geocode-worker");
     const bool searchMode = mode == QStringLiteral("--search");
-    if ((!reverseGeocodeMode && !searchMode) || argc < (reverseGeocodeMode ? 6 : 5))
+    if ((!reverseGeocodeMode && !reverseGeocodeWorkerMode && !searchMode)
+        || argc < (reverseGeocodeMode ? 6 : (reverseGeocodeWorkerMode ? 4 : 5)))
     {
         printUsage();
         return 2;
@@ -92,6 +95,55 @@ int main(int argc, char* argv[])
         return 1;
     }
     std::fprintf(stderr, "[osmand-search] Service initialized\\n");
+
+    if (reverseGeocodeWorkerMode)
+    {
+        const auto defaultLocale = argc > 4 ? decodeArgument(argv[4]) : QString();
+        std::cout << QJsonDocument(QJsonObject{
+            {QStringLiteral("worker_ready"), true}
+        }).toJson(QJsonDocument::Compact).constData() << std::endl;
+
+        std::string requestLine;
+        while (std::getline(std::cin, requestLine))
+        {
+            const auto request = QJsonDocument::fromJson(QByteArray::fromStdString(requestLine));
+            if (!request.isObject())
+            {
+                std::cout << QJsonDocument(QJsonObject{
+                    {QStringLiteral("error"), QStringLiteral("Invalid reverse-geocoding worker request")}
+                }).toJson(QJsonDocument::Compact).constData() << std::endl;
+                continue;
+            }
+
+            const auto object = request.object();
+            bool latitudeOk = false;
+            bool longitudeOk = false;
+            const auto latitude = object.value(QStringLiteral("latitude")).toDouble(&latitudeOk);
+            const auto longitude = object.value(QStringLiteral("longitude")).toDouble(&longitudeOk);
+            const auto locale = object.value(QStringLiteral("locale")).toString(defaultLocale);
+            if (!latitudeOk || !longitudeOk
+                || latitude < -90.0 || latitude > 90.0
+                || longitude < -180.0 || longitude > 180.0)
+            {
+                std::cout << QJsonDocument(QJsonObject{
+                    {QStringLiteral("error"), QStringLiteral("Invalid reverse-geocoding coordinates")}
+                }).toJson(QJsonDocument::Compact).constData() << std::endl;
+                continue;
+            }
+
+            QString requestError;
+            const auto response = service.reverseGeocode(latitude, longitude, locale, requestError);
+            if (!requestError.isEmpty())
+            {
+                std::cout << QJsonDocument(QJsonObject{
+                    {QStringLiteral("error"), requestError}
+                }).toJson(QJsonDocument::Compact).constData() << std::endl;
+                continue;
+            }
+            std::cout << response.toUtf8().constData() << std::endl;
+        }
+        return 0;
+    }
 
     QString result;
     if (reverseGeocodeMode)
