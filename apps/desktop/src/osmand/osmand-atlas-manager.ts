@@ -968,6 +968,8 @@ export class OsmAndAtlasManager {
     place: string;
     postcode: string;
     administrative_areas: Array<{ admin_level: number; name: string }>;
+    helper_version: string;
+    diagnostics: { loaded_map_objects: number; administrative_boundary_objects: number; loaded_address_boundary_groups: number; matching_address_boundary_groups: number; resolved_administrative_areas: number };
     distance_m: number | null;
     source: string;
   }> => {
@@ -1017,6 +1019,8 @@ export class OsmAndAtlasManager {
       place?: string;
       postcode?: string;
       administrative_areas?: unknown;
+      helper_version?: unknown;
+      diagnostics?: unknown;
       distance_m?: number;
       source?: string;
     };
@@ -1028,6 +1032,13 @@ export class OsmAndAtlasManager {
         && typeof (area as { name?: unknown }).name === 'string'
         && (area as { name: string }).name.trim().length > 0)
       : [];
+    const rawDiagnostics = result.diagnostics && typeof result.diagnostics === 'object'
+      ? result.diagnostics as Record<string, unknown>
+      : {};
+    const diagnosticCount = (key: string): number => {
+      const value = rawDiagnostics[key];
+      return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+    };
     return {
       found: result.found,
       latitude,
@@ -1037,6 +1048,14 @@ export class OsmAndAtlasManager {
       place: typeof result.place === 'string' ? result.place : '',
       postcode: typeof result.postcode === 'string' ? result.postcode : '',
       administrative_areas: administrativeAreas,
+      helper_version: typeof result.helper_version === 'string' ? result.helper_version : 'unknown',
+      diagnostics: {
+        loaded_map_objects: diagnosticCount('loaded_map_objects'),
+        administrative_boundary_objects: diagnosticCount('administrative_boundary_objects'),
+        loaded_address_boundary_groups: diagnosticCount('loaded_address_boundary_groups'),
+        matching_address_boundary_groups: diagnosticCount('matching_address_boundary_groups'),
+        resolved_administrative_areas: diagnosticCount('resolved_administrative_areas')
+      },
       distance_m: typeof result.distance_m === 'number' && Number.isFinite(result.distance_m) ? result.distance_m : null,
       source: typeof result.source === 'string' ? result.source : 'OsmAnd'
     };
