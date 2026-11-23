@@ -1250,6 +1250,8 @@ export class CacheManager {
       thumbnails: { entries: 0, bytes: 0 },
       sidecar: { entries: 0, bytes: 0 },
       gps: { entries: 0, bytes: 0 },
+      gpsResolved: 0,
+      gpsUnresolved: 0,
       selectedDatabaseKey,
       databases: []
     };
@@ -1261,6 +1263,8 @@ export class CacheManager {
         && row.latitude >= -90 && row.latitude <= 90 && row.longitude >= -180 && row.longitude <= 180) {
         summary.gps.entries++;
         summary.gps.bytes += row.file_size;
+        if (typeof row.location_display_name === 'string' && row.location_display_name.trim()) summary.gpsResolved++;
+        else summary.gpsUnresolved++;
       }
 
       if (row.thumbnail_cache_id === CACHE_STORAGE_TYPE.SIDECAR) {
