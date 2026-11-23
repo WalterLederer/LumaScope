@@ -180,7 +180,26 @@ QJsonObject administrativeAreasForCoordinate(
                         {
                             administrativeLevelsByObjectId.insert(mapObject->id.id, adminLevel);
                             if (mapBoundaryObjectIds.size() < 20)
-                                mapBoundaryObjectIds.push_back(QString::number(mapObject->id.id));
+                            {
+                                const auto mapName = mapObject->getName(locale, false).trimmed();
+                                const auto displayName = mapName.isEmpty()
+                                    ? mapObject->getCaptionInNativeLanguage().trimmed()
+                                    : mapName;
+                                const bool bboxContainsPoint = mapObject->bbox31.left() <= point31.x
+                                    && mapObject->bbox31.right() >= point31.x
+                                    && mapObject->bbox31.top() <= point31.y
+                                    && mapObject->bbox31.bottom() >= point31.y;
+                                mapBoundaryObjectIds.push_back(QStringLiteral("id=%1 osmId=%2 relation=%3 split=%4 level=%5 area=%6 bbox=%7 contains=%8 name=%9")
+                                    .arg(mapObject->id.id)
+                                    .arg(mapObject->id.getOsmId())
+                                    .arg(mapObject->id.isIdFromRelation() ? 1 : 0)
+                                    .arg(mapObject->id.isIdFromSplit() ? 1 : 0)
+                                    .arg(adminLevel)
+                                    .arg(mapObject->isArea ? 1 : 0)
+                                    .arg(bboxContainsPoint ? 1 : 0)
+                                    .arg(mapObjectContainsPoint(*mapObject, point) ? 1 : 0)
+                                    .arg(displayName));
+                            }
                         }
                     }
 
@@ -258,7 +277,16 @@ QJsonObject administrativeAreasForCoordinate(
 
         ++matchingAddressBoundaryGroupCount;
         if (addressBoundaryObjectIds.size() < 20)
-            addressBoundaryObjectIds.push_back(QString::number(streetGroup->id.id));
+        {
+            const auto groupName = streetGroup->getName(locale, false).trimmed();
+            const auto displayName = groupName.isEmpty() ? streetGroup->nativeName.trimmed() : groupName;
+            addressBoundaryObjectIds.push_back(QStringLiteral("id=%1 osmId=%2 relation=%3 split=%4 name=%5")
+                .arg(streetGroup->id.id)
+                .arg(streetGroup->id.getOsmId())
+                .arg(streetGroup->id.isIdFromRelation() ? 1 : 0)
+                .arg(streetGroup->id.isIdFromSplit() ? 1 : 0)
+                .arg(displayName));
+        }
         const auto levelIt = administrativeLevelsByObjectId.constFind(streetGroup->id.id);
         if (levelIt == administrativeLevelsByObjectId.cend())
             continue;
