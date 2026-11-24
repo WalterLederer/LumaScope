@@ -725,15 +725,11 @@ QJsonObject administrativeAreasForCoordinate(
         });
     }
 
-    // Resolve AddressIndex Boundary groups to their administrative levels by
-    // direct OSM object identity. The initial point query often misses the map
-    // geometry because OBF stores only generalized/split line fragments whose
-    // individual bboxes do not reach the query point. Query each matching
-    // AddressIndex boundary's own bbox and match relation/way OSM IDs only;
-    // never infer an admin_level from its name or stitch boundary segments.
-    constexpr qint64 maxBoundaryIdentityLookupDimension31 = 20000000;
+    // AddressIndex boundary alternatives are classified provisionally by name word count.
+    // A two-word name (for example, "Bezirk Korneuburg") is treated as admin_level 6.
+    // This is an interim heuristic; it avoids expensive map-geometry lookups.
     QJsonArray addressBoundaryAdminLevelMatches;
-    QSet<QString> checkedAddressBoundaryObjectKeys;
+
     for (const auto& streetGroup : addressBoundaryGroups)
     {
         if (!streetGroup || streetGroup->type != OsmAnd::ObfAddressStreetGroupSubtype::Boundary
@@ -916,12 +912,15 @@ QJsonObject administrativeAreasForCoordinate(
         if (objectName.isEmpty())
             continue;
 
-        // Address-index Boundary groups often have no corresponding map object
-        // (or their OSM IDs differ between the two indexes). Keep those useful
-        // name/bounding-box candidates instead of discarding them. Their exact
-        // admin_level is unknown, so mark them as 99 and leave them selectable
-        // alongside the classified map-polygon results.
-        const int candidateAdminLevel = hasResolvedAdminLevel ? levelIt.value() : 99;
+        // AddressIndex Boundary alternatives are provisionally classified by
+        // word count: two-word names (for example, "Bezirk Korneuburg") are
+        // treated as District (admin_level 6). This is an interim heuristic,
+        // not a final administrative hierarchy resolver. Other names retain a
+        // map-derived level when available, otherwise remain unclassified.
+        const int nameWordCount = objectName.simplified().count(QLatin1Char(' ')) + 1;
+        const int candidateAdminLevel = nameWordCount == 2
+            ? 6
+            : (hasResolvedAdminLevel ? levelIt.value() : 99);
         const auto normalizedName = OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed();
         const auto objectKey = QStringLiteral("%1|%2").arg(candidateAdminLevel).arg(normalizedName);
         const auto width = static_cast<qint64>(right) - left;
@@ -1491,9 +1490,9 @@ QJsonObject administrativeAreasForCoordinate(
             return QString::compare(left.name, right.name, Qt::CaseInsensitive) < 0;
         });
 
-    // Select the nearest bbox centre independently for each known admin level.
-    // Unclassified AddressIndex candidates remain visible because their level
-    // cannot safely be inferred from proximity alone.
+    // Select the nearest bbox centre only when multiple candidates share a
+    // known level. Unclassified AddressIndex candidates remain visible.
+    // AddressIndex name-word classification is provisional and will be refined.
     QSet<int> emittedAdminLevels;
     QHash<int, AdministrativeAreaCandidate> selectedByLevel;
     for (const auto& candidate : candidates)
@@ -1505,7 +1504,7 @@ QJsonObject administrativeAreasForCoordinate(
                 {QStringLiteral("name"), candidate.name}
             });
             selectionComments.push_back(QStringLiteral(
-                "Retained '%1' as an unclassified AddressIndex boundary; no matching map object supplied an admin_level.")
+                "Retained '%1' as an unclassified AddressIndex boundary; the interim name-word heuristic did not identify its level.")
                 .arg(candidate.name));
             continue;
         }
