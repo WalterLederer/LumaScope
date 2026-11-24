@@ -40,32 +40,32 @@ export interface GpxTrackPreviewData {
         </defs>
         <path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5"
           fill="none" stroke="#000000"
-          [attr.stroke-width]="(track().lineWidth || 4) + 4"
-          [attr.stroke-opacity]=".8 * opacity() * (track().trackShadowStrength || 0) / 10000"
-          [style.filter]="'blur(2px)'"
+          [attr.stroke-width]="renderStyle().shadowWidth"
+          [attr.stroke-opacity]="renderStyle().shadowOpacity"
+          [style.filter]="'blur(' + renderStyle().shadowBlur + 'px)'"
           [attr.stroke-dasharray]="dashPattern()" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5"
           fill="none" stroke="#080808"
-          [attr.stroke-width]="(track().lineWidth || 4) + 2"
-          [attr.stroke-opacity]=".92 * opacity() * (track().trackOutlineStrength || 0) / 10000"
+          [attr.stroke-width]="renderStyle().outlineWidth"
+          [attr.stroke-opacity]="renderStyle().outlineOpacity"
           [attr.stroke-dasharray]="dashPattern()" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5"
           fill="none"
           [attr.stroke]="track().colorMode === 'speed' || track().colorMode === 'elevation' || track().colorMode === 'track-based' ? 'url(#' + gradientId() + ')' : (track().color || '#3388ff')"
-          [attr.stroke-width]="track().lineWidth || 4"
-          [attr.stroke-opacity]=".92 * opacity() / 100"
+          [attr.stroke-width]="renderStyle().lineWidth"
+          [attr.stroke-opacity]="renderStyle().lineOpacity"
           [attr.stroke-dasharray]="dashPattern()" stroke-linecap="round" stroke-linejoin="round"/>
         @if (track().showDirection) {
           @for (arrow of arrowPositions(); track $index) {
             <text class="gpx-preview-direction-arrow" text-anchor="middle" dominant-baseline="central"
               [attr.x]="arrow.x" [attr.y]="arrow.y"
-              [attr.font-size]="arrowSize()"
+              [attr.font-size]="renderStyle().arrowSize"
               [attr.fill]="track().color || '#3388ff'"
-              [attr.stroke]="'#050505'"
-              [attr.stroke-width]="track().directionArrowOutlineWidthPx ?? 2"
+              [attr.stroke]="renderStyle().arrowOutlineColor"
+              [attr.stroke-width]="renderStyle().arrowOutlineWidth"
               [style.paint-order]="'stroke fill'"
               [attr.opacity]=".92 * opacity() / 100"
-              [style.filter]="shadowFilter(track().arrowShadowStrength)"
+              [style.filter]="arrowShadowFilter()"
               [attr.transform]="'rotate(' + arrow.angle + ' ' + arrow.x + ' ' + arrow.y + ')'">{{ arrowGlyph() }}</text>
           }
         }
@@ -78,6 +78,9 @@ export class GpxTrackPreviewComponent {
   readonly track = input.required<GpxTrackPreviewData>();
   readonly opacity = input(100);
   readonly variant = input<'list' | 'settings'>('list');
+
+  readonly renderStyle = () => createGpxTrackRenderStyle(this.track(), this.opacity());
+  readonly arrowShadowFilter = (): string => { const style = this.renderStyle(); return style.arrowShadowOpacity > 0 ? 'drop-shadow(' + style.arrowShadowOffset + 'px ' + style.arrowShadowOffset + 'px ' + style.arrowShadowBlur + 'px rgba(0,0,0,' + style.arrowShadowOpacity + '))' : 'none'; };
 
   readonly gradientId = () => 'gpx-preview-' + this.variant() + '-' + this.pathId(this.track().path);
 
@@ -108,22 +111,14 @@ export class GpxTrackPreviewComponent {
     return style === 'dashed' ? '10 7' : style === 'dotted' ? '2 7' : style === 'long-dashed' ? '18 7' : style === 'short-dashed' ? '5 5' : style === 'dash-dot' ? '12 5 2 5' : style === 'dash-dot-dot' ? '12 4 2 4 2 4' : '';
   };
 
-  readonly arrowGlyph = (): string => {
-    const style = this.track().directionStyle;
-    return style === 'chevron' || style === 'large-chevron' ? '❯'
-      : style === 'triangle' || style === 'large-triangle' ? '▶'
-      : style === 'thin' ? '➜' : '➤';
-  };
+  readonly arrowGlyph = (): string => this.renderStyle().arrowGlyph;
 
-  readonly arrowSize = (): number => {
-    const track = this.track();
-    return Math.max(8, Math.min(40, track.directionArrowSizePx ?? (track.directionStyle?.startsWith('large-') ? 24 : 16)));
-  };
+  readonly arrowSize = (): number => this.renderStyle().arrowSize;
 
   readonly arrowPositions = (): Array<{ x: number; y: number; angle: number }> => {
     const points: Array<[number, number]> = [[3, 17], [22, 6], [42, 14], [62, 5], [82, 16], [102, 7], [122, 15], [147, 5]];
     const total = points.slice(1).reduce((sum, point, index) => sum + Math.hypot(point[0] - points[index][0], point[1] - points[index][1]), 0);
-    const spacing = Math.max(20, Math.min(200, this.track().directionIntervalPx ?? 120));
+    const spacing = this.renderStyle().arrowInterval;
     const result: Array<{ x: number; y: number; angle: number }> = [];
     for (let distance = spacing; distance < total - 2; distance += spacing) {
       let remaining = distance;
@@ -141,8 +136,7 @@ export class GpxTrackPreviewComponent {
     return result;
   };
 
-  readonly shadowFilter = (strength?: number): string => strength && strength > 0
-    ? 'drop-shadow(0.35px 0.35px 2px rgba(0,0,0,' + (Math.max(0, Math.min(100, strength)) / 100) + '))' : 'none';
+  readonly shadowFilter = (strength?: number): string => this.arrowShadowFilter();
 
   readonly description = (): string => {
     const track = this.track();
