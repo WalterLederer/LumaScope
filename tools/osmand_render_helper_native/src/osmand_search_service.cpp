@@ -655,12 +655,8 @@ QJsonObject administrativeAreasForCoordinate(
                 }
             }
         }
-        std::sort(administrativeProbeBoundaries.begin(), administrativeProbeBoundaries.end(),
-            [](const QJsonValue& left, const QJsonValue& right)
-            {
-                return left.toObject().value(QStringLiteral("admin_level")).toInt()
-                    < right.toObject().value(QStringLiteral("admin_level")).toInt();
-            });
+        // Preserve index order; QJsonArray iterators expose proxy references
+        // and are not sortable with std::sort on all supported Qt versions.
 
         // Keep a compact summary alongside the small, filtered place list.
         poiNameIndexQueryResults.prepend(QJsonObject{
