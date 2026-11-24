@@ -5586,6 +5586,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const next = this.gpxTracks().filter(track => track.path !== path);
     this.gpxSegmentsByTrack.delete(path);
     this.gpxPointDataByTrack.delete(path);
+    this.gpxSegmentNamesByTrack.delete(path);
     this.gpxSpeedSegmentsCache.delete(path);
     this.gpxTracks.set(next);
     void this.persistGpxTracks(next.filter(track => !track.path.startsWith('memory:')));
@@ -6989,6 +6990,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.lastSavedRouteGpxPath.set(destination);
       this.gpxSegmentsByTrack.set(destination, parsed);
       this.gpxPointDataByTrack.set(destination, this.parseGpxTrackPointData(content));
+      this.gpxSegmentNamesByTrack.set(destination, this.parseGpxTrackSegmentNames(content));
       await this.persistGpxTracks(this.gpxTracks().filter(item => !item.path.startsWith('memory:')));
       this.rebuildGpxSegments();
       this.applyGpxTrack();
@@ -7069,6 +7071,7 @@ ${points}
       this.gpxTracks.set([...this.gpxTracks(), track]);
       this.gpxSegmentsByTrack.set(destination, parsed);
       this.gpxPointDataByTrack.set(destination, this.parseGpxTrackPointData(content));
+      this.gpxSegmentNamesByTrack.set(destination, this.parseGpxTrackSegmentNames(content));
       void this.persistGpxTracks(this.gpxTracks().filter(item => !item.path.startsWith('memory:')));
       this.rebuildGpxSegments();
       this.gpxError.set('');
@@ -7527,6 +7530,13 @@ ${points}
     ];
     this.gpxHoverInfo.set(parts.join(' · '));
   }
+
+  protected readonly copyGpxHoverInfo = async (): Promise<void> => {
+    const value = this.gpxHoverInfo();
+    if (!value) return;
+    try { await navigator.clipboard.writeText(value); }
+    catch (error) { console.error('Could not copy GPX track information:', error); }
+  };
 
   private clearGpxHover(path?: string): void {
     if (path && this.gpxHoveredTrackPath() !== path) return;
