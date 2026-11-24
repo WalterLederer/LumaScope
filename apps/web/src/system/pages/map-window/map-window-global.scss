@@ -1151,6 +1151,3 @@ app-map-window {
 .location-reverse-geocoding .reverse-geocoding-controls{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin:7px 0 9px;padding-left:2px}
 .location-reverse-geocoding .reverse-geocoding-controls .fix-location-toggle{display:inline-flex;align-items:center;gap:7px;margin:0;white-space:nowrap}
 .location-reverse-geocoding .reverse-geocoding-status{display:inline-block;color:var(--color-content-default-medium,#aaa);font-size:12px;line-height:1.4}
-.location-reverse-geocoding .reverse-geocode-values-table .reverse-geocode-online-row>th,
-.location-reverse-geocoding .reverse-geocode-values-table .reverse-geocode-online-row>td{background:color-mix(in srgb,#b8e6c1 15%,var(--color-surface,#222))!important}
-.location-reverse-geocoding .reverse-geocode-values-table .reverse-geocode-online-row>th{color:var(--color-content-default-high,#eee)}
