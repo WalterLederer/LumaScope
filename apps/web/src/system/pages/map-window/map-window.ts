@@ -2696,7 +2696,12 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly showCrosshairAddress = (): void => {
     if (!this.fixLocationEnabled()) return;
     const center = this.currentMapCenter();
-    if (!center) { this.crosshairAddress.set('Map center is not available.'); return; }
+    if (!center) {
+      this.crosshairAddress.set('Map center is not available.');
+      this.crosshairAddressParts.set([]);
+      this.crosshairAddressComments.set([]);
+      return;
+    }
     this.updateCrosshairCoordinates();
     this.crosshairAddress.set('Looking up offline and online addresses…');
     this.crosshairAddressParts.set([]);
@@ -2721,6 +2726,8 @@ export class MapWindow implements OnInit, OnDestroy {
     const longitude = this.currentLongitude;
     if (latitude === null || longitude === null) {
       this.photoAddress.set('Photo coordinates are not available.');
+      this.photoAddressParts.set([]);
+      this.photoAddressComments.set([]);
       return;
     }
     this.photoAddress.set('Looking up offline and online addresses…');
