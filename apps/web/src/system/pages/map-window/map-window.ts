@@ -1326,6 +1326,7 @@ export class MapWindow implements OnInit, OnDestroy {
       month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
     });
     const series = entries.map(({ track, profile }) => {
+      const renderStyle = createGpxTrackRenderStyle(track);
       const points = profile.points.map(point => ({
         x: left + (point.timestampMs - minTime) / timeRange * (width - left - right),
         y: top + (maxElevation - point.elevationM) / elevationRange * plotHeight
