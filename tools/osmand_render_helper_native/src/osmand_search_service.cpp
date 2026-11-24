@@ -408,67 +408,84 @@ QJsonObject administrativeAreasForCoordinate(
             }
         }
 
-        // Probe the separate POI name index for the known administrative place
-        // names. This is a name-index lookup, not a spatial scan or boundary
-        // geometry reconstruction. It can reveal whether the OBF stores
-        // place=town/city/county/state labels independently of boundary lines.
-        for (const auto& query : boundaryNameQueries)
+        // Inspect only nearby POI records. A name-index query such as
+        // "Stockerau" also returns unrelated businesses whose names contain
+        // the query (for example bank branches), so it is not suitable for
+        // discovering administrative place names.
+        constexpr double poiProbeLatitudeRadius = 0.01;  // approximately 1.1 km
+        constexpr double poiProbeLongitudeRadius = 0.015; // approximately 1.1 km here
+        const auto poiTopLeft = OsmAnd::Utilities::convertLatLonTo31(
+            OsmAnd::LatLon(latitude + poiProbeLatitudeRadius, longitude - poiProbeLongitudeRadius));
+        const auto poiBottomRight = OsmAnd::Utilities::convertLatLonTo31(
+            OsmAnd::LatLon(latitude - poiProbeLatitudeRadius, longitude + poiProbeLongitudeRadius));
+        OsmAnd::AreaI poiProbeArea;
+        poiProbeArea.left() = std::min(poiTopLeft.x, poiBottomRight.x);
+        poiProbeArea.top() = std::min(poiTopLeft.y, poiBottomRight.y);
+        poiProbeArea.right() = std::max(poiTopLeft.x, poiBottomRight.x);
+        poiProbeArea.bottom() = std::max(poiTopLeft.y, poiBottomRight.y);
+
+        QList<std::shared_ptr<const OsmAnd::Amenity>> nearbyAmenities;
+        const bool nearbyAmenitiesCompleted = dataInterface->loadAmenities(
+            &nearbyAmenities,
+            &poiProbeArea);
+        int nearbyPlaceAmenityCount = 0;
+        for (const auto& amenity : nearbyAmenities)
         {
-            QList<std::shared_ptr<const OsmAnd::Amenity>> foundAmenities;
-            const bool completed = dataInterface->scanAmenitiesByName(
-                query,
-                &foundAmenities,
-                &point31,
-                nullptr,
-                nullptr,
-                nullptr,
-                nullptr,
-                nullptr,
-                nullptr,
-                true);
-            for (const auto& amenity : foundAmenities)
-            {
-                if (!amenity)
-                    continue;
-                const auto amenityName = amenity->getName(locale, false).trimmed();
-                const auto decodedValues = amenity->getDecodedValuesHash();
-                QJsonObject values;
-                for (auto it = decodedValues.cbegin(); it != decodedValues.cend(); ++it)
-                    values.insert(it.key(), it.value());
-                QJsonArray categories;
-                for (const auto& category : amenity->getDecodedCategories())
-                    categories.push_back(QJsonObject{
-                        {QStringLiteral("category"), category.category},
-                        {QStringLiteral("subcategory"), category.subcategory}
-                    });
-                const auto dx = static_cast<double>(amenity->position31.x) - point31.x;
-                const auto dy = static_cast<double>(amenity->position31.y) - point31.y;
-                const auto distanceMeters = std::hypot(dx, dy) * 40075016.686 / 2147483648.0;
-                poiNameIndexQueryResults.push_back(QJsonObject{
-                    {QStringLiteral("query"), query},
-                    {QStringLiteral("completed"), completed},
-                    {QStringLiteral("name"), amenityName.isEmpty() ? amenity->nativeName : amenityName},
-                    {QStringLiteral("native_name"), amenity->nativeName},
-                    {QStringLiteral("osm_id"), amenity->id.isOsmId()
-                        ? QString::number(amenity->id.getOsmId()) : QString()},
-                    {QStringLiteral("type"), amenity->type},
-                    {QStringLiteral("subtype"), amenity->subType},
-                    {QStringLiteral("categories"), categories},
-                    {QStringLiteral("values"), values},
-                    {QStringLiteral("city_from_tags"), amenity->getCityFromTagGroups(locale)},
-                    {QStringLiteral("position31"), QJsonArray{amenity->position31.x, amenity->position31.y}},
-                    {QStringLiteral("distance_m"), distanceMeters}
+            if (!amenity)
+                continue;
+            const auto decodedValues = amenity->getDecodedValuesHash();
+            const auto placeValue = decodedValues.value(QStringLiteral("place")).trimmed().toLower();
+            const bool isPlaceAmenity = placeValue == QStringLiteral("city")
+                || placeValue == QStringLiteral("town")
+                || placeValue == QStringLiteral("village")
+                || placeValue == QStringLiteral("hamlet")
+                || placeValue == QStringLiteral("municipality")
+                || placeValue == QStringLiteral("suburb")
+                || placeValue == QStringLiteral("quarter")
+                || placeValue == QStringLiteral("neighbourhood")
+                || placeValue == QStringLiteral("locality");
+            if (!isPlaceAmenity)
+                continue;
+
+            ++nearbyPlaceAmenityCount;
+            if (poiNameIndexQueryResults.size() >= 50)
+                continue;
+
+            QJsonObject values;
+            for (auto it = decodedValues.cbegin(); it != decodedValues.cend(); ++it)
+                values.insert(it.key(), it.value());
+            QJsonArray categories;
+            for (const auto& category : amenity->getDecodedCategories())
+                categories.push_back(QJsonObject{
+                    {QStringLiteral("category"), category.category},
+                    {QStringLiteral("subcategory"), category.subcategory}
                 });
-            }
-            if (foundAmenities.isEmpty())
-            {
-                poiNameIndexQueryResults.push_back(QJsonObject{
-                    {QStringLiteral("query"), query},
-                    {QStringLiteral("completed"), completed},
-                    {QStringLiteral("matches"), 0}
-                });
-            }
+            const auto dx = static_cast<double>(amenity->position31.x) - point31.x;
+            const auto dy = static_cast<double>(amenity->position31.y) - point31.y;
+            const auto distanceMeters = std::hypot(dx, dy) * 40075016.686 / 2147483648.0;
+            const auto amenityName = amenity->getName(locale, false).trimmed();
+            poiNameIndexQueryResults.push_back(QJsonObject{
+                {QStringLiteral("name"), amenityName.isEmpty() ? amenity->nativeName : amenityName},
+                {QStringLiteral("native_name"), amenity->nativeName},
+                {QStringLiteral("osm_id"), amenity->id.isOsmId()
+                    ? QString::number(amenity->id.getOsmId()) : QString()},
+                {QStringLiteral("type"), amenity->type},
+                {QStringLiteral("subtype"), amenity->subType},
+                {QStringLiteral("categories"), categories},
+                {QStringLiteral("values"), values},
+                {QStringLiteral("city_from_tags"), amenity->getCityFromTagGroups(locale)},
+                {QStringLiteral("distance_m"), distanceMeters}
+            });
         }
+        // Keep a compact summary alongside the small, filtered place list.
+        poiNameIndexQueryResults.prepend(QJsonObject{
+            {QStringLiteral("query_mode"), QStringLiteral("spatial_place_only")},
+            {QStringLiteral("completed"), nearbyAmenitiesCompleted},
+            {QStringLiteral("loaded_amenities"), nearbyAmenities.size()},
+            {QStringLiteral("matching_place_amenities"), nearbyPlaceAmenityCount},
+            {QStringLiteral("returned_place_amenities"), std::min(nearbyPlaceAmenityCount, 50)},
+            {QStringLiteral("radius_m_approx"), 1100}
+        });
     }
 
     for (const auto& streetGroup : addressBoundaryGroups)
