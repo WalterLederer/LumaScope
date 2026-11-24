@@ -355,7 +355,7 @@ export class ImageGridComponent {
       // Cache counters are secondary UI metadata. Let Electron finish showing
       // the initial window before running this synchronous SQLite aggregation
       // in the main process.
-      await new Promise<void>(resolve => setTimeout(resolve, 20000));
+      await new Promise<void>(resolve => setTimeout(resolve, 2000));
       if (request !== this.cacheStatsRequest || pathUpdateRevision !== this.cachePathUpdateRevision) return;
       const stats = await this.cacheManager.getGalleryCacheStats(
         folder, this.includeFilesRecursive(), this.includeUnsupportedFiles(),
