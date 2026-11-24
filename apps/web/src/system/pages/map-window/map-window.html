@@ -70,14 +70,14 @@
                       <tbody>
                         <tr>
                           <td class="fix-location-toggle-cell">
-                            <div class="fix-location-source-cell"><strong>Mouse</strong><label class="fix-location-toggle"><input type="checkbox" [checked]="useOnlineReverseGeocoding()" (change)="setUseOnlineReverseGeocoding($any($event.target).checked)"> Use online</label></div>
+                            <div class="fix-location-source-cell"><span class="fix-location-source-heading"><svg class="fix-location-large-symbol mouse-pointer-symbol" viewBox="0 0 32 32" aria-hidden="true"><path d="M6 3v23l6.5-6.2 4.2 9 4.1-1.9-4.3-8.8 9-.7L6 3Z" fill="currentColor" stroke="var(--color-surface, #fff)" stroke-width="1.5" stroke-linejoin="round"/></svg><strong>Mouse</strong></span><label class="fix-location-toggle"><input type="checkbox" [checked]="useOnlineReverseGeocoding()" (change)="setUseOnlineReverseGeocoding($any($event.target).checked)"> Use online</label></div>
                           </td>
                           <td class="fix-location-coordinate-value" role="status">{{ mouseCoordinateLabel() || '—' }}</td>
                           <td class="fix-location-address-cell"></td>
                         </tr>
                         <tr>
                           <td class="fix-location-toggle-cell">
-                            <div class="fix-location-source-cell"><strong>Crosshair</strong><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button></div>
+                            <div class="fix-location-source-cell"><span class="fix-location-source-heading"><svg class="fix-location-large-symbol crosshair-symbol" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M20 1v11M20 28v11M1 20h11M28 20h11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="20" cy="20" r="2.5" fill="currentColor"/></svg><strong>Crosshair</strong></span><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button></div>
                           </td>
                           <td class="fix-location-coordinate-value" role="status">{{ crosshairCoordinates() }}</td>
                           <td class="fix-location-address-cell">
@@ -111,7 +111,7 @@
                         </tr>
                         <tr>
                           <td class="fix-location-toggle-cell">
-                            <div class="fix-location-source-cell"><strong>Image</strong><button type="button" class="map-toolbar-button" (click)="showPhotoAddress()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">⌖</span> Show address</button></div>
+                            <div class="fix-location-source-cell"><span class="fix-location-source-heading"><svg class="fix-location-large-symbol location-pin-symbol" viewBox="0 0 48 56" aria-hidden="true"><path d="M24 2C12.4 2 4 10.5 4 21c0 14 20 33 20 33s20-19 20-33C44 10.5 35.6 2 24 2Z" fill="var(--current-marker-color, #ff3b30)" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="21" r="7.5" fill="var(--color-surface, #fff)" stroke="currentColor" stroke-width="1.5"/></svg><strong>Image</strong></span><button type="button" class="map-toolbar-button" (click)="showPhotoAddress()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">⌖</span> Show address</button></div>
                           </td>
                           <td class="fix-location-photo-coordinates" role="status">{{ photoGpsCoordinates() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</td>
                           <td class="fix-location-address-cell">
