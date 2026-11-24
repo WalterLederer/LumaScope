@@ -2638,7 +2638,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const offlineLookup = this.desktop
       ? (() => {
           this.offlineReverseGeocodingRequests.update(count => count + 1);
-          return this.desktop!.OsmAndAtlas.reverseGeocode(latitude, longitude, language)
+          return Promise.resolve().then(() => this.desktop!.OsmAndAtlas.reverseGeocode(latitude, longitude, language));
         })()
         .then(result => {
           if (!result.found) return { text: 'No result', offlineParts: [], comments: [] };
@@ -2715,7 +2715,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const onlineLookup = useOnline
       ? (() => {
           this.onlineReverseGeocodingRequests.update(count => count + 1);
-          return lookupReverseGeocoding(latitude, longitude, language);
+          return Promise.resolve().then(() => lookupReverseGeocoding(latitude, longitude, language));
         })()
           .then(result => ({
             text: result?.displayName?.trim() || 'No result',
