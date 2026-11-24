@@ -73,7 +73,22 @@ struct AdministrativeAreaCandidate
     int adminLevel = 99;
     QString name;
     qint64 bboxArea = 0;
+    double bboxCenterDistanceMeters = std::numeric_limits<double>::infinity();
+    QString source;
 };
+
+double bboxCenterDistanceMeters(
+    int left, int top, int right, int bottom,
+    const QPoint& point, double latitude)
+{
+    const double centerX = (static_cast<double>(left) + right) / 2.0;
+    const double centerY = (static_cast<double>(top) + bottom) / 2.0;
+    const double dx = (centerX - point.x())
+        * std::max(0.01, std::cos(latitude * M_PI / 180.0));
+    const double dy = centerY - point.y();
+    constexpr double earthCircumferenceMeters = 40075016.686;
+    return std::hypot(dx, dy) * earthCircumferenceMeters / 2147483648.0;
+}
 
 QString administrativeObjectKey(const OsmAnd::ObfObjectId& objectId)
 {
@@ -168,6 +183,7 @@ QJsonObject administrativeAreasForCoordinate(
 {
     QJsonObject result;
     QJsonArray areas;
+    QJsonArray selectionComments;
     QString postcode;
     if (!dataInterface)
     {
@@ -303,11 +319,49 @@ QJsonObject administrativeAreasForCoordinate(
                         }
                     }
 
-                    // Keep the exact-polygon test for normal candidates. The
-                    // address index may still reference the same OSM boundary
-                    // when a generalized map-level polygon no longer covers
-                    // this precise coordinate; its OSM ID lets us recover the
-                    // correct admin_level without guessing from its bbox.
+                    // Provisional region selection: use the boundary bbox as a
+                    // candidate extent and rank its centre by distance to the
+                    // query coordinate. Do not require polygon containment;
+                    // OBF boundary objects are frequently line geometries.
+                    if (isAdministrativeBoundary)
+                    {
+                        const auto& bbox = mapObject->bbox31;
+                        const bool bboxContainsPoint = bbox.left() <= point31.x
+                            && bbox.right() >= point31.x
+                            && bbox.top() <= point31.y
+                            && bbox.bottom() >= point31.y;
+                        if (bboxContainsPoint)
+                        {
+                            const auto localizedName = mapObject->getName(locale, false).trimmed();
+                            const auto objectName = localizedName.isEmpty()
+                                ? mapObject->getCaptionInNativeLanguage().trimmed()
+                                : localizedName;
+                            if (!objectName.isEmpty())
+                            {
+                                const auto objectKey = QStringLiteral("%1|%2")
+                                    .arg(adminLevel)
+                                    .arg(OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed());
+                                if (!seenAreas.contains(objectKey))
+                                {
+                                    seenAreas.insert(objectKey);
+                                    const auto width = static_cast<qint64>(bbox.right()) - bbox.left();
+                                    const auto height = static_cast<qint64>(bbox.bottom()) - bbox.top();
+                                    candidates.push_back({
+                                        adminLevel,
+                                        objectName,
+                                        std::max<qint64>(0, width) * std::max<qint64>(0, height),
+                                        bboxCenterDistanceMeters(
+                                            bbox.left(), bbox.top(), bbox.right(), bbox.bottom(),
+                                            point, latitude),
+                                        QStringLiteral("map-boundary")
+                                    });
+                                }
+                            }
+                        }
+                    }
+
+                    // Postcode extraction still requires actual area containment;
+                    // bbox-centre selection is used only for administrative regions.
                     if (!mapObjectContainsPoint(*mapObject, point))
                         continue;
 
@@ -322,30 +376,7 @@ QJsonObject administrativeAreasForCoordinate(
                             postcode = value;
                     }
 
-                    if (!isAdministrativeBoundary)
-                        continue;
-
-                    const auto localizedName = mapObject->getName(locale, false).trimmed();
-                    const auto objectName = localizedName.isEmpty()
-                        ? mapObject->getCaptionInNativeLanguage().trimmed()
-                        : localizedName;
-                    if (objectName.isEmpty())
-                        continue;
-
-                    const auto objectKey = QStringLiteral("%1|%2")
-                        .arg(adminLevel)
-                        .arg(OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed());
-                    if (!seenAreas.contains(objectKey))
-                    {
-                        seenAreas.insert(objectKey);
-                        const auto width = static_cast<qint64>(mapObject->bbox31.right()) - mapObject->bbox31.left();
-                        const auto height = static_cast<qint64>(mapObject->bbox31.bottom()) - mapObject->bbox31.top();
-                        candidates.push_back({
-                            adminLevel,
-                            objectName,
-                            std::max<qint64>(0, width) * std::max<qint64>(0, height)
-                        });
-                    }
+                    // Administrative candidates were collected above from bbox matches.
                 }
             }
         }
@@ -805,7 +836,9 @@ QJsonObject administrativeAreasForCoordinate(
         candidates.push_back({
             candidateAdminLevel,
             objectName,
-            std::max<qint64>(0, width) * std::max<qint64>(0, height)
+            std::max<qint64>(0, width) * std::max<qint64>(0, height),
+            bboxCenterDistanceMeters(left, top, right, bottom, point, latitude),
+            QStringLiteral("address-index-boundary")
         });
     }
 
@@ -1339,30 +1372,61 @@ QJsonObject administrativeAreasForCoordinate(
         {
             if (left.adminLevel != right.adminLevel)
                 return left.adminLevel < right.adminLevel;
+            if (std::abs(left.bboxCenterDistanceMeters - right.bboxCenterDistanceMeters) > 0.01)
+                return left.bboxCenterDistanceMeters < right.bboxCenterDistanceMeters;
             if (left.bboxArea != right.bboxArea)
                 return left.bboxArea < right.bboxArea;
             return QString::compare(left.name, right.name, Qt::CaseInsensitive) < 0;
         });
 
-    // For classified map polygons, keep only the smallest exact match at
-    // each administrative level. Address-index-only candidates (level 99)
-    // have no reliable hierarchy level; retain all distinct names so the
-    // caller can choose the appropriate district/region from the OBF index.
+    // Select the nearest bbox centre independently for each known admin level.
+    // Unclassified AddressIndex candidates remain visible because their level
+    // cannot safely be inferred from proximity alone.
     QSet<int> emittedAdminLevels;
+    QHash<int, AdministrativeAreaCandidate> selectedByLevel;
     for (const auto& candidate : candidates)
     {
-        if (candidate.adminLevel != 99)
+        if (candidate.adminLevel == 99)
         {
-            if (emittedAdminLevels.contains(candidate.adminLevel))
-                continue;
-            emittedAdminLevels.insert(candidate.adminLevel);
+            areas.push_back(QJsonObject{
+                {QStringLiteral("admin_level"), candidate.adminLevel},
+                {QStringLiteral("name"), candidate.name}
+            });
+            selectionComments.push_back(QStringLiteral(
+                "Retained '%1' as an unclassified AddressIndex boundary; no matching map object supplied an admin_level.")
+                .arg(candidate.name));
+            continue;
         }
-        areas.push_back(QJsonObject{
-            {QStringLiteral("admin_level"), candidate.adminLevel},
-            {QStringLiteral("name"), candidate.name}
-        });
+
+        if (!emittedAdminLevels.contains(candidate.adminLevel))
+        {
+            emittedAdminLevels.insert(candidate.adminLevel);
+            selectedByLevel.insert(candidate.adminLevel, candidate);
+            areas.push_back(QJsonObject{
+                {QStringLiteral("admin_level"), candidate.adminLevel},
+                {QStringLiteral("name"), candidate.name}
+            });
+            selectionComments.push_back(QStringLiteral(
+                "Selected '%1' for admin_level=%2: nearest boundary-box centre (%.2f km; source=%3).")
+                .arg(candidate.name)
+                .arg(candidate.adminLevel)
+                .arg(candidate.bboxCenterDistanceMeters / 1000.0, 0, 'f', 2)
+                .arg(candidate.source));
+        }
+        else
+        {
+            const auto selected = selectedByLevel.value(candidate.adminLevel);
+            selectionComments.push_back(QStringLiteral(
+                "Filtered out '%1' for admin_level=%2: bbox-centre distance %.2f km; selected '%3' at %.2f km.")
+                .arg(candidate.name)
+                .arg(candidate.adminLevel)
+                .arg(candidate.bboxCenterDistanceMeters / 1000.0, 0, 'f', 2)
+                .arg(selected.name)
+                .arg(selected.bboxCenterDistanceMeters / 1000.0, 0, 'f', 2));
+        }
     }
     result.insert(QStringLiteral("administrative_areas"), areas);
+    result.insert(QStringLiteral("selection_comments"), selectionComments);
     result.insert(QStringLiteral("diagnostics"), QJsonObject{
         {QStringLiteral("loaded_map_objects"), loadedMapObjectCount},
         {QStringLiteral("administrative_boundary_objects"), administrativeBoundaryObjectCount},
