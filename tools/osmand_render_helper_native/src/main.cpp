@@ -27,7 +27,7 @@
 #include <SkCanvas.h>
 #include <SkData.h>
 #include <SkEncodedImageFormat.h>
-#include <SkIRect.h>
+#include <SkRect.h>
 
 #include <OsmAndCore.h>
 #include <OsmAndCore/Logging.h>
