@@ -185,6 +185,10 @@ QJsonObject administrativeAreasForCoordinate(
     QJsonArray areas;
     QJsonArray selectionComments;
     QString postcode;
+    QString placeName;
+    QString placeType;
+    result.insert(QStringLiteral("place"), placeName);
+    result.insert(QStringLiteral("place_type"), placeType);
     if (!dataInterface)
     {
         result.insert(QStringLiteral("administrative_areas"), areas);
@@ -394,6 +398,57 @@ QJsonObject administrativeAreasForCoordinate(
         nullptr,
         boundaryOnlyMask);
     loadedAddressStreetGroupCount = addressBoundaryGroups.size();
+
+    // Resolve the locality independently of the street/building reverse-geocoder
+    // result. Coordinates in villages or town centres often have no street group,
+    // while the AddressIndex still contains a CityOrTown or Village group.
+    const auto placeOnlyMask = OsmAnd::ObfAddressStreetGroupTypesMask()
+        .set(OsmAnd::ObfAddressStreetGroupType::CityOrTown)
+        .set(OsmAnd::ObfAddressStreetGroupType::Village);
+    QList<std::shared_ptr<const OsmAnd::StreetGroup>> addressPlaceGroups;
+    dataInterface->loadStreetGroups(&addressPlaceGroups, nullptr, placeOnlyMask);
+
+    double bestPlaceCenterDistance = std::numeric_limits<double>::infinity();
+    qint64 bestPlaceBboxArea = std::numeric_limits<qint64>::max();
+    for (const auto& group : addressPlaceGroups)
+    {
+        if (!group)
+            continue;
+
+        const auto& bbox = group->bbox31;
+        if (bbox.size() < 4
+            || point31.x < bbox[0] || point31.x > bbox[2]
+            || point31.y < bbox[1] || point31.y > bbox[3])
+            continue;
+
+        const auto candidateName = group->getName(locale, false).trimmed();
+        if (candidateName.isEmpty())
+            continue;
+
+        const auto width = static_cast<qint64>(bbox[2]) - bbox[0];
+        const auto height = static_cast<qint64>(bbox[3]) - bbox[1];
+        const auto bboxArea = std::max<qint64>(0, width) * std::max<qint64>(0, height);
+        const auto centerDistance = bboxCenterDistanceMeters(
+            bbox[0], bbox[1], bbox[2], bbox[3], point, latitude);
+        if (centerDistance < bestPlaceCenterDistance - 0.01
+            || (std::abs(centerDistance - bestPlaceCenterDistance) <= 0.01
+                && bboxArea < bestPlaceBboxArea))
+        {
+            bestPlaceCenterDistance = centerDistance;
+            bestPlaceBboxArea = bboxArea;
+            placeName = candidateName;
+            placeType = group->type == OsmAnd::ObfAddressStreetGroupType::Village
+                ? QStringLiteral("village")
+                : QStringLiteral("city_or_town");
+        }
+    }
+
+    if (!placeName.isEmpty())
+    {
+        result.insert(QStringLiteral("place"), placeName);
+        result.insert(QStringLiteral("place_type"), placeType);
+    }
+
     // Probe the separate AddressNameIndexData path. Boundary atoms are indexed
     // by name, so query the known local hierarchy names and inspect their
     // resolved StreetGroup references and bounding boxes. This is diagnostic
@@ -2349,7 +2404,14 @@ QString OsmAndSearchService::reverseGeocode(
 
         payload.insert(QStringLiteral("building"), buildingName);
         payload.insert(QStringLiteral("street"), streetName);
-        payload.insert(QStringLiteral("place"), placeName);
+        if (!placeName.isEmpty())
+        {
+            payload.insert(QStringLiteral("place"), placeName);
+            payload.insert(QStringLiteral("place_type"), result->streetGroup
+                ? (result->streetGroup->type == OsmAnd::ObfAddressStreetGroupType::Village
+                    ? QStringLiteral("village") : QStringLiteral("city_or_town"))
+                : payload.value(QStringLiteral("place_type")).toString());
+        }
         // OsmAnd stores the postcode on the resolved building. Keep it as a
         // separate field so callers can compose a structured address instead
         // of having to parse the localized result string.
