@@ -1547,6 +1547,10 @@ export class MapWindow implements OnInit, OnDestroy {
     { label: 'Other regions', value: '' }
   ];
   protected readonly photoAddressComments = signal<string[]>([]);
+  protected readonly reverseGeocodingStatus = (): string => this.useOnlineReverseGeocoding()
+    ? 'Active: Offline (OsmAnd) + Online (Nominatim)'
+    : 'Active: Offline (OsmAnd)';
+
   protected readonly reverseGeocodeSourceText = (text: string, source: 'Offline' | 'Online'): string => {
     const prefix = `${source}: `;
     return text.split(/\r?\n/).find(line => line.startsWith(prefix))?.slice(prefix.length) ?? '';
