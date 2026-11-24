@@ -2032,6 +2032,8 @@ export class MapWindow implements OnInit, OnDestroy {
         this.photoCoordinateLabel.set('Photo: GPS coordinates unavailable');
         this.photoGpsCoordinates.set('Photo GPS position unavailable');
         this.photoAddress.set('');
+        this.photoAddressParts.set([]);
+        this.photoAddressComments.set([]);
         this.coordinateLabel.set('GPS coordinates unavailable');
         this.locationAddress.set('');
         this.marker?.setOpacity(0);
@@ -2054,6 +2056,8 @@ export class MapWindow implements OnInit, OnDestroy {
       this.photoCoordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!).replace(/^Coordinates: /, 'Photo: '));
       this.photoGpsCoordinates.set(this.formatManualGpsPosition(nextLatitude!, nextLongitude!));
       this.photoAddress.set('');
+      this.photoAddressParts.set([]);
+      this.photoAddressComments.set([]);
       this.locationAddress.set('');
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
       if (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge') {
