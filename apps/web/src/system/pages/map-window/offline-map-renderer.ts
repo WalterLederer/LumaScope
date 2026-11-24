@@ -213,7 +213,7 @@ export function registerOsmAndTileProtocol(desktop: Desktop, getDisplayScale: ()
       return { data: bitmap };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      const cancelled = abortController.signal.aborted || /\\b(cancelled|canceled|aborted)\\b/i.test(message);
+      const cancelled = abortController.signal.aborted || /\b(cancelled|canceled|aborted)\b/i.test(message);
       emitOsmAndTileStatus({ ...tileCoordinates, status: cancelled ? 'cancelled' : 'error', error: message });
       if (cancelled) {
         return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256)) };
@@ -2595,7 +2595,7 @@ export class OfflineMapRenderer {
         const message = error instanceof Error ? error.message : String(error);
         emitOsmAndTileStatus({
           ...tileCoordinates,
-          status: /\\b(cancelled|canceled)\\b/i.test(message) ? 'cancelled' : 'error',
+          status: /\b(cancelled|canceled)\b/i.test(message) ? 'cancelled' : 'error',
           error: message
         });
         throw error;
