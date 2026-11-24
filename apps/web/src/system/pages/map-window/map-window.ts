@@ -115,7 +115,8 @@ interface MapErrorEntry {
 
 interface ReverseGeocodingDisplay {
   text: string;
-  parts: Array<{ label: string; value: string }>;
+  offlineParts: Array<{ label: string; value: string }>;
+  onlineParts: Array<{ label: string; value: string }>;
   comments: string[];
 }
 
@@ -1534,6 +1535,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly photoAddress = signal('');
   protected readonly crosshairAddressParts = signal<Array<{ label: string; value: string }>>([]);
   protected readonly photoAddressParts = signal<Array<{ label: string; value: string }>>([]);
+  protected readonly crosshairOnlineAddressParts = signal<Array<{ label: string; value: string }>>([]);
+  protected readonly photoOnlineAddressParts = signal<Array<{ label: string; value: string }>>([]);
   protected readonly crosshairAddressComments = signal<string[]>([]);
   protected readonly photoAddressComments = signal<string[]>([]);
   protected readonly crosshairCoordinates = signal('—');
@@ -2033,6 +2036,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.photoGpsCoordinates.set('Photo GPS position unavailable');
         this.photoAddress.set('');
         this.photoAddressParts.set([]);
+      this.photoOnlineAddressParts.set([]);
         this.photoAddressComments.set([]);
         this.coordinateLabel.set('GPS coordinates unavailable');
         this.locationAddress.set('');
@@ -2582,7 +2586,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const offlineLookup = this.desktop
       ? this.desktop.OsmAndAtlas.reverseGeocode(latitude, longitude, language)
         .then(result => {
-          if (!result.found) return { text: 'No result', parts: [], comments: [] };
+          if (!result.found) return { text: 'No result', offlineParts: [], comments: [] };
 
           const areas = result.administrative_areas ?? [];
           const areaForLevel = (level: number): string => areas
@@ -2645,50 +2649,40 @@ export class MapWindow implements OnInit, OnDestroy {
           const helperInfo = `OsmAnd offline helper v${result.helper_version}; target_segments=${targetLineSegments || '-'}; areas=${diagnostics.resolved_administrative_areas}; target_relation_groups=${diagnostics.target_boundary_line_relation_group_count}; target_relation_details=${targetLineRelationGroups || '-'}; mapObjects=${diagnostics.loaded_map_objects}; adminBoundaries=${diagnostics.administrative_boundary_objects}; addressBoundaries=${diagnostics.matching_address_boundary_groups}/${diagnostics.loaded_address_boundary_groups}; idMatches=${diagnostics.matched_address_boundary_object_ids}; mapIds=${diagnostics.map_boundary_object_ids.join(',') || '-'}; addressIds=${diagnostics.address_boundary_object_ids.join(',') || '-'}; matchedIds=${diagnostics.matched_boundary_object_ids.join(',') || '-'}; boundarySearchArea=${diagnostics.boundary_search_area_available ? 'yes' : 'no'}; lineDiagnostics=${diagnostics.boundary_line_diagnostics_enabled ? 'on' : 'off'}; boundary_line_counts=${JSON.stringify(diagnostics.boundary_line_counts)}; boundary_line_relation_group_count=${diagnostics.boundary_line_relation_group_count}; boundary_line_relation_groups=${lineRelationGroups}; boundary_geometry_points=${diagnostics.boundary_geometry_points}; boundary_area_objects=${diagnostics.boundary_area_objects}; boundary_line_samples=${JSON.stringify(lineSamples)}`;
           return {
             text: `${address} (${helperInfo})`,
-            parts,
+            offlineParts: parts,
             comments: result.selection_comments ?? []
           };
         })
         .catch(error => ({
           text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-          parts: [],
+          offlineParts: [],
           comments: []
         }))
-      : Promise.resolve({ text: 'Unavailable', parts: [], comments: [] });
+      : Promise.resolve({ text: 'Unavailable', offlineParts: [], comments: [] });
     const onlineLookup = lookupReverseGeocoding(latitude, longitude, language)
       .then(result => ({
         text: result?.displayName?.trim() || 'No result',
-        parts: result ? {
-          Street: result.street ?? '',
-          'House number': result.houseNumber ?? '',
-          Place: result.locality && result.locality !== result.municipality && result.locality !== result.district
-            ? result.locality : '',
-          Municipality: result.municipality ?? '',
-          District: result.district ?? '',
-          State: result.region ?? '',
-          Postcode: result.postcode ?? '',
-          Country: result.country ?? '',
-          'Other regions': ''
-        } : {}
+        parts: result ? [
+          { label: 'Street', value: result.street ?? '' },
+          { label: 'House number', value: result.houseNumber ?? '' },
+          { label: 'Place', value: result.locality && result.locality !== result.municipality && result.locality !== result.district ? result.locality : '' },
+          { label: 'Municipality', value: result.municipality ?? '' },
+          { label: 'District', value: result.district ?? '' },
+          { label: 'State', value: result.region ?? '' },
+          { label: 'Postcode', value: result.postcode ?? '' },
+          { label: 'Country', value: result.country ?? '' },
+          { label: 'Other regions', value: '' }
+        ] : []
       }))
       .catch(error => ({
         text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-        parts: {}
+        parts: []
       }));
     const [offline, online] = await Promise.all([offlineLookup, onlineLookup]);
-    const offlineValues = new Map(offline.parts.map(part => [part.label, part.value]));
-    const onlineValues = online.parts as Record<string, string>;
-    const tableLabels = [
-      'Street', 'House number', 'Place', 'Municipality', 'District',
-      'State', 'Postcode', 'Country', 'Other regions'
-    ];
-    const parts = tableLabels.map(label => ({
-      label,
-      value: offlineValues.get(label)?.trim() || onlineValues[label] || ''
-    }));
     return {
       text: `Offline: ${offline.text}\nOnline: ${online.text}`,
-      parts: parts.some(part => part.value) ? parts : [],
+      offlineParts: offline.offlineParts,
+      onlineParts: online.parts,
       comments: offline.comments
     };
   }
@@ -2699,6 +2693,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!center) {
       this.crosshairAddress.set('Map center is not available.');
       this.crosshairAddressParts.set([]);
+      this.crosshairOnlineAddressParts.set([]);
       this.crosshairAddressComments.set([]);
       return;
     }
@@ -2709,7 +2704,8 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.lookupBothReverseGeocoders(center.lat, center.lng).then(
       result => {
         this.crosshairAddress.set(result.text);
-        this.crosshairAddressParts.set(result.parts);
+        this.crosshairAddressParts.set(result.offlineParts);
+        this.crosshairOnlineAddressParts.set(result.onlineParts);
         this.crosshairAddressComments.set(result.comments);
       },
       error => {
@@ -2736,7 +2732,8 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.lookupBothReverseGeocoders(latitude, longitude).then(
       result => {
         this.photoAddress.set(result.text);
-        this.photoAddressParts.set(result.parts);
+        this.photoAddressParts.set(result.offlineParts);
+        this.photoOnlineAddressParts.set(result.onlineParts);
         this.photoAddressComments.set(result.comments);
       },
       error => {
