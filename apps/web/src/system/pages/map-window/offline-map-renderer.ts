@@ -896,7 +896,7 @@ export function createOfflineMapStyle(styleName: OfflineMapStyle, mapId: string,
 
 export class OfflineMapRenderer {
   readonly map: MapLibreMap;
-  private trackHoverHandler: ((path: string, latitude: number, longitude: number) => void) | null = null;
+  private trackHoverHandler: ((path: string, latitude: number, longitude: number, segmentIndex?: number) => void) | null = null;
   readonly ready: Promise<void>;
   private currentMarkerElement: HTMLElement | null = null;
   private currentPhotoPreview: { path: string; fileName: string } | null = null;
@@ -1480,7 +1480,7 @@ export class OfflineMapRenderer {
       this.map.on('mousemove', layerId, (event: MapLayerMouseEvent) => {
         const feature = event.features?.[0];
         const path = feature?.properties?.['path'];
-        if (typeof path === 'string') this.trackHoverHandler?.(path, event.lngLat.lat, event.lngLat.lng);
+        if (typeof path === 'string') this.trackHoverHandler?.(path, event.lngLat.lat, event.lngLat.lng, Number(feature?.properties?.['segmentIndex'] ?? 0));
       });
       this.map.on('mouseleave', layerId, () => this.trackHoverHandler?.('', Number.NaN, Number.NaN));
     }
@@ -2491,7 +2491,7 @@ export class OfflineMapRenderer {
     });
   }
 
-  setTrackHoverHandler(handler: ((path: string, latitude: number, longitude: number) => void) | null): void { this.trackHoverHandler = handler; }
+  setTrackHoverHandler(handler: ((path: string, latitude: number, longitude: number, segmentIndex?: number) => void) | null): void { this.trackHoverHandler = handler; }
 
   setTrack(tracks: Array<{ path: string; segments: [number, number][][]; segmentColors?: string[]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; trackShadowStrength?: number; arrowShadowStrength?: number; trackOutlineStrength?: number; showDirection?: boolean; directionStyle?: string }>, opacity: number): void {
     const source = this.map.getSource('gpx-track') as import('maplibre-gl').GeoJSONSource | undefined;
@@ -2501,7 +2501,7 @@ export class OfflineMapRenderer {
       features: tracks.flatMap(track => track.segments.map((segment, index) => ({ segment, index })).filter(item => item.segment.length >= 2).map(({ segment, index }) => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: segment.map(([latitude, longitude]) => [longitude, latitude]) },
-        properties: { path: track.path, color: track.segmentColors?.[index] || track.color, lineStyle: track.lineStyle, width: track.lineWidth, trackShadow: Math.max(0, Math.min(100, track.trackShadowStrength ?? 0)) / 100, arrowShadow: Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100, outlineStrength: Math.max(0, Math.min(100, track.trackOutlineStrength ?? 0)) / 100, showDirection: track.showDirection === true && (!track.segmentColors || index % 80 === 0), directionStyle: track.directionStyle || 'classic' }
+        properties: { path: track.path, segmentIndex: index, color: track.segmentColors?.[index] || track.color, lineStyle: track.lineStyle, width: track.lineWidth, trackShadow: Math.max(0, Math.min(100, track.trackShadowStrength ?? 0)) / 100, arrowShadow: Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100, outlineStrength: Math.max(0, Math.min(100, track.trackOutlineStrength ?? 0)) / 100, showDirection: track.showDirection === true && (!track.segmentColors || index % 80 === 0), directionStyle: track.directionStyle || 'classic' }
       })))
     });
     for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
