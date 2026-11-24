@@ -351,6 +351,7 @@ QJsonObject administrativeAreasForCoordinate(
     QJsonArray mapPlaceObjectDiagnostics;
     int nearbyMapObjectCount = 0;
     int nearbyNamedPlaceObjectCount = 0;
+    int nearbyNamedAdministrativeBoundaryObjectCount = 0;
     if (nameIndexDiagnosticsEnabled)
     {
         const QStringList boundaryNameQueries{
@@ -509,6 +510,10 @@ QJsonObject administrativeAreasForCoordinate(
                             continue;
                         const auto attributes = mapObject->getResolvedAttributes();
                         const auto placeValue = attributes.value(QStringLiteral("place")).trimmed().toLower();
+                        const auto boundaryValue = attributes.value(QStringLiteral("boundary")).trimmed().toLower();
+                        const auto adminLevelText = attributes.value(QStringLiteral("admin_level")).trimmed();
+                        bool adminLevelOk = false;
+                        const int adminLevel = adminLevelText.toInt(&adminLevelOk);
                         const bool isPlaceObject = placeValue == QStringLiteral("city")
                             || placeValue == QStringLiteral("town")
                             || placeValue == QStringLiteral("village")
@@ -518,14 +523,19 @@ QJsonObject administrativeAreasForCoordinate(
                             || placeValue == QStringLiteral("quarter")
                             || placeValue == QStringLiteral("neighbourhood")
                             || placeValue == QStringLiteral("locality");
-                        if (!isPlaceObject)
+                        const bool isAdministrativeBoundary = boundaryValue == QStringLiteral("administrative")
+                            && adminLevelOk && adminLevel > 0;
+                        if (!isPlaceObject && !isAdministrativeBoundary)
                             continue;
                         const auto name = mapObject->getName(locale, false).trimmed();
                         const auto displayName = name.isEmpty()
                             ? mapObject->getCaptionInNativeLanguage().trimmed() : name;
                         if (displayName.isEmpty())
                             continue;
-                        ++nearbyNamedPlaceObjectCount;
+                        if (isPlaceObject)
+                            ++nearbyNamedPlaceObjectCount;
+                        if (isAdministrativeBoundary)
+                            ++nearbyNamedAdministrativeBoundaryObjectCount;
                         const auto key = mapObject->id.isOsmId()
                             ? administrativeObjectKey(mapObject->id)
                             : QString::number(mapObject->id.id);
@@ -546,6 +556,8 @@ QJsonObject administrativeAreasForCoordinate(
                         mapPlaceObjectDiagnostics.push_back(QJsonObject{
                             {QStringLiteral("name"), displayName},
                             {QStringLiteral("place"), placeValue},
+                            {QStringLiteral("boundary"), boundaryValue},
+                            {QStringLiteral("admin_level"), adminLevelOk ? adminLevel : -1},
                             {QStringLiteral("osm_id"), mapObject->id.isOsmId()
                                 ? QString::number(mapObject->id.getOsmId()) : QString()},
                             {QStringLiteral("is_relation"), mapObject->id.isIdFromRelation()},
@@ -564,6 +576,8 @@ QJsonObject administrativeAreasForCoordinate(
             {QStringLiteral("loaded_amenities"), nearbyAmenities.size()},
             {QStringLiteral("matching_place_amenities"), nearbyPlaceAmenityCount},
             {QStringLiteral("returned_place_amenities"), std::min(nearbyPlaceAmenityCount, 50)},
+            {QStringLiteral("named_place_map_objects"), nearbyNamedPlaceObjectCount},
+            {QStringLiteral("named_administrative_boundary_map_objects"), nearbyNamedAdministrativeBoundaryObjectCount},
             {QStringLiteral("radius_m_approx"), 1100}
         });
     }
