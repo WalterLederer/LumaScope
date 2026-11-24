@@ -809,6 +809,7 @@ QJsonObject administrativeAreasForCoordinate(
     QHash<QString, bool> boundaryRelationHasSplitIds;
     QJsonArray boundaryLineSamples;
     QJsonArray targetBoundaryLineSegments;
+    QJsonArray targetBoundaryAreaObjects;
     int boundaryAreaObjectCount = 0;
     int boundaryGeometryPointCount = 0;
     // This broad scan is diagnostic-only and can be expensive on large OBF
@@ -848,9 +849,43 @@ QJsonObject administrativeAreasForCoordinate(
                         const int level = attributes.value(QStringLiteral("admin_level")).toInt(&levelOk);
                         if (!levelOk || level <= 0 || mapObject->points31.size() < 2)
                             continue;
+                        // Normalize the object ID before separating polygon areas
+                        // from line fragments. This lets the diagnostic identify
+                        // multiple area pieces belonging to the same source OSM object.
+                        const auto normalizedObjectId = administrativeObjectKey(mapObject->id);
+                        const auto relationObjectKey = QStringLiteral("%1|%2")
+                            .arg(level)
+                            .arg(normalizedObjectId.isEmpty()
+                                ? QStringLiteral("obf:%1").arg(mapObject->id.id)
+                                : normalizedObjectId);
                         if (mapObject->isArea)
                         {
                             ++boundaryAreaObjectCount;
+                            if (targetBoundaryRelationKeys.contains(relationObjectKey)
+                                && targetBoundaryAreaObjects.size() < 100)
+                            {
+                                QJsonArray innerRingPointCounts;
+                                for (const auto& innerRing : mapObject->innerPolygonsPoints31)
+                                    innerRingPointCounts.push_back(innerRing.size());
+                                targetBoundaryAreaObjects.push_back(QJsonObject{
+                                    {QStringLiteral("admin_level"), level},
+                                    {QStringLiteral("min_zoom"), mapLevel->minZoom},
+                                    {QStringLiteral("osm_id"), mapObject->id.isOsmId()
+                                        ? QString::number(mapObject->id.getOsmId()) : QString()},
+                                    {QStringLiteral("raw_id"), QString::number(mapObject->id.id)},
+                                    {QStringLiteral("is_relation"), mapObject->id.isIdFromRelation()},
+                                    {QStringLiteral("is_split"), mapObject->id.isIdFromSplit()},
+                                    {QStringLiteral("is_area"), mapObject->isArea},
+                                    {QStringLiteral("is_closed_figure"), mapObject->isClosedFigure()},
+                                    {QStringLiteral("outer_point_count"), mapObject->points31.size()},
+                                    {QStringLiteral("inner_ring_count"), mapObject->innerPolygonsPoints31.size()},
+                                    {QStringLiteral("inner_ring_point_counts"), innerRingPointCounts},
+                                    {QStringLiteral("bbox"), QJsonArray{
+                                        mapObject->bbox31.left(), mapObject->bbox31.top(),
+                                        mapObject->bbox31.right(), mapObject->bbox31.bottom()}},
+                                    {QStringLiteral("name"), mapObject->getName(locale, false).trimmed()}
+                                });
+                            }
                             continue;
                         }
                         ++boundaryLineCounts[level];
@@ -861,16 +896,6 @@ QJsonObject administrativeAreasForCoordinate(
                         const auto lastKey = QStringLiteral("%1,%2").arg(last.x).arg(last.y);
                         ++boundaryEndpointDegrees[level][firstKey];
                         ++boundaryEndpointDegrees[level][lastKey];
-
-                        // A multipolygon relation may be emitted as several
-                        // split map objects. Aggregate endpoints only after
-                        // normalizing each object ID back to its source OSM ID.
-                        const auto normalizedObjectId = administrativeObjectKey(mapObject->id);
-                        const auto relationObjectKey = QStringLiteral("%1|%2")
-                            .arg(level)
-                            .arg(normalizedObjectId.isEmpty()
-                                ? QStringLiteral("obf:%1").arg(mapObject->id.id)
-                                : normalizedObjectId);
                         if (targetBoundaryRelationKeys.contains(relationObjectKey)
                             && targetBoundaryLineSegments.size() < 100)
                         {
@@ -1078,6 +1103,7 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("boundary_line_relation_group_count"), relationGroupObjects.size()},
         {QStringLiteral("target_boundary_line_relation_groups"), targetBoundaryRelationGroups},
         {QStringLiteral("target_boundary_line_segments"), targetBoundaryLineSegments},
+        {QStringLiteral("target_boundary_area_objects"), targetBoundaryAreaObjects},
         {QStringLiteral("target_boundary_line_relation_group_count"), targetBoundaryRelationGroups.size()},
         {QStringLiteral("boundary_geometry_points"), boundaryGeometryPointCount},
         {QStringLiteral("boundary_area_objects"), boundaryAreaObjectCount},
