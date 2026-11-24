@@ -390,7 +390,7 @@
               }
               <label>Minimum speed (km/h)<input type="number" min="0" max="299" [value]="gpxTrackSettingsDraft().speedMinKmh" (change)="updateGpxTrackSettingsDraft({ speedMinKmh: +$any($event.target).value })"></label>
               <label>Maximum speed (km/h)<input type="number" min="1" max="300" [value]="gpxTrackSettingsDraft().speedMaxKmh" (change)="updateGpxTrackSettingsDraft({ speedMaxKmh: +$any($event.target).value })"></label>
-            } @else {
+            } @else if (gpxTrackSettingsDraft().colorMode === 'elevation') {
               <label>Elevation palette<select [value]="gpxTrackSettingsDraft().speedPalette" (change)="updateGpxTrackSettingsDraft({ speedPalette: $any($event.target).value })"><option value="spectrum">Blue–red</option><option value="cool-warm">Cool–warm</option><option value="viridis">Viridis</option><option value="plasma">Plasma</option><option value="inferno">Inferno</option><option value="terrain">Terrain</option><option value="custom-2">Custom 2</option><option value="custom-3">Custom 3</option></select></label>
               @if (gpxTrackSettingsDraft().speedPalette === "custom-2") {
                 <label>Start color<select [value]="gpxTrackSettingsDraft().customColor1" [style.color]="gpxTrackSettingsDraft().customColor1" (change)="updateGpxTrackSettingsDraft({ customColor1: $any($event.target).value })">@for (color of gpxTrackSettingsColors; track color.value) { <option [value]="color.value" [style.color]="color.value">■ {{ color.name }} ({{ color.value }})</option> }</select></label>
