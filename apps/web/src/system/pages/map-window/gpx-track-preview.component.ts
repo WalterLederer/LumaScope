@@ -64,7 +64,7 @@ export interface GpxTrackPreviewData {
               [attr.stroke]="renderStyle().arrowOutlineColor"
               [attr.stroke-width]="renderStyle().arrowOutlineWidth"
               [style.paint-order]="'stroke fill'"
-              [attr.opacity]=".92 * opacity() / 100"
+              [attr.opacity]="renderStyle().arrowOpacity"
               [style.filter]="arrowShadowFilter()"
               [attr.transform]="'rotate(' + arrow.angle + ' ' + arrow.x + ' ' + arrow.y + ')'">{{ arrowGlyph() }}</text>
           }
@@ -80,7 +80,7 @@ export class GpxTrackPreviewComponent {
   readonly variant = input<'list' | 'settings'>('list');
 
   readonly renderStyle = () => createGpxTrackRenderStyle(this.track(), this.opacity());
-  readonly arrowShadowFilter = (): string => { const style = this.renderStyle(); return style.arrowShadowOpacity > 0 ? 'drop-shadow(' + style.arrowShadowOffset + 'px ' + style.arrowShadowOffset + 'px ' + style.arrowShadowBlur + 'px rgba(0,0,0,' + style.arrowShadowOpacity + '))' : 'none'; };
+  readonly arrowShadowFilter = (): string => { const style = this.renderStyle(); return style.arrowShadowOpacity > 0 ? 'drop-shadow(' + style.arrowShadowOffset + 'px ' + style.arrowShadowOffset + 'px ' + style.arrowShadowBlur + 'px ' + 'rgba(0,0,0,' + style.arrowShadowOpacity + ')': 'none'; };
 
   readonly gradientId = () => 'gpx-preview-' + this.variant() + '-' + this.pathId(this.track().path);
 
@@ -106,10 +106,7 @@ export class GpxTrackPreviewComponent {
     return palettes[track.speedPalette ?? 'spectrum'] ?? palettes['spectrum'];
   };
 
-  readonly dashPattern = (): string => {
-    const style = this.track().lineStyle;
-    return style === 'dashed' ? '10 7' : style === 'dotted' ? '2 7' : style === 'long-dashed' ? '18 7' : style === 'short-dashed' ? '5 5' : style === 'dash-dot' ? '12 5 2 5' : style === 'dash-dot-dot' ? '12 4 2 4 2 4' : '';
-  };
+  readonly dashPattern = (): string => this.renderStyle().lineDashArray ?? '';
 
   readonly arrowGlyph = (): string => this.renderStyle().arrowGlyph;
 
