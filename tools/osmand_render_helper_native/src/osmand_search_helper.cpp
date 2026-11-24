@@ -36,7 +36,8 @@ void printUsage()
         << "Usage:\n"
         << "  osmand_search_helper --search <obf-paths-json> <resources-root> <query> [locale] [limit]\n"
         << "  osmand_search_helper --reverse-geocode <obf-paths-json> <resources-root> <latitude> <longitude> [locale]\n"
-        << "  osmand_search_helper --reverse-geocode-worker <obf-paths-json> <resources-root> [locale]"
+        << "  osmand_search_helper --reverse-geocode-worker <obf-paths-json> <resources-root> [locale]\n"
+        << "  osmand_search_helper --export-admin-boundaries <obf-paths-json> <resources-root> <output.gpx> <latitude> <longitude> <radius-km> [locale]"
         << std::endl;
 }
 
@@ -61,8 +62,9 @@ int main(int argc, char* argv[])
     const bool reverseGeocodeMode = mode == QStringLiteral("--reverse-geocode");
     const bool reverseGeocodeWorkerMode = mode == QStringLiteral("--reverse-geocode-worker");
     const bool searchMode = mode == QStringLiteral("--search");
-    if ((!reverseGeocodeMode && !reverseGeocodeWorkerMode && !searchMode)
-        || argc < (reverseGeocodeMode ? 6 : (reverseGeocodeWorkerMode ? 4 : 5)))
+    const bool exportBoundaryMode = mode == QStringLiteral("--export-admin-boundaries");
+    if ((!reverseGeocodeMode && !reverseGeocodeWorkerMode && !searchMode && !exportBoundaryMode)
+        || argc < (exportBoundaryMode ? 9 : (reverseGeocodeMode ? 6 : (reverseGeocodeWorkerMode ? 4 : 5))))
     {
         printUsage();
         return 2;
@@ -147,7 +149,21 @@ int main(int argc, char* argv[])
     }
 
     QString result;
-    if (reverseGeocodeMode)
+    if (exportBoundaryMode)
+    {
+        double latitude = 0.0;
+        double longitude = 0.0;
+        bool radiusOk = false;
+        const double radiusKm = QString::fromLatin1(argv[8]).toDouble(&radiusOk);
+        if (!parseCoordinates(argv[6], argv[7], latitude, longitude) || !radiusOk || radiusKm <= 0.0 || radiusKm > 100.0)
+        {
+            std::cerr << "Invalid GPX export coordinates or radius." << std::endl;
+            return 2;
+        }
+        const auto locale = argc > 9 ? decodeArgument(argv[9]) : QString();
+        result = service.exportAdministrativeBoundaryCandidatesGpx(decodeArgument(argv[4]), latitude, longitude, radiusKm, locale, errorMessage);
+    }
+    else if (reverseGeocodeMode)
     {
         double latitude = 0.0;
         double longitude = 0.0;
