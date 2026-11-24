@@ -61,7 +61,7 @@ export interface GpxTrackPreviewData {
             <text class="gpx-preview-direction-arrow" text-anchor="middle" dominant-baseline="central"
               [attr.x]="arrow.x" [attr.y]="arrow.y"
               [attr.font-size]="renderStyle().arrowSize"
-              [attr.fill]="track().color || '#3388ff'"
+              [attr.fill]="track().colorMode === 'speed' || track().colorMode === 'elevation' || track().colorMode === 'track-based' ? 'url(#' + gradientId() + ')' : (track().color || '#3388ff')"
               [attr.stroke]="renderStyle().arrowOutlineColor"
               [attr.stroke-width]="renderStyle().arrowOutlineWidth"
               [style.paint-order]="'stroke fill'"
