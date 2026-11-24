@@ -1495,8 +1495,8 @@ export class OfflineMapRenderer {
     this.map.addLayer({
       id: 'gpx-track-direction-arrows-shadow', type: 'symbol', source: 'gpx-track',
       filter: ['==', ['get', 'showDirection'], true],
-      layout: { ...directionArrowLayout, 'text-offset': [0.35, 0.35] },
-      paint: { 'text-color': '#000000', 'text-halo-color': '#000000', 'text-halo-width': 2, 'text-halo-blur': 2, 'text-opacity': ['get', 'arrowShadow'] }
+      layout: { ...directionArrowLayout, 'text-offset': ['get', 'arrowShadowOffset'] },
+      paint: { 'text-color': '#000000', 'text-halo-color': '#000000', 'text-halo-width': 2, 'text-halo-blur': ['get', 'arrowShadowBlur'], 'text-opacity': ['get', 'arrowShadow'] }
     });
     this.map.addLayer({
       id: 'gpx-track-direction-arrows', type: 'symbol', source: 'gpx-track',
@@ -2493,7 +2493,7 @@ export class OfflineMapRenderer {
 
   setTrackHoverHandler(handler: ((path: string, latitude: number, longitude: number, segmentIndex?: number) => void) | null): void { this.trackHoverHandler = handler; }
 
-  setTrack(tracks: Array<{ path: string; segments: [number, number][][]; segmentColors?: string[]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; trackShadowStrength?: number; arrowShadowStrength?: number; trackOutlineStrength?: number; showDirection?: boolean; directionStyle?: string }>, opacity: number): void {
+  setTrack(tracks: Array<{ path: string; segments: [number, number][][]; segmentColors?: string[]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; trackShadowStrength?: number; arrowShadowStrength?: number; trackOutlineStrength?: number; showDirection?: boolean; directionStyle?: string; directionIntervalPx?: number; directionArrowSizePx?: number; directionArrowOutlineWidthPx?: number }>, opacity: number): void {
     const source = this.map.getSource('gpx-track') as import('maplibre-gl').GeoJSONSource | undefined;
     if (!source) return;
     source.setData({
@@ -2501,7 +2501,7 @@ export class OfflineMapRenderer {
       features: tracks.flatMap(track => track.segments.map((segment, index) => ({ segment, index })).filter(item => item.segment.length >= 2).map(({ segment, index }) => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: segment.map(([latitude, longitude]) => [longitude, latitude]) },
-        properties: { path: track.path, segmentIndex: index, color: track.segmentColors?.[index] || track.color, lineStyle: track.lineStyle, width: track.lineWidth, trackShadow: Math.max(0, Math.min(100, track.trackShadowStrength ?? 0)) / 100, arrowShadow: Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100, outlineStrength: Math.max(0, Math.min(100, track.trackOutlineStrength ?? 0)) / 100, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic', directionIntervalPx: createGpxTrackRenderStyle(track).arrowInterval, directionArrowSizePx: createGpxTrackRenderStyle(track).arrowSize, arrowOutlineWidth: createGpxTrackRenderStyle(track).arrowOutlineWidth }
+        properties: { path: track.path, segmentIndex: index, color: track.segmentColors?.[index] || track.color, lineStyle: track.lineStyle, width: track.lineWidth, trackShadow: Math.max(0, Math.min(100, track.trackShadowStrength ?? 0)) / 100, arrowShadow: Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100, outlineStrength: Math.max(0, Math.min(100, track.trackOutlineStrength ?? 0)) / 100, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic', directionIntervalPx: createGpxTrackRenderStyle(track).arrowInterval, directionArrowSizePx: createGpxTrackRenderStyle(track).arrowSize, arrowOutlineWidth: createGpxTrackRenderStyle(track).arrowOutlineWidth, arrowShadowOffset: createGpxTrackRenderStyle(track).arrowShadowOffset, arrowShadowBlur: createGpxTrackRenderStyle(track).arrowShadowBlur }
       })))
     });
     for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
