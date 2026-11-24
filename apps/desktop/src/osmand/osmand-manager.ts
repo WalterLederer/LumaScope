@@ -554,7 +554,7 @@ export class OsmAndManager {
     const mapCacheKey = this.obfPaths.length
       ? createHash('sha256').update(this.obfPaths.join('\0')).digest('hex').slice(0, 20)
       : 'default';
-    const cacheFile = join(this.cachePath, mapCacheKey, '1_00', styleCacheKey, String(z), String(x), y + '.png');
+    const cacheFile = join(this.cachePath, mapCacheKey, '1_01', styleCacheKey, String(z), String(x), y + '.png');
     const key = this.obfPaths.join('|') + '/' + z + '/' + x + '/' + y;
     const cacheReadStartedAt = Date.now();
     let pixels = forceRender ? null : await this.readCachedTile(cacheFile);
