@@ -2061,6 +2061,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.photoGpsCoordinates.set(this.formatManualGpsPosition(nextLatitude!, nextLongitude!));
       this.photoAddress.set('');
       this.photoAddressParts.set([]);
+      this.photoOnlineAddressParts.set([]);
       this.photoAddressComments.set([]);
       this.locationAddress.set('');
       this.bearing.set(typeof location.bearing === 'number' && Number.isFinite(location.bearing) ? location.bearing : null);
@@ -2700,6 +2701,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateCrosshairCoordinates();
     this.crosshairAddress.set('Looking up offline and online addresses…');
     this.crosshairAddressParts.set([]);
+    this.crosshairOnlineAddressParts.set([]);
     this.crosshairAddressComments.set([]);
     void this.lookupBothReverseGeocoders(center.lat, center.lng).then(
       result => {
@@ -2711,6 +2713,7 @@ export class MapWindow implements OnInit, OnDestroy {
       error => {
         this.crosshairAddress.set(`Reverse geocoding failed: ${error instanceof Error ? error.message : String(error)}`);
         this.crosshairAddressParts.set([]);
+        this.crosshairOnlineAddressParts.set([]);
         this.crosshairAddressComments.set([]);
       }
     );
@@ -2739,6 +2742,7 @@ export class MapWindow implements OnInit, OnDestroy {
       error => {
         this.photoAddress.set(`Reverse geocoding failed: ${error instanceof Error ? error.message : String(error)}`);
         this.photoAddressParts.set([]);
+        this.photoOnlineAddressParts.set([]);
         this.photoAddressComments.set([]);
       }
     );
