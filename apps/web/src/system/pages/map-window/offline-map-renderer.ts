@@ -1455,8 +1455,8 @@ export class OfflineMapRenderer {
       { id: 'gpx-track-line-dash-dot-dot', style: 'dash-dot-dot', dash: [4, 2, 1, 2, 1, 2] }
     ];
     for (const line of gpxLineStyles) {
-      this.map.addLayer({ id: line.id + '-outline', type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], line.style], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#080808', 'line-width': ['+', ['get', 'width'], 2], 'line-opacity': ['*', ['get', 'outlineStrength'], 0.92], ...(line.dash ? { 'line-dasharray': line.dash } : {}) } });
-      this.map.addLayer({ id: line.id + '-shadow', type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], line.style], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#000000', 'line-width': ['+', ['get', 'width'], 4], 'line-blur': 2, 'line-opacity': ['*', ['get', 'trackShadow'], 0.8], ...(line.dash ? { 'line-dasharray': line.dash } : {}) } });
+      this.map.addLayer({ id: line.id + '-outline', type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], line.style], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#080808', 'line-width': ['get', 'outlineWidth'], 'line-opacity': ['get', 'outlineOpacity'], ...(line.dash ? { 'line-dasharray': line.dash } : {}) } });
+      this.map.addLayer({ id: line.id + '-shadow', type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], line.style], layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#000000', 'line-width': ['get', 'shadowWidth'], 'line-blur': 2, 'line-opacity': ['get', 'shadowOpacity'], ...(line.dash ? { 'line-dasharray': line.dash } : {}) } });
       this.map.addLayer({
         id: line.id, type: 'line', source: 'gpx-track', filter: ['==', ['get', 'lineStyle'], line.style],
         layout: { 'line-cap': 'round', 'line-join': 'round' },
@@ -2493,7 +2493,7 @@ export class OfflineMapRenderer {
 
   setTrackHoverHandler(handler: ((path: string, latitude: number, longitude: number, segmentIndex?: number) => void) | null): void { this.trackHoverHandler = handler; }
 
-  setTrack(tracks: Array<{ path: string; segments: [number, number][][]; segmentColors?: string[]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; trackShadowStrength?: number; arrowShadowStrength?: number; trackOutlineStrength?: number; showDirection?: boolean; directionStyle?: string; directionIntervalPx?: number; directionArrowSizePx?: number; directionArrowOutlineWidthPx?: number }>, opacity: number): void {
+  setTrack(tracks: Array<{ path: string; segments: [number, number][][]; segmentColors?: string[]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; trackShadowStrength?: number; arrowShadowStrength?: number; trackOutlineStrength?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; directionIntervalPx?: number; directionArrowSizePx?: number; directionArrowOutlineWidthPx?: number }>, opacity: number): void {
     const source = this.map.getSource('gpx-track') as import('maplibre-gl').GeoJSONSource | undefined;
     if (!source) return;
     source.setData({
@@ -2501,17 +2501,17 @@ export class OfflineMapRenderer {
       features: tracks.flatMap(track => track.segments.map((segment, index) => ({ segment, index })).filter(item => item.segment.length >= 2).map(({ segment, index }) => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: segment.map(([latitude, longitude]) => [longitude, latitude]) },
-        properties: { path: track.path, segmentIndex: index, color: track.segmentColors?.[index] || track.color, lineStyle: track.lineStyle, width: track.lineWidth, trackShadow: Math.max(0, Math.min(100, track.trackShadowStrength ?? 0)) / 100, arrowShadow: Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100, outlineStrength: Math.max(0, Math.min(100, track.trackOutlineStrength ?? 0)) / 100, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic', directionIntervalPx: createGpxTrackRenderStyle(track).arrowInterval, directionArrowSizePx: createGpxTrackRenderStyle(track).arrowSize, arrowOutlineWidth: createGpxTrackRenderStyle(track).arrowOutlineWidth, arrowShadowOffset: createGpxTrackRenderStyle(track).arrowShadowOffset, arrowShadowBlur: createGpxTrackRenderStyle(track).arrowShadowBlur }
+        properties: { path: track.path, segmentIndex: index, color: track.segmentColors?.[index] || track.color, lineStyle: track.lineStyle, width: track.lineWidth, trackShadow: Math.max(0, Math.min(100, track.trackShadowStrength ?? 0)) / 100, arrowShadow: Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100, outlineStrength: Math.max(0, Math.min(100, track.trackOutlineStrength ?? 0)) / 100, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic', directionIntervalPx: createGpxTrackRenderStyle(track).arrowInterval, directionArrowSizePx: createGpxTrackRenderStyle(track).arrowSize, arrowOutlineWidth: createGpxTrackRenderStyle(track).arrowOutlineWidth, arrowShadowOffset: createGpxTrackRenderStyle(track).arrowShadowOffset, arrowShadowBlur: createGpxTrackRenderStyle(track).arrowShadowBlur, shadowWidth: createGpxTrackRenderStyle(track).shadowWidth, shadowOpacity: createGpxTrackRenderStyle(track).shadowOpacity, outlineWidth: createGpxTrackRenderStyle(track).outlineWidth, outlineOpacity: createGpxTrackRenderStyle(track).outlineOpacity }
       })))
     });
     for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
       this.map.setPaintProperty(layerId, 'line-opacity', opacity);
     }
     for (const layerId of ['gpx-track-line-outline', 'gpx-track-line-dashed-outline', 'gpx-track-line-dotted-outline', 'gpx-track-line-long-dashed-outline', 'gpx-track-line-short-dashed-outline', 'gpx-track-line-dash-dot-outline', 'gpx-track-line-dash-dot-dot-outline']) {
-      this.map.setPaintProperty(layerId, 'line-opacity', ['*', ['get', 'outlineStrength'], opacity]);
+      this.map.setPaintProperty(layerId, 'line-opacity', ['*', ['get', 'outlineOpacity'], opacity]);
     }
     for (const layerId of ['gpx-track-line-shadow', 'gpx-track-line-dashed-shadow', 'gpx-track-line-dotted-shadow', 'gpx-track-line-long-dashed-shadow', 'gpx-track-line-short-dashed-shadow', 'gpx-track-line-dash-dot-shadow', 'gpx-track-line-dash-dot-dot-shadow']) {
-      this.map.setPaintProperty(layerId, 'line-opacity', ['*', ['get', 'trackShadow'], opacity * 0.8]);
+      this.map.setPaintProperty(layerId, 'line-opacity', ['*', ['get', 'shadowOpacity'], opacity]);
     }
     for (const line of ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot']) {
       this.map.setPaintProperty('gpx-track-hit-' + line, 'line-opacity', opacity > 0 ? 0.01 : 0);
