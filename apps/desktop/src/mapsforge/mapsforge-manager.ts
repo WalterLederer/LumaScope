@@ -24,9 +24,40 @@ class MapsforgeWorkerClient {
   constructor(private readonly javaPath: string, private readonly jarPath: string, private readonly environment: NodeJS.ProcessEnv) {}
 
   request(command: string, values: Record<string, unknown> = {}): Promise<MapsforgeResponse> {
+    const requestedAt = performance.now();
+    const details = command === 'open'
+      ? `maps=${Array.isArray(values['map_paths']) ? values['map_paths'].length : 0}, theme=${values['theme_path'] ? 'yes' : 'no'}, density=${String(values['device_scale_factor'] ?? 1)}`
+      : command === 'render'
+        ? `z${String(values['z'])}/${String(values['x'])}/${String(values['y'])}`
+        : '';
+    const label = `[Mapsforge][timing] ${command}${details ? ' (' + details + ')' : ''}`;
     const result = this.queue.then(async () => {
+      const queueWaitMs = performance.now() - requestedAt;
+      const startupStartedAt = performance.now();
       await this.ensureStarted();
-      return this.sendRequest(command, values);
+      const startupMs = performance.now() - startupStartedAt;
+      const workerStartedAt = performance.now();
+      try {
+        const response = await this.sendRequest(command, values);
+        const workerMs = performance.now() - workerStartedAt;
+        console.info(label, {
+          queueWaitMs: Math.round(queueWaitMs),
+          startupMs: Math.round(startupMs),
+          workerResponseMs: Math.round(workerMs),
+          totalMs: Math.round(performance.now() - requestedAt),
+          status: response.status
+        });
+        return response;
+      } catch (error) {
+        console.warn(label, {
+          queueWaitMs: Math.round(queueWaitMs),
+          startupMs: Math.round(startupMs),
+          workerResponseMs: Math.round(performance.now() - workerStartedAt),
+          totalMs: Math.round(performance.now() - requestedAt),
+          error: error instanceof Error ? error.message : String(error)
+        });
+        throw error;
+      }
     });
     this.queue = result.then(() => undefined, () => undefined);
     return result;
