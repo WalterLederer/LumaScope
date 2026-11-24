@@ -2692,6 +2692,7 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
     // First collect the address-index Boundary IDs in the export extent. These
     // are candidates even if their map-index copy lacks boundary/admin_level tags.
     QSet<QString> addressBoundaryKeys;
+    QHash<QString, QStringList> addressBoundaryNamesByKey;
     QList<std::shared_ptr<const OsmAnd::StreetGroup>> addressBoundaryGroups;
     const auto boundaryOnlyMask = OsmAnd::ObfAddressStreetGroupTypesMask()
         .set(OsmAnd::ObfAddressStreetGroupType::Boundary);
@@ -2709,7 +2710,18 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
         {
             const auto key = administrativeObjectKey(group->id);
             if (!key.isEmpty())
+            {
                 addressBoundaryKeys.insert(key);
+                const auto groupName = group->getName(effectiveLocale, false).trimmed();
+                const auto displayName = groupName.isEmpty() ? group->nativeName.trimmed() : groupName;
+                if (!displayName.isEmpty())
+                {
+                    auto names = addressBoundaryNamesByKey.value(key);
+                    if (!names.contains(displayName, Qt::CaseInsensitive))
+                        names.push_back(displayName);
+                    addressBoundaryNamesByKey.insert(key, names);
+                }
+            }
         }
     }
 
@@ -2726,10 +2738,18 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
     xml.writeAttribute(QStringLiteral("version"), QStringLiteral("1.1"));
     xml.writeAttribute(QStringLiteral("creator"), QStringLiteral("LumaScope OsmAnd OBF boundary candidate exporter"));
     xml.writeDefaultNamespace(QStringLiteral("http://www.topografix.com/GPX/1/1"));
+    xml.writeNamespace(QStringLiteral("https://lumascope.app/xmlschemas/gpx/1"), QStringLiteral("lumascope"));
     xml.writeStartElement(QStringLiteral("metadata"));
     xml.writeTextElement(QStringLiteral("name"), QStringLiteral("Stockerau administrative boundary candidates"));
     xml.writeTextElement(QStringLiteral("desc"),
         QStringLiteral("OBF map objects with boundary=administrative/admin_level tags plus map objects matching AddressIndex Boundary IDs. Original map-object geometry is preserved per zoom level."));
+    xml.writeStartElement(QStringLiteral("extensions"));
+    xml.writeStartElement(QStringLiteral("lumascope:export"));
+    xml.writeAttribute(QStringLiteral("latitude"), QString::number(latitude, 'f', 7));
+    xml.writeAttribute(QStringLiteral("longitude"), QString::number(longitude, 'f', 7));
+    xml.writeAttribute(QStringLiteral("radius_km"), QString::number(radiusKm, 'f', 2));
+    xml.writeEndElement();
+    xml.writeEndElement();
     xml.writeEndElement();
 
     QSet<QString> writtenObjects;
@@ -2745,7 +2765,8 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
                           const QString& classification,
                           const QString& name,
                           const QString& osmId,
-                          int adminLevel)
+                          int adminLevel,
+                          const QStringList& addressIndexNames)
     {
         const QString identity = sourceFile + QLatin1Char('|') + QString::number(mapObject.id.id)
             + QLatin1Char('|') + QString::number(minZoom);
@@ -2775,17 +2796,67 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
         xml.writeTextElement(QStringLiteral("name"), trackName);
         xml.writeTextElement(QStringLiteral("type"), classification);
         xml.writeTextElement(QStringLiteral("desc"),
-            QStringLiteral("OSM %1 %2; admin_level=%3; min_zoom=%4; isArea=%5; source=%6")
+            QStringLiteral("OSM %1 %2; admin_level=%3; min_zoom=%4; isArea=%5; closed=%6; outer_points=%7; inner_rings=%8; source=%9")
                 .arg(objectKind, osmId,
                      adminLevel > 0 ? QString::number(adminLevel) : QStringLiteral("unknown"),
                      QString::number(minZoom),
                      mapObject.isArea ? QStringLiteral("true") : QStringLiteral("false"),
+                     mapObject.isClosedFigure() ? QStringLiteral("true") : QStringLiteral("false"),
+                     QString::number(mapObject.points31.size()),
+                     QString::number(mapObject.innerPolygonsPoints31.size()),
                      QFileInfo(sourceFile).fileName()));
 
-        auto writeSegment = [&](const QVector<OsmAnd::PointI>& points)
+        xml.writeStartElement(QStringLiteral("extensions"));
+        xml.writeStartElement(QStringLiteral("lumascope:boundary"));
+        xml.writeTextElement(QStringLiteral("lumascope:osm_type"), objectKind);
+        xml.writeTextElement(QStringLiteral("lumascope:osm_id"), osmId);
+        xml.writeTextElement(QStringLiteral("lumascope:raw_obf_id"), QString::number(mapObject.id.id));
+        xml.writeTextElement(QStringLiteral("lumascope:is_relation"), mapObject.id.isIdFromRelation() ? QStringLiteral("true") : QStringLiteral("false"));
+        xml.writeTextElement(QStringLiteral("lumascope:is_split_id"), mapObject.id.isIdFromSplit() ? QStringLiteral("true") : QStringLiteral("false"));
+        xml.writeTextElement(QStringLiteral("lumascope:classification"), classification);
+        xml.writeTextElement(QStringLiteral("lumascope:admin_level"), adminLevel > 0 ? QString::number(adminLevel) : QStringLiteral("unknown"));
+        xml.writeTextElement(QStringLiteral("lumascope:min_zoom"), QString::number(minZoom));
+        xml.writeTextElement(QStringLiteral("lumascope:is_area"), mapObject.isArea ? QStringLiteral("true") : QStringLiteral("false"));
+        xml.writeTextElement(QStringLiteral("lumascope:is_closed_figure"), mapObject.isClosedFigure() ? QStringLiteral("true") : QStringLiteral("false"));
+        xml.writeTextElement(QStringLiteral("lumascope:outer_point_count"), QString::number(mapObject.points31.size()));
+        xml.writeTextElement(QStringLiteral("lumascope:inner_ring_count"), QString::number(mapObject.innerPolygonsPoints31.size()));
+        xml.writeTextElement(QStringLiteral("lumascope:geometry_part_count"), QString::number(1 + mapObject.innerPolygonsPoints31.size()));
+        xml.writeTextElement(QStringLiteral("lumascope:source"), QFileInfo(sourceFile).fileName());
+        xml.writeStartElement(QStringLiteral("lumascope:bbox31"));
+        xml.writeAttribute(QStringLiteral("left"), QString::number(mapObject.bbox31.left()));
+        xml.writeAttribute(QStringLiteral("top"), QString::number(mapObject.bbox31.top()));
+        xml.writeAttribute(QStringLiteral("right"), QString::number(mapObject.bbox31.right()));
+        xml.writeAttribute(QStringLiteral("bottom"), QString::number(mapObject.bbox31.bottom()));
+        xml.writeEndElement();
+        if (!addressIndexNames.isEmpty())
+        {
+            xml.writeStartElement(QStringLiteral("lumascope:address_index_matches"));
+            for (const auto& addressName : addressIndexNames)
+                xml.writeTextElement(QStringLiteral("lumascope:name"), addressName);
+            xml.writeEndElement();
+        }
+        const auto attributes = mapObject.getResolvedAttributes();
+        xml.writeStartElement(QStringLiteral("lumascope:tags"));
+        for (auto attribute = attributes.constBegin(); attribute != attributes.constEnd(); ++attribute)
+        {
+            xml.writeStartElement(QStringLiteral("lumascope:tag"));
+            xml.writeAttribute(QStringLiteral("key"), attribute.key());
+            xml.writeAttribute(QStringLiteral("value"), attribute.value());
+            xml.writeEndElement();
+        }
+        xml.writeEndElement();
+        xml.writeEndElement();
+        xml.writeEndElement();
+
+        auto writeSegment = [&](const QVector<OsmAnd::PointI>& points, const QString& role, int segmentIndex)
         {
             if (points.size() < 2)
                 return;
+            const auto first = OsmAnd::Utilities::convert31ToLatLon(points.first());
+            const auto last = OsmAnd::Utilities::convert31ToLatLon(points.last());
+            const bool closed = points.size() > 2
+                && points.first().x == points.last().x
+                && points.first().y == points.last().y;
             xml.writeStartElement(QStringLiteral("trkseg"));
             for (const auto& point : points)
             {
@@ -2796,12 +2867,23 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
                 xml.writeEndElement();
                 ++exportedPointCount;
             }
+            xml.writeStartElement(QStringLiteral("extensions"));
+            xml.writeStartElement(QStringLiteral("lumascope:geometry_part"));
+            xml.writeAttribute(QStringLiteral("index"), QString::number(segmentIndex));
+            xml.writeAttribute(QStringLiteral("role"), role);
+            xml.writeAttribute(QStringLiteral("closed"), closed ? QStringLiteral("true") : QStringLiteral("false"));
+            xml.writeAttribute(QStringLiteral("point_count"), QString::number(points.size()));
+            xml.writeAttribute(QStringLiteral("first"), QStringLiteral("%1,%2").arg(first.latitude, 0, 'f', 7).arg(first.longitude, 0, 'f', 7));
+            xml.writeAttribute(QStringLiteral("last"), QStringLiteral("%1,%2").arg(last.latitude, 0, 'f', 7).arg(last.longitude, 0, 'f', 7));
+            xml.writeEndElement();
+            xml.writeEndElement();
             xml.writeEndElement();
         };
 
-        writeSegment(mapObject.points31);
+        int segmentIndex = 0;
+        writeSegment(mapObject.points31, QStringLiteral("outer"), segmentIndex++);
         for (const auto& innerRing : mapObject.innerPolygonsPoints31)
-            writeSegment(innerRing);
+            writeSegment(innerRing, QStringLiteral("inner"), segmentIndex++);
         xml.writeEndElement();
         ++exportedTrackCount;
         if (classification == QStringLiteral("administrative"))
@@ -2853,7 +2935,8 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
                         administrative ? QStringLiteral("administrative") : QStringLiteral("address-boundary-candidate"),
                         objectName,
                         mapObject->id.isOsmId() ? QString::number(mapObject->id.getOsmId()) : QString::number(mapObject->id.id),
-                        adminLevelOk ? adminLevel : 0);
+                        adminLevelOk ? adminLevel : 0,
+                        addressIndexCandidate ? addressBoundaryNamesByKey.value(objectKey) : QStringList{});
                 }
             }
         }
