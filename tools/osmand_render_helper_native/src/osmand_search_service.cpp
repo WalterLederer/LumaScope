@@ -827,19 +827,34 @@ QJsonObject administrativeAreasForCoordinate(
         const int candidateAdminLevel = hasResolvedAdminLevel ? levelIt.value() : 99;
         const auto normalizedName = OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed();
         const auto objectKey = QStringLiteral("%1|%2").arg(candidateAdminLevel).arg(normalizedName);
-        if (seenAreas.contains(objectKey))
-            continue;
-
-        seenAreas.insert(objectKey);
         const auto width = static_cast<qint64>(right) - left;
         const auto height = static_cast<qint64>(bottom) - top;
-        candidates.push_back({
+        const AdministrativeAreaCandidate addressCandidate{
             candidateAdminLevel,
             objectName,
             std::max<qint64>(0, width) * std::max<qint64>(0, height),
             bboxCenterDistanceMeters(left, top, right, bottom, point, latitude),
             QStringLiteral("address-index-boundary")
-        });
+        };
+
+        // When both indexes expose the same named boundary, prefer the
+        // AddressIndex bbox: it represents the full administrative extent,
+        // whereas a map-index object may be only one generalized line piece.
+        const auto mapCandidate = std::find_if(candidates.begin(), candidates.end(),
+            [&](const AdministrativeAreaCandidate& candidate)
+            {
+                return candidate.adminLevel == candidateAdminLevel
+                    && candidate.source == QStringLiteral("map-boundary")
+                    && OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(candidate.name).trimmed()
+                        == normalizedName;
+            });
+        if (mapCandidate != candidates.end())
+            *mapCandidate = addressCandidate;
+        else if (!seenAreas.contains(objectKey))
+        {
+            seenAreas.insert(objectKey);
+            candidates.push_back(addressCandidate);
+        }
     }
 
     QJsonArray addressBoundaryBboxMapSearches;
@@ -2818,9 +2833,41 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
         xml.writeTextElement(QStringLiteral("lumascope:min_zoom"), QString::number(minZoom));
         xml.writeTextElement(QStringLiteral("lumascope:is_area"), mapObject.isArea ? QStringLiteral("true") : QStringLiteral("false"));
         xml.writeTextElement(QStringLiteral("lumascope:is_closed_figure"), mapObject.isClosedFigure() ? QStringLiteral("true") : QStringLiteral("false"));
-        xml.writeTextElement(QStringLiteral("lumascope:outer_point_count"), QString::number(mapObject.points31.size()));
+        const auto countGeometryParts = [](const QVector<OsmAnd::PointI>& points)
+        {
+            int count = 0;
+            int currentPointCount = 0;
+            for (const auto& point : points)
+            {
+                if (point.x == 0 && point.y == 0)
+                {
+                    if (currentPointCount >= 2)
+                        ++count;
+                    currentPointCount = 0;
+                }
+                else
+                    ++currentPointCount;
+            }
+            if (currentPointCount >= 2)
+                ++count;
+            return count;
+        };
+        const auto countGeometryPoints = [](const QVector<OsmAnd::PointI>& points)
+        {
+            return static_cast<int>(std::count_if(points.cbegin(), points.cend(),
+                [](const OsmAnd::PointI& point) { return point.x != 0 || point.y != 0; }));
+        };
+        int geometryPartCount = countGeometryParts(mapObject.points31);
+        int totalGeometryPointCount = countGeometryPoints(mapObject.points31);
+        for (const auto& innerRing : mapObject.innerPolygonsPoints31)
+        {
+            geometryPartCount += countGeometryParts(innerRing);
+            totalGeometryPointCount += countGeometryPoints(innerRing);
+        }
+        xml.writeTextElement(QStringLiteral("lumascope:outer_point_count"), QString::number(countGeometryPoints(mapObject.points31)));
         xml.writeTextElement(QStringLiteral("lumascope:inner_ring_count"), QString::number(mapObject.innerPolygonsPoints31.size()));
-        xml.writeTextElement(QStringLiteral("lumascope:geometry_part_count"), QString::number(1 + mapObject.innerPolygonsPoints31.size()));
+        xml.writeTextElement(QStringLiteral("lumascope:geometry_part_count"), QString::number(geometryPartCount));
+        xml.writeTextElement(QStringLiteral("lumascope:total_point_count"), QString::number(totalGeometryPointCount));
         xml.writeTextElement(QStringLiteral("lumascope:source"), QFileInfo(sourceFile).fileName());
         xml.writeStartElement(QStringLiteral("lumascope:bbox31"));
         xml.writeAttribute(QStringLiteral("left"), QString::number(mapObject.bbox31.left()));
@@ -2881,9 +2928,27 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
         };
 
         int segmentIndex = 0;
-        writeSegment(mapObject.points31, QStringLiteral("outer"), segmentIndex++);
+        const auto writePointParts = [&](const QVector<OsmAnd::PointI>& points, const QString& role)
+        {
+            QVector<OsmAnd::PointI> currentPart;
+            for (const auto& point : points)
+            {
+                // OsmAnd uses (0,0) separators between independent geometry
+                // pieces. Preserve them as separate GPX track segments instead
+                // of creating a false line across the map.
+                if (point.x == 0 && point.y == 0)
+                {
+                    writeSegment(currentPart, role, segmentIndex++);
+                    currentPart.clear();
+                    continue;
+                }
+                currentPart.push_back(point);
+            }
+            writeSegment(currentPart, role, segmentIndex++);
+        };
+        writePointParts(mapObject.points31, QStringLiteral("outer"));
         for (const auto& innerRing : mapObject.innerPolygonsPoints31)
-            writeSegment(innerRing, QStringLiteral("inner"), segmentIndex++);
+            writePointParts(innerRing, QStringLiteral("inner"));
         xml.writeEndElement();
         ++exportedTrackCount;
         if (classification == QStringLiteral("administrative"))
