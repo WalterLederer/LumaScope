@@ -1758,6 +1758,27 @@ QString OsmAndSearchService::reverseGeocode(
                                         });
                                     }
 
+                                    bool hasNameCaption = false;
+                                    if (mapObject->attributeMapping)
+                                    {
+                                        hasNameCaption = mapObject->captions.contains(
+                                            mapObject->attributeMapping->nativeNameAttributeId);
+                                        if (!hasNameCaption)
+                                        {
+                                            for (auto nameAttributeIt =
+                                                mapObject->attributeMapping->localizedNameAttributeIds.constBegin();
+                                                nameAttributeIt != mapObject->attributeMapping->localizedNameAttributeIds.constEnd();
+                                                ++nameAttributeIt)
+                                            {
+                                                if (mapObject->captions.contains(nameAttributeIt.key()))
+                                                {
+                                                    hasNameCaption = true;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     const auto mapName = mapObject->getName(effectiveLocale, false).trimmed();
                                     const auto nativeName = mapObject->getCaptionInNativeLanguage().trimmed();
                                     placePositionMapObjects.push_back(QJsonObject{
@@ -1776,7 +1797,7 @@ QString OsmAndSearchService::reverseGeocode(
                                         {QStringLiteral("resolved_attributes"), resolvedAttributes},
                                         {QStringLiteral("captions_by_language"), captionsByLanguage},
                                         {QStringLiteral("raw_captions"), rawCaptions},
-                                        {QStringLiteral("has_name_caption"), mapObject->containsCaptionTag(QStringLiteral("name"))},
+                                        {QStringLiteral("has_name_caption"), hasNameCaption},
                                         {QStringLiteral("geometry_point_count"), mapObject->points31.size()},
                                         {QStringLiteral("bbox31"), QJsonArray{
                                             mapObject->bbox31.left(), mapObject->bbox31.top(),
