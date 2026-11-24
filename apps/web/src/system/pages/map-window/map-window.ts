@@ -2656,12 +2656,37 @@ export class MapWindow implements OnInit, OnDestroy {
         }))
       : Promise.resolve({ text: 'Unavailable', parts: [], comments: [] });
     const onlineLookup = lookupReverseGeocoding(latitude, longitude, language)
-      .then(result => result?.displayName?.trim() || 'No result')
-      .catch(error => `Error: ${error instanceof Error ? error.message : String(error)}`);
+      .then(result => ({
+        text: result?.displayName?.trim() || 'No result',
+        parts: result ? {
+          Street: result.street ?? '',
+          'House number': result.houseNumber ?? '',
+          Place: result.locality ?? result.placeName ?? '',
+          Municipality: '',
+          District: result.district ?? '',
+          State: result.region ?? '',
+          Postcode: result.postcode ?? '',
+          Country: result.country ?? '',
+          'Other regions': ''
+        } : {}
+      }))
+      .catch(error => ({
+        text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+        parts: {}
+      }));
     const [offline, online] = await Promise.all([offlineLookup, onlineLookup]);
+    const offlineValues = new Map(offline.parts.map(part => [part.label, part.value]));
+    const tableLabels = [
+      'Street', 'House number', 'Place', 'Municipality', 'District',
+      'State', 'Postcode', 'Country', 'Other regions'
+    ];
+    const parts = tableLabels.map(label => ({
+      label,
+      value: offlineValues.get(label)?.trim() || online.parts[label as keyof typeof online.parts] || ''
+    }));
     return {
-      text: `Offline: ${offline.text}\nOnline: ${online}`,
-      parts: offline.parts,
+      text: `Offline: ${offline.text}\nOnline: ${online.text}`,
+      parts: parts.some(part => part.value) ? parts : [],
       comments: offline.comments
     };
   }
