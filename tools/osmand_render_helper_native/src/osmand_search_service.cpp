@@ -316,6 +316,10 @@ QJsonObject administrativeAreasForCoordinate(
         OsmAnd::fullObfAddressStreetGroupTypesMask());
     loadedAddressStreetGroupCount = addressBoundaryGroups.size();
 
+    // Keep the name-index diagnostic restricted to Boundary entries; this
+    // mask is independent of the full-mask StreetGroup loading above.
+    const auto boundaryOnlyMask = OsmAnd::ObfAddressStreetGroupTypesMask()
+        .set(OsmAnd::ObfAddressStreetGroupType::Boundary);
     // Probe the separate AddressNameIndexData path. Boundary atoms are indexed
     // by name, so query the known local hierarchy names and inspect their
     // resolved StreetGroup references and bounding boxes. This is diagnostic
