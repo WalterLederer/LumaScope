@@ -610,6 +610,7 @@ export interface OsmAndReverseGeocodeResult {
   place: string;
   postcode: string;
   administrative_areas: Array<{ admin_level: number; name: string }>;
+  selection_comments: string[];
   helper_version: string;
   diagnostics: {
       loaded_map_objects: number;
