@@ -3731,9 +3731,15 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
 
+    const osmAndInitStartedAt = Date.now();
     let runtime: Awaited<ReturnType<Desktop['OsmAnd']['getRuntimeStatus']>>;
     try {
+      const styleStartedAt = Date.now();
       runtime = await this.desktop.OsmAnd.setRenderingStyle(this.osmAndStyle());
+      console.info('[OsmAnd][timing] rendering style configured', {
+        style: this.osmAndStyle(),
+        durationMs: Date.now() - styleStartedAt
+      });
     } catch (error) {
       if (generation === this.mapSourceGeneration) {
         this.renderInitStatus.set('');
@@ -3756,6 +3762,10 @@ export class MapWindow implements OnInit, OnDestroy {
     }
 
     registerOsmAndTileProtocol(this.desktop);
+    console.info('[OsmAnd][timing] map renderer construction starting', {
+      elapsedSinceInitMs: Date.now() - osmAndInitStartedAt,
+      zoom: Math.max(2, this.validZoom(this.zoomLevel()))
+    });
     const renderer = new OfflineMapRenderer(
       this.mapElement().nativeElement,
       [longitude, latitude],
@@ -3771,7 +3781,12 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineRenderer = renderer;
     window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: this.renderVisualsEnabled() } }));
     try {
+      const rendererReadyStartedAt = Date.now();
       await renderer.ready;
+      console.info('[OsmAnd][timing] map renderer ready', {
+        rendererReadyMs: Date.now() - rendererReadyStartedAt,
+        elapsedSinceInitMs: Date.now() - osmAndInitStartedAt
+      });
     } catch (error) {
       renderer.remove();
       if (this.offlineRenderer === renderer) this.offlineRenderer = null;
