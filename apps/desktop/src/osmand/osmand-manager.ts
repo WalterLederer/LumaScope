@@ -120,7 +120,7 @@ class OsmAndHelperWorker {
     const queuedAt = Date.now();
     const result = this.queue.then(() => {
       const queueWaitMs = Date.now() - queuedAt;
-      if (queueWaitMs >= 100) console.info('[OsmAnd] worker_queue_wait_ms=' + queueWaitMs, { z, x, y });
+      if (queueWaitMs >= 25) console.info('[OsmAnd][timing] worker queue', { z, x, y, queueWaitMs });
       if (generation !== this.renderGeneration) throw new Error('OsmAnd tile request was cancelled.');
       return this.renderQueued(z, x, y, generation);
     });
@@ -178,12 +178,21 @@ class OsmAndHelperWorker {
     if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
 
     const startupStartedAt = Date.now();
+    console.info('[OsmAnd][timing] helper starting', {
+      obfCount: this.obfPaths.length,
+      resourcesAvailable: existsSync(this.resourcesPath),
+      styleFile: this.stylePath.split(/[\\\\/]/).pop()
+    });
     const child = spawn(this.helperPath, [], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: this.environment });
     this.child = child;
     const reader = new ProcessOutputReader(child.stdout, child);
     this.reader = reader;
     let stderr = '';
-    child.stderr.on('data', chunk => { stderr = (stderr + String(chunk)).slice(-4000); });
+    child.stderr.on('data', chunk => {
+      const message = String(chunk).trim();
+      stderr = (stderr + message + '\\n').slice(-4000);
+      if (message) console.info('[OsmAnd][helper]', message);
+    });
 
     const spawnStartedAt = Date.now();
     await new Promise<void>((resolve, reject) => {
@@ -198,7 +207,7 @@ class OsmAndHelperWorker {
     if (response.status !== 'ok') {
       throw new Error(response.message || ('OsmAnd helper initialization failed. ' + stderr));
     }
-    console.info('[OsmAnd] helper_ready', {
+    console.info('[OsmAnd][timing] helper ready', {
       processSpawnMs,
       nativeInitializationMs: Date.now() - initStartedAt,
       startupTotalMs: Date.now() - startupStartedAt,
@@ -240,8 +249,8 @@ class OsmAndHelperWorker {
     if (width !== TILE_SIZE || height !== TILE_SIZE || stride !== TILE_SIZE * 4 || pixelFormat !== 1 || payloadSize !== TILE_BYTES) {
       throw new Error('OsmAnd helper returned unexpected RGBA8 tile dimensions or format.');
     }
-    console.info('[OsmAnd] tile_render_timing', {
-      z, x, y, renderToHeaderMs,
+    console.info('[OsmAnd][timing] native tile render', {
+      z, x, y, nativeLookupAndRasterMs: renderToHeaderMs,
       payloadReadMs: Date.now() - renderStartedAt - renderToHeaderMs,
       totalMs: Date.now() - renderStartedAt,
       payloadBytes: payloadSize
@@ -541,9 +550,12 @@ export class OsmAndManager {
 
   @IpcHandler({ name: 'OsmAnd.renderTile' })
   readonly renderTile = async (_event: IpcMainInvokeEvent, z: number, x: number, y: number, forceRender = false): Promise<OsmAndTileResult> => {
+    const ipcStartedAt = Date.now();
+    const preparationStartedAt = Date.now();
     await this.styleChange;
     await this.ensureRenderWorkerCount();
     await this.refreshSelectedObf();
+    const preparationMs = Date.now() - preparationStartedAt;
     if (!Number.isInteger(z) || z < 2 || z > 19) throw new Error('OsmAnd zoom must be an integer between 2 and 19.');
     const tileCount = 2 ** z;
     if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= tileCount || y >= tileCount) {
@@ -560,7 +572,7 @@ export class OsmAndManager {
     let pixels = forceRender ? null : await this.readCachedTile(cacheFile);
     const cacheReadMs = Date.now() - cacheReadStartedAt;
     const cacheHit = pixels !== null;
-    console.info('[OsmAnd] tile_cache_lookup', { z, x, y, cacheHit, cacheReadMs });
+    console.info('[OsmAnd][timing] tile cache lookup', { z, x, y, cacheHit, cacheReadMs });
     if (forceRender) {
       // Replace the cached tile only after any earlier render for this tile ends.
       const previousRender = this.pendingTiles.get(key);
@@ -581,7 +593,11 @@ export class OsmAndManager {
       }
       pixels = await pending;
     }
-    console.info('[OsmAnd] tile_pipeline_complete', { z, x, y, cacheHit, totalMs: Date.now() - cacheReadStartedAt });
+    const totalMs = Date.now() - cacheReadStartedAt;
+    console.info('[OsmAnd][timing] tile pipeline complete', {
+      z, x, y, cacheHit, preparationMs, pipelineMs: totalMs,
+      ipcTotalMs: Date.now() - ipcStartedAt
+    });
     return { width: TILE_SIZE, height: TILE_SIZE, stride: TILE_SIZE * 4, pixels: new Uint8Array(pixels), cacheHit };
   };
 
@@ -608,7 +624,7 @@ export class OsmAndManager {
     try {
       await writeFile(temporaryPath, png);
       await rename(temporaryPath, cacheFile);
-      console.info('[OsmAnd] tile_cache_write', { z, x, y, renderMs, cacheWriteMs: Date.now() - renderStartedAt - renderMs, totalMs: Date.now() - renderStartedAt });
+      console.info('[OsmAnd][timing] tile cache write', { z, x, y, renderMs, cacheWriteMs: Date.now() - renderStartedAt - renderMs, totalMs: Date.now() - renderStartedAt });
     } catch (error) {
       await unlink(temporaryPath).catch(() => undefined);
       throw error;
