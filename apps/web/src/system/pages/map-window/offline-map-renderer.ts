@@ -163,52 +163,56 @@ function emitOsmAndTileStatus(detail: OsmAndTileStatusEventDetail): void {
  * the native RGBA8 bytes; ImageBitmap hands those pixels to MapLibre's normal
  * raster/WebGL upload path without encoding or decoding PNG data.
  */
-export function registerOsmAndTileProtocol(desktop: Desktop, getDisplayScale: () => number): void {
+export function registerOsmAndTileProtocol(desktop: Desktop): void {
   if (osmAndProtocolRegistered) return;
   addProtocol('osmand', async (request, abortController) => {
     const match = /^osmand:\/\/(\d+)\/(\d+)\/(\d+)(?:\?refresh=\d+)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd XYZ tile URL: ' + request.url);
     const [, zoomText, columnText, rowText] = match;
     const zoom = Number(zoomText);
-    const requestedColumn = Number(columnText);
+    const column = Number(columnText);
     const row = Number(rowText);
-    if (!Number.isInteger(zoom) || zoom < 2 || zoom > 21
-      || !Number.isInteger(requestedColumn) || !Number.isInteger(row)) {
-      throw new Error('Invalid OsmAnd XYZ tile coordinates.');
-    }
-    const tileCount = 2 ** zoom;
-    const column = ((requestedColumn % tileCount) + tileCount) % tileCount;
     const tileCoordinates = { protocol: 'osmand' as const, zoom, column, row };
-    if (row < 0 || row >= tileCount) {
-      const empty = new Uint8ClampedArray(256 * 256 * 4);
-      return { data: await createImageBitmap(new ImageData(empty, 256, 256)) };
-    }
     emitOsmAndTileStatus({ ...tileCoordinates, status: 'loading' });
     try {
-      const displayScale = getDisplayScale();
-      emitOsmAndTileStatus({ ...tileCoordinates, status: 'rendering' });
-      const tile = await runOfflineRenderTask(
-        () => desktop.OsmAndAtlas.renderTile(zoom, column, row, displayScale),
-        'OsmAnd Atlas',
-        `Tile z${zoom}/${column}/${row}`
-      );
-      if (abortController.signal.aborted) {
-        emitOsmAndTileStatus({ ...tileCoordinates, status: 'cancelled' });
-        return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256)) };
+      // A displayed 512px MapLibre tile is assembled from four native 256px
+      // OsmAnd tiles at the next zoom level, preserving the intended detail.
+      const nativeZoom = zoom + 1;
+      const nativeColumn = column * 2;
+      const nativeRow = row * 2;
+      const coordinates = [
+        [nativeColumn, nativeRow], [nativeColumn + 1, nativeRow],
+        [nativeColumn, nativeRow + 1], [nativeColumn + 1, nativeRow + 1]
+      ] as const;
+      const tiles = await Promise.all(coordinates.map(([x, y]) => runOfflineRenderTask(() => desktop.OsmAnd.renderTile(nativeZoom, x, y), 'OsmAnd', `Tile z${nativeZoom}/${x}/${y}`)));
+      if (abortController.signal.aborted) throw new Error('OsmAnd tile request was cancelled.');
+      // A displayed 512px tile is a cache hit only when all four native
+      // 256px tiles came from disk; mixed cache/render tiles remain "Rendering".
+      if (tiles.every(tile => tile.cacheHit)) {
+        emitOsmAndTileStatus({ ...tileCoordinates, status: 'cache-loading' });
       }
-      if (tile.cacheHit) emitOsmAndTileStatus({ ...tileCoordinates, status: 'cache-loading' });
-      if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024
-        || tile.pixels.byteLength !== 256 * 256 * 4) {
-        throw new Error('OsmAnd Atlas returned an invalid RGBA8 tile.');
+      const pixels = new Uint8ClampedArray(512 * 512 * 4);
+      for (let index = 0; index < tiles.length; index++) {
+        const tile = tiles[index];
+        if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024 || tile.pixels.byteLength !== 256 * 256 * 4) {
+          throw new Error('OsmAnd returned an invalid RGBA8 tile.');
+        }
+        const source = new Uint8Array(tile.pixels);
+        const offsetX = (index % 2) * 256;
+        const offsetY = Math.floor(index / 2) * 256;
+        for (let y = 0; y < 256; y++) {
+          const sourceOffset = y * 1024;
+          const targetOffset = ((offsetY + y) * 512 + offsetX) * 4;
+          pixels.set(source.subarray(sourceOffset, sourceOffset + 1024), targetOffset);
+        }
       }
-      const pixels = new Uint8ClampedArray(tile.pixels.byteLength);
-      pixels.set(tile.pixels);
-      const bitmap = await createImageBitmap(new ImageData(pixels, 256, 256));
+      const bitmap = await createImageBitmap(new ImageData(pixels, 512, 512));
       if (abortController.signal.aborted) {
         bitmap.close();
-        emitOsmAndTileStatus({ ...tileCoordinates, status: 'cancelled' });
-        return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256)) };
+        throw new Error('OsmAnd tile request was cancelled.');
       }
+      // Uniform low-zoom tiles are valid (for example, open ocean). Do not
+      // infer missing World_basemap data from pixel uniformity alone.
       emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
       return { data: bitmap };
     } catch (error) {
@@ -216,13 +220,15 @@ export function registerOsmAndTileProtocol(desktop: Desktop, getDisplayScale: ()
       const cancelled = abortController.signal.aborted || /\b(cancelled|canceled|aborted)\b/i.test(message);
       emitOsmAndTileStatus({ ...tileCoordinates, status: cancelled ? 'cancelled' : 'error', error: message });
       if (cancelled) {
-        return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256)) };
+        const empty = new Uint8ClampedArray(512 * 512 * 4);
+        return { data: await createImageBitmap(new ImageData(empty, 512, 512)) };
       }
       throw error;
     }
   });
   osmAndProtocolRegistered = true;
 }
+
 
 /**
  * Atlas returns one native 256×256 RGBA tile for the requested XYZ coordinate.
@@ -692,14 +698,14 @@ export function registerMapsforgeTileProtocol(desktop: Desktop): void {
 export function createOsmAndMapStyle(): StyleSpecification {
   return {
     version: 8,
-    name: 'LumaScope OsmAnd',
+    name: 'LumaScope OsmAnd OBF',
     sources: {
       osmand: {
         type: 'raster',
         tiles: ['osmand://{z}/{x}/{y}'],
-        tileSize: 256,
+        tileSize: 512,
         minzoom: 2,
-        maxzoom: 21,
+        maxzoom: 19,
         attribution: '© OpenStreetMap contributors'
       }
     },
@@ -2543,6 +2549,7 @@ export class OfflineMapRenderer {
   }
 
   async rerenderVisibleTiles(
+    renderOsmAndTile: (z: number, x: number, y: number, forceRender: boolean) => Promise<unknown>,
     renderAtlasTile: (z: number, x: number, y: number, displayScale: number, forceRender: boolean) => Promise<unknown>,
     displayScale: number,
     onProgress?: (completed: number, total: number) => void
@@ -2553,7 +2560,7 @@ export class OfflineMapRenderer {
 
     // MapLibre raster sources use the integer zoom level below the current
     // fractional camera zoom. Calculate the complete viewport coverage in XYZ.
-    const zoom = Math.max(2, Math.min(21,
+    const zoom = Math.max(2, Math.min(this.tileProtocol === 'osmand-atlas' ? 21 : 18,
       Math.floor(this.map.getZoom())));
     const tileCount = 2 ** zoom;
     const bounds = this.map.getBounds();
@@ -2580,27 +2587,72 @@ export class OfflineMapRenderer {
     }
     if (!visibleTiles.length) return 0;
 
-    // Both OsmAnd source IDs now use the same Atlas native renderer and
-    // its overscanned 256px tile pipeline.
-    onProgress?.(0, visibleTiles.length);
-    let completed = 0;
-    await Promise.all(visibleTiles.map(async ({ x, y }) => {
-      const tileCoordinates = { protocol: this.tileProtocol as 'osmand' | 'osmand-atlas', zoom, column: x, row: y };
-      emitOsmAndTileStatus({ ...tileCoordinates, status: 'rerendering' });
-      try {
-        await renderAtlasTile(zoom, x, y, displayScale, true);
-        emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
-        onProgress?.(++completed, visibleTiles.length);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        emitOsmAndTileStatus({
-          ...tileCoordinates,
-          status: /\b(cancelled|canceled)\b/i.test(message) ? 'cancelled' : 'error',
-          error: message
-        });
-        throw error;
-      }
-    }));
+    if (this.tileProtocol === 'osmand-atlas') {
+      // One MapLibre tile maps directly to one 256px Atlas tile.
+      onProgress?.(0, visibleTiles.length);
+      let completed = 0;
+      const forcedResults = await Promise.all(visibleTiles.map(async ({ x, y }) => {
+        const tileCoordinates = { protocol: 'osmand-atlas' as const, zoom, column: x, row: y };
+        emitOsmAndTileStatus({ ...tileCoordinates, status: 'rerendering' });
+        try {
+          const result = await renderAtlasTile(zoom, x, y, displayScale, true);
+          emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
+          onProgress?.(++completed, visibleTiles.length);
+          return result;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          emitOsmAndTileStatus({
+            ...tileCoordinates,
+            status: /\b(cancelled|canceled)\b/i.test(message) ? 'cancelled' : 'error',
+            error: message
+          });
+          throw error;
+        }
+      }));
+      console.info('[osmand-atlas] Forced render diagnostics', forcedResults.map((result, index) => {
+        const tileResult = result as {
+          diagnostics?: {
+            helperPath?: string;
+            geometryEnabled?: boolean;
+            nativeRender?: boolean;
+            forceRender?: boolean;
+            geometryMessages?: string[];
+          };
+        };
+        return {
+          tile: visibleTiles[index],
+          ...(tileResult?.diagnostics ?? { diagnosticsMissing: true })
+        };
+      }));
+    } else {
+      // One MapLibre tile is composed from four native 256px OsmAnd tiles.
+      onProgress?.(0, visibleTiles.length);
+      let completed = 0;
+      await Promise.all(visibleTiles.map(async ({ x, y }) => {
+        const tileCoordinates = { protocol: 'osmand' as const, zoom, column: x, row: y };
+        emitOsmAndTileStatus({ ...tileCoordinates, status: 'rerendering' });
+        try {
+          const nativeX = x * 2;
+          const nativeY = y * 2;
+          await Promise.all([
+            renderOsmAndTile(zoom + 1, nativeX, nativeY, true),
+            renderOsmAndTile(zoom + 1, nativeX + 1, nativeY, true),
+            renderOsmAndTile(zoom + 1, nativeX, nativeY + 1, true),
+            renderOsmAndTile(zoom + 1, nativeX + 1, nativeY + 1, true)
+          ]);
+          emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
+          onProgress?.(++completed, visibleTiles.length);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          emitOsmAndTileStatus({
+            ...tileCoordinates,
+            status: /\b(cancelled|canceled)\b/i.test(message) ? 'cancelled' : 'error',
+            error: message
+          });
+          throw error;
+        }
+      }));
+    }
 
     const sourceId = this.tileProtocol === 'osmand-atlas' ? 'osmand-atlas' : 'osmand';
     const protocol = this.tileProtocol;
