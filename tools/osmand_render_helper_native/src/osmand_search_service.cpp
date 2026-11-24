@@ -860,9 +860,14 @@ QJsonObject administrativeAreasForCoordinate(
                             &bboxMapObjects);
 
                         int levelAdministrativeObjects = 0;
+                        int levelAdministrativeAreaObjects = 0;
+                        int levelAdministrativeLineObjects = 0;
+                        int levelAdministrativeClosedObjects = 0;
+                        int levelAdministrativeBboxContainsPoint = 0;
                         int levelSameIdObjects = 0;
                         int levelSameNameObjects = 0;
                         QJsonArray matchingObjects;
+                        std::vector<QPair<qint64, QJsonObject>> administrativeGeometrySamples;
                         for (const auto& mapObject : bboxMapObjects)
                         {
                             if (!mapObject)
@@ -877,7 +882,47 @@ QJsonObject administrativeAreasForCoordinate(
                                 QStringLiteral("administrative"), Qt::CaseInsensitive) == 0
                                 && adminLevelOk && adminLevel > 0;
                             if (isAdministrative)
+                            {
                                 ++levelAdministrativeObjects;
+                                if (mapObject->isArea)
+                                    ++levelAdministrativeAreaObjects;
+                                else
+                                    ++levelAdministrativeLineObjects;
+                                if (mapObject->isClosedFigure())
+                                    ++levelAdministrativeClosedObjects;
+                                const auto& geometryBbox = mapObject->bbox31;
+                                const bool geometryBboxContainsPoint =
+                                    geometryBbox.left() <= point31.x && geometryBbox.right() >= point31.x
+                                    && geometryBbox.top() <= point31.y && geometryBbox.bottom() >= point31.y;
+                                if (geometryBboxContainsPoint)
+                                    ++levelAdministrativeBboxContainsPoint;
+
+                                const auto geometryName = mapObject->getName(locale, false).trimmed();
+                                const auto geometryDisplayName = geometryName.isEmpty()
+                                    ? mapObject->getCaptionInNativeLanguage().trimmed() : geometryName;
+                                const qint64 geometryWidth = std::max<qint64>(0,
+                                    static_cast<qint64>(geometryBbox.right()) - geometryBbox.left());
+                                const qint64 geometryHeight = std::max<qint64>(0,
+                                    static_cast<qint64>(geometryBbox.bottom()) - geometryBbox.top());
+                                const qint64 geometryArea = geometryWidth * geometryHeight;
+                                QJsonObject geometrySample{
+                                    {QStringLiteral("name"), geometryDisplayName},
+                                    {QStringLiteral("osm_id"), mapObject->id.isOsmId()
+                                        ? QString::number(mapObject->id.getOsmId()) : QString()},
+                                    {QStringLiteral("raw_id"), QString::number(mapObject->id.id)},
+                                    {QStringLiteral("is_relation"), mapObject->id.isIdFromRelation()},
+                                    {QStringLiteral("is_split"), mapObject->id.isIdFromSplit()},
+                                    {QStringLiteral("is_area"), mapObject->isArea},
+                                    {QStringLiteral("is_closed_figure"), mapObject->isClosedFigure()},
+                                    {QStringLiteral("outer_point_count"), mapObject->points31.size()},
+                                    {QStringLiteral("inner_ring_count"), mapObject->innerPolygonsPoints31.size()},
+                                    {QStringLiteral("bbox_contains_query_point"), geometryBboxContainsPoint},
+                                    {QStringLiteral("bbox31"), QJsonArray{
+                                        geometryBbox.left(), geometryBbox.top(),
+                                        geometryBbox.right(), geometryBbox.bottom()}}
+                                };
+                                administrativeGeometrySamples.push_back(qMakePair(geometryArea, geometrySample));
+                            }
 
                             const auto mapObjectKey = administrativeObjectKey(mapObject->id);
                             const bool sameOsmId = !addressObjectKey.isEmpty()
@@ -920,6 +965,18 @@ QJsonObject administrativeAreasForCoordinate(
                             }
                         }
 
+                        std::sort(administrativeGeometrySamples.begin(), administrativeGeometrySamples.end(),
+                            [](const auto& leftSample, const auto& rightSample)
+                            {
+                                return leftSample.first > rightSample.first;
+                            });
+                        QJsonArray administrativeGeometrySampleJson;
+                        const int geometrySampleLimit = std::min(30,
+                            static_cast<int>(administrativeGeometrySamples.size()));
+                        for (int sampleIndex = 0; sampleIndex < geometrySampleLimit; ++sampleIndex)
+                            administrativeGeometrySampleJson.push_back(
+                                administrativeGeometrySamples.at(sampleIndex).second);
+
                         totalLoadedObjects += bboxMapObjects.size();
                         totalAdministrativeObjects += levelAdministrativeObjects;
                         totalSameIdObjects += levelSameIdObjects;
@@ -928,9 +985,14 @@ QJsonObject administrativeAreasForCoordinate(
                             {QStringLiteral("min_zoom"), mapLevel->minZoom},
                             {QStringLiteral("loaded_objects"), bboxMapObjects.size()},
                             {QStringLiteral("administrative_objects"), levelAdministrativeObjects},
+                            {QStringLiteral("administrative_area_objects"), levelAdministrativeAreaObjects},
+                            {QStringLiteral("administrative_line_objects"), levelAdministrativeLineObjects},
+                            {QStringLiteral("administrative_closed_objects"), levelAdministrativeClosedObjects},
+                            {QStringLiteral("administrative_bbox_contains_query_point"), levelAdministrativeBboxContainsPoint},
                             {QStringLiteral("same_osm_id_objects"), levelSameIdObjects},
                             {QStringLiteral("same_name_objects"), levelSameNameObjects},
-                            {QStringLiteral("matching_objects"), matchingObjects}
+                            {QStringLiteral("matching_objects"), matchingObjects},
+                            {QStringLiteral("largest_administrative_geometries"), administrativeGeometrySampleJson}
                         });
                     }
                 }
