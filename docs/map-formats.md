@@ -52,7 +52,7 @@ The online map style selector includes three basemap.at raster WMTS products, lo
 
 - **basemap.at Standard:** `https://mapsneu.wien.gv.at/basemap/geolandbasemap/normal/google3857/{z}/{y}/{x}.png`
 - **basemap.at Grau:** `https://mapsneu.wien.gv.at/basemap/bmapgrau/normal/google3857/{z}/{y}/{x}.png`
-- **basemap.at Orthofoto:** `https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/{z}/{y}/{x}.jpg`
+- **basemap.at Orthofoto:** `https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/{z}/{y}/{x}.jpeg`
 
 All three use EPSG:3857 and the WMTS `google3857` tile matrix. The row/column order in the service URL is `{y}/{x}`. The map displays the required basemap.at attribution. The service covers Austria; outside its coverage area, tiles may be empty. The products are provided online and require an internet connection.
 
