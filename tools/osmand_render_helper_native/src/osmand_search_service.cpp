@@ -348,6 +348,9 @@ QJsonObject administrativeAreasForCoordinate(
     QJsonArray poiNameIndexQueryResults;
     const bool nameIndexDiagnosticsEnabled =
         qEnvironmentVariableIsSet("LUMASCOPE_OSMAND_NAMEINDEX_DIAGNOSTICS");
+    QJsonArray mapPlaceObjectDiagnostics;
+    int nearbyMapObjectCount = 0;
+    int nearbyNamedPlaceObjectCount = 0;
     if (nameIndexDiagnosticsEnabled)
     {
         const QStringList boundaryNameQueries{
@@ -479,10 +482,7 @@ QJsonObject administrativeAreasForCoordinate(
         }
         // Inspect the nearby map index for place=* objects. Unlike the POI
         // index, named place nodes can be represented as map objects.
-        QJsonArray mapPlaceObjectDiagnostics;
         QSet<QString> seenMapPlaceObjects;
-        int nearbyMapObjectCount = 0;
-        int nearbyNamedPlaceObjectCount = 0;
         for (const auto& reader : dataInterface->obfReaders)
         {
             if (!reader)
