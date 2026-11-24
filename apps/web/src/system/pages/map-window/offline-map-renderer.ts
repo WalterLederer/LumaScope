@@ -1,3 +1,4 @@
+import { createGpxTrackRenderStyle } from './gpx-track-render-style';
 import { addProtocol, Map as MapLibreMap, ScaleControl, setWorkerUrl, type MapOptions, type StyleSpecification, type MapLayerMouseEvent } from 'maplibre-gl';
 import type { Desktop, OsmAndHillshadeDatabase } from 'internal-api';
 import 'maplibre-gl/dist/maplibre-gl.css';
