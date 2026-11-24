@@ -2751,7 +2751,7 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
         const auto info = reader->obtainInfo();
         if (!info)
             continue;
-        const QString sourceFile = reader->getFileName();
+        const QString sourceFile = QStringLiteral("active OBF collection");
 
         for (const auto& mapSection : info->mapSections)
         {
@@ -2772,7 +2772,7 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
                     const auto boundaryValue = attributes.value(QStringLiteral("boundary")).trimmed().toLower();
                     bool adminLevelOk = false;
                     const int adminLevel = attributes.value(QStringLiteral("admin_level")).toInt(&adminLevelOk);
-                    const bool administrative = boundaryValue == QStringLiteral("administrative");
+                    const bool administrative = boundaryValue == QStringLiteral("administrative") || (adminLevelOk && adminLevel > 0);
                     const QString objectKey = mapObject->id.isOsmId()
                         ? administrativeObjectKey(mapObject->id) : QString();
                     const bool addressIndexCandidate = !objectKey.isEmpty()
