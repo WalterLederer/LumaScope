@@ -5,6 +5,10 @@ export interface ReverseGeocodingResult {
   region: string | null;
   locality: string | null;
   street: string | null;
+  houseNumber: string | null;
+  district: string | null;
+  postcode: string | null;
+  country: string | null;
 }
 
 interface NominatimReverseResponse {
@@ -12,11 +16,14 @@ interface NominatimReverseResponse {
   display_name?: string;
   address?: {
     country_code?: string;
+    country?: string;
     state?: string;
     region?: string;
     state_district?: string;
     city?: string;
     town?: string;
+    house_number?: string;
+    postcode?: string;
     village?: string;
     municipality?: string;
     suburb?: string;
@@ -181,7 +188,11 @@ export const lookupReverseGeocoding = (
         countryCode: address.country_code?.toUpperCase() ?? null,
         region: address.state ?? address.region ?? address.state_district ?? null,
         locality,
-        street
+        street,
+        houseNumber: address.house_number ?? null,
+        district: address.state_district ?? address.county ?? null,
+        postcode: address.postcode ?? null,
+        country: address.country ?? null
       };
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') throw error;
