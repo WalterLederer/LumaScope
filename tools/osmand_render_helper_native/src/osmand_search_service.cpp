@@ -100,6 +100,49 @@ bool polygonContainsPoint(
     return polygon.containsPoint(point, Qt::OddEvenFill);
 }
 
+double nearestLineDistanceMeters(
+    const QVector<OsmAnd::PointI>& points,
+    const QPoint& point,
+    double latitude,
+    int* nearestSegmentIndex)
+{
+    if (nearestSegmentIndex)
+        *nearestSegmentIndex = -1;
+    if (points.size() < 2)
+        return std::numeric_limits<double>::infinity();
+
+    double nearestDistanceSquared = std::numeric_limits<double>::infinity();
+    int nearestIndex = -1;
+    for (int index = 1; index < points.size(); ++index)
+    {
+        const auto& first = points.at(index - 1);
+        const auto& second = points.at(index);
+        const double dx = static_cast<double>(second.x) - first.x;
+        const double dy = static_cast<double>(second.y) - first.y;
+        const double lengthSquared = dx * dx + dy * dy;
+        const double projection = lengthSquared > 0.0
+            ? std::clamp(((point.x() - first.x) * dx + (point.y() - first.y) * dy) / lengthSquared, 0.0, 1.0)
+            : 0.0;
+        const double closestX = first.x + projection * dx;
+        const double closestY = first.y + projection * dy;
+        const double offsetX = point.x() - closestX;
+        const double offsetY = point.y() - closestY;
+        const double distanceSquared = offsetX * offsetX + offsetY * offsetY;
+        if (distanceSquared < nearestDistanceSquared)
+        {
+            nearestDistanceSquared = distanceSquared;
+            nearestIndex = index - 1;
+        }
+    }
+
+    if (nearestSegmentIndex)
+        *nearestSegmentIndex = nearestIndex;
+    constexpr double earthCircumferenceMeters = 40075016.686;
+    const double metersPer31Unit = earthCircumferenceMeters
+        * std::max(0.01, std::cos(latitude * M_PI / 180.0)) / 2147483648.0;
+    return std::sqrt(nearestDistanceSquared) * metersPer31Unit;
+}
+
 bool mapObjectContainsPoint(
     const OsmAnd::BinaryMapObject& mapObject,
     const QPoint& point)
@@ -909,6 +952,11 @@ QJsonObject administrativeAreasForCoordinate(
                                 const bool closedGeometryContainsQueryPoint =
                                     !mapObject->isArea && isClosedFigure
                                     && polygonContainsPoint(mapObject->points31, point);
+                                int nearestLineSegmentIndex = -1;
+                                const double nearestLineDistance = !mapObject->isArea
+                                    ? nearestLineDistanceMeters(
+                                        mapObject->points31, point, latitude, &nearestLineSegmentIndex)
+                                    : std::numeric_limits<double>::infinity();
                                 QJsonObject geometrySample{
                                     {QStringLiteral("name"), geometryDisplayName},
                                     {QStringLiteral("osm_id"), mapObject->id.isOsmId()
@@ -919,6 +967,9 @@ QJsonObject administrativeAreasForCoordinate(
                                     {QStringLiteral("is_area"), mapObject->isArea},
                                     {QStringLiteral("is_closed_figure"), isClosedFigure},
                                     {QStringLiteral("closed_geometry_contains_query_point"), closedGeometryContainsQueryPoint},
+                                    {QStringLiteral("nearest_line_distance_m"), std::isfinite(nearestLineDistance)
+                                        ? QJsonValue(nearestLineDistance) : QJsonValue()},
+                                    {QStringLiteral("nearest_line_segment_index"), nearestLineSegmentIndex},
                                     {QStringLiteral("outer_point_count"), mapObject->points31.size()},
                                     {QStringLiteral("inner_ring_count"), mapObject->innerPolygonsPoints31.size()},
                                     {QStringLiteral("bbox_contains_query_point"), geometryBboxContainsPoint},
