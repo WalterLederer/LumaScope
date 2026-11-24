@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
     const bool searchMode = mode == QStringLiteral("--search");
     const bool exportBoundaryMode = mode == QStringLiteral("--export-admin-boundaries");
     if ((!reverseGeocodeMode && !reverseGeocodeWorkerMode && !searchMode && !exportBoundaryMode)
-        || argc < (exportBoundaryMode ? 9 : (reverseGeocodeMode ? 6 : (reverseGeocodeWorkerMode ? 4 : 5))))
+        || argc < (exportBoundaryMode ? 8 : (reverseGeocodeMode ? 6 : (reverseGeocodeWorkerMode ? 4 : 5))))
     {
         printUsage();
         return 2;
@@ -154,13 +154,13 @@ int main(int argc, char* argv[])
         double latitude = 0.0;
         double longitude = 0.0;
         bool radiusOk = false;
-        const double radiusKm = QString::fromLatin1(argv[8]).toDouble(&radiusOk);
-        if (!parseCoordinates(argv[6], argv[7], latitude, longitude) || !radiusOk || radiusKm <= 0.0 || radiusKm > 100.0)
+        const double radiusKm = QString::fromLatin1(argv[7]).toDouble(&radiusOk);
+        if (!parseCoordinates(argv[5], argv[6], latitude, longitude) || !radiusOk || radiusKm <= 0.0 || radiusKm > 100.0)
         {
             std::cerr << "Invalid GPX export coordinates or radius." << std::endl;
             return 2;
         }
-        const auto locale = argc > 9 ? decodeArgument(argv[9]) : QString();
+        const auto locale = argc > 8 ? decodeArgument(argv[8]) : QString();
         result = service.exportAdministrativeBoundaryCandidatesGpx(decodeArgument(argv[4]), latitude, longitude, radiusKm, locale, errorMessage);
     }
     else if (reverseGeocodeMode)
