@@ -2755,7 +2755,7 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
     xml.writeDefaultNamespace(QStringLiteral("http://www.topografix.com/GPX/1/1"));
     xml.writeNamespace(QStringLiteral("https://lumascope.app/xmlschemas/gpx/1"), QStringLiteral("lumascope"));
     xml.writeStartElement(QStringLiteral("metadata"));
-    xml.writeTextElement(QStringLiteral("name"), QStringLiteral("Stockerau administrative boundary candidates"));
+    xml.writeTextElement(QStringLiteral("name"), QStringLiteral("Administrative boundary candidates"));
     xml.writeTextElement(QStringLiteral("desc"),
         QStringLiteral("OBF map objects with boundary=administrative/admin_level tags plus map objects matching AddressIndex Boundary IDs. Original map-object geometry is preserved per zoom level."));
     xml.writeStartElement(QStringLiteral("extensions"));
