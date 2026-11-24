@@ -1,3 +1,4 @@
+import { createGpxTrackRenderStyle } from './gpx-track-render-style';
 import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SliderComponent, ButtonTooltipDirective} from '@light-matter/ui';
@@ -1350,7 +1351,7 @@ export class MapWindow implements OnInit, OnDestroy {
         key: track.path, name: track.name, color: track.color || this.gpxColor(),
         lineWidth: track.lineWidth ?? 3, dash: this.gpxPreviewDash(track.lineStyle),
         polyline, arrows,
-        arrowGlyph: this.gpxDirectionGlyph(track.directionStyle),
+        arrowGlyph: renderStyle.arrowGlyph,
         arrowSize: this.gpxDirectionArrowSize(track.directionArrowSizePx, track.directionStyle),
         lineStyle: this.gpxLineStyleName(track.lineStyle ?? 'solid'),
         colorMode: track.colorMode === 'speed' ? 'Speed-based' : track.colorMode === 'elevation' ? 'Elevation-based' : track.colorMode === 'track-based' ? 'Track based' : 'Fixed color',
