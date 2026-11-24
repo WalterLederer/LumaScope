@@ -1558,8 +1558,11 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly reverseGeocodeSourceText = (text: string, source: 'Offline' | 'Online'): string => {
-    const prefix = `${source}: `;
-    return text.split(/\r?\n/).find(line => line.startsWith(prefix))?.slice(prefix.length) ?? '';
+    const prefix = \`${source}: \`;
+    const sourceText = text.split(/\r?\n/).find(line => line.startsWith(prefix))?.slice(prefix.length) ?? '';
+    return source === 'Offline'
+      ? sourceText.replace(/\s+\(OsmAnd offline helper\b[\s\S]*$/, '').trim()
+      : sourceText;
   };
 
   protected readonly formatReverseGeocodeComments = (comments: string[]): string[] => {
