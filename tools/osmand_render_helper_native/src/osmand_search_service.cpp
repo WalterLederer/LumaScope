@@ -569,6 +569,99 @@ QJsonObject administrativeAreasForCoordinate(
                 }
             }
         }
+        // A second, bounded map-index probe checks for larger named
+        // administrative objects whose representative geometry may be several
+        // kilometres from the requested coordinate. This reads indexed map
+        // objects only; it does not reconstruct boundary line segments.
+        constexpr double administrativeProbeLatitudeRadius = 0.045; // approximately 5 km
+        constexpr double administrativeProbeLongitudeRadius = 0.067;
+        const auto administrativeTopLeft = OsmAnd::Utilities::convertLatLonTo31(
+            OsmAnd::LatLon(latitude + administrativeProbeLatitudeRadius, longitude - administrativeProbeLongitudeRadius));
+        const auto administrativeBottomRight = OsmAnd::Utilities::convertLatLonTo31(
+            OsmAnd::LatLon(latitude - administrativeProbeLatitudeRadius, longitude + administrativeProbeLongitudeRadius));
+        OsmAnd::AreaI administrativeProbeArea;
+        administrativeProbeArea.left() = std::min(administrativeTopLeft.x, administrativeBottomRight.x);
+        administrativeProbeArea.top() = std::min(administrativeTopLeft.y, administrativeBottomRight.y);
+        administrativeProbeArea.right() = std::max(administrativeTopLeft.x, administrativeBottomRight.x);
+        administrativeProbeArea.bottom() = std::max(administrativeTopLeft.y, administrativeBottomRight.y);
+
+        int administrativeProbeMapObjectCount = 0;
+        int administrativeProbeNamedBoundaryCount = 0;
+        QSet<QString> seenAdministrativeProbeObjects;
+        QJsonArray administrativeProbeBoundaries;
+        for (const auto& reader : dataInterface->obfReaders)
+        {
+            if (!reader)
+                continue;
+            const auto info = reader->obtainInfo();
+            if (!info)
+                continue;
+            for (const auto& mapSection : info->mapSections)
+            {
+                if (!mapSection)
+                    continue;
+                for (const auto& mapLevel : mapSection->levels)
+                {
+                    if (!mapLevel)
+                        continue;
+                    QList<std::shared_ptr<const OsmAnd::BinaryMapObject>> probeObjects;
+                    OsmAnd::ObfMapSectionReader::loadMapObjects(
+                        reader, mapSection, nullptr, mapLevel->minZoom,
+                        &administrativeProbeArea, &probeObjects);
+                    administrativeProbeMapObjectCount += probeObjects.size();
+                    for (const auto& mapObject : probeObjects)
+                    {
+                        if (!mapObject)
+                            continue;
+                        const auto attributes = mapObject->getResolvedAttributes();
+                        if (attributes.value(QStringLiteral("boundary")).trimmed().compare(
+                                QStringLiteral("administrative"), Qt::CaseInsensitive) != 0)
+                            continue;
+                        bool levelOk = false;
+                        const int adminLevel = attributes.value(QStringLiteral("admin_level")).toInt(&levelOk);
+                        if (!levelOk || adminLevel <= 0)
+                            continue;
+                        const auto name = mapObject->getName(locale, false).trimmed();
+                        const auto displayName = name.isEmpty()
+                            ? mapObject->getCaptionInNativeLanguage().trimmed() : name;
+                        if (displayName.isEmpty())
+                            continue;
+                        const auto key = mapObject->id.isOsmId()
+                            ? administrativeObjectKey(mapObject->id)
+                            : QString::number(mapObject->id.id);
+                        if (seenAdministrativeProbeObjects.contains(key))
+                            continue;
+                        seenAdministrativeProbeObjects.insert(key);
+                        ++administrativeProbeNamedBoundaryCount;
+                        if (administrativeProbeBoundaries.size() >= 100)
+                            continue;
+                        const double centerX = mapObject->bbox31.left()
+                            + (static_cast<double>(mapObject->bbox31.right()) - mapObject->bbox31.left()) / 2.0;
+                        const double centerY = mapObject->bbox31.top()
+                            + (static_cast<double>(mapObject->bbox31.bottom()) - mapObject->bbox31.top()) / 2.0;
+                        const double distanceMeters = std::hypot(
+                            centerX - point31.x, centerY - point31.y)
+                            * 40075016.686 / 2147483648.0;
+                        administrativeProbeBoundaries.push_back(QJsonObject{
+                            {QStringLiteral("name"), displayName},
+                            {QStringLiteral("admin_level"), adminLevel},
+                            {QStringLiteral("osm_id"), mapObject->id.isOsmId()
+                                ? QString::number(mapObject->id.getOsmId()) : QString()},
+                            {QStringLiteral("is_relation"), mapObject->id.isIdFromRelation()},
+                            {QStringLiteral("is_area"), mapObject->isArea},
+                            {QStringLiteral("distance_m"), distanceMeters}
+                        });
+                    }
+                }
+            }
+        }
+        std::sort(administrativeProbeBoundaries.begin(), administrativeProbeBoundaries.end(),
+            [](const QJsonValue& left, const QJsonValue& right)
+            {
+                return left.toObject().value(QStringLiteral("admin_level")).toInt()
+                    < right.toObject().value(QStringLiteral("admin_level")).toInt();
+            });
+
         // Keep a compact summary alongside the small, filtered place list.
         poiNameIndexQueryResults.prepend(QJsonObject{
             {QStringLiteral("query_mode"), QStringLiteral("spatial_place_only")},
@@ -929,6 +1022,10 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("nearby_map_object_count"), nearbyMapObjectCount},
         {QStringLiteral("nearby_named_place_object_count"), nearbyNamedPlaceObjectCount},
         {QStringLiteral("nearby_named_administrative_boundary_object_count"), nearbyNamedAdministrativeBoundaryObjectCount},
+        {QStringLiteral("administrative_probe_radius_m_approx"), 5000},
+        {QStringLiteral("administrative_probe_map_object_count"), administrativeProbeMapObjectCount},
+        {QStringLiteral("administrative_probe_named_boundary_count"), administrativeProbeNamedBoundaryCount},
+        {QStringLiteral("administrative_probe_boundaries"), administrativeProbeBoundaries},
         {QStringLiteral("address_boundary_blocks"), addressBoundaryBlockCount},
         {QStringLiteral("address_block_type_counts"), addressBlockTypeCounts},
         {QStringLiteral("matching_address_boundary_groups"), matchingAddressBoundaryGroupCount},
