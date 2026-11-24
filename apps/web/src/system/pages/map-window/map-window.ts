@@ -2665,7 +2665,7 @@ export class MapWindow implements OnInit, OnDestroy {
           const parts = [
             { label: 'Street', value: result.street.trim() },
             { label: 'House number', value: result.building.trim() },
-            { label: 'Place', value: place || municipality },
+            { label: 'Place', value: place },
             { label: 'Municipality', value: municipality && municipality.toLocaleLowerCase() !== place.toLocaleLowerCase() ? municipality : '' },
             { label: 'District', value: areaForLevel(6) },
             { label: 'State', value: areaForLevel(4) },
