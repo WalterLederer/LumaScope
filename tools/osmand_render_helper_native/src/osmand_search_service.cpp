@@ -928,6 +928,7 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("map_place_object_diagnostics"), mapPlaceObjectDiagnostics},
         {QStringLiteral("nearby_map_object_count"), nearbyMapObjectCount},
         {QStringLiteral("nearby_named_place_object_count"), nearbyNamedPlaceObjectCount},
+        {QStringLiteral("nearby_named_administrative_boundary_object_count"), nearbyNamedAdministrativeBoundaryObjectCount},
         {QStringLiteral("address_boundary_blocks"), addressBoundaryBlockCount},
         {QStringLiteral("address_block_type_counts"), addressBlockTypeCounts},
         {QStringLiteral("matching_address_boundary_groups"), matchingAddressBoundaryGroupCount},
