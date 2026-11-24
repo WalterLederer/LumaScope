@@ -853,7 +853,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapOpacity = signal(this.readNumber('opacity', 100, 0, 100));
   protected readonly labelOpacity = signal(this.readNumber('labelOpacity', 100, 0, 100));
   protected readonly labelsVisible = signal(this.mapSource() === 'osmand-atlas' ? true : this.mapSource() === 'osmand' ? false : this.readSetting('labelsVisible', 'true') === 'true');
-  protected readonly displayDensityFactor = signal(this.readNumber('displayDensityFactor', this.readNumber('atlasDisplayDensityFactor', window.devicePixelRatio || 1, 1, 3), 1, 3));
+  protected readonly displayDensityFactor = signal(this.readDisplayDensityFactor(this.mapSource() === 'mapsforge' ? 'mapsforge' : 'osmand'));
   protected readonly overlayOpacity = signal(this.readNumber('overlayOpacity', 100, 0, 100));
   protected readonly mapVisible = signal(this.readSetting('mapVisible', 'true') === 'true');
   protected readonly hillshadeVisible = signal(this.readSetting('hillshadeVisible', 'false') === 'true');
@@ -2794,6 +2794,11 @@ export class MapWindow implements OnInit, OnDestroy {
     const value = Number(this.readSetting(key, String(fallback)));
     return Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
   }
+  private readDisplayDensityFactor(source: 'osmand' | 'mapsforge'): number {
+    const windowsScale = window.devicePixelRatio || 1;
+    const legacyFallback = this.readNumber('displayDensityFactor', this.readNumber('atlasDisplayDensityFactor', windowsScale, 1, 3), 1, 3);
+    return this.readNumber(source === 'mapsforge' ? 'mapsforgeDisplayDensityFactor' : 'osmandDisplayDensityFactor', legacyFallback, 1, 3);
+  }
   private saveSetting(key: string, value: string | number | boolean): void {
     try { localStorage.setItem(this.storagePrefix + key, String(value)); } catch { /* Keep the current session setting. */ }
   }
@@ -3795,6 +3800,9 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapSourceGeneration++;
     this.mapInitialization = null;
     this.mapSource.set(nextSource); this.saveSetting('source', nextSource);
+    if (nextSource === 'mapsforge' || nextSource === 'osmand-atlas') {
+      this.displayDensityFactor.set(this.readDisplayDensityFactor(nextSource === 'mapsforge' ? 'mapsforge' : 'osmand'));
+    }
     if (nextSource === 'osmand-atlas' || nextSource === 'osmand') {
       const labelsEnabled = nextSource === 'osmand-atlas';
       this.labelsVisible.set(labelsEnabled);
@@ -5252,8 +5260,10 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!Number.isFinite(density)) return;
     const next = Math.round(Math.max(1, Math.min(3, density)) * 20) / 20;
     this.displayDensityFactor.set(next);
-    this.saveSetting('displayDensityFactor', next);
-    if ((this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge') && this.currentLatitude !== null && this.currentLongitude !== null) {
+    const source = this.mapSource();
+    if (source === 'mapsforge') this.saveSetting('mapsforgeDisplayDensityFactor', next);
+    else if (source === 'osmand-atlas') this.saveSetting('osmandDisplayDensityFactor', next);
+    if ((source === 'osmand-atlas' || source === 'mapsforge') && this.currentLatitude !== null && this.currentLongitude !== null) {
       this.mapSourceGeneration++;
       this.mapInitialization = null;
       this.offlineRenderer?.remove();
