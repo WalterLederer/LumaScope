@@ -502,11 +502,13 @@ app-map-window {
     .marker-summary-table tr:nth-child(even) td{background:color-mix(in srgb,var(--color-surface-default-low,#202124) 45%,transparent)}
     @media(max-width:560px){.marker-summary-table th{width:125px}}
     .location-address{display:block;min-width:0;overflow-wrap:anywhere;white-space:pre-line;color:var(--color-content-default-medium,#aaa)}
-    .reverse-geocode-table-wrap{max-width:100%;overflow-x:auto;margin-top:6px}
-    .reverse-geocode-values-table{border-collapse:collapse;width:max-content;max-width:none;font-size:11px}
+    .reverse-geocode-table-wrap{max-width:100%;overflow-x:auto;margin-top:6px;border:1px solid var(--color-content-default-low,#454545);border-radius:4px}
+    .reverse-geocode-values-table{border-collapse:collapse;width:max-content;max-width:none;font-size:11px;border:0}
     .reverse-geocode-values-table th,.reverse-geocode-values-table td{border:1px solid var(--color-content-default-low,#454545);padding:3px 6px;text-align:left;white-space:nowrap}
     .reverse-geocode-values-table th{font-weight:600;color:var(--color-content-default,#eee);background:var(--color-content-default-low,#333)}
     .reverse-geocode-values-table td{color:var(--color-content-default-medium,#aaa)}
+    .reverse-geocode-values-table .reverse-geocode-full-text-row td{white-space:normal;overflow-wrap:anywhere;font-size:11px;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-medium,#292929);border-top:0}
+    .reverse-geocode-values-table .reverse-geocode-online-row th,.reverse-geocode-values-table .reverse-geocode-online-row td{border-top:2px solid var(--color-content-default-high,#aaa)}
     .reverse-geocode-comments{margin:5px 0 0;padding-left:18px;color:var(--color-content-default-medium,#aaa);font-size:11px}
     .reverse-geocode-comments li{margin:2px 0;overflow-wrap:anywhere}
     .gpx-settings{flex:0 0 100%;width:100%;border-right:0;border-top:1px solid var(--color-content-default-low,#454545);border-bottom:0;padding:7px 0 0;gap:8px}
