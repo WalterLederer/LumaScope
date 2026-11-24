@@ -1494,7 +1494,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.13")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.14")},
     };
 
     // Administrative areas are resolved independently from the address
@@ -1518,9 +1518,103 @@ QString OsmAndSearchService::reverseGeocode(
 
     if (result)
     {
-        const auto buildingName = result->building
+        const bool resultDiagnosticsEnabled =
+            qEnvironmentVariableIsSet("LUMASCOPE_OSMAND_RESULT_DIAGNOSTICS");
+        QList<std::shared_ptr<const OsmAnd::Building>> streetBuildings;
+        if (result->street && _dataInterface
+            && (!result->building || resultDiagnosticsEnabled))
+        {
+            QHash<std::shared_ptr<const OsmAnd::Street>,
+                QList<std::shared_ptr<const OsmAnd::Building>>> buildingsByStreet;
+            _dataInterface->loadBuildingsFromStreets(
+                { result->street }, &buildingsByStreet, nullptr, nullptr, nullptr);
+            streetBuildings = buildingsByStreet.value(result->street);
+        }
+
+        QString buildingName = result->building
             ? result->building->getName(effectiveLocale, false)
             : QString();
+        QString buildingPostcode = result->building
+            ? result->building->postcode.trimmed()
+            : QString();
+        QString buildingInterpolation = result->buildingInterpolation;
+
+        // OsmAnd may prefer the nearest street segment over a nearby building.
+        // Keep its native result and hierarchy, but enrich a street-only result
+        // with the nearest named building on that same street when it is within
+        // the same 100 m proximity limit used by OsmAnd's native building search.
+        if (!result->building && result->street && !streetBuildings.isEmpty())
+        {
+            const OsmAnd::LatLon searchLocation(latitude, longitude);
+            double nearestBuildingDistance = 100.0;
+            QString nearestBuildingName;
+            QString nearestBuildingPostcode;
+            QString nearestBuildingInterpolation;
+            bool ambiguousNearestBuilding = false;
+
+            for (const auto& building : streetBuildings)
+            {
+                if (!building)
+                    continue;
+
+                const auto buildingLocation =
+                    OsmAnd::Utilities::convert31ToLatLon(building->position31);
+                double distance = 0.0;
+                QString candidateName;
+
+                if (building->interpolation != OsmAnd::Building::Interpolation::Disabled)
+                {
+                    const auto interpolationEnd =
+                        OsmAnd::Utilities::convert31ToLatLon(building->interpolationPosition31);
+                    const double coefficient = OsmAnd::Utilities::projectionCoeff31(
+                        OsmAnd::Utilities::convertLatLonTo31(searchLocation),
+                        building->position31,
+                        building->interpolationPosition31);
+                    const double projectedLatitude = buildingLocation.latitude
+                        + (interpolationEnd.latitude - buildingLocation.latitude) * coefficient;
+                    const double projectedLongitude = buildingLocation.longitude
+                        + (interpolationEnd.longitude - buildingLocation.longitude) * coefficient;
+                    distance = OsmAnd::Utilities::distance(
+                        searchLocation, OsmAnd::LatLon(projectedLatitude, projectedLongitude));
+                    candidateName = building->getInterpolationName(coefficient).trimmed();
+                }
+                else
+                {
+                    distance = OsmAnd::Utilities::distance(searchLocation, buildingLocation);
+                    candidateName = building->getName(effectiveLocale, false).trimmed();
+                }
+
+                if (candidateName.isEmpty() || distance >= 100.0)
+                    continue;
+
+                if (distance < nearestBuildingDistance - 1.0)
+                {
+                    nearestBuildingDistance = distance;
+                    nearestBuildingName = candidateName;
+                    nearestBuildingPostcode = building->postcode.trimmed();
+                    nearestBuildingInterpolation =
+                        building->interpolation != OsmAnd::Building::Interpolation::Disabled
+                            ? candidateName : QString();
+                    ambiguousNearestBuilding = false;
+                }
+                else if (std::abs(distance - nearestBuildingDistance) <= 1.0
+                    && candidateName != nearestBuildingName)
+                {
+                    ambiguousNearestBuilding = true;
+                }
+            }
+
+            // Do not invent a house number when two different numbers are
+            // effectively equally close to the requested coordinate.
+            if (!ambiguousNearestBuilding && !nearestBuildingName.isEmpty())
+            {
+                buildingName = nearestBuildingName;
+                buildingPostcode = nearestBuildingPostcode;
+                if (!nearestBuildingInterpolation.isEmpty())
+                    buildingInterpolation = nearestBuildingInterpolation;
+            }
+        }
+
         const auto streetName = result->street
             ? result->street->getName(effectiveLocale, false)
             : result->streetName;
@@ -1534,18 +1628,18 @@ QString OsmAndSearchService::reverseGeocode(
         // OsmAnd stores the postcode on the resolved building. Keep it as a
         // separate field so callers can compose a structured address instead
         // of having to parse the localized result string.
-        if (result->building && !result->building->postcode.trimmed().isEmpty()
+        if (!buildingPostcode.isEmpty()
             && payload.value(QStringLiteral("postcode")).toString().isEmpty())
-            payload.insert(QStringLiteral("postcode"), result->building->postcode.trimmed());
+            payload.insert(QStringLiteral("postcode"), buildingPostcode);
         payload.insert(QStringLiteral("distance_m"), result->getDistance());
         payload.insert(QStringLiteral("result_text"), result->toString());
-        if (!result->buildingInterpolation.isEmpty())
-            payload.insert(QStringLiteral("building_interpolation"), result->buildingInterpolation);
+        if (!buildingInterpolation.isEmpty())
+            payload.insert(QStringLiteral("building_interpolation"), buildingInterpolation);
 
         // Optional diagnostics for the exact Address objects selected by the
         // native reverse geocoder. This exposes the source of the displayed
         // municipality/region names without changing geocoding behavior.
-        if (qEnvironmentVariableIsSet("LUMASCOPE_OSMAND_RESULT_DIAGNOSTICS"))
+        if (resultDiagnosticsEnabled)
         {
             const auto serializeAddress = [&effectiveLocale](
                 const std::shared_ptr<const OsmAnd::Address>& address) -> QJsonObject
@@ -1599,17 +1693,11 @@ QString OsmAndSearchService::reverseGeocode(
                 addressDiagnostics.insert(QStringLiteral("street_first_building_inner_offset"),
                     static_cast<qint64>(result->street->firstBuildingInnerOffset));
 
-                // Re-read the building records attached to the exact street
-                // selected by ReverseGeocoder. This diagnostic is opt-in and
-                // intentionally does not alter the native result selection.
-                if (_dataInterface)
+                // Reuse the same street-building records used by the normal
+                // address enrichment above, so diagnostics reflect production data.
+                if (_dataInterface && result->street)
                 {
-                    QHash<std::shared_ptr<const OsmAnd::Street>,
-                        QList<std::shared_ptr<const OsmAnd::Building>>> buildingsByStreet;
-                    _dataInterface->loadBuildingsFromStreets(
-                        { result->street }, &buildingsByStreet, nullptr, nullptr, nullptr);
-                    const auto buildings = buildingsByStreet.value(result->street);
-
+                    const auto& buildings = streetBuildings;
                     QVector<QPair<double, QJsonObject>> sortedBuildings;
                     int within50m = 0;
                     int within100m = 0;
