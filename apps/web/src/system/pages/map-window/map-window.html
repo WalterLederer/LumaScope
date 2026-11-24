@@ -261,6 +261,9 @@
       @if (gpxRestoreBusy()) {
         <span class="gpx-hover-info" role="status">Loading saved GPX tracks…</span>
       }
+      @if (gpxImportStatus()) {
+        <span class="gpx-hover-info" role="status" aria-live="polite">{{ gpxImportStatus() }}</span>
+      }
       @if (gpxListMode() === 'recent' && gpxTracks().length === 0 && !gpxError() && !gpxRestoreBusy()) {
         <span class="gpx-hover-info" role="status">No GPX tracks are currently loaded. Add GPX files to display tracks on the map.</span>
       }
