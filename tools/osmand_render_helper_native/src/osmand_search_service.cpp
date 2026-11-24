@@ -2407,10 +2407,12 @@ QString OsmAndSearchService::reverseGeocode(
         if (!placeName.isEmpty())
         {
             payload.insert(QStringLiteral("place"), placeName);
-            payload.insert(QStringLiteral("place_type"), result->streetGroup
-                ? (result->streetGroup->type == OsmAnd::ObfAddressStreetGroupType::Village
-                    ? QStringLiteral("village") : QStringLiteral("city_or_town"))
-                : payload.value(QStringLiteral("place_type")).toString());
+            if (result->streetGroup
+                && result->streetGroup->type == OsmAnd::ObfAddressStreetGroupType::Village)
+                payload.insert(QStringLiteral("place_type"), QStringLiteral("village"));
+            else if (result->streetGroup
+                && result->streetGroup->type == OsmAnd::ObfAddressStreetGroupType::CityOrTown)
+                payload.insert(QStringLiteral("place_type"), QStringLiteral("city_or_town"));
         }
         // OsmAnd stores the postcode on the resolved building. Keep it as a
         // separate field so callers can compose a structured address instead
