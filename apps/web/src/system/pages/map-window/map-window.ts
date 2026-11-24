@@ -3570,9 +3570,9 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
 
-    let runtime: Awaited<ReturnType<Desktop['OsmAnd']['getRuntimeStatus']>>;
+    let runtime: Awaited<ReturnType<Desktop['OsmAndAtlas']['getRuntimeStatus']>>;
     try {
-      runtime = await this.desktop.OsmAnd.setRenderingStyle(this.osmAndStyle());
+      runtime = await this.desktop.OsmAndAtlas.setRenderingStyle(this.osmAndStyle());
     } catch (error) {
       if (generation === this.mapSourceGeneration) {
         this.renderInitStatus.set('');
@@ -3594,7 +3594,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
 
-    registerOsmAndTileProtocol(this.desktop);
+    registerOsmAndTileProtocol(this.desktop, () => this.displayDensityFactor());
     const renderer = new OfflineMapRenderer(
       this.mapElement().nativeElement,
       [longitude, latitude],
@@ -3605,7 +3605,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.recordMapError('OsmAnd rendering', message);
         console.error('[OsmAnd] Tile rendering error:', message);
       },
-      'lumascope', '', 2, 19, undefined, 'shortbread', [], createOsmAndMapStyle()
+      'lumascope', '', 2, 21, undefined, 'shortbread', [], createOsmAndMapStyle()
     );
     this.offlineRenderer = renderer;
     window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: this.renderVisualsEnabled() } }));
@@ -3669,7 +3669,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const cancelObsolete = obfZoomChanged;
         obfZoomChanged = false;
         const cancel = cancelObsolete
-          ? this.desktop?.OsmAnd.cancelRendering() ?? Promise.resolve()
+          ? this.desktop?.OsmAndAtlas.cancelRendering() ?? Promise.resolve()
           : Promise.resolve();
         void cancel.then(() => this.updateActiveObfMapsForViewport(renderer, 'osmand')).then(() => {
           const source = renderer.map.getSource('osmand') as { setTiles?: (tiles: string[]) => unknown } | undefined;
@@ -3941,7 +3941,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const paddedEast = east + longitudeSpan * 0.2;
     const paddedSouth = Math.max(-85.0511, south - latitudeSpan * 0.2);
     const paddedNorth = Math.min(85.0511, north + latitudeSpan * 0.2);
-    const renderZoom = Math.floor(renderer.map.getZoom()) + (source === 'osmand' ? 1 : 0);
+    const renderZoom = Math.floor(renderer.map.getZoom());
     const parseBounds = (value: string | null | undefined): [number, number, number, number] | null => {
       const numbers = value?.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
       return numbers.length === 4 && numbers.every(Number.isFinite)
@@ -4001,8 +4001,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.viewportObfMapIds.set(selectedIds);
     const paths = selected.map(map => map.filePath);
     try {
-      if (source === 'osmand-atlas') await desktop.OsmAndAtlas.setActiveObfMaps(paths);
-      else await desktop.OsmAnd.setActiveObfMaps(paths);
+      await desktop.OsmAndAtlas.setActiveObfMaps(paths);
     } catch (error) {
       console.warn('[OsmAnd] Could not update viewport OBF selection:', error);
     }
@@ -4496,10 +4495,9 @@ export class MapWindow implements OnInit, OnDestroy {
     this.currentTileRequestResults.clear();
     this.lastRenderTileCounts.set({ rendered: 0, cached: 0, failed: 0 });
     this.rerenderVisibleTilesBusy.set(true);
-    this.rerenderVisibleTilesStatus.set(`Rendering visible ${source === 'osmand-atlas' ? 'Atlas' : 'no-label'} tiles without using the disk cache…`);
+    this.rerenderVisibleTilesStatus.set(`Rendering visible OsmAnd tiles without using the disk cache…`);
     try {
       const count = await renderer.rerenderVisibleTiles(
-        (z, x, y, forceRender) => runOfflineRenderTask(() => this.desktop!.OsmAnd.renderTile(z, x, y, forceRender), 'OsmAnd', `Rerender z${z}/${x}/${y}`),
         (z, x, y, displayScale, forceRender) =>
           runOfflineRenderTask(() => this.desktop!.OsmAndAtlas.renderTile(z, x, y, displayScale, forceRender), 'OsmAnd Atlas', `Rerender z${z}/${x}/${y}`),
         this.displayDensityFactor(),
