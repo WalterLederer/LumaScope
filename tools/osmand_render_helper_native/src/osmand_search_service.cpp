@@ -477,6 +477,86 @@ QJsonObject administrativeAreasForCoordinate(
                 {QStringLiteral("distance_m"), distanceMeters}
             });
         }
+        // Inspect the nearby map index for place=* objects. Unlike the POI
+        // index, named place nodes can be represented as map objects.
+        QJsonArray mapPlaceObjectDiagnostics;
+        QSet<QString> seenMapPlaceObjects;
+        int nearbyMapObjectCount = 0;
+        int nearbyNamedPlaceObjectCount = 0;
+        for (const auto& reader : dataInterface->obfReaders)
+        {
+            if (!reader)
+                continue;
+            const auto info = reader->obtainInfo();
+            if (!info)
+                continue;
+            for (const auto& mapSection : info->mapSections)
+            {
+                if (!mapSection)
+                    continue;
+                for (const auto& mapLevel : mapSection->levels)
+                {
+                    if (!mapLevel)
+                        continue;
+                    QList<std::shared_ptr<const OsmAnd::BinaryMapObject>> nearbyMapObjects;
+                    OsmAnd::ObfMapSectionReader::loadMapObjects(
+                        reader, mapSection, nullptr, mapLevel->minZoom,
+                        &poiProbeArea, &nearbyMapObjects);
+                    nearbyMapObjectCount += nearbyMapObjects.size();
+                    for (const auto& mapObject : nearbyMapObjects)
+                    {
+                        if (!mapObject)
+                            continue;
+                        const auto attributes = mapObject->getResolvedAttributes();
+                        const auto placeValue = attributes.value(QStringLiteral("place")).trimmed().toLower();
+                        const bool isPlaceObject = placeValue == QStringLiteral("city")
+                            || placeValue == QStringLiteral("town")
+                            || placeValue == QStringLiteral("village")
+                            || placeValue == QStringLiteral("hamlet")
+                            || placeValue == QStringLiteral("municipality")
+                            || placeValue == QStringLiteral("suburb")
+                            || placeValue == QStringLiteral("quarter")
+                            || placeValue == QStringLiteral("neighbourhood")
+                            || placeValue == QStringLiteral("locality");
+                        if (!isPlaceObject)
+                            continue;
+                        const auto name = mapObject->getName(locale, false).trimmed();
+                        const auto displayName = name.isEmpty()
+                            ? mapObject->getCaptionInNativeLanguage().trimmed() : name;
+                        if (displayName.isEmpty())
+                            continue;
+                        ++nearbyNamedPlaceObjectCount;
+                        const auto key = mapObject->id.isOsmId()
+                            ? administrativeObjectKey(mapObject->id)
+                            : QString::number(mapObject->id.id);
+                        if (seenMapPlaceObjects.contains(key))
+                            continue;
+                        seenMapPlaceObjects.insert(key);
+                        if (mapPlaceObjectDiagnostics.size() >= 100)
+                            continue;
+                        const double dx = (static_cast<double>(mapObject->points31.isEmpty()
+                            ? mapObject->bbox31.center().x() : mapObject->points31.first().x) - point31.x);
+                        const double dy = (static_cast<double>(mapObject->points31.isEmpty()
+                            ? mapObject->bbox31.center().y() : mapObject->points31.first().y) - point31.y);
+                        const double distanceMeters = std::hypot(dx, dy)
+                            * 40075016.686 / 2147483648.0;
+                        QJsonObject encodedAttributes;
+                        for (auto it = attributes.cbegin(); it != attributes.cend(); ++it)
+                            encodedAttributes.insert(it.key(), it.value());
+                        mapPlaceObjectDiagnostics.push_back(QJsonObject{
+                            {QStringLiteral("name"), displayName},
+                            {QStringLiteral("place"), placeValue},
+                            {QStringLiteral("osm_id"), mapObject->id.isOsmId()
+                                ? QString::number(mapObject->id.getOsmId()) : QString()},
+                            {QStringLiteral("is_relation"), mapObject->id.isIdFromRelation()},
+                            {QStringLiteral("is_area"), mapObject->isArea},
+                            {QStringLiteral("distance_m"), distanceMeters},
+                            {QStringLiteral("attributes"), encodedAttributes}
+                        });
+                    }
+                }
+            }
+        }
         // Keep a compact summary alongside the small, filtered place list.
         poiNameIndexQueryResults.prepend(QJsonObject{
             {QStringLiteral("query_mode"), QStringLiteral("spatial_place_only")},
@@ -831,6 +911,9 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("name_index_diagnostics_enabled"), nameIndexDiagnosticsEnabled},
         {QStringLiteral("name_index_boundary_query_results"), nameIndexBoundaryQueryResults},
         {QStringLiteral("poi_name_index_query_results"), poiNameIndexQueryResults},
+        {QStringLiteral("map_place_object_diagnostics"), mapPlaceObjectDiagnostics},
+        {QStringLiteral("nearby_map_object_count"), nearbyMapObjectCount},
+        {QStringLiteral("nearby_named_place_object_count"), nearbyNamedPlaceObjectCount},
         {QStringLiteral("address_boundary_blocks"), addressBoundaryBlockCount},
         {QStringLiteral("address_block_type_counts"), addressBlockTypeCounts},
         {QStringLiteral("matching_address_boundary_groups"), matchingAddressBoundaryGroupCount},
