@@ -2676,13 +2676,14 @@ export class MapWindow implements OnInit, OnDestroy {
       }));
     const [offline, online] = await Promise.all([offlineLookup, onlineLookup]);
     const offlineValues = new Map(offline.parts.map(part => [part.label, part.value]));
+    const onlineValues = online.parts as Record<string, string>;
     const tableLabels = [
       'Street', 'House number', 'Place', 'Municipality', 'District',
       'State', 'Postcode', 'Country', 'Other regions'
     ];
     const parts = tableLabels.map(label => ({
       label,
-      value: offlineValues.get(label)?.trim() || online.parts[label as keyof typeof online.parts] || ''
+      value: offlineValues.get(label)?.trim() || onlineValues[label] || ''
     }));
     return {
       text: `Offline: ${offline.text}\nOnline: ${online.text}`,
