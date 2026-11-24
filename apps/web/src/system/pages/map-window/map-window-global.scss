@@ -589,11 +589,12 @@ app-map-window {
     .location-tab .fix-location-section .offline-map-status{color:#bdc1c6}
     html[data-theme='light'] & .location-tab .fix-location-section,html[data-theme='light'] & .location-tab .fix-location-automatic-section,html[data-theme='light'] & .location-tab .offline-address-search,html[data-theme='light'] & .location-tab .location-tools-section{background:#fff;border-color:#c5c8ce;color:#202124}
     html[data-theme='light'] & .location-tab .fix-location-section .offline-map-status{color:#555}
-    .map-fix-crosshair{position:absolute;z-index:1200;left:50%;top:50%;width:34px;height:34px;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 1px 2px #000)}
-    .map-fix-crosshair:before,.map-fix-crosshair:after{content:"";position:absolute;background:#ff3030;border:1px solid #fff}
-    .map-fix-crosshair:before{left:16px;top:0;width:2px;height:34px}
-    .map-fix-crosshair:after{left:0;top:16px;width:34px;height:2px}
-    .map-fix-crosshair span{position:absolute;z-index:1;left:11px;top:11px;box-sizing:border-box;width:12px;height:12px;border:2px solid #fff;border-radius:50%;background:#ff3030}
+    .location-reverse-geocoding .fix-location-source-heading{display:flex;align-items:center;gap:7px;min-height:42px}.location-reverse-geocoding .fix-location-large-symbol{display:block;flex:0 0 42px;width:42px;height:42px;filter:drop-shadow(0 1px 2px #0006)}.location-reverse-geocoding .mouse-pointer-symbol{padding:3px;box-sizing:border-box}.location-reverse-geocoding .location-pin-symbol{width:38px;height:44px;flex-basis:38px}.location-reverse-geocoding .crosshair-symbol{color:#ff3030}
+    .map-fix-crosshair{position:absolute;z-index:1200;left:50%;top:50%;width:46px;height:46px;transform:translate(-50%,-50%);pointer-events:none;filter:drop-shadow(0 1px 2px #000)}
+    .map-fix-crosshair:before,.map-fix-crosshair:after{content:"";position:absolute;background:#ff3030;border:1.5px solid #fff}
+    .map-fix-crosshair:before{left:21px;top:0;width:3px;height:46px}
+    .map-fix-crosshair:after{left:0;top:21px;width:46px;height:3px}
+    .map-fix-crosshair span{position:absolute;z-index:1;left:15px;top:15px;box-sizing:border-box;width:16px;height:16px;border:2px solid #fff;border-radius:50%;background:#ff3030}
     .map-hidden{display:none!important}
     .map-unavailable{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--color-content-default-medium,#aaa);font-size:14px}
     .zoom-control{display:flex;align-items:center;gap:8px;flex:1;min-width:210px}.zoom-buttons{display:flex;gap:4px;flex:0 0 auto}
