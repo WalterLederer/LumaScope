@@ -1139,21 +1139,26 @@ app-map-window {
 
 
 
-/* Location tab emphasis: keep the Image section and Image row subtly green. */
+/* Location tab emphasis: use a very subtle green on the actual content only. */
 app-map-window .location-image-details {
   box-sizing: border-box !important;
   margin-top: 10px !important;
-  padding: 9px 11px !important;
-  background-color: #edf7ee !important;
-  border: 1px solid #d5e9d7 !important;
-  border-radius: 10px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
 }
 app-map-window .location-image-details > summary { cursor: pointer; font-weight: 700; }
 app-map-window .location-image-details[open] > summary { margin-bottom: 10px; }
-app-map-window .location-image-details .location-command-row { margin-top: 0; }
+app-map-window .location-image-details .location-command-row {
+  margin-top: 0;
+  padding: 9px 11px;
+  background-color: #f3f8f3 !important;
+  border-radius: 10px;
+}
 
 app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-location-image-row > td {
-  background-color: #e8f4e9 !important;
+  background-color: #f3f8f3 !important;
 }
 app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-location-image-row > td:first-child {
   border-radius: 8px 0 0 8px;
