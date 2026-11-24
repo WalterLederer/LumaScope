@@ -77,40 +77,6 @@
                         </tr>
                         <tr>
                           <td class="fix-location-toggle-cell">
-                            <div class="fix-location-source-cell"><strong>Image</strong><button type="button" class="map-toolbar-button" (click)="showPhotoAddress()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">⌖</span> Show address</button></div>
-                          </td>
-                          <td class="fix-location-photo-coordinates" role="status">{{ photoGpsCoordinates() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</td>
-                          <td class="fix-location-address-cell">
-                            @if (photoAddressParts().length > 0 || photoOnlineAddressParts().length > 0 || useOnlineReverseGeocoding()) {
-                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Photo address values">
-                                <thead><tr><th scope="col">Source</th>@for (part of (photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts().length > 0 ? photoOnlineAddressParts() : reverseGeocodeDefaultParts); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
-                                <tbody>
-                                  @if (photoAddressParts().length > 0) {
-                                    <tr><th scope="row">Offline (OsmAnd)</th>@for (part of photoAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
-                                    <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="photoAddressParts().length + 1">{{ reverseGeocodeSourceText(photoAddress(), 'Offline') }}</td></tr>
-                                  }
-                                  @if (useOnlineReverseGeocoding()) {
-                                    <tr class="reverse-geocode-online-row"><th scope="row">Online (Nominatim)</th>@for (part of (photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts().length > 0 ? photoOnlineAddressParts() : reverseGeocodeDefaultParts); track part.label) { <td>{{ photoOnlineAddressParts().find(value => value.label === part.label)?.value || '—' }}</td> }</tr>
-                                    @if (reverseGeocodeSourceText(photoAddress(), 'Online'); as onlineText) { <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="(photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts().length > 0 ? photoOnlineAddressParts() : reverseGeocodeDefaultParts).length + 1">{{ onlineText }}</td></tr> }
-                                  }
-                                </tbody>
-                              </table></div>
-                            }
-                            @if (photoAddress() || photoAddressComments().length > 0) {
-                              <details class="reverse-geocode-debug app-disclosure">
-                                <summary>Debug</summary>
-                                <pre class="location-address fix-location-address">{{ photoAddress() }}</pre>
-                                @if (photoAddressComments().length > 0) {
-                                  <ul class="reverse-geocode-comments" aria-label="Administrative region selection comments">
-                                    @for (comment of formatReverseGeocodeComments(photoAddressComments()); track $index) { <li>{{ comment }}</li> }
-                                  </ul>
-                                }
-                              </details>
-                            }
-                          </td>
-                        </tr>
-                        <tr>
-                          <td class="fix-location-toggle-cell">
                             <div class="fix-location-source-cell"><strong>Crosshair</strong><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button></div>
                           </td>
                           <td class="fix-location-coordinate-value" role="status">{{ crosshairCoordinates() }}</td>
@@ -137,6 +103,40 @@
                                 @if (crosshairAddressComments().length > 0) {
                                   <ul class="reverse-geocode-comments" aria-label="Administrative region selection comments">
                                     @for (comment of formatReverseGeocodeComments(crosshairAddressComments()); track $index) { <li>{{ comment }}</li> }
+                                  </ul>
+                                }
+                              </details>
+                            }
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="fix-location-toggle-cell">
+                            <div class="fix-location-source-cell"><strong>Image</strong><button type="button" class="map-toolbar-button" (click)="showPhotoAddress()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">⌖</span> Show address</button></div>
+                          </td>
+                          <td class="fix-location-photo-coordinates" role="status">{{ photoGpsCoordinates() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</td>
+                          <td class="fix-location-address-cell">
+                            @if (photoAddressParts().length > 0 || photoOnlineAddressParts().length > 0 || useOnlineReverseGeocoding()) {
+                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Photo address values">
+                                <thead><tr><th scope="col">Source</th>@for (part of (photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts().length > 0 ? photoOnlineAddressParts() : reverseGeocodeDefaultParts); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
+                                <tbody>
+                                  @if (photoAddressParts().length > 0) {
+                                    <tr><th scope="row">Offline (OsmAnd)</th>@for (part of photoAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
+                                    <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="photoAddressParts().length + 1">{{ reverseGeocodeSourceText(photoAddress(), 'Offline') }}</td></tr>
+                                  }
+                                  @if (useOnlineReverseGeocoding()) {
+                                    <tr class="reverse-geocode-online-row"><th scope="row">Online (Nominatim)</th>@for (part of (photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts().length > 0 ? photoOnlineAddressParts() : reverseGeocodeDefaultParts); track part.label) { <td>{{ photoOnlineAddressParts().find(value => value.label === part.label)?.value || '—' }}</td> }</tr>
+                                    @if (reverseGeocodeSourceText(photoAddress(), 'Online'); as onlineText) { <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="(photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts().length > 0 ? photoOnlineAddressParts() : reverseGeocodeDefaultParts).length + 1">{{ onlineText }}</td></tr> }
+                                  }
+                                </tbody>
+                              </table></div>
+                            }
+                            @if (photoAddress() || photoAddressComments().length > 0) {
+                              <details class="reverse-geocode-debug app-disclosure">
+                                <summary>Debug</summary>
+                                <pre class="location-address fix-location-address">{{ photoAddress() }}</pre>
+                                @if (photoAddressComments().length > 0) {
+                                  <ul class="reverse-geocode-comments" aria-label="Administrative region selection comments">
+                                    @for (comment of formatReverseGeocodeComments(photoAddressComments()); track $index) { <li>{{ comment }}</li> }
                                   </ul>
                                 }
                               </details>
