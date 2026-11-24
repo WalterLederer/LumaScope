@@ -39,6 +39,12 @@ export interface GpxTrackPreviewData {
           </linearGradient>
         </defs>
         <path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5"
+          fill="none" stroke="#000000"
+          [attr.stroke-width]="(track().lineWidth || 4) + 4"
+          [attr.stroke-opacity]=".8 * opacity() * (track().trackShadowStrength || 0) / 10000"
+          [style.filter]="'blur(2px)'"
+          [attr.stroke-dasharray]="dashPattern()" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5"
           fill="none" stroke="#080808"
           [attr.stroke-width]="(track().lineWidth || 4) + 2"
           [attr.stroke-opacity]=".92 * opacity() * (track().trackOutlineStrength || 0) / 10000"
@@ -48,7 +54,6 @@ export interface GpxTrackPreviewData {
           [attr.stroke]="track().colorMode === 'speed' || track().colorMode === 'elevation' || track().colorMode === 'track-based' ? 'url(#' + gradientId() + ')' : (track().color || '#3388ff')"
           [attr.stroke-width]="track().lineWidth || 4"
           [attr.stroke-opacity]=".92 * opacity() / 100"
-          [style.filter]="shadowFilter(track().trackShadowStrength)"
           [attr.stroke-dasharray]="dashPattern()" stroke-linecap="round" stroke-linejoin="round"/>
         @if (track().showDirection) {
           @for (arrow of arrowPositions(); track $index) {
@@ -79,7 +84,7 @@ export class GpxTrackPreviewComponent {
   readonly colorStops = (): Array<{ offset: string; color: string }> => {
     const track = this.track();
     if (track.colorMode === 'track-based') {
-      return [{ offset: '0%', color: '#e53935' }, { offset: '50%', color: '#1e88e5' }, { offset: '100%', color: '#43a047' }];
+      return [{ offset: '0%', color: '#e53935' }, { offset: '33.32%', color: '#e53935' }, { offset: '33.34%', color: '#1e88e5' }, { offset: '66.65%', color: '#1e88e5' }, { offset: '66.67%', color: '#43a047' }, { offset: '100%', color: '#43a047' }];
     }
     if (track.speedPalette === 'custom-2') {
       return [{ offset: '0%', color: track.customColor1 || '#2878ff' }, { offset: '100%', color: track.customColor3 || '#f04444' }];
@@ -137,7 +142,7 @@ export class GpxTrackPreviewComponent {
   };
 
   readonly shadowFilter = (strength?: number): string => strength && strength > 0
-    ? 'drop-shadow(0 0 2px rgba(0,0,0,' + (Math.max(0, Math.min(100, strength)) / 100 * 0.8) + '))' : 'none';
+    ? 'drop-shadow(0.35px 0.35px 2px rgba(0,0,0,' + (Math.max(0, Math.min(100, strength)) / 100) + '))' : 'none';
 
   readonly description = (): string => {
     const track = this.track();
