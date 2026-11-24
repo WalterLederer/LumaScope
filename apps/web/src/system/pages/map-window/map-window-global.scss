@@ -1143,10 +1143,8 @@ app-map-window {
 app-map-window .location-image-details {
   box-sizing: border-box !important;
   margin-top: 10px !important;
-  padding: 0 !important;
+  padding: 9px 11px !important;
   background: transparent !important;
-  border: 0 !important;
-  border-radius: 0 !important;
 }
 app-map-window .location-image-details > summary { cursor: pointer; font-weight: 700; }
 app-map-window .location-image-details[open] > summary { margin-bottom: 10px; }
