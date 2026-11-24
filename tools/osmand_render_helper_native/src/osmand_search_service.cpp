@@ -535,9 +535,9 @@ QJsonObject administrativeAreasForCoordinate(
                         if (mapPlaceObjectDiagnostics.size() >= 100)
                             continue;
                         const double dx = (static_cast<double>(mapObject->points31.isEmpty()
-                            ? mapObject->bbox31.center().x() : mapObject->points31.first().x) - point31.x);
+                            ? (mapObject->bbox31.left() + mapObject->bbox31.right()) / 2 : mapObject->points31.first().x) - point31.x);
                         const double dy = (static_cast<double>(mapObject->points31.isEmpty()
-                            ? mapObject->bbox31.center().y() : mapObject->points31.first().y) - point31.y);
+                            ? (mapObject->bbox31.top() + mapObject->bbox31.bottom()) / 2 : mapObject->points31.first().y) - point31.y);
                         const double distanceMeters = std::hypot(dx, dy)
                             * 40075016.686 / 2147483648.0;
                         QJsonObject encodedAttributes;
