@@ -7711,13 +7711,14 @@ ${points}
         hoverLine.on('mouseout', () => this.clearGpxHover(track.path));
         this.trackLayers.push(trackLine, hoverLine);
       }
-      for (const segment of normalSegments) {
+      for (let segmentIndex = 0; segmentIndex < normalSegments.length; segmentIndex++) {
+        const segment = normalSegments[segmentIndex];
         if (!track.showDirection || segment.length < 2) continue;
         const arrowSize = this.gpxDirectionArrowSize(track.directionArrowSizePx, track.directionStyle);
         for (const arrow of this.gpxDirectionArrows(segment, track.directionIntervalPx ?? 120)) {
           const icon = this.leaflet.divIcon({
             className: 'gpx-direction-arrow-icon',
-            html: '<span class="gpx-direction-arrow" style="font-size:' + arrowSize + 'px;color:' + (track.colorMode === 'track-based' ? (trackBasedColorByPath.get(track.path) || this.gpxColor()) : (track.color || this.gpxColor())) + ';opacity:' + (.92 * this.gpxOpacity() / 100) + ';-webkit-text-stroke-width:' + Math.max(0, Math.min(6, track.directionArrowOutlineWidthPx ?? 2)) + 'px;text-shadow:0 0 2px rgba(0,0,0,' + Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100 + ');transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + this.gpxDirectionGlyph(track.directionStyle) + '</span>',
+            html: '<span class="gpx-direction-arrow" style="font-size:' + arrowSize + 'px;color:' + (track.colorMode === 'track-based' ? this.gpxTrackBasedColor(segmentIndex) : (track.color || this.gpxColor())) + ';opacity:' + (.92 * this.gpxOpacity() / 100) + ';-webkit-text-stroke-width:' + Math.max(0, Math.min(6, track.directionArrowOutlineWidthPx ?? 2)) + 'px;text-shadow:0 0 2px rgba(0,0,0,' + Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100 + ');transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + this.gpxDirectionGlyph(track.directionStyle) + '</span>',
             iconSize: [arrowSize + 4, arrowSize + 4], iconAnchor: [(arrowSize + 4) / 2, (arrowSize + 4) / 2]
           });
           this.trackLayers.push(this.leaflet.marker(arrow.position, { icon }).addTo(this.map) as MapMarker & { remove(): void });
