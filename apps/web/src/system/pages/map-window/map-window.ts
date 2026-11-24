@@ -3962,6 +3962,22 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapInitialization = null;
     this.mapSource.set(nextSource); this.saveSetting('source', nextSource);
     if (nextSource === 'osmand-atlas' || nextSource === 'osmand') {
+      // When the app started in Mapsforge/online mode, defer the OsmAnd style
+      // directory scan until the user explicitly switches to an OsmAnd source.
+      if (!this.osmAndStyles().length && this.desktop) {
+        void this.desktop.OsmAndAtlas.getRenderingStyles().then(styles => {
+          if (this.mapSource() !== 'osmand' && this.mapSource() !== 'osmand-atlas') return;
+          const selectedStyle = styles.find(style => style.fileName === this.osmAndStyle())
+            ?? styles.find(style => style.fileName === 'default.render.xml')
+            ?? styles[0];
+          this.osmAndStyles.set(styles.map(style => ({
+            ...style, selected: !!selectedStyle && style.fileName === selectedStyle.fileName
+          })));
+          if (selectedStyle) this.osmAndStyle.set(selectedStyle.fileName);
+        }).catch(error => {
+          console.warn('[OsmAnd Atlas] Could not load rendering styles:', error);
+        });
+      }
       const labelsEnabled = nextSource === 'osmand-atlas';
       this.labelsVisible.set(labelsEnabled);
       this.saveSetting('labelsVisible', labelsEnabled);
