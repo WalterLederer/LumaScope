@@ -665,8 +665,8 @@ QJsonObject administrativeAreasForCoordinate(
         const auto displayName = groupName.isEmpty()
             ? streetGroup->nativeName.trimmed()
             : groupName;
-        const auto objectKey = administrativeObjectKey(streetGroup->id);
-        if (!objectKey.isEmpty() && administrativeLevelsByObjectId.contains(objectKey)
+        const auto streetGroupObjectKey = administrativeObjectKey(streetGroup->id);
+        if (!streetGroupObjectKey.isEmpty() && administrativeLevelsByObjectId.contains(streetGroupObjectKey)
             && mapBoundaryStreetGroupMatches.size() < 30)
         {
             const auto bbox = streetGroup->bbox31;
@@ -1790,7 +1790,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.18")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.19")},
     };
 
     // Administrative areas are resolved independently from the address
