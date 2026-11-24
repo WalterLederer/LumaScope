@@ -27,6 +27,7 @@
 #include <SkCanvas.h>
 #include <SkData.h>
 #include <SkEncodedImageFormat.h>
+#include <SkIRect.h>
 
 #include <OsmAndCore.h>
 #include <OsmAndCore/Logging.h>
@@ -45,6 +46,7 @@
 namespace
 {
 constexpr int kReferenceTileSize = 256;
+constexpr int kLabelOverscanPixels = 192;
 constexpr double kDefaultMinZoom = 2.0;
 constexpr double kDefaultMaxZoom = 19.0;
 constexpr int kConcurrentObfReadLimit = 0;
@@ -209,70 +211,28 @@ public:
         const QString& outputPath,
         QString& errorMessage)
     {
-        if (!_initialized)
-        {
-            errorMessage = QStringLiteral("helper was not initialized");
-            return false;
-        }
-        if (z < 0 || z > static_cast<int>(OsmAnd::ZoomLevel::MaxZoomLevel))
-        {
-            errorMessage = QStringLiteral("zoom is out of range: %1").arg(z);
-            return false;
-        }
         if (outputPath.isEmpty())
         {
             errorMessage = QStringLiteral("output_path can not be empty");
             return false;
         }
 
-        const auto tileId = OsmAnd::TileId::fromXY(x, y);
-        const auto zoomLevel = static_cast<OsmAnd::ZoomLevel>(z);
-        const auto bbox31 = OsmAnd::Utilities::tileBoundingBox31(tileId, zoomLevel);
-        const auto effectiveScale = std::max(1.0, deviceScale);
-        if (!ensureRenderPipeline(effectiveScale, errorMessage))
+        SkBitmap renderBitmap;
+        int cropX = 0;
+        int cropY = 0;
+        if (!renderOverscannedTile(z, x, y, deviceScale, renderBitmap, cropX, cropY, errorMessage))
             return false;
 
-        const auto rasterSize = _rasterSize;
-        QDir().mkpath(QFileInfo(outputPath).absolutePath());
-
-        OsmAnd::MapPrimitivesProvider::Request request;
-        request.tileId = tileId;
-        request.zoom = zoomLevel;
-        request.detailedZoom = zoomLevel;
-        request.visibleArea31 = bbox31;
-        request.areaTime = QDateTime::currentMSecsSinceEpoch();
-        request.queryController = std::make_shared<OsmAnd::SimpleQueryController>();
-
-        std::shared_ptr<OsmAnd::MapPrimitivesProvider::Data> primitivesData;
-        if (!_primitivesProvider->obtainTiledPrimitives(request, primitivesData))
+        SkBitmap tileBitmap;
+        if (!renderBitmap.extractSubset(
+                &tileBitmap,
+                SkIRect::MakeXYWH(cropX, cropY, static_cast<int>(_rasterSize), static_cast<int>(_rasterSize))))
         {
-            errorMessage = QStringLiteral("Failed to obtain map primitives for tile rendering");
+            errorMessage = QStringLiteral("Failed to crop the centred OsmAnd tile from its overscanned render.");
             return false;
         }
 
-        SkBitmap bitmap;
-        if (!bitmap.tryAllocPixels(SkImageInfo::MakeN32Premul(rasterSize, rasterSize)))
-        {
-            errorMessage = QStringLiteral("Failed to allocate bitmap for tile rendering");
-            return false;
-        }
-
-        SkCanvas canvas(bitmap);
-        canvas.clear(_mapPresentationEnvironment->getDefaultBackgroundColor(zoomLevel).toSkColor());
-
-        if (primitivesData && primitivesData->primitivisedObjects)
-        {
-            _rasterizer->rasterize(
-                bbox31,
-                primitivesData->primitivisedObjects,
-                canvas,
-                true,
-                nullptr,
-                nullptr,
-                request.queryController);
-        }
-
-        const auto image = bitmap.asImage();
+        const auto image = tileBitmap.asImage();
         if (!image)
         {
             errorMessage = QStringLiteral("Software rasterization produced no image");
@@ -286,6 +246,7 @@ public:
             return false;
         }
 
+        QDir().mkpath(QFileInfo(outputPath).absolutePath());
         QFile outputFile(outputPath);
         if (!outputFile.open(QIODevice::WriteOnly | QIODevice::Truncate))
         {
@@ -300,7 +261,6 @@ public:
             return false;
         }
         outputFile.close();
-
         return true;
     }
 
@@ -309,46 +269,23 @@ public:
         QByteArray& pixelData, int& width, int& height, int& stride,
         QString& errorMessage)
     {
-        if (!_initialized) { errorMessage = QStringLiteral("helper was not initialized"); return false; }
-        if (z < 0 || z > static_cast<int>(OsmAnd::ZoomLevel::MaxZoomLevel)) {
-            errorMessage = QStringLiteral("zoom is out of range: %1").arg(z); return false;
-        }
-        const auto tileId = OsmAnd::TileId::fromXY(x, y);
-        const auto zoomLevel = static_cast<OsmAnd::ZoomLevel>(z);
-        const auto bbox31 = OsmAnd::Utilities::tileBoundingBox31(tileId, zoomLevel);
-        if (!ensureRenderPipeline(std::max(1.0, deviceScale), errorMessage)) return false;
+        SkBitmap renderBitmap;
+        int cropX = 0;
+        int cropY = 0;
+        if (!renderOverscannedTile(z, x, y, deviceScale, renderBitmap, cropX, cropY, errorMessage))
+            return false;
+
         width = static_cast<int>(_rasterSize);
         height = static_cast<int>(_rasterSize);
         stride = width * 4;
-
-        OsmAnd::MapPrimitivesProvider::Request request;
-        request.tileId = tileId;
-        request.zoom = zoomLevel;
-        request.detailedZoom = zoomLevel;
-        request.visibleArea31 = bbox31;
-        request.areaTime = QDateTime::currentMSecsSinceEpoch();
-        request.queryController = std::make_shared<OsmAnd::SimpleQueryController>();
-        std::shared_ptr<OsmAnd::MapPrimitivesProvider::Data> primitivesData;
-        if (!_primitivesProvider->obtainTiledPrimitives(request, primitivesData)) {
-            errorMessage = QStringLiteral("Failed to obtain map primitives for tile rendering"); return false;
-        }
-
-        SkBitmap bitmap;
-        if (!bitmap.tryAllocPixels(SkImageInfo::MakeN32Premul(width, height))) {
-            errorMessage = QStringLiteral("Failed to allocate bitmap for tile rendering"); return false;
-        }
-        SkCanvas canvas(bitmap);
-        canvas.clear(_mapPresentationEnvironment->getDefaultBackgroundColor(zoomLevel).toSkColor());
-        if (primitivesData && primitivesData->primitivisedObjects) {
-            _rasterizer->rasterize(bbox31, primitivesData->primitivisedObjects, canvas, true,
-                nullptr, nullptr, request.queryController);
-        }
-
         pixelData.resize(stride * height);
         const auto rgbaInfo = SkImageInfo::Make(width, height, kRGBA_8888_SkColorType, kUnpremul_SkAlphaType);
-        if (!bitmap.readPixels(rgbaInfo, pixelData.data(), static_cast<size_t>(stride), 0, 0)) {
+        if (!renderBitmap.readPixels(
+                rgbaInfo, pixelData.data(), static_cast<size_t>(stride), cropX, cropY))
+        {
             pixelData.clear();
-            errorMessage = QStringLiteral("Failed to convert rendered tile to RGBA8"); return false;
+            errorMessage = QStringLiteral("Failed to convert cropped render to RGBA8");
+            return false;
         }
         return true;
     }
@@ -466,6 +403,102 @@ public:
     }
 
 private:
+    bool renderOverscannedTile(
+        int z,
+        int x,
+        int y,
+        double deviceScale,
+        SkBitmap& bitmap,
+        int& cropX,
+        int& cropY,
+        QString& errorMessage)
+    {
+        if (!_initialized)
+        {
+            errorMessage = QStringLiteral("helper was not initialized");
+            return false;
+        }
+        if (z < 0 || z > static_cast<int>(OsmAnd::ZoomLevel::MaxZoomLevel))
+        {
+            errorMessage = QStringLiteral("zoom is out of range: %1").arg(z);
+            return false;
+        }
+
+        const auto tileCount = 1LL << z;
+        if (x < 0 || y < 0 || x >= tileCount || y >= tileCount)
+        {
+            errorMessage = QStringLiteral("XYZ tile coordinates are outside the selected zoom level.");
+            return false;
+        }
+
+        const auto effectiveScale = std::max(1.0, deviceScale);
+        if (!ensureRenderPipeline(effectiveScale, errorMessage))
+            return false;
+
+        const auto tileId = OsmAnd::TileId::fromXY(x, y);
+        const auto zoomLevel = static_cast<OsmAnd::ZoomLevel>(z);
+        const auto tileBounds31 = OsmAnd::Utilities::tileBoundingBox31(tileId, zoomLevel);
+        constexpr qint64 worldSize31 = (qint64{1} << 31);
+        const auto tileSpan31 = worldSize31 / tileCount;
+        const auto rasterSize = static_cast<int>(_rasterSize);
+        const auto overscanPixels = static_cast<int>(std::lround(kLabelOverscanPixels * effectiveScale));
+        const auto overscan31 = static_cast<qint64>(std::llround(
+            static_cast<double>(tileSpan31) * overscanPixels / rasterSize));
+
+        OsmAnd::AreaI renderArea31;
+        renderArea31.left() = static_cast<int>(std::max<qint64>(0, tileBounds31.left() - overscan31));
+        renderArea31.top() = static_cast<int>(std::max<qint64>(0, tileBounds31.top() - overscan31));
+        renderArea31.right() = static_cast<int>(std::min<qint64>(worldSize31 - 1, tileBounds31.right() + overscan31));
+        renderArea31.bottom() = static_cast<int>(std::min<qint64>(worldSize31 - 1, tileBounds31.bottom() + overscan31));
+
+        cropX = static_cast<int>(std::lround(
+            static_cast<double>(tileBounds31.left() - renderArea31.left()) * rasterSize / tileSpan31));
+        cropY = static_cast<int>(std::lround(
+            static_cast<double>(tileBounds31.top() - renderArea31.top()) * rasterSize / tileSpan31));
+        const auto rightOverscan = static_cast<int>(std::lround(
+            static_cast<double>(renderArea31.right() - tileBounds31.right()) * rasterSize / tileSpan31));
+        const auto bottomOverscan = static_cast<int>(std::lround(
+            static_cast<double>(renderArea31.bottom() - tileBounds31.bottom()) * rasterSize / tileSpan31));
+        const auto renderWidth = rasterSize + cropX + rightOverscan;
+        const auto renderHeight = rasterSize + cropY + bottomOverscan;
+
+        OsmAnd::MapPrimitivesProvider::Request request;
+        request.tileId = tileId;
+        request.zoom = zoomLevel;
+        request.detailedZoom = zoomLevel;
+        request.visibleArea31 = renderArea31;
+        request.areaTime = QDateTime::currentMSecsSinceEpoch();
+        request.queryController = std::make_shared<OsmAnd::SimpleQueryController>();
+
+        std::shared_ptr<OsmAnd::MapPrimitivesProvider::Data> primitivesData;
+        if (!_primitivesProvider->obtainTiledPrimitives(request, primitivesData))
+        {
+            errorMessage = QStringLiteral("Failed to obtain map primitives for overscanned tile rendering");
+            return false;
+        }
+
+        if (!bitmap.tryAllocPixels(SkImageInfo::MakeN32Premul(renderWidth, renderHeight)))
+        {
+            errorMessage = QStringLiteral("Failed to allocate overscanned tile bitmap");
+            return false;
+        }
+
+        SkCanvas canvas(bitmap);
+        canvas.clear(_mapPresentationEnvironment->getDefaultBackgroundColor(zoomLevel).toSkColor());
+        if (primitivesData && primitivesData->primitivisedObjects)
+        {
+            _rasterizer->rasterize(
+                renderArea31,
+                primitivesData->primitivisedObjects,
+                canvas,
+                true,
+                nullptr,
+                nullptr,
+                request.queryController);
+        }
+        return true;
+    }
+
     bool ensureRenderPipeline(double deviceScale, QString& errorMessage)
     {
         const auto effectiveScale = std::max(1.0, deviceScale);
