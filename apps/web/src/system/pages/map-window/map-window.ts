@@ -1539,6 +1539,11 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly photoOnlineAddressParts = signal<Array<{ label: string; value: string }>>([]);
   protected readonly crosshairAddressComments = signal<string[]>([]);
   protected readonly photoAddressComments = signal<string[]>([]);
+  protected readonly reverseGeocodeSourceText = (text: string, source: 'Offline' | 'Online'): string => {
+    const prefix = `${source}: `;
+    return text.split(/\\r?\\n/).find(line => line.startsWith(prefix))?.slice(prefix.length) ?? '';
+  };
+
   protected readonly formatReverseGeocodeComments = (comments: string[]): string[] => {
     const retained: string[] = [];
     const other: string[] = [];
