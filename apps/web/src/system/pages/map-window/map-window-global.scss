@@ -1139,15 +1139,36 @@ app-map-window {
 
 
 
-/* Use the same very subtle light-green highlight for the Image location section and Image row. */
-.location-image-details{margin-top:10px;padding:9px 11px;background:color-mix(in srgb,#b8e6c1 15%,var(--color-surface,#222));border:1px solid color-mix(in srgb,#b8e6c1 27%,var(--color-surface,#222));border-radius:10px}
-.location-image-details>summary{cursor:pointer;font-weight:700}
-.location-image-details[open]>summary{margin-bottom:10px}
-.location-image-details .location-command-row{margin-top:0}
-.location-reverse-geocoding .fix-location-position-table tbody>tr:last-child>td{background:color-mix(in srgb,#b8e6c1 15%,var(--color-surface,#222))!important}
-.location-reverse-geocoding .fix-location-position-table tbody>tr:last-child>td:first-child{border-radius:8px 0 0 8px}
-.location-reverse-geocoding .fix-location-position-table tbody>tr:last-child>td:last-child{border-radius:0 8px 8px 0}
+/* Location tab emphasis: keep the Image section and Image row subtly green. */
+app-map-window .location-image-details {
+  box-sizing: border-box !important;
+  margin-top: 10px !important;
+  padding: 9px 11px !important;
+  background-color: #edf7ee !important;
+  border: 1px solid #d5e9d7 !important;
+  border-radius: 10px !important;
+}
+app-map-window .location-image-details > summary { cursor: pointer; font-weight: 700; }
+app-map-window .location-image-details[open] > summary { margin-bottom: 10px; }
+app-map-window .location-image-details .location-command-row { margin-top: 0; }
 
-.location-reverse-geocoding .reverse-geocoding-controls{display:flex;align-items:center;flex-wrap:wrap;gap:14px;margin:7px 0 9px;padding-left:2px}
-.location-reverse-geocoding .reverse-geocoding-controls .fix-location-toggle{display:inline-flex;align-items:center;gap:7px;margin:0;white-space:nowrap}
-.location-reverse-geocoding .reverse-geocoding-status{display:inline-block;color:var(--color-content-default-medium,#aaa);font-size:12px;line-height:1.4}
+app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-location-image-row > td {
+  background-color: #e8f4e9 !important;
+}
+app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-location-image-row > td:first-child {
+  border-radius: 8px 0 0 8px;
+}
+app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-location-image-row > td:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+/* Online Nominatim rows are plain white, never green or dark/black. */
+app-map-window .reverse-geocode-values-table tr.reverse-geocode-online-row > th,
+app-map-window .reverse-geocode-values-table tr.reverse-geocode-online-row > td,
+app-map-window .reverse-geocode-values-table tr.reverse-geocode-online-full-text-row > td {
+  background-color: #fff !important;
+  color: #222 !important;
+}
+app-map-window .reverse-geocode-values-table tr.reverse-geocode-online-row > th {
+  font-weight: 600 !important;
+}
