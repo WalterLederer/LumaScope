@@ -1101,6 +1101,7 @@ export class OsmAndAtlasManager {
     place: string;
     postcode: string;
     administrative_areas: Array<{ admin_level: number; name: string }>;
+    selection_comments: string[];
     helper_version: string;
     diagnostics: {
       loaded_map_objects: number;
@@ -1150,6 +1151,7 @@ export class OsmAndAtlasManager {
       place?: string;
       postcode?: string;
       administrative_areas?: unknown;
+      selection_comments?: unknown;
       helper_version?: unknown;
       diagnostics?: unknown;
       distance_m?: number;
@@ -1162,6 +1164,10 @@ export class OsmAndAtlasManager {
         && Number.isInteger((area as { admin_level: number }).admin_level)
         && typeof (area as { name?: unknown }).name === 'string'
         && (area as { name: string }).name.trim().length > 0)
+      : [];
+    const selectionComments = Array.isArray(result.selection_comments)
+      ? result.selection_comments.filter((value): value is string =>
+        typeof value === 'string' && value.trim().length > 0)
       : [];
     const rawDiagnostics = result.diagnostics && typeof result.diagnostics === 'object'
       ? result.diagnostics as Record<string, unknown>
@@ -1236,6 +1242,7 @@ export class OsmAndAtlasManager {
       place: typeof result.place === 'string' ? result.place : '',
       postcode: typeof result.postcode === 'string' ? result.postcode : '',
       administrative_areas: administrativeAreas,
+      selection_comments: selectionComments,
       helper_version: typeof result.helper_version === 'string' ? result.helper_version : 'unknown',
       diagnostics: {
         loaded_map_objects: diagnosticCount('loaded_map_objects'),
