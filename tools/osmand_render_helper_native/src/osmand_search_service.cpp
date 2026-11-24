@@ -1685,6 +1685,93 @@ QString OsmAndSearchService::reverseGeocode(
                     groupBbox.push_back(coordinate);
                 addressDiagnostics.insert(QStringLiteral("street_group_bbox31"), groupBbox);
             }
+                // Diagnostic only: query the map index at the resolved place
+                // StreetGroup position. This is a tiny spatial lookup, not a
+                // scan of administrative boundary line segments.
+                if (_dataInterface && result->streetGroup->position31.x > 0
+                    && result->streetGroup->position31.y > 0)
+                {
+                    const auto placePoint31 = result->streetGroup->position31;
+                    OsmAnd::AreaI placeQueryArea;
+                    placeQueryArea.left() = placePoint31.x - 2;
+                    placeQueryArea.right() = placePoint31.x + 2;
+                    placeQueryArea.top() = placePoint31.y - 2;
+                    placeQueryArea.bottom() = placePoint31.y + 2;
+
+                    QJsonArray placePositionMapObjects;
+                    QSet<QString> seenPlaceMapObjects;
+                    for (const auto& reader : _dataInterface->obfReaders)
+                    {
+                        if (!reader)
+                            continue;
+                        const auto info = reader->obtainInfo();
+                        if (!info)
+                            continue;
+                        for (const auto& mapSection : info->mapSections)
+                        {
+                            if (!mapSection || mapSection->levels.isEmpty())
+                                continue;
+                            for (const auto& mapLevel : mapSection->levels)
+                            {
+                                if (!mapLevel)
+                                    continue;
+                                QList<std::shared_ptr<const OsmAnd::BinaryMapObject>> mapObjects;
+                                OsmAnd::ObfMapSectionReader::loadMapObjects(
+                                    reader, mapSection, nullptr, mapLevel->minZoom,
+                                    &placeQueryArea, &mapObjects);
+                                for (const auto& mapObject : mapObjects)
+                                {
+                                    if (!mapObject)
+                                        continue;
+                                    const auto objectKey = administrativeObjectKey(mapObject->id);
+                                    const auto uniqueKey = objectKey.isEmpty()
+                                        ? QString::number(mapObject->id.id)
+                                        : objectKey;
+                                    if (seenPlaceMapObjects.contains(uniqueKey))
+                                        continue;
+                                    seenPlaceMapObjects.insert(uniqueKey);
+
+                                    const auto attributes = mapObject->getResolvedAttributes();
+                                    const auto mapName = mapObject->getName(effectiveLocale, false).trimmed();
+                                    const auto nativeName = mapObject->getCaptionInNativeLanguage().trimmed();
+                                    placePositionMapObjects.push_back(QJsonObject{
+                                        {QStringLiteral("osm_id"), mapObject->id.isOsmId()
+                                            ? QString::number(mapObject->id.getOsmId()) : QString()},
+                                        {QStringLiteral("raw_id"), QString::number(mapObject->id.id)},
+                                        {QStringLiteral("is_relation"), mapObject->id.isIdFromRelation()},
+                                        {QStringLiteral("is_split"), mapObject->id.isIdFromSplit()},
+                                        {QStringLiteral("is_area"), mapObject->isArea},
+                                        {QStringLiteral("name"), mapName},
+                                        {QStringLiteral("native_name"), nativeName},
+                                        {QStringLiteral("boundary"), attributes.value(QStringLiteral("boundary"))},
+                                        {QStringLiteral("admin_level"), attributes.value(QStringLiteral("admin_level"))},
+                                        {QStringLiteral("place"), attributes.value(QStringLiteral("place"))},
+                                        {QStringLiteral("type"), attributes.value(QStringLiteral("type"))},
+                                        {QStringLiteral("geometry_point_count"), mapObject->points31.size()},
+                                        {QStringLiteral("bbox31"), QJsonArray{
+                                            mapObject->bbox31.left(), mapObject->bbox31.top(),
+                                            mapObject->bbox31.right(), mapObject->bbox31.bottom()}}
+                                    });
+                                    if (placePositionMapObjects.size() >= 100)
+                                        break;
+                                }
+                                if (placePositionMapObjects.size() >= 100)
+                                    break;
+                            }
+                            if (placePositionMapObjects.size() >= 100)
+                                break;
+                        }
+                        if (placePositionMapObjects.size() >= 100)
+                            break;
+                    }
+                    addressDiagnostics.insert(
+                        QStringLiteral("street_group_position31"),
+                        QJsonArray{placePoint31.x, placePoint31.y});
+                    addressDiagnostics.insert(
+                        QStringLiteral("street_group_position_map_objects"),
+                        placePositionMapObjects);
+                }
+
             if (result->street)
             {
                 addressDiagnostics.insert(QStringLiteral("street_parent_group"),
