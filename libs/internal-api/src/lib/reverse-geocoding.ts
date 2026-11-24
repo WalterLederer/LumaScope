@@ -4,6 +4,7 @@ export interface ReverseGeocodingResult {
   countryCode: string | null;
   region: string | null;
   locality: string | null;
+  municipality: string | null;
   street: string | null;
   houseNumber: string | null;
   district: string | null;
@@ -188,6 +189,7 @@ export const lookupReverseGeocoding = (
         countryCode: address.country_code?.toUpperCase() ?? null,
         region: address.state ?? address.region ?? address.state_district ?? null,
         locality,
+        municipality: address.municipality ?? null,
         street,
         houseNumber: address.house_number ?? null,
         district: address.state_district ?? address.county ?? null,
