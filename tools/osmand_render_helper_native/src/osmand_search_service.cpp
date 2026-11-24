@@ -764,6 +764,186 @@ QJsonObject administrativeAreasForCoordinate(
         });
     }
 
+    // Diagnostic-only search: use each matching address-index Boundary
+    // group's complete bbox as a map-object query. This checks whether its
+    // corresponding administrative geometry exists elsewhere in the map index,
+    // rather than only in the tiny coordinate query used above. Very large
+    // country/region bboxes are skipped to keep this opt-in probe bounded.
+    if (qEnvironmentVariableIsSet("LUMASCOPE_OSMAND_BOUNDARY_DIAGNOSTICS"))
+    {
+        constexpr qint64 maxAddressBoundaryBboxDimension31 = 5000000;
+        for (const auto& streetGroup : addressBoundaryGroups)
+        {
+            if (!streetGroup
+                || streetGroup->type != OsmAnd::ObfAddressStreetGroupSubtype::Boundary
+                || streetGroup->bbox31.size() < 4)
+                continue;
+
+            const auto left = streetGroup->bbox31[0];
+            const auto top = streetGroup->bbox31[1];
+            const auto right = streetGroup->bbox31[2];
+            const auto bottom = streetGroup->bbox31[3];
+            if (point31.x < left || point31.x > right || point31.y < top || point31.y > bottom)
+                continue;
+
+            const auto width = static_cast<qint64>(right) - left;
+            const auto height = static_cast<qint64>(bottom) - top;
+            const auto groupName = streetGroup->getName(locale, false).trimmed();
+            const auto displayName = groupName.isEmpty()
+                ? streetGroup->nativeName.trimmed() : groupName;
+            const auto addressObjectKey = administrativeObjectKey(streetGroup->id);
+            const auto normalizedAddressName =
+                OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(displayName).trimmed();
+
+            QJsonObject searchResult{
+                {QStringLiteral("address_name"), displayName},
+                {QStringLiteral("address_osm_id"), streetGroup->id.isOsmId()
+                    ? QString::number(streetGroup->id.getOsmId()) : QString()},
+                {QStringLiteral("address_is_relation"), streetGroup->id.isIdFromRelation()},
+                {QStringLiteral("address_is_split"), streetGroup->id.isIdFromSplit()},
+                {QStringLiteral("bbox31"), QJsonArray{left, top, right, bottom}},
+                {QStringLiteral("bbox_width"), width},
+                {QStringLiteral("bbox_height"), height}
+            };
+
+            if (width <= 0 || height <= 0
+                || width > maxAddressBoundaryBboxDimension31
+                || height > maxAddressBoundaryBboxDimension31)
+            {
+                searchResult.insert(QStringLiteral("skipped"), true);
+                searchResult.insert(QStringLiteral("skip_reason"), QStringLiteral("bbox_too_large"));
+                ++addressBoundaryBboxMapSearchSkippedCount;
+                addressBoundaryBboxMapSearches.push_back(searchResult);
+                continue;
+            }
+
+            OsmAnd::AreaI addressBboxQuery;
+            addressBboxQuery.left() = left;
+            addressBboxQuery.top() = top;
+            addressBboxQuery.right() = right;
+            addressBboxQuery.bottom() = bottom;
+
+            QJsonArray levelResults;
+            int totalLoadedObjects = 0;
+            int totalAdministrativeObjects = 0;
+            int totalSameIdObjects = 0;
+            int totalSameNameObjects = 0;
+
+            for (const auto& reader : dataInterface->obfReaders)
+            {
+                if (!reader)
+                    continue;
+                const auto info = reader->obtainInfo();
+                if (!info)
+                    continue;
+
+                for (const auto& mapSection : info->mapSections)
+                {
+                    if (!mapSection || mapSection->levels.isEmpty())
+                        continue;
+
+                    for (const auto& mapLevel : mapSection->levels)
+                    {
+                        if (!mapLevel)
+                            continue;
+
+                        QList<std::shared_ptr<const OsmAnd::BinaryMapObject>> bboxMapObjects;
+                        OsmAnd::ObfMapSectionReader::loadMapObjects(
+                            reader,
+                            mapSection,
+                            nullptr,
+                            mapLevel->minZoom,
+                            &addressBboxQuery,
+                            &bboxMapObjects);
+
+                        int levelAdministrativeObjects = 0;
+                        int levelSameIdObjects = 0;
+                        int levelSameNameObjects = 0;
+                        QJsonArray matchingObjects;
+                        for (const auto& mapObject : bboxMapObjects)
+                        {
+                            if (!mapObject)
+                                continue;
+
+                            const auto attributes = mapObject->getResolvedAttributes();
+                            const auto boundaryType = attributes.value(QStringLiteral("boundary")).trimmed();
+                            const auto adminLevelText = attributes.value(QStringLiteral("admin_level")).trimmed();
+                            bool adminLevelOk = false;
+                            const int adminLevel = adminLevelText.toInt(&adminLevelOk);
+                            const bool isAdministrative = boundaryType.compare(
+                                QStringLiteral("administrative"), Qt::CaseInsensitive) == 0
+                                && adminLevelOk && adminLevel > 0;
+                            if (isAdministrative)
+                                ++levelAdministrativeObjects;
+
+                            const auto mapObjectKey = administrativeObjectKey(mapObject->id);
+                            const bool sameOsmId = !addressObjectKey.isEmpty()
+                                && mapObjectKey == addressObjectKey;
+                            const auto mapName = mapObject->getName(locale, false).trimmed();
+                            const auto objectName = mapName.isEmpty()
+                                ? mapObject->getCaptionInNativeLanguage().trimmed() : mapName;
+                            const auto normalizedMapName =
+                                OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed();
+                            const bool sameName = !normalizedAddressName.isEmpty()
+                                && normalizedMapName == normalizedAddressName;
+
+                            if (sameOsmId)
+                                ++levelSameIdObjects;
+                            if (sameName)
+                                ++levelSameNameObjects;
+
+                            if ((sameOsmId || sameName) && matchingObjects.size() < 12)
+                            {
+                                const auto objectBbox = mapObject->bbox31;
+                                matchingObjects.push_back(QJsonObject{
+                                    {QStringLiteral("name"), objectName},
+                                    {QStringLiteral("osm_id"), mapObject->id.isOsmId()
+                                        ? QString::number(mapObject->id.getOsmId()) : QString()},
+                                    {QStringLiteral("raw_id"), QString::number(mapObject->id.id)},
+                                    {QStringLiteral("is_relation"), mapObject->id.isIdFromRelation()},
+                                    {QStringLiteral("is_split"), mapObject->id.isIdFromSplit()},
+                                    {QStringLiteral("same_osm_id"), sameOsmId},
+                                    {QStringLiteral("same_name"), sameName},
+                                    {QStringLiteral("boundary"), boundaryType},
+                                    {QStringLiteral("admin_level"), adminLevelOk ? adminLevel : -1},
+                                    {QStringLiteral("is_area"), mapObject->isArea},
+                                    {QStringLiteral("is_closed_figure"), mapObject->isClosedFigure()},
+                                    {QStringLiteral("outer_point_count"), mapObject->points31.size()},
+                                    {QStringLiteral("inner_ring_count"), mapObject->innerPolygonsPoints31.size()},
+                                    {QStringLiteral("bbox31"), QJsonArray{
+                                        objectBbox.left(), objectBbox.top(),
+                                        objectBbox.right(), objectBbox.bottom()}}
+                                });
+                            }
+                        }
+
+                        totalLoadedObjects += bboxMapObjects.size();
+                        totalAdministrativeObjects += levelAdministrativeObjects;
+                        totalSameIdObjects += levelSameIdObjects;
+                        totalSameNameObjects += levelSameNameObjects;
+                        levelResults.push_back(QJsonObject{
+                            {QStringLiteral("min_zoom"), mapLevel->minZoom},
+                            {QStringLiteral("loaded_objects"), bboxMapObjects.size()},
+                            {QStringLiteral("administrative_objects"), levelAdministrativeObjects},
+                            {QStringLiteral("same_osm_id_objects"), levelSameIdObjects},
+                            {QStringLiteral("same_name_objects"), levelSameNameObjects},
+                            {QStringLiteral("matching_objects"), matchingObjects}
+                        });
+                    }
+                }
+            }
+
+            searchResult.insert(QStringLiteral("skipped"), false);
+            searchResult.insert(QStringLiteral("loaded_objects"), totalLoadedObjects);
+            searchResult.insert(QStringLiteral("administrative_objects"), totalAdministrativeObjects);
+            searchResult.insert(QStringLiteral("same_osm_id_objects"), totalSameIdObjects);
+            searchResult.insert(QStringLiteral("same_name_objects"), totalSameNameObjects);
+            searchResult.insert(QStringLiteral("levels"), levelResults);
+            addressBoundaryBboxMapSearchObjectCount += totalLoadedObjects;
+            addressBoundaryBboxMapSearches.push_back(searchResult);
+        }
+    }
+
     // Diagnostic reconstruction probe: scan only the combined bounding area
     // of the administrative boundary objects that intersect the coordinate.
     // Keep the scan spatially bounded: loading every map object from every zoom
@@ -810,6 +990,9 @@ QJsonObject administrativeAreasForCoordinate(
     QJsonArray boundaryLineSamples;
     QJsonArray targetBoundaryLineSegments;
     QJsonArray targetBoundaryAreaObjects;
+    QJsonArray addressBoundaryBboxMapSearches;
+    int addressBoundaryBboxMapSearchObjectCount = 0;
+    int addressBoundaryBboxMapSearchSkippedCount = 0;
     int boundaryAreaObjectCount = 0;
     int boundaryGeometryPointCount = 0;
     // This broad scan is diagnostic-only and can be expensive on large OBF
@@ -1085,6 +1268,9 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("map_boundary_object_ids"), mapBoundaryObjectIds},
         {QStringLiteral("address_boundary_object_ids"), addressBoundaryObjectIds},
         {QStringLiteral("address_boundary_candidate_details"), addressBoundaryCandidateDetails},
+        {QStringLiteral("address_boundary_bbox_map_searches"), addressBoundaryBboxMapSearches},
+        {QStringLiteral("address_boundary_bbox_map_search_loaded_objects"), addressBoundaryBboxMapSearchObjectCount},
+        {QStringLiteral("address_boundary_bbox_map_search_skipped_count"), addressBoundaryBboxMapSearchSkippedCount},
         {QStringLiteral("matched_boundary_object_ids"), matchedBoundaryObjectIds},
         {QStringLiteral("resolved_administrative_areas"), areas.size()},
         {QStringLiteral("boundary_search_area_available"), hasBoundarySearchArea},
