@@ -3,7 +3,7 @@ import { Component, input } from '@angular/core';
 export interface GpxTrackPreviewData {
   path: string;
   color?: string;
-  colorMode?: 'fixed' | 'speed' | 'elevation';
+  colorMode?: 'fixed' | 'track-based' | 'speed' | 'elevation';
   speedPalette?: string;
   customColor1?: string;
   customColor2?: string;
