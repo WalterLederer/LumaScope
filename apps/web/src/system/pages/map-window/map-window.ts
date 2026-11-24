@@ -1551,9 +1551,9 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly onlineReverseGeocodingRequests = signal(0);
   protected readonly reverseGeocodingStatus = (): string => {
     const offlineStatus = this.offlineReverseGeocodingRequests() > 0 ? 'Processing' : 'Idle';
-    const onlineStatus = !this.useOnlineReverseGeocoding()
-      ? 'Disabled'
-      : this.onlineReverseGeocodingRequests() > 0 ? 'Processing' : 'Idle';
+    const onlineStatus = this.onlineReverseGeocodingRequests() > 0
+      ? 'Processing'
+      : this.useOnlineReverseGeocoding() ? 'Idle' : 'Disabled';
     return `Offline (OsmAnd): ${offlineStatus} · Online (Nominatim): ${onlineStatus}`;
   };
 
