@@ -2190,8 +2190,8 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!enabled) {
       this.photoOnlineAddressParts.set([]);
       this.crosshairOnlineAddressParts.set([]);
-      this.photoAddress.set(this.photoAddress().split(/\\r?\\n/).filter(line => !line.startsWith('Online: ')).join('\\n'));
-      this.crosshairAddress.set(this.crosshairAddress().split(/\\r?\\n/).filter(line => !line.startsWith('Online: ')).join('\\n'));
+      this.photoAddress.set(this.photoAddress().split(/\r?\n/).filter(line => !line.startsWith('Online: ')).join('\n'));
+      this.crosshairAddress.set(this.crosshairAddress().split(/\r?\n/).filter(line => !line.startsWith('Online: ')).join('\n'));
     }
   };
 
@@ -2742,7 +2742,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.crosshairAddressComments.set([]);
     void this.lookupBothReverseGeocoders(center.lat, center.lng).then(
       result => {
-        this.crosshairAddress.set(result.text);
+        this.crosshairAddress.set(this.useOnlineReverseGeocoding() ? result.text : result.text.split(/\r?\n/).filter(line => !line.startsWith('Online: ')).join('\n'));
         this.crosshairAddressParts.set(result.offlineParts);
         this.crosshairOnlineAddressParts.set(this.useOnlineReverseGeocoding() ? result.onlineParts : []);
         this.crosshairAddressComments.set(result.comments);
@@ -2771,7 +2771,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.photoAddressComments.set([]);
     void this.lookupBothReverseGeocoders(latitude, longitude).then(
       result => {
-        this.photoAddress.set(result.text);
+        this.photoAddress.set(this.useOnlineReverseGeocoding() ? result.text : result.text.split(/\r?\n/).filter(line => !line.startsWith('Online: ')).join('\n'));
         this.photoAddressParts.set(result.offlineParts);
         this.photoOnlineAddressParts.set(this.useOnlineReverseGeocoding() ? result.onlineParts : []);
         this.photoAddressComments.set(result.comments);
