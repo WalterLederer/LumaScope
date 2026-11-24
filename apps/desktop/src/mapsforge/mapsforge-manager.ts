@@ -36,6 +36,10 @@ class MapsforgeWorkerClient {
       const startupStartedAt = performance.now();
       await this.ensureStarted();
       const startupMs = performance.now() - startupStartedAt;
+      console.info(`${label} started`, {
+        queueWaitMs: Math.round(queueWaitMs),
+        startupMs: Math.round(startupMs)
+      });
       const workerStartedAt = performance.now();
       try {
         const response = await this.sendRequest(command, values);
