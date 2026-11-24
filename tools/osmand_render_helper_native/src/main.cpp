@@ -46,6 +46,7 @@
 namespace
 {
 constexpr int kReferenceTileSize = 256;
+// Match the Atlas helper's label context margin, then crop back to the exact XYZ tile.
 constexpr int kLabelOverscanPixels = 192;
 constexpr double kDefaultMinZoom = 2.0;
 constexpr double kDefaultMaxZoom = 19.0;
