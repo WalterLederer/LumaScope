@@ -84,8 +84,14 @@
                               <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Photo address values">
                                 <thead><tr><th scope="col">Source</th>@for (part of (photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts()); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
                                 <tbody>
-                                  @if (photoAddressParts().length > 0) { <tr><th scope="row">Offline (OsmAnd)</th>@for (part of photoAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr> }
-                                  @if (photoOnlineAddressParts().length > 0) { <tr><th scope="row">Online (Nominatim)</th>@for (part of photoOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr> }
+                                  @if (photoAddressParts().length > 0) {
+                                    <tr><th scope="row">Offline (OsmAnd)</th>@for (part of photoAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
+                                    <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="photoAddressParts().length + 1">{{ reverseGeocodeSourceText(photoAddress(), 'Offline') }}</td></tr>
+                                  }
+                                  @if (photoOnlineAddressParts().length > 0) {
+                                    <tr class="reverse-geocode-online-row"><th scope="row">Online (Nominatim)</th>@for (part of photoOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
+                                    <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="photoOnlineAddressParts().length + 1">{{ reverseGeocodeSourceText(photoAddress(), 'Online') }}</td></tr>
+                                  }
                                 </tbody>
                               </table></div>
                             }
@@ -112,8 +118,14 @@
                               <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Crosshair address values">
                                 <thead><tr><th scope="col">Source</th>@for (part of (crosshairAddressParts().length > 0 ? crosshairAddressParts() : crosshairOnlineAddressParts()); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
                                 <tbody>
-                                  @if (crosshairAddressParts().length > 0) { <tr><th scope="row">Offline (OsmAnd)</th>@for (part of crosshairAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr> }
-                                  @if (crosshairOnlineAddressParts().length > 0) { <tr><th scope="row">Online (Nominatim)</th>@for (part of crosshairOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr> }
+                                  @if (crosshairAddressParts().length > 0) {
+                                    <tr><th scope="row">Offline (OsmAnd)</th>@for (part of crosshairAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
+                                    <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="crosshairAddressParts().length + 1">{{ reverseGeocodeSourceText(crosshairAddress(), 'Offline') }}</td></tr>
+                                  }
+                                  @if (crosshairOnlineAddressParts().length > 0) {
+                                    <tr class="reverse-geocode-online-row"><th scope="row">Online (Nominatim)</th>@for (part of crosshairOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
+                                    <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="crosshairOnlineAddressParts().length + 1">{{ reverseGeocodeSourceText(crosshairAddress(), 'Online') }}</td></tr>
+                                  }
                                 </tbody>
                               </table></div>
                             }
