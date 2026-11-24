@@ -1,3 +1,4 @@
+import { createGpxTrackRenderStyle } from './gpx-track-render-style';
 import { Component, input } from '@angular/core';
 
 export interface GpxTrackPreviewData {
