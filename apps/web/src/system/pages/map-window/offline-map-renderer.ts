@@ -2501,7 +2501,7 @@ export class OfflineMapRenderer {
       features: tracks.flatMap(track => track.segments.map((segment, index) => ({ segment, index })).filter(item => item.segment.length >= 2).map(({ segment, index }) => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: segment.map(([latitude, longitude]) => [longitude, latitude]) },
-        properties: { path: track.path, segmentIndex: index, color: track.segmentColors?.[index] || track.color, lineStyle: track.lineStyle, width: track.lineWidth, trackShadow: Math.max(0, Math.min(100, track.trackShadowStrength ?? 0)) / 100, arrowShadow: Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100, outlineStrength: Math.max(0, Math.min(100, track.trackOutlineStrength ?? 0)) / 100, showDirection: track.showDirection === true && (!track.segmentColors || index % 80 === 0), directionStyle: track.directionStyle || 'classic' }
+        properties: { path: track.path, segmentIndex: index, color: track.segmentColors?.[index] || track.color, lineStyle: track.lineStyle, width: track.lineWidth, trackShadow: Math.max(0, Math.min(100, track.trackShadowStrength ?? 0)) / 100, arrowShadow: Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100, outlineStrength: Math.max(0, Math.min(100, track.trackOutlineStrength ?? 0)) / 100, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic' }
       })))
     });
     for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
