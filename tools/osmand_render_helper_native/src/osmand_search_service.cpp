@@ -425,8 +425,7 @@ QJsonObject administrativeAreasForCoordinate(
                 nullptr,
                 nullptr,
                 nullptr,
-                true,
-                OsmAnd::StringMatcherMode::CHECK_EQUALS_FROM_SPACE);
+                true);
             for (const auto& amenity : foundAmenities)
             {
                 if (!amenity)
