@@ -45,7 +45,7 @@ export interface GpxTrackPreviewData {
           [attr.stroke-dasharray]="dashPattern()" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5"
           fill="none"
-          [attr.stroke]="track().colorMode === 'speed' || track().colorMode === 'elevation' ? 'url(#' + gradientId() + ')' : (track().color || '#3388ff')"
+          [attr.stroke]="track().colorMode === 'speed' || track().colorMode === 'elevation' || track().colorMode === 'track-based' ? 'url(#' + gradientId() + ')' : (track().color || '#3388ff')"
           [attr.stroke-width]="track().lineWidth || 4"
           [attr.stroke-opacity]=".92 * opacity() / 100"
           [style.filter]="shadowFilter(track().trackShadowStrength)"
@@ -78,6 +78,9 @@ export class GpxTrackPreviewComponent {
 
   readonly colorStops = (): Array<{ offset: string; color: string }> => {
     const track = this.track();
+    if (track.colorMode === 'track-based') {
+      return [{ offset: '0%', color: '#e53935' }, { offset: '50%', color: '#1e88e5' }, { offset: '100%', color: '#43a047' }];
+    }
     if (track.speedPalette === 'custom-2') {
       return [{ offset: '0%', color: track.customColor1 || '#2878ff' }, { offset: '100%', color: track.customColor3 || '#f04444' }];
     }
@@ -134,7 +137,7 @@ export class GpxTrackPreviewComponent {
   };
 
   readonly shadowFilter = (strength?: number): string => strength && strength > 0
-    ? 'drop-shadow(0 0 2px rgba(0,0,0,' + (strength / 100) + '))' : 'none';
+    ? 'drop-shadow(0 0 2px rgba(0,0,0,' + (Math.max(0, Math.min(100, strength)) / 100 * 0.8) + '))' : 'none';
 
   readonly description = (): string => {
     const track = this.track();
