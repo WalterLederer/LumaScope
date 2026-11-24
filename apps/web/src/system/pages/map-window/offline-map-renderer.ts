@@ -1497,19 +1497,15 @@ export class OfflineMapRenderer {
     // Use one filtered layer pair per supported interval instead of ['get', ...],
     // which is rejected by the style specification and suppresses all arrows.
     for (let interval = 20; interval <= 200; interval += 10) {
-      const arrowFilter = ['all',
-        ['==', ['get', 'showDirection'], true],
-        ['==', ['get', 'directionIntervalPx'], interval]
-      ] as const;
       this.map.addLayer({
         id: 'gpx-track-direction-arrows-shadow-' + interval, type: 'symbol', source: 'gpx-track',
-        filter: arrowFilter,
+        filter: ['all', ['==', ['get', 'showDirection'], true], ['==', ['get', 'directionIntervalPx'], interval]],
         layout: { ...directionArrowLayout, 'symbol-spacing': interval, 'text-offset': ['get', 'arrowShadowOffset'] as unknown as [number, number] },
         paint: { 'text-color': ['get', 'arrowShadowColor'], 'text-halo-color': ['get', 'arrowShadowColor'], 'text-halo-width': 2, 'text-halo-blur': ['get', 'arrowShadowBlur'] as unknown as number, 'text-opacity': ['get', 'arrowShadow'] }
       });
       this.map.addLayer({
         id: 'gpx-track-direction-arrows-' + interval, type: 'symbol', source: 'gpx-track',
-        filter: arrowFilter,
+        filter: ['all', ['==', ['get', 'showDirection'], true], ['==', ['get', 'directionIntervalPx'], interval]],
         layout: { ...directionArrowLayout, 'symbol-spacing': interval },
         paint: { 'text-color': ['get', 'color'], 'text-halo-color': ['get', 'arrowOutlineColor'], 'text-halo-width': ['get', 'arrowOutlineWidth'] as unknown as number, 'text-halo-blur': 0, 'text-opacity': 0.92 }
       });
