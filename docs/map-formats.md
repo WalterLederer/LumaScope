@@ -46,6 +46,16 @@ The bounds overlay is displayed only at zoom level 10 or lower to keep the map r
 
 Online XYZ tile sources do not provide per-file geographic bounds for this feature. Mapsforge MAP files are not currently supported by the overlay because LumaScope does not yet expose their bounds to the map view. Hillshade databases are overlays rather than standalone base maps and are not included.
 
+### basemap.at online styles
+
+The online map style selector includes three basemap.at raster WMTS products, loaded by the existing Leaflet tile layer without replacing the map renderer or the independent GPX, routing and photo overlays:
+
+- **basemap.at Standard:** `https://mapsneu.wien.gv.at/basemap/geolandbasemap/normal/google3857/{z}/{y}/{x}.png`
+- **basemap.at Grau:** `https://mapsneu.wien.gv.at/basemap/bmapgrau/normal/google3857/{z}/{y}/{x}.png`
+- **basemap.at Orthofoto:** `https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/{z}/{y}/{x}.jpg`
+
+All three use EPSG:3857 and the WMTS `google3857` tile matrix. The row/column order in the service URL is `{y}/{x}`. The map displays the required basemap.at attribution. The service covers Austria; outside its coverage area, tiles may be empty. The products are provided online and require an internet connection.
+
 ### Mapsforge
 
 The Java Mapsforge renderer (version 0.25.0) reads selected MAP vector files. It uses an external XML render theme when configured, otherwise Mapsforge's built-in default theme. It renders 256×256 vector tiles and applies Windows display-density scaling to text and symbols.
