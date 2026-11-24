@@ -1300,6 +1300,12 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxSpeedLegendTracks = computed(() => (this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks()).filter(track => track.active !== false && (track.colorMode === 'speed' || track.colorMode === 'elevation')));
   private readonly gpxTrackBasedColors = ['#e53935', '#1e88e5', '#43a047', '#8e24aa', '#fb8c00', '#00897b', '#6d4c41', '#3949ab', '#c0a000', '#d81b60'];
   private gpxTrackBasedColor(index: number): string { return this.gpxTrackBasedColors[index % this.gpxTrackBasedColors.length]; }
+  private gpxTrackSegmentColor(path: string, segmentIndex: number): string {
+    const names = this.gpxSegmentNamesByTrack.get(path) ?? [];
+    const trackName = names[segmentIndex] || `Track ${segmentIndex + 1}`;
+    const trackIndex = [...new Set(names)].indexOf(trackName);
+    return this.gpxTrackBasedColor(Math.max(0, trackIndex));
+  }
   protected readonly gpxElevationProfiles = signal<Array<{ track: GpxTrackFile; profile: GpxElevationProfile }>>([]);
   protected readonly latestGpxElevationProfileBusy = signal(false);
   protected readonly latestGpxElevationProfileError = signal('');
@@ -7672,10 +7678,10 @@ ${points}
         const normalSegments = this.visibleGpxSegments(track);
         const segments = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments.map(item => item.coordinates) : normalSegments;
         const segmentColors = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments.map(item => item.color)
-          : track.colorMode === 'track-based' ? normalSegments.map((_, index) => this.gpxTrackBasedColor(index)) : undefined;
+          : track.colorMode === 'track-based' ? normalSegments.map((_, index) => this.gpxTrackSegmentColor(track.path, index)) : undefined;
         return { path: track.path, segments, segmentColors, color: track.colorMode === 'track-based' ? (trackBasedColorByPath.get(track.path) || this.gpxColor()) : (track.color || this.gpxColor()), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic', trackShadowStrength: track.trackShadowStrength ?? 0, arrowShadowStrength: track.arrowShadowStrength ?? 0, trackOutlineStrength: track.trackOutlineStrength ?? 0 };
       }), .92 * this.gpxOpacity() / 100);
-      this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude) => this.updateGpxHover(path, latitude, longitude));
+      this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude, segmentIndex) => this.updateGpxHover(path, latitude, longitude, segmentIndex));
       return;
     }
     for (const layer of this.trackLayers) layer.remove();
@@ -7688,7 +7694,7 @@ ${points}
       for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
         const segment = segments[segmentIndex];
         if (segment.length < 2) continue;
-        const color = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments[segmentIndex].color : track.colorMode === 'track-based' ? this.gpxTrackBasedColor(segmentIndex) : (track.color || this.gpxColor());
+        const color = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments[segmentIndex].color : track.colorMode === 'track-based' ? this.gpxTrackSegmentColor(track.path, segmentIndex) : (track.color || this.gpxColor());
         const lineStyle = track.lineStyle || 'solid';
         const outlineStrength = Math.max(0, Math.min(100, track.trackOutlineStrength ?? 0));
         if (outlineStrength > 0) {
@@ -7718,7 +7724,7 @@ ${points}
         for (const arrow of this.gpxDirectionArrows(segment, track.directionIntervalPx ?? 120)) {
           const icon = this.leaflet.divIcon({
             className: 'gpx-direction-arrow-icon',
-            html: '<span class="gpx-direction-arrow" style="font-size:' + arrowSize + 'px;color:' + (track.colorMode === 'track-based' ? this.gpxTrackBasedColor(segmentIndex) : (track.color || this.gpxColor())) + ';opacity:' + (.92 * this.gpxOpacity() / 100) + ';-webkit-text-stroke-width:' + Math.max(0, Math.min(6, track.directionArrowOutlineWidthPx ?? 2)) + 'px;text-shadow:0 0 2px rgba(0,0,0,' + Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100 + ');transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + this.gpxDirectionGlyph(track.directionStyle) + '</span>',
+            html: '<span class="gpx-direction-arrow" style="font-size:' + arrowSize + 'px;color:' + (track.colorMode === 'track-based' ? this.gpxTrackSegmentColor(track.path, segmentIndex) : (track.color || this.gpxColor())) + ';opacity:' + (.92 * this.gpxOpacity() / 100) + ';-webkit-text-stroke-width:' + Math.max(0, Math.min(6, track.directionArrowOutlineWidthPx ?? 2)) + 'px;text-shadow:0 0 2px rgba(0,0,0,' + Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100 + ');transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + this.gpxDirectionGlyph(track.directionStyle) + '</span>',
             iconSize: [arrowSize + 4, arrowSize + 4], iconAnchor: [(arrowSize + 4) / 2, (arrowSize + 4) / 2]
           });
           this.trackLayers.push(this.leaflet.marker(arrow.position, { icon }).addTo(this.map) as MapMarker & { remove(): void });
