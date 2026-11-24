@@ -2700,8 +2700,10 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
         const QString displayName = name.trimmed().isEmpty()
             ? QStringLiteral("Unnamed") : name.trimmed();
         const QString trackName = QStringLiteral("admin_level=%1 · %2 %3 · %4 · z%5 · %6 pts")
-            .arg(adminLevel > 0 ? QString::number(adminLevel) : QStringLiteral("unknown"),
-                 objectKind, osmId, displayName)
+            .arg(adminLevel > 0 ? QString::number(adminLevel) : QStringLiteral("unknown"))
+            .arg(objectKind)
+            .arg(osmId)
+            .arg(displayName)
             .arg(minZoom)
             .arg(mapObject.points31.size());
 
