@@ -3985,6 +3985,10 @@ export class MapWindow implements OnInit, OnDestroy {
     setMapsforgeTileProtocolActive(false);
     if (nextSource !== 'offline') this.mapDisplayNotice.set('');
     this.renderInitStatus.set('');
+    if (this.onlineMapLoadingTimer !== null) {
+      clearTimeout(this.onlineMapLoadingTimer);
+      this.onlineMapLoadingTimer = null;
+    }
     if (previousSource !== nextSource) {
       // Serialize teardown before the next renderer initializes. Atlas may have
       // many queued OBF tiles; Mapsforge must not wait for their 30-second timeout.
@@ -7591,15 +7595,17 @@ ${points}
     this.beginOnlineMapLoading();
     this.tileLayer?.remove();
     const style = this.styles[this.mapStyle()];
-    this.tileLayer = this.leaflet.tileLayer(style.url, style).addTo(this.map);
-    this.applyMapOpacity();
-    // Leaflet's load event fires after the visible tile batch has completed,
-    // including failed tile requests. Keep the indicator visible until then.
-    this.tileLayer.on('load', () => {
+    const layer = this.leaflet.tileLayer(style.url, style);
+    this.tileLayer = layer;
+    // Register before addTo() so even an immediately cached tile batch cannot
+    // finish before the loading handler is attached.
+    layer.on('load', () => {
       this.applyMapOpacity();
       this.finishOnlineMapLoading();
       window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
     });
+    layer.addTo(this.map);
+    this.applyMapOpacity();
     this.applyMapColor();
     this.applyHillshadeSettingsIfReady(true);
   }
