@@ -1503,7 +1503,7 @@ export class OfflineMapRenderer {
       id: 'gpx-track-direction-arrows', type: 'symbol', source: 'gpx-track',
       filter: ['==', ['get', 'showDirection'], true],
       layout: directionArrowLayout,
-      paint: { 'text-color': ['get', 'color'], 'text-halo-color': ['get', 'arrowOutlineColor'], 'text-halo-width': ['get', 'arrowOutlineWidth'], 'text-halo-blur': 0, 'text-opacity': 0.92 }
+      paint: { 'text-color': ['get', 'color'], 'text-halo-color': ['get', 'arrowOutlineColor'], 'text-halo-width': ['get', 'arrowOutlineWidth'] as unknown as number, 'text-halo-blur': 0, 'text-opacity': 0.92 }
     });
     // Reconcile overlays after tile/camera updates; retain existing DOM markers.
     const refreshOverlays = (): void => {
