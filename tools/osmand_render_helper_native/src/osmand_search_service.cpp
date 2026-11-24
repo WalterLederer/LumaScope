@@ -352,6 +352,11 @@ QJsonObject administrativeAreasForCoordinate(
     int nearbyMapObjectCount = 0;
     int nearbyNamedPlaceObjectCount = 0;
     int nearbyNamedAdministrativeBoundaryObjectCount = 0;
+    // These diagnostic values are emitted below even when diagnostics are off.
+    // Keep them in the function scope; populate them only inside the opt-in probe.
+    int administrativeProbeMapObjectCount = 0;
+    int administrativeProbeNamedBoundaryCount = 0;
+    QJsonArray administrativeProbeBoundaries;
     if (nameIndexDiagnosticsEnabled)
     {
         const QStringList boundaryNameQueries{
@@ -585,10 +590,7 @@ QJsonObject administrativeAreasForCoordinate(
         administrativeProbeArea.right() = std::max(administrativeTopLeft.x, administrativeBottomRight.x);
         administrativeProbeArea.bottom() = std::max(administrativeTopLeft.y, administrativeBottomRight.y);
 
-        int administrativeProbeMapObjectCount = 0;
-        int administrativeProbeNamedBoundaryCount = 0;
         QSet<QString> seenAdministrativeProbeObjects;
-        QJsonArray administrativeProbeBoundaries;
         for (const auto& reader : dataInterface->obfReaders)
         {
             if (!reader)
