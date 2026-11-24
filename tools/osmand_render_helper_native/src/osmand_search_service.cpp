@@ -2777,6 +2777,10 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
     xml.writeAttribute(QStringLiteral("latitude"), QString::number(latitude, 'f', 7));
     xml.writeAttribute(QStringLiteral("longitude"), QString::number(longitude, 'f', 7));
     xml.writeAttribute(QStringLiteral("radius_km"), QString::number(radiusKm, 'f', 2));
+    xml.writeStartElement(QStringLiteral("lumascope:obf_sources"));
+    for (const auto& obfPath : _configuration.obfPaths)
+        xml.writeTextElement(QStringLiteral("lumascope:obf"), QFileInfo(obfPath).fileName());
+    xml.writeEndElement();
     xml.writeEndElement();
     xml.writeEndElement();
     xml.writeEndElement();
