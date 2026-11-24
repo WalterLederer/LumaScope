@@ -3438,6 +3438,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private async createOfflineMap(latitude: number, longitude: number, generation: number, status: import('internal-api').OfflineMapStatus): Promise<void> {
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
     this.offlineMapStatus.set(status ?? null);
+    this.renderInitStatus.set('Loading map…');
     const renderer = new OfflineMapRenderer(
       this.mapElement().nativeElement,
       [longitude, latitude],
@@ -3475,6 +3476,11 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.offlineRenderer === renderer) this.offlineRenderer = null;
       return;
     }
+    renderer.map.once('idle', () => {
+      if (generation === this.mapSourceGeneration && this.mapSource() === 'offline') {
+        this.renderInitStatus.set('');
+      }
+    });
     this.applyMapBoundsVisibility();
     const latestLatitude = this.currentLatitude ?? latitude;
     const latestLongitude = this.currentLongitude ?? longitude;
