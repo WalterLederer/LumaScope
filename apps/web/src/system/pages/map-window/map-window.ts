@@ -153,7 +153,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly mapElement = viewChild.required<ElementRef<HTMLElement>>('map');
   private map: MapInstance | null = null;
   private offlineRenderer: OfflineMapRenderer | null = null;
-  private onlineMapLoadingTimer: ReturnType<typeof setTimeout> | null = null;
+  private mapLoadingTimer: ReturnType<typeof setTimeout> | null = null;
   private currentLatitude: number | null = null;
   private currentLongitude: number | null = null;
   private marker: MapMarker | null = null;
@@ -2152,7 +2152,7 @@ export class MapWindow implements OnInit, OnDestroy {
     window.removeEventListener('lumascope-map-display-ready', this.onMapDisplayReady);
     window.removeEventListener('lumascope-hillshade-tile-status', this.onHillshadeTileStatus);
     this.clearRenderDisplayFallback();
-    if (this.onlineMapLoadingTimer !== null) {
+    if (this.mapLoadingTimer !== null) {
       clearTimeout(this.onlineMapLoadingTimer);
       this.onlineMapLoadingTimer = null;
     }
@@ -2207,23 +2207,23 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private readonly onResize = (): void => { this.map?.invalidateSize(); this.offlineRenderer?.resize(); };
 
-  private beginOnlineMapLoading(): void {
-    if (this.onlineMapLoadingTimer !== null) clearTimeout(this.onlineMapLoadingTimer);
+  private beginMapLoading(source: 'online' | 'offline'): void {
+    if (this.mapLoadingTimer !== null) clearTimeout(this.mapLoadingTimer);
     this.renderInitStatus.set('Loading map…');
-    this.onlineMapLoadingTimer = setTimeout(() => {
-      this.onlineMapLoadingTimer = null;
-      if (this.mapSource() === 'online' && this.renderInitStatus()) {
+    this.mapLoadingTimer = setTimeout(() => {
+      this.mapLoadingTimer = null;
+      if (this.mapSource() === source && this.renderInitStatus()) {
         this.renderInitStatus.set('Still loading map…');
       }
     }, 6000);
   }
 
-  private finishOnlineMapLoading(): void {
-    if (this.onlineMapLoadingTimer !== null) {
-      clearTimeout(this.onlineMapLoadingTimer);
-      this.onlineMapLoadingTimer = null;
+  private finishMapLoading(source: 'online' | 'offline'): void {
+    if (this.mapLoadingTimer !== null) {
+      clearTimeout(this.mapLoadingTimer);
+      this.mapLoadingTimer = null;
     }
-    if (this.mapSource() === 'online') this.renderInitStatus.set('');
+    if (this.mapSource() === source) this.renderInitStatus.set('');
   }
 
   protected readonly copyFilePath = async (path: string): Promise<void> => {
@@ -3438,7 +3438,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private async createOfflineMap(latitude: number, longitude: number, generation: number, status: import('internal-api').OfflineMapStatus): Promise<void> {
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
     this.offlineMapStatus.set(status ?? null);
-    this.renderInitStatus.set('Loading map…');
+    this.beginMapLoading('offline');
     const renderer = new OfflineMapRenderer(
       this.mapElement().nativeElement,
       [longitude, latitude],
@@ -3478,7 +3478,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     renderer.map.once('idle', () => {
       if (generation === this.mapSourceGeneration && this.mapSource() === 'offline') {
-        this.renderInitStatus.set('');
+        this.finishMapLoading('offline');
       }
     });
     this.applyMapBoundsVisibility();
@@ -3897,7 +3897,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private async createMap(latitude: number, longitude: number, generation: number): Promise<void> {
-    this.beginOnlineMapLoading();
+    this.beginMapLoading('online');
     this.offlineRenderer?.remove(); this.offlineRenderer = null;
     const leaflet = await this.loadLeaflet();
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'online') return;
@@ -7607,7 +7607,7 @@ ${points}
     // finish before the loading handler is attached.
     layer.on('load', () => {
       this.applyMapOpacity();
-      this.finishOnlineMapLoading();
+      this.finishMapLoading('online');
       window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
     });
     layer.addTo(this.map);
