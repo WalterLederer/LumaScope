@@ -2938,13 +2938,15 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
                 // of creating a false line across the map.
                 if (point.x == 0 && point.y == 0)
                 {
-                    writeSegment(currentPart, role, segmentIndex++);
+                    if (currentPart.size() >= 2)
+                        writeSegment(currentPart, role, segmentIndex++);
                     currentPart.clear();
                     continue;
                 }
                 currentPart.push_back(point);
             }
-            writeSegment(currentPart, role, segmentIndex++);
+            if (currentPart.size() >= 2)
+                writeSegment(currentPart, role, segmentIndex++);
         };
         writePointParts(mapObject.points31, QStringLiteral("outer"));
         for (const auto& innerRing : mapObject.innerPolygonsPoints31)
