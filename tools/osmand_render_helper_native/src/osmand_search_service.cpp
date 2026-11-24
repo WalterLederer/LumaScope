@@ -1610,63 +1610,6 @@ QString OsmAndSearchService::reverseGeocode(
                         { result->street }, &buildingsByStreet, nullptr, nullptr, nullptr);
                     const auto buildings = buildingsByStreet.value(result->street);
 
-                    // Reproduce the exact spatially bounded Address data interface
-                    // used internally by ReverseGeocoder::findAddresses(). Compare
-                    // its building records with the helper's full OBF interface.
-                    const auto searchPoint31 = OsmAnd::Utilities::convertLatLonTo31(
-                        OsmAnd::LatLon(latitude, longitude));
-                    const auto addressSearchBbox31 =
-                        OsmAnd::Utilities::boundingBox31FromAreaInMeters(
-                            16000.0, searchPoint31);
-                    const auto nativeAddressDataInterface = _obfsCollection->obtainDataInterface(
-                        &addressSearchBbox31,
-                        OsmAnd::MinZoomLevel,
-                        OsmAnd::MaxZoomLevel,
-                        OsmAnd::ObfDataTypesMask().set(OsmAnd::ObfDataType::Address));
-                    int boundedLoadedBuildingCount = -1;
-                    int boundedBuildingsWithin100m = 0;
-                    QJsonArray boundedNearestBuildings;
-                    if (nativeAddressDataInterface)
-                    {
-                        QHash<std::shared_ptr<const OsmAnd::Street>,
-                            QList<std::shared_ptr<const OsmAnd::Building>>> boundedBuildingsByStreet;
-                        nativeAddressDataInterface->loadBuildingsFromStreets(
-                            { result->street }, &boundedBuildingsByStreet, nullptr, nullptr, nullptr);
-                        const auto boundedBuildings = boundedBuildingsByStreet.value(result->street);
-                        boundedLoadedBuildingCount = boundedBuildings.size();
-                        QVector<QPair<double, QJsonObject>> boundedSortedBuildings;
-                        for (const auto& boundedBuilding : boundedBuildings)
-                        {
-                            if (!boundedBuilding)
-                                continue;
-                            const auto location =
-                                OsmAnd::Utilities::convert31ToLatLon(boundedBuilding->position31);
-                            const double distance = OsmAnd::Utilities::distance(
-                                OsmAnd::LatLon(latitude, longitude), location);
-                            if (distance <= 100.0)
-                                ++boundedBuildingsWithin100m;
-                            QJsonObject item = serializeAddress(boundedBuilding);
-                            item.insert(QStringLiteral("postcode"), boundedBuilding->postcode);
-                            item.insert(QStringLiteral("distance_m"), distance);
-                            boundedSortedBuildings.append(qMakePair(distance, item));
-                        }
-                        std::sort(boundedSortedBuildings.begin(), boundedSortedBuildings.end(),
-                            [](const auto& left, const auto& right)
-                            {
-                                return left.first < right.first;
-                            });
-                        const int boundedLimit = static_cast<int>(
-                            std::min<qsizetype>(20, boundedSortedBuildings.size()));
-                        for (int index = 0; index < boundedLimit; ++index)
-                            boundedNearestBuildings.push_back(boundedSortedBuildings.at(index).second);
-                    }
-                    addressDiagnostics.insert(QStringLiteral("native_bounded_interface_building_count"),
-                        boundedLoadedBuildingCount);
-                    addressDiagnostics.insert(QStringLiteral("native_bounded_interface_buildings_within_100m"),
-                        boundedBuildingsWithin100m);
-                    addressDiagnostics.insert(QStringLiteral("native_bounded_interface_nearest_buildings"),
-                        boundedNearestBuildings);
-
                     QVector<QPair<double, QJsonObject>> sortedBuildings;
                     int within50m = 0;
                     int within100m = 0;
