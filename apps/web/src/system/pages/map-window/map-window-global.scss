@@ -1137,3 +1137,13 @@ app-map-window {
   min-width: 0 !important;
 }
 
+
+
+/* Image location controls and the Image row share a subtle highlighted surface. */
+.location-image-details{margin-top:10px;padding:9px 11px;background:color-mix(in srgb,var(--color-content-default-high,#fff) 7%,var(--color-surface,#222));border:1px solid color-mix(in srgb,var(--color-content-default-high,#fff) 20%,var(--color-surface,#222));border-radius:10px}
+.location-image-details>summary{cursor:pointer;font-weight:700}
+.location-image-details[open]>summary{margin-bottom:10px}
+.location-image-details .location-command-row{margin-top:0}
+.location-reverse-geocoding .fix-location-position-table tbody>tr:last-child>td{background:color-mix(in srgb,var(--color-content-default-high,#fff) 7%,var(--color-surface,#222))}
+.location-reverse-geocoding .fix-location-position-table tbody>tr:last-child>td:first-child{border-radius:8px 0 0 8px}
+.location-reverse-geocoding .fix-location-position-table tbody>tr:last-child>td:last-child{border-radius:0 8px 8px 0}
