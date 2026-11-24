@@ -4469,7 +4469,7 @@ export class MapWindow implements OnInit, OnDestroy {
     // Stop any camera animation and cancel queued/in-flight Atlas helper work.
     this.offlineRenderer?.map.stop();
     try {
-      if (this.mapSource() === 'osmand-atlas') {
+      if (this.mapSource() === 'osmand-atlas' || this.mapSource() === 'osmand') {
         await this.desktop?.OsmAndAtlas.cancelRendering();
       }
     } catch (error) {
