@@ -1293,6 +1293,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxTrackLineStyleMenuOpen = signal<string | null>(null);
   protected readonly gpxTrackDirectionMenuOpen = signal<string | null>(null);
   protected readonly gpxVisible = signal(true);
+  protected readonly gpxImportStatus = signal('');
   protected readonly gpxTracks = signal<GpxTrackFile[]>([]);
   protected readonly gpxDatabaseTracks = signal<GpxTrackFile[]>([]);
   private readonly gpxDatabaseTrackSettings = new Map<string, Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'customColor1' | 'customColor2' | 'customColor3' | 'speedMinKmh' | 'speedMaxKmh' | 'elevationMinM' | 'elevationMaxM' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionIntervalPx' | 'directionArrowSizePx' | 'directionArrowOutlineWidthPx' | 'trackShadowStrength' | 'arrowShadowStrength' | 'trackOutlineStrength' | 'directionStyle'>>>();
@@ -5443,8 +5444,13 @@ export class MapWindow implements OnInit, OnDestroy {
           path, databasePath: file.path, name: file.name, sizeBytes: file.sizeBytes,
           lastModified: file.lastModified, active: previous?.active ?? true,
           color: previous?.color ?? this.gpxColors[index % this.gpxColors.length]?.value ?? this.gpxColor(),
+          colorMode: previous?.colorMode ?? 'fixed', speedPalette: previous?.speedPalette ?? 'spectrum', customColor1: previous?.customColor1, customColor2: previous?.customColor2, customColor3: previous?.customColor3,
+          speedMinKmh: previous?.speedMinKmh ?? 0, speedMaxKmh: previous?.speedMaxKmh ?? 120, elevationMinM: previous?.elevationMinM ?? 0, elevationMaxM: previous?.elevationMaxM ?? 3000,
           lineStyle: previous?.lineStyle ?? 'solid', lineWidth: previous?.lineWidth ?? 3,
-          showDirection: previous?.showDirection ?? false, directionStyle: previous?.directionStyle ?? 'classic'
+          showDirection: previous?.showDirection ?? false, directionIntervalPx: previous?.directionIntervalPx ?? 120,
+          directionArrowSizePx: previous?.directionArrowSizePx ?? 16, directionArrowOutlineWidthPx: previous?.directionArrowOutlineWidthPx ?? 2,
+          trackShadowStrength: previous?.trackShadowStrength ?? 0, arrowShadowStrength: previous?.arrowShadowStrength ?? 0, trackOutlineStrength: previous?.trackOutlineStrength ?? 0,
+          directionStyle: previous?.directionStyle ?? 'classic'
         };
       });
       this.gpxDatabaseTracks.set(tracks);
@@ -5519,16 +5525,29 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   private async addGpxFiles(files: File[]): Promise<void> {
+    this.gpxImportStatus.set(`Preparing ${files.length} GPX file(s)…`);
+    this.gpxError.set('');
     const added: GpxTrackFile[] = [];
     const current = this.gpxTracks();
     for (const file of files) {
       const path = this.desktop?.getPathForFile(file) ?? '';
       if (current.some(track => (path && track.path === path) || (!path && track.name === file.name && track.sizeBytes === file.size))) continue;
       try {
+        this.gpxImportStatus.set(`Reading ${file.name} (${added.length + 1}/${files.length})…`);
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
         const content = await file.text();
+        this.gpxImportStatus.set(`Parsing track geometry: ${file.name}…`);
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
         const parsed = this.parseGpxTrackData(content);
+        this.gpxImportStatus.set(`Reading point metadata: ${file.name}…`);
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
         const pointData = this.parseGpxTrackPointData(content);
+        this.gpxImportStatus.set(`Reading segment names: ${file.name}…`);
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
         const segmentNames = this.parseGpxTrackSegmentNames(content);
+        const pointCount = pointData.reduce((total, segment) => total + segment.length, 0);
+        this.gpxImportStatus.set(`Loaded ${formatNumber(pointCount)} points in ${formatNumber(pointData.length)} segments. Updating map…`);
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
         const trackPath = path || `memory:${file.name}:${file.lastModified}`;
         added.push({
           path: trackPath, name: file.name, sizeBytes: file.size, lastModified: file.lastModified,
@@ -5543,7 +5562,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.gpxError.set(`${file.name}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
-    if (!added.length) return;
+    if (!added.length) { this.gpxImportStatus.set(''); return; }
     const next = [...current, ...added];
     this.gpxTracks.set(next);
     void this.persistGpxTracks(next.filter(track => !track.path.startsWith('memory:')));
@@ -5558,6 +5577,8 @@ export class MapWindow implements OnInit, OnDestroy {
     const cachePaths = added.map(track => track.path).filter(path => !path.startsWith('memory:'));
     if (this.desktop && cachePaths.length > 0) {
       try {
+        this.gpxImportStatus.set(`Updating GPX cache for ${cachePaths.length} file(s)…`);
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
         const result = await this.desktop.CacheManager.importGpxFiles(cachePaths);
         if (result.errors > 0) {
           this.gpxError.set(`GPX cache import completed with ${result.errors} error(s).`);
@@ -5568,6 +5589,9 @@ export class MapWindow implements OnInit, OnDestroy {
         this.gpxError.set(`Could not update the GPX cache: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
+    const importedPoints = added.reduce((total, track) => total + (this.gpxPointDataByTrack.get(track.path) ?? []).reduce((sum, segment) => sum + segment.length, 0), 0);
+    const importedSegments = added.reduce((total, track) => total + (this.gpxPointDataByTrack.get(track.path) ?? []).length, 0);
+    this.gpxImportStatus.set(`Loaded ${formatNumber(added.length)} GPX file(s) · ${formatNumber(importedSegments)} segments · ${formatNumber(importedPoints)} points.`);
   }
 
   protected readonly openGpxTrack = async (track: GpxTrackFile): Promise<void> => {
@@ -5636,7 +5660,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.gpxSegmentNamesByTrack.set(track.path, this.parseGpxTrackSegmentNames(result.data));
         this.gpxSegmentsByTrack.set(track.path, parsed);
         if (track.active !== false) segments.push(...parsed);
-        valid.push({ ...track, sizeBytes: metadata?.size ?? track.sizeBytes, lastModified: metadata?.modifiedAt ?? track.lastModified, missing: false, readError: false, active: track.active !== false, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? (track.lineStyle ?? 'solid') : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? (track.lineWidth ?? 4) : 4, showDirection: track.showDirection === true, directionStyle: ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'].includes(track.directionStyle ?? '') ? (track.directionStyle ?? 'classic') : 'classic' });
+        valid.push({ ...track, sizeBytes: metadata?.size ?? track.sizeBytes, lastModified: metadata?.modifiedAt ?? track.lastModified, missing: false, readError: false, active: track.active !== false, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? (track.lineStyle ?? 'solid') : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? (track.lineWidth ?? 4) : 4, showDirection: track.showDirection === true, directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? 16, directionArrowOutlineWidthPx: track.directionArrowOutlineWidthPx ?? 2, trackShadowStrength: track.trackShadowStrength ?? 0, arrowShadowStrength: track.arrowShadowStrength ?? 0, trackOutlineStrength: track.trackOutlineStrength ?? 0, directionStyle: ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'].includes(track.directionStyle ?? '') ? (track.directionStyle ?? 'classic') : 'classic' });
       }
       catch { /* Keep malformed files out of the rendered track set. */ }
     }
@@ -5689,6 +5713,12 @@ export class MapWindow implements OnInit, OnDestroy {
       lineStyle: ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? track.lineStyle : 'solid',
       lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? track.lineWidth ?? 4 : 4,
       showDirection: track.showDirection === true,
+      directionIntervalPx: Math.max(20, Math.min(200, Math.round((track.directionIntervalPx ?? 120) / 10) * 10)),
+      directionArrowSizePx: Math.max(8, Math.min(40, track.directionArrowSizePx ?? (track.directionStyle?.startsWith('large-') ? 24 : 16))),
+      directionArrowOutlineWidthPx: Math.max(0, Math.min(6, track.directionArrowOutlineWidthPx ?? 2)),
+      trackShadowStrength: Math.max(0, Math.min(100, track.trackShadowStrength ?? 0)),
+      arrowShadowStrength: Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)),
+      trackOutlineStrength: Math.max(0, Math.min(100, track.trackOutlineStrength ?? 0)),
       directionStyle: ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'].includes(track.directionStyle ?? '') ? track.directionStyle : 'classic'
     }));
   }
@@ -5800,7 +5830,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const active = track.active !== false;
         this.gpxSegmentsByTrack.set(track.path, parsed);
         if (active) segments.push(...parsed);
-        available.push({ ...track, sizeBytes: metadata?.size ?? track.sizeBytes, lastModified: metadata?.modifiedAt ?? track.lastModified, missing: false, readError: false, active, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? (track.lineStyle ?? 'solid') : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? (track.lineWidth ?? 4) : 4, showDirection: track.showDirection === true, directionStyle: ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'].includes(track.directionStyle ?? '') ? (track.directionStyle ?? 'classic') : 'classic' });
+        available.push({ ...track, sizeBytes: metadata?.size ?? track.sizeBytes, lastModified: metadata?.modifiedAt ?? track.lastModified, missing: false, readError: false, active, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? (track.lineStyle ?? 'solid') : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? (track.lineWidth ?? 4) : 4, showDirection: track.showDirection === true, directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? 16, directionArrowOutlineWidthPx: track.directionArrowOutlineWidthPx ?? 2, trackShadowStrength: track.trackShadowStrength ?? 0, arrowShadowStrength: track.arrowShadowStrength ?? 0, trackOutlineStrength: track.trackOutlineStrength ?? 0, directionStyle: ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'].includes(track.directionStyle ?? '') ? (track.directionStyle ?? 'classic') : 'classic' });
       } catch (error) { this.gpxError.set(`${track.name}: ${error instanceof Error ? error.message : String(error)}`); }
     }
     this.gpxTracks.set(available);
@@ -5867,7 +5897,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     return arrows;
   }
-  private updateGpxTrack(path: string, patch: Partial<Pick<GpxTrackFile, 'color' | 'colorMode' | 'speedPalette' | 'customColor1' | 'customColor2' | 'customColor3' | 'speedMinKmh' | 'speedMaxKmh' | 'elevationMinM' | 'elevationMaxM' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionIntervalPx' | 'directionArrowSizePx' | 'directionArrowOutlineWidthPx' | 'directionStyle' | 'active'>>): void {
+  private updateGpxTrack(path: string, patch: Partial<Pick<GpxTrackFile, 'color' | 'colorMode' | 'speedPalette' | 'customColor1' | 'customColor2' | 'customColor3' | 'speedMinKmh' | 'speedMaxKmh' | 'elevationMinM' | 'elevationMaxM' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionIntervalPx' | 'directionArrowSizePx' | 'directionArrowOutlineWidthPx' | 'trackShadowStrength' | 'arrowShadowStrength' | 'trackOutlineStrength' | 'directionStyle' | 'active'>>): void {
     const next = this.gpxTracks().map(track => track.path === path ? { ...track, ...patch } : track);
     this.gpxTracks.set(next);
     void this.persistGpxTracks(next.filter(track => !track.path.startsWith('memory:')));
@@ -6808,7 +6838,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
 
-  protected readonly changeGpxDatabaseTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'customColor1' | 'customColor2' | 'customColor3' | 'speedMinKmh' | 'speedMaxKmh' | 'elevationMinM' | 'elevationMaxM' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionIntervalPx' | 'directionArrowSizePx' | 'directionArrowOutlineWidthPx' | 'directionStyle'>>): void => {
+  protected readonly changeGpxDatabaseTrack = (path: string, patch: Partial<Pick<GpxTrackFile, 'active' | 'color' | 'colorMode' | 'speedPalette' | 'customColor1' | 'customColor2' | 'customColor3' | 'speedMinKmh' | 'speedMaxKmh' | 'elevationMinM' | 'elevationMaxM' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionIntervalPx' | 'directionArrowSizePx' | 'directionArrowOutlineWidthPx' | 'trackShadowStrength' | 'arrowShadowStrength' | 'trackOutlineStrength' | 'directionStyle'>>): void => {
     const databasePath = this.gpxDatabaseTracks().find(track => track.path === path)?.databasePath;
     if (databasePath) this.gpxDatabaseTrackSettings.set(databasePath, { ...this.gpxDatabaseTrackSettings.get(databasePath), ...patch });
     if (databasePath) this.persistGpxDatabaseTrackSettings();
