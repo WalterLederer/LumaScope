@@ -725,6 +725,103 @@ QJsonObject administrativeAreasForCoordinate(
         });
     }
 
+    // Resolve AddressIndex Boundary groups to their administrative levels by
+    // direct OSM object identity. The initial point query often misses the map
+    // geometry because OBF stores only generalized/split line fragments whose
+    // individual bboxes do not reach the query point. Query each matching
+    // AddressIndex boundary's own bbox and match relation/way OSM IDs only;
+    // never infer an admin_level from its name or stitch boundary segments.
+    constexpr qint64 maxBoundaryIdentityLookupDimension31 = 20000000;
+    QJsonArray addressBoundaryAdminLevelMatches;
+    QSet<QString> checkedAddressBoundaryObjectKeys;
+    for (const auto& streetGroup : addressBoundaryGroups)
+    {
+        if (!streetGroup || streetGroup->type != OsmAnd::ObfAddressStreetGroupSubtype::Boundary
+            || streetGroup->bbox31.size() < 4 || !streetGroup->id.isOsmId())
+            continue;
+
+        const auto addressObjectKey = administrativeObjectKey(streetGroup->id);
+        if (addressObjectKey.isEmpty() || administrativeLevelsByObjectId.contains(addressObjectKey)
+            || checkedAddressBoundaryObjectKeys.contains(addressObjectKey))
+            continue;
+        checkedAddressBoundaryObjectKeys.insert(addressObjectKey);
+
+        const auto left = streetGroup->bbox31[0];
+        const auto top = streetGroup->bbox31[1];
+        const auto right = streetGroup->bbox31[2];
+        const auto bottom = streetGroup->bbox31[3];
+        if (point31.x < left || point31.x > right || point31.y < top || point31.y > bottom)
+            continue;
+
+        const qint64 width = static_cast<qint64>(right) - left;
+        const qint64 height = static_cast<qint64>(bottom) - top;
+        if (width <= 0 || height <= 0
+            || width > maxBoundaryIdentityLookupDimension31
+            || height > maxBoundaryIdentityLookupDimension31)
+            continue;
+
+        OsmAnd::AreaI addressBoundaryQuery;
+        addressBoundaryQuery.left() = left;
+        addressBoundaryQuery.top() = top;
+        addressBoundaryQuery.right() = right;
+        addressBoundaryQuery.bottom() = bottom;
+
+        bool matched = false;
+        for (const auto& reader : dataInterface->obfReaders)
+        {
+            if (!reader || matched)
+                continue;
+            const auto info = reader->obtainInfo();
+            if (!info)
+                continue;
+
+            for (const auto& mapSection : info->mapSections)
+            {
+                if (!mapSection || mapSection->levels.isEmpty() || matched)
+                    continue;
+                for (const auto& mapLevel : mapSection->levels)
+                {
+                    if (!mapLevel || matched)
+                        continue;
+                    QList<std::shared_ptr<const OsmAnd::BinaryMapObject>> boundaryMapObjects;
+                    OsmAnd::ObfMapSectionReader::loadMapObjects(
+                        reader, mapSection, nullptr, mapLevel->minZoom,
+                        &addressBoundaryQuery, &boundaryMapObjects);
+                    for (const auto& mapObject : boundaryMapObjects)
+                    {
+                        if (!mapObject || !mapObject->id.isOsmId()
+                            || administrativeObjectKey(mapObject->id) != addressObjectKey)
+                            continue;
+                        const auto attributes = mapObject->getResolvedAttributes();
+                        if (attributes.value(QStringLiteral("boundary")).trimmed().compare(
+                                QStringLiteral("administrative"), Qt::CaseInsensitive) != 0)
+                            continue;
+                        bool levelOk = false;
+                        const int adminLevel = attributes.value(QStringLiteral("admin_level")).trimmed().toInt(&levelOk);
+                        if (!levelOk || adminLevel <= 0)
+                            continue;
+
+                        administrativeLevelsByObjectId.insert(addressObjectKey, adminLevel);
+                        const auto groupName = streetGroup->getName(locale, false).trimmed();
+                        const auto displayName = groupName.isEmpty()
+                            ? streetGroup->nativeName.trimmed() : groupName;
+                        addressBoundaryAdminLevelMatches.push_back(QJsonObject{
+                            {QStringLiteral("name"), displayName},
+                            {QStringLiteral("osm_id"), QString::number(streetGroup->id.getOsmId())},
+                            {QStringLiteral("admin_level"), adminLevel},
+                            {QStringLiteral("source"), QStringLiteral("direct-osm-id-match")},
+                            {QStringLiteral("map_is_relation"), mapObject->id.isIdFromRelation()},
+                            {QStringLiteral("map_is_split"), mapObject->id.isIdFromSplit()},
+                            {QStringLiteral("map_min_zoom"), mapLevel->minZoom}
+                        });
+                        matched = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     for (const auto& streetGroup : addressBoundaryGroups)
     {
         if (!streetGroup)
@@ -1472,6 +1569,7 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("address_boundary_bbox_map_search_skipped_count"), addressBoundaryBboxMapSearchSkippedCount},
         {QStringLiteral("matched_boundary_object_ids"), matchedBoundaryObjectIds},
         {QStringLiteral("resolved_administrative_areas"), areas.size()},
+        {QStringLiteral("address_boundary_admin_level_id_matches"), addressBoundaryAdminLevelMatches},
         {QStringLiteral("boundary_search_area_available"), hasBoundarySearchArea},
         {QStringLiteral("boundary_line_diagnostics_enabled"), boundaryLineDiagnosticsEnabled},
         {QStringLiteral("boundary_line_counts"), boundaryConnectivity},
