@@ -40,6 +40,9 @@ public:
         double longitude,
         const QString& locale,
         QString& errorMessage) const;
+    QString exportAdministrativeBoundaryCandidatesGpx(
+        const QString& outputPath, double latitude, double longitude, double radiusKm,
+        const QString& locale, QString& errorMessage) const;
 
 private:
     Configuration _configuration;
