@@ -305,16 +305,11 @@ QJsonObject administrativeAreasForCoordinate(
             }
         }
     }
-    // OBF address-section block types are not a reliable filter for the
-    // CityIndex subtype: administrative Boundary groups may be stored inside
-    // CityOrTown/Village/Postcode blocks. Load all groups, then inspect the
-    // decoded StreetGroup subtype. This path is isolated from address,
-    // street, building, and house-number reverse-geocoding.
-    // Reuse the proven v0.4 loading path. The full block-type mask returned
-    // 22,193 groups but no decoded Boundary subtype for this OBF, whereas the
-    // Boundary-only mask previously returned 5,408 groups and five matches
-    // around the tested coordinate. Keep this separate from normal address,
-    // street, building, and house-number resolution.
+    // Reuse the proven v0.4 Boundary-only loading path. The full block-type
+    // mask returned 22,193 groups but no decoded Boundary subtype for this
+    // OBF, whereas this filter previously returned 5,408 groups and five
+    // matches around the tested coordinate. Keep this separate from normal
+    // address, street, building, and house-number resolution.
     const auto boundaryOnlyMask = OsmAnd::ObfAddressStreetGroupTypesMask()
         .set(OsmAnd::ObfAddressStreetGroupType::Boundary);
     QList<std::shared_ptr<const OsmAnd::StreetGroup>> addressBoundaryGroups;
@@ -1812,7 +1807,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.20")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.21")},
     };
 
     // Administrative areas are resolved independently from the address
