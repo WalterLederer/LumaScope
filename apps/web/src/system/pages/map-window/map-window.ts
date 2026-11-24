@@ -1456,6 +1456,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly coordinatesAvailable = signal(false);
   protected readonly currentImageHasGps = signal(false);
   protected readonly fixLocationEnabled = signal(false);
+  protected readonly useOnlineReverseGeocoding = signal(true);
   protected readonly fixLocationSectionOpen = signal(true);
   protected readonly autoFixCheckOnly = signal(false);
   protected readonly autoFixMaxDifferenceMinutes = signal(2);
@@ -1859,6 +1860,9 @@ export class MapWindow implements OnInit, OnDestroy {
       if (typeof saved['fixLocationEnabled'] === 'boolean') {
         this.fixLocationEnabled.set(saved['fixLocationEnabled']);
       }
+      if (typeof saved['useOnlineReverseGeocoding'] === 'boolean') {
+        this.useOnlineReverseGeocoding.set(saved['useOnlineReverseGeocoding']);
+      }
       if (typeof saved['opacitySectionOpen'] === 'boolean') this.opacitySectionOpen.set(saved['opacitySectionOpen']);
       if (typeof saved['renderSectionOpen'] === 'boolean') this.renderSectionOpen.set(saved['renderSectionOpen']);
       if (typeof saved['markerSectionOpen'] === 'boolean') this.markerSectionOpen.set(saved['markerSectionOpen']);
@@ -2178,6 +2182,17 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!path) return;
     try { await navigator.clipboard.writeText(path); }
     catch (error) { console.error('Failed to copy file path', error); }
+  };
+
+  protected readonly setUseOnlineReverseGeocoding = (enabled: boolean): void => {
+    this.useOnlineReverseGeocoding.set(enabled);
+    this.persistLocationUiState({ useOnlineReverseGeocoding: enabled });
+    if (!enabled) {
+      this.photoOnlineAddressParts.set([]);
+      this.crosshairOnlineAddressParts.set([]);
+      this.photoAddress.set(this.photoAddress().split(/\\r?\\n/).filter(line => !line.startsWith('Online: ')).join('\\n'));
+      this.crosshairAddress.set(this.crosshairAddress().split(/\\r?\\n/).filter(line => !line.startsWith('Online: ')).join('\\n'));
+    }
   };
 
   protected readonly setFixLocationEnabled = (enabled: boolean): void => {
@@ -2678,30 +2693,34 @@ export class MapWindow implements OnInit, OnDestroy {
           comments: []
         }))
       : Promise.resolve({ text: 'Unavailable', offlineParts: [], comments: [] });
-    const onlineLookup = lookupReverseGeocoding(latitude, longitude, language)
-      .then(result => ({
-        text: result?.displayName?.trim() || 'No result',
-        parts: result ? [
-          { label: 'Street', value: result.street ?? '' },
-          { label: 'House number', value: result.houseNumber ?? '' },
-          { label: 'Place', value: result.locality && result.locality !== result.municipality && result.locality !== result.district ? result.locality : '' },
-          { label: 'Municipality', value: result.municipality ?? '' },
-          { label: 'District', value: result.district ?? '' },
-          { label: 'State', value: result.region ?? '' },
-          { label: 'Postcode', value: result.postcode ?? '' },
-          { label: 'Country', value: result.country ?? '' },
-          { label: 'Other regions', value: '' }
-        ] : []
-      }))
-      .catch(error => ({
-        text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-        parts: []
-      }));
+    const onlineLookup = this.useOnlineReverseGeocoding()
+      ? lookupReverseGeocoding(latitude, longitude, language)
+          .then(result => ({
+            text: result?.displayName?.trim() || 'No result',
+            parts: result ? [
+              { label: 'Street', value: result.street ?? '' },
+              { label: 'House number', value: result.houseNumber ?? '' },
+              { label: 'Place', value: result.locality && result.locality !== result.municipality && result.locality !== result.district ? result.locality : '' },
+              { label: 'Municipality', value: result.municipality ?? '' },
+              { label: 'District', value: result.district ?? '' },
+              { label: 'State', value: result.region ?? '' },
+              { label: 'Postcode', value: result.postcode ?? '' },
+              { label: 'Country', value: result.country ?? '' },
+              { label: 'Other regions', value: '' }
+            ] : []
+          }))
+          .catch(error => ({
+            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+            parts: []
+          }))
+      : Promise.resolve({ text: '', parts: [] });
     const [offline, online] = await Promise.all([offlineLookup, onlineLookup]);
     return {
-      text: `Offline: ${offline.text}\nOnline: ${online.text}`,
+      text: this.useOnlineReverseGeocoding()
+        ? `Offline: ${offline.text}\nOnline: ${online.text}`
+        : `Offline: ${offline.text}`,
       offlineParts: offline.offlineParts,
-      onlineParts: online.parts,
+      onlineParts: this.useOnlineReverseGeocoding() ? online.parts : [],
       comments: offline.comments
     };
   }
@@ -2717,7 +2736,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
     this.updateCrosshairCoordinates();
-    this.crosshairAddress.set('Looking up offline and online addresses…');
+    this.crosshairAddress.set(this.useOnlineReverseGeocoding() ? 'Looking up offline and online addresses…' : 'Looking up offline address…');
     this.crosshairAddressParts.set([]);
     this.crosshairOnlineAddressParts.set([]);
     this.crosshairAddressComments.set([]);
@@ -2725,7 +2744,7 @@ export class MapWindow implements OnInit, OnDestroy {
       result => {
         this.crosshairAddress.set(result.text);
         this.crosshairAddressParts.set(result.offlineParts);
-        this.crosshairOnlineAddressParts.set(result.onlineParts);
+        this.crosshairOnlineAddressParts.set(this.useOnlineReverseGeocoding() ? result.onlineParts : []);
         this.crosshairAddressComments.set(result.comments);
       },
       error => {
@@ -2747,14 +2766,14 @@ export class MapWindow implements OnInit, OnDestroy {
       this.photoAddressComments.set([]);
       return;
     }
-    this.photoAddress.set('Looking up offline and online addresses…');
+    this.photoAddress.set(this.useOnlineReverseGeocoding() ? 'Looking up offline and online addresses…' : 'Looking up offline address…');
     this.photoAddressParts.set([]);
     this.photoAddressComments.set([]);
     void this.lookupBothReverseGeocoders(latitude, longitude).then(
       result => {
         this.photoAddress.set(result.text);
         this.photoAddressParts.set(result.offlineParts);
-        this.photoOnlineAddressParts.set(result.onlineParts);
+        this.photoOnlineAddressParts.set(this.useOnlineReverseGeocoding() ? result.onlineParts : []);
         this.photoAddressComments.set(result.comments);
       },
       error => {
