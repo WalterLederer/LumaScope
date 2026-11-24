@@ -2661,8 +2661,9 @@ export class MapWindow implements OnInit, OnDestroy {
         parts: result ? {
           Street: result.street ?? '',
           'House number': result.houseNumber ?? '',
-          Place: result.locality ?? result.placeName ?? '',
-          Municipality: '',
+          Place: result.locality && result.locality !== result.municipality && result.locality !== result.district
+            ? result.locality : '',
+          Municipality: result.municipality ?? '',
           District: result.district ?? '',
           State: result.region ?? '',
           Postcode: result.postcode ?? '',
