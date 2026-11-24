@@ -148,47 +148,50 @@
                   </div>
                 </div>
               </details>
-              <div class="location-command-row">
-                <div class="location-actions">
-                  <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates"><span aria-hidden="true">⧉</span> Copy GPS coordinates</button>
-                  <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location"><span aria-hidden="true">◎</span> Center</button>
-                  <label>Open location in
-                    <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
-                      <option value="">Select web app…</option>
-                      <option value="google-earth">Google Earth</option>
-                      <option value="google-maps">Google Maps</option>
-                      <option value="bing-maps">Bing Maps</option>
-                      <option value="openstreetmap">OpenStreetMap</option>
-                      <option value="apple-maps">Apple Maps</option>
-                    </select>
-                  </label>
-                </div>
-                <div class="location-icon-settings-box lumascope-surface-box">
-                  <div class="marker-current-appearance-settings">
-                    <span>Location Icon:</span>
-                    <label>Shape
-                      <select [value]="currentMarkerShape()" (change)="changeCurrentMarkerShape($any($event.target).value)">
-                        <option value="pin">Location pin</option><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option>
+              <details class="location-image-details app-disclosure">
+                <summary class="settings-row-title">Image location</summary>
+                <div class="location-command-row">
+                  <div class="location-actions">
+                    <button type="button" class="map-toolbar-button" (click)="copyCoordinates()" title="Copy GPS coordinates" aria-label="Copy GPS coordinates"><span aria-hidden="true">⧉</span> Copy GPS coordinates</button>
+                    <button type="button" class="map-toolbar-button" (click)="centerMarker()" title="Center map on image location" aria-label="Center map on image location"><span aria-hidden="true">◎</span> Center</button>
+                    <label>Open location in
+                      <select (change)="openLocationIn($any($event.target).value); $any($event.target).value = ''">
+                        <option value="">Select web app…</option>
+                        <option value="google-earth">Google Earth</option>
+                        <option value="google-maps">Google Maps</option>
+                        <option value="bing-maps">Bing Maps</option>
+                        <option value="openstreetmap">OpenStreetMap</option>
+                        <option value="apple-maps">Apple Maps</option>
                       </select>
                     </label>
-                    <label>Color</label>
-                    <div class="color-picker">
-                      <button type="button" class="color-picker-trigger" (click)="toggleCurrentMarkerColorMenu()" [attr.aria-expanded]="currentMarkerColorMenuOpen()" aria-label="Current location marker color">
-                        <span class="color-swatch" [style.background]="currentMarkerColor()" [style.color]="selectedCurrentMarkerTextColor()">{{ currentMarkerColor() }}</span>
-                        <span>{{ selectedCurrentMarkerColorName() }}</span>
-                        <span class="color-picker-chevron">▾</span>
-                      </button>
-                      @if (currentMarkerColorMenuOpen()) {
-                        <div class="color-picker-menu" role="listbox" aria-label="Current location marker colors">
-                          @for (color of gpxColors; track color.value) {
-                            <button type="button" class="color-option" role="option" [attr.aria-selected]="currentMarkerColor() === color.value" (click)="changeCurrentMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
-                          }
-                        </div>
-                      }
+                  </div>
+                  <div class="location-icon-settings-box lumascope-surface-box">
+                    <div class="marker-current-appearance-settings">
+                      <span>Location Icon:</span>
+                      <label>Shape
+                        <select [value]="currentMarkerShape()" (change)="changeCurrentMarkerShape($any($event.target).value)">
+                          <option value="pin">Location pin</option><option value="circle">Circle</option><option value="square">Square</option><option value="diamond">Diamond</option>
+                        </select>
+                      </label>
+                      <label>Color</label>
+                      <div class="color-picker">
+                        <button type="button" class="color-picker-trigger" (click)="toggleCurrentMarkerColorMenu()" [attr.aria-expanded]="currentMarkerColorMenuOpen()" aria-label="Current location marker color">
+                          <span class="color-swatch" [style.background]="currentMarkerColor()" [style.color]="selectedCurrentMarkerTextColor()">{{ currentMarkerColor() }}</span>
+                          <span>{{ selectedCurrentMarkerColorName() }}</span>
+                          <span class="color-picker-chevron">▾</span>
+                        </button>
+                        @if (currentMarkerColorMenuOpen()) {
+                          <div class="color-picker-menu" role="listbox" aria-label="Current location marker colors">
+                            @for (color of gpxColors; track color.value) {
+                              <button type="button" class="color-option" role="option" [attr.aria-selected]="currentMarkerColor() === color.value" (click)="changeCurrentMarkerColor(color.value)"><span class="color-swatch" [style.background]="color.value" [style.color]="color.textColor">{{ color.value }}</span><span>{{ color.name }}</span></button>
+                            }
+                          </div>
+                        }
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </details>
             </div>
           </div>
 
