@@ -7290,7 +7290,8 @@ ${points}
       let parent = segment.parentElement;
       while (parent && parent.localName !== 'trk') parent = parent.parentElement;
       const name = parent ? Array.from(parent.children).find(child => child.localName === 'name')?.textContent?.trim() : '';
-      return name || `Track ${index + 1}`;
+      const trackIndex = parent ? Array.from(xml.getElementsByTagName('*')).filter(element => element.localName === 'trk').indexOf(parent) : index;
+      return name || `Track ${trackIndex + 1}`;
     });
     const route = Array.from(xml.getElementsByTagName('*')).find(element => element.localName === 'rte');
     const routeName = route ? Array.from(route.children).find(child => child.localName === 'name')?.textContent?.trim() : '';
