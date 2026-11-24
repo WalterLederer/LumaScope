@@ -90,7 +90,7 @@
                                 <tbody>
                                   @if (crosshairAddressParts().length > 0) {
                                     <tr><th scope="row">Offline (OsmAnd)</th>@for (part of crosshairAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
-                                    <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="crosshairAddressParts().length + 1">{{ reverseGeocodeSourceText(crosshairAddress(), 'Offline') }}</td></tr>
+                                    <tr class="reverse-geocode-full-text-row reverse-geocode-online-full-text-row"><td [attr.colspan]="crosshairAddressParts().length + 1">{{ reverseGeocodeSourceText(crosshairAddress(), 'Offline') }}</td></tr>
                                   }
                                   @if (useOnlineReverseGeocoding()) {
                                     <tr class="reverse-geocode-online-row"><th scope="row">Online (Nominatim)</th>@for (part of (crosshairAddressParts().length > 0 ? crosshairAddressParts() : crosshairOnlineAddressParts().length > 0 ? crosshairOnlineAddressParts() : reverseGeocodeDefaultParts); track part.label) { <td>{{ crosshairOnlineAddressParts().find(value => value.label === part.label)?.value || '—' }}</td> }</tr>
@@ -112,7 +112,7 @@
                             }
                           </td>
                         </tr>
-                        <tr>
+                        <tr class="fix-location-image-row">
                           <td class="fix-location-toggle-cell">
                             <div class="fix-location-source-cell"><span class="fix-location-source-heading"><svg class="fix-location-large-symbol location-pin-symbol" viewBox="0 0 48 56" aria-hidden="true"><path d="M24 2C12.4 2 4 10.5 4 21c0 14 20 33 20 33s20-19 20-33C44 10.5 35.6 2 24 2Z" fill="var(--current-marker-color, #ff3b30)" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="21" r="7.5" fill="var(--color-surface, #fff)" stroke="currentColor" stroke-width="1.5"/></svg><strong>Image</strong></span><button type="button" class="map-toolbar-button" (click)="showPhotoAddress()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">⌖</span> Show address</button></div>
                           </td>
@@ -128,7 +128,7 @@
                                   }
                                   @if (useOnlineReverseGeocoding()) {
                                     <tr class="reverse-geocode-online-row"><th scope="row">Online (Nominatim)</th>@for (part of (photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts().length > 0 ? photoOnlineAddressParts() : reverseGeocodeDefaultParts); track part.label) { <td>{{ photoOnlineAddressParts().find(value => value.label === part.label)?.value || '—' }}</td> }</tr>
-                                    @if (reverseGeocodeSourceText(photoAddress(), 'Online'); as onlineText) { <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="(photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts().length > 0 ? photoOnlineAddressParts() : reverseGeocodeDefaultParts).length + 1">{{ onlineText }}</td></tr> }
+                                    @if (reverseGeocodeSourceText(photoAddress(), 'Online'); as onlineText) { <tr class="reverse-geocode-full-text-row reverse-geocode-online-full-text-row"><td [attr.colspan]="(photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts().length > 0 ? photoOnlineAddressParts() : reverseGeocodeDefaultParts).length + 1">{{ onlineText }}</td></tr> }
                                   }
                                 </tbody>
                               </table></div>
