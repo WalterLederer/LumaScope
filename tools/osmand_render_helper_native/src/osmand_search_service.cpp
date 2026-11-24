@@ -10,6 +10,8 @@
 #include <vector>
 
 #include <QFileInfo>
+#include <QSaveFile>
+#include <QXmlStreamWriter>
 #include <QHash>
 #include <QPoint>
 #include <QPointF>
@@ -2585,3 +2587,229 @@ QString OsmAndSearchService::reverseGeocode(
 
     return QString::fromUtf8(QJsonDocument(payload).toJson(QJsonDocument::Compact));
 }
+
+QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
+    const QString& outputPath,
+    double latitude,
+    double longitude,
+    double radiusKm,
+    const QString& locale,
+    QString& errorMessage) const
+{
+    if (!_initialized || !_dataInterface)
+    {
+        errorMessage = QStringLiteral("OBF export service was not initialized.");
+        return {};
+    }
+    if (latitude < -90.0 || latitude > 90.0 || longitude < -180.0 || longitude > 180.0
+        || !std::isfinite(radiusKm) || radiusKm <= 0.0 || radiusKm > 100.0)
+    {
+        errorMessage = QStringLiteral("Invalid export centre or radius (radius must be > 0 and <= 100 km).");
+        return {};
+    }
+    if (outputPath.trimmed().isEmpty())
+    {
+        errorMessage = QStringLiteral("A GPX output path is required.");
+        return {};
+    }
+
+    const auto effectiveLocale = locale.trimmed().isEmpty() ? _defaultLocale : locale.trimmed().toLower();
+    const auto centre31 = OsmAnd::Utilities::convertLatLonTo31(OsmAnd::LatLon(latitude, longitude));
+    constexpr double earthCircumferenceMeters = 40075016.686;
+    const double metresPer31Unit = earthCircumferenceMeters
+        * std::max(0.01, std::cos(latitude * M_PI / 180.0)) / 2147483648.0;
+    const int radius31 = static_cast<int>(std::ceil(radiusKm * 1000.0 / metresPer31Unit));
+    OsmAnd::AreaI searchArea;
+    searchArea.left() = std::max(0, centre31.x - radius31);
+    searchArea.right() = std::min(2147483647, centre31.x + radius31);
+    searchArea.top() = std::max(0, centre31.y - radius31);
+    searchArea.bottom() = std::min(2147483647, centre31.y + radius31);
+
+    // First collect the address-index Boundary IDs in the export extent. These
+    // are candidates even if their map-index copy lacks boundary/admin_level tags.
+    QSet<QString> addressBoundaryKeys;
+    QList<std::shared_ptr<const OsmAnd::StreetGroup>> addressBoundaryGroups;
+    const auto boundaryOnlyMask = OsmAnd::ObfAddressStreetGroupTypesMask()
+        .set(OsmAnd::ObfAddressStreetGroupType::Boundary);
+    _dataInterface->loadStreetGroups(&addressBoundaryGroups, nullptr, boundaryOnlyMask);
+    for (const auto& group : addressBoundaryGroups)
+    {
+        if (!group || group->type != OsmAnd::ObfAddressStreetGroupSubtype::Boundary
+            || group->bbox31.size() < 4 || !group->id.isOsmId())
+            continue;
+        const bool intersects = group->bbox31[2] >= searchArea.left()
+            && group->bbox31[0] <= searchArea.right()
+            && group->bbox31[3] >= searchArea.top()
+            && group->bbox31[1] <= searchArea.bottom();
+        if (intersects)
+        {
+            const auto key = administrativeObjectKey(group->id);
+            if (!key.isEmpty())
+                addressBoundaryKeys.insert(key);
+        }
+    }
+
+    QSaveFile output(outputPath);
+    if (!output.open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+        errorMessage = QStringLiteral("Cannot create GPX file: %1").arg(output.errorString());
+        return {};
+    }
+    QXmlStreamWriter xml(&output);
+    xml.setAutoFormatting(true);
+    xml.writeStartDocument();
+    xml.writeStartElement(QStringLiteral("gpx"));
+    xml.writeAttribute(QStringLiteral("version"), QStringLiteral("1.1"));
+    xml.writeAttribute(QStringLiteral("creator"), QStringLiteral("LumaScope OsmAnd OBF boundary candidate exporter"));
+    xml.writeDefaultNamespace(QStringLiteral("http://www.topografix.com/GPX/1/1"));
+    xml.writeStartElement(QStringLiteral("metadata"));
+    xml.writeTextElement(QStringLiteral("name"), QStringLiteral("Stockerau administrative boundary candidates"));
+    xml.writeTextElement(QStringLiteral("desc"),
+        QStringLiteral("OBF map objects with boundary=administrative/admin_level tags plus map objects matching AddressIndex Boundary IDs. Original map-object geometry is preserved per zoom level."));
+    xml.writeEndElement();
+
+    QSet<QString> writtenObjects;
+    int exportedTrackCount = 0;
+    int exportedPointCount = 0;
+    int administrativeObjectCount = 0;
+    int addressIndexMatchCount = 0;
+    int skippedGeometryCount = 0;
+
+    auto writeTrack = [&](const OsmAnd::BinaryMapObject& mapObject,
+                          const QString& sourceFile,
+                          int minZoom,
+                          const QString& classification,
+                          const QString& name,
+                          const QString& osmId,
+                          int adminLevel)
+    {
+        const QString identity = sourceFile + QLatin1Char('|') + QString::number(mapObject.id.id)
+            + QLatin1Char('|') + QString::number(minZoom);
+        if (writtenObjects.contains(identity))
+            return;
+        writtenObjects.insert(identity);
+
+        if (mapObject.points31.size() < 2)
+        {
+            ++skippedGeometryCount;
+            return;
+        }
+
+        const QString objectKind = mapObject.id.isIdFromRelation()
+            ? QStringLiteral("relation") : QStringLiteral("way");
+        const QString displayName = name.trimmed().isEmpty()
+            ? QStringLiteral("Unnamed") : name.trimmed();
+        const QString trackName = QStringLiteral("admin_level=%1 · %2 %3 · %4 · z%5 · %6 pts")
+            .arg(adminLevel > 0 ? QString::number(adminLevel) : QStringLiteral("unknown"),
+                 objectKind, osmId, displayName)
+            .arg(minZoom)
+            .arg(mapObject.points31.size());
+
+        xml.writeStartElement(QStringLiteral("trk"));
+        xml.writeTextElement(QStringLiteral("name"), trackName);
+        xml.writeTextElement(QStringLiteral("type"), classification);
+        xml.writeTextElement(QStringLiteral("desc"),
+            QStringLiteral("OSM %1 %2; admin_level=%3; min_zoom=%4; isArea=%5; source=%6")
+                .arg(objectKind, osmId,
+                     adminLevel > 0 ? QString::number(adminLevel) : QStringLiteral("unknown"),
+                     QString::number(minZoom),
+                     mapObject.isArea ? QStringLiteral("true") : QStringLiteral("false"),
+                     QFileInfo(sourceFile).fileName()));
+
+        auto writeSegment = [&](const QVector<OsmAnd::PointI>& points)
+        {
+            if (points.size() < 2)
+                return;
+            xml.writeStartElement(QStringLiteral("trkseg"));
+            for (const auto& point : points)
+            {
+                const auto latLon = OsmAnd::Utilities::convert31ToLatLon(point);
+                xml.writeStartElement(QStringLiteral("trkpt"));
+                xml.writeAttribute(QStringLiteral("lat"), QString::number(latLon.latitude, 'f', 7));
+                xml.writeAttribute(QStringLiteral("lon"), QString::number(latLon.longitude, 'f', 7));
+                xml.writeEndElement();
+                ++exportedPointCount;
+            }
+            xml.writeEndElement();
+        };
+
+        writeSegment(mapObject.points31);
+        for (const auto& innerRing : mapObject.innerPolygonsPoints31)
+            writeSegment(innerRing);
+        xml.writeEndElement();
+        ++exportedTrackCount;
+        if (classification == QStringLiteral("administrative"))
+            ++administrativeObjectCount;
+        else
+            ++addressIndexMatchCount;
+    };
+
+    for (const auto& reader : _dataInterface->obfReaders)
+    {
+        if (!reader)
+            continue;
+        const auto info = reader->obtainInfo();
+        if (!info)
+            continue;
+        const QString sourceFile = reader->getFileName();
+
+        for (const auto& mapSection : info->mapSections)
+        {
+            if (!mapSection)
+                continue;
+            for (const auto& mapLevel : mapSection->levels)
+            {
+                if (!mapLevel)
+                    continue;
+                QList<std::shared_ptr<const OsmAnd::BinaryMapObject>> mapObjects;
+                OsmAnd::ObfMapSectionReader::loadMapObjects(
+                    reader, mapSection, nullptr, mapLevel->minZoom, &searchArea, &mapObjects);
+                for (const auto& mapObject : mapObjects)
+                {
+                    if (!mapObject)
+                        continue;
+                    const auto attributes = mapObject->getResolvedAttributes();
+                    const auto boundaryValue = attributes.value(QStringLiteral("boundary")).trimmed().toLower();
+                    bool adminLevelOk = false;
+                    const int adminLevel = attributes.value(QStringLiteral("admin_level")).toInt(&adminLevelOk);
+                    const bool administrative = boundaryValue == QStringLiteral("administrative");
+                    const QString objectKey = mapObject->id.isOsmId()
+                        ? administrativeObjectKey(mapObject->id) : QString();
+                    const bool addressIndexCandidate = !objectKey.isEmpty()
+                        && addressBoundaryKeys.contains(objectKey);
+                    if (!administrative && !addressIndexCandidate)
+                        continue;
+
+                    const auto localizedName = mapObject->getName(effectiveLocale, false).trimmed();
+                    const auto objectName = localizedName.isEmpty()
+                        ? mapObject->getCaptionInNativeLanguage().trimmed() : localizedName;
+                    writeTrack(*mapObject, sourceFile, mapLevel->minZoom,
+                        administrative ? QStringLiteral("administrative") : QStringLiteral("address-boundary-candidate"),
+                        objectName,
+                        mapObject->id.isOsmId() ? QString::number(mapObject->id.getOsmId()) : QString::number(mapObject->id.id),
+                        adminLevelOk ? adminLevel : 0);
+                }
+            }
+        }
+    }
+
+    xml.writeEndElement();
+    xml.writeEndDocument();
+    if (xml.hasError() || !output.commit())
+    {
+        errorMessage = QStringLiteral("Failed while writing GPX output: %1").arg(output.errorString());
+        return {};
+    }
+
+    return QString::fromUtf8(QJsonDocument(QJsonObject{
+        {QStringLiteral("output_path"), QFileInfo(outputPath).absoluteFilePath()},
+        {QStringLiteral("radius_km"), radiusKm},
+        {QStringLiteral("administrative_tracks"), administrativeObjectCount},
+        {QStringLiteral("address_boundary_tracks"), addressIndexMatchCount},
+        {QStringLiteral("track_count"), exportedTrackCount},
+        {QStringLiteral("point_count"), exportedPointCount},
+        {QStringLiteral("skipped_without_geometry"), skippedGeometryCount},
+        {QStringLiteral("address_boundary_ids_in_extent"), addressBoundaryKeys.size()}
+    }).toJson(QJsonDocument::Compact));
+}
+
