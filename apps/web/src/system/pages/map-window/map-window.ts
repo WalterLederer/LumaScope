@@ -153,6 +153,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly mapElement = viewChild.required<ElementRef<HTMLElement>>('map');
   private map: MapInstance | null = null;
   private offlineRenderer: OfflineMapRenderer | null = null;
+  private onlineMapLoadingTimer: ReturnType<typeof setTimeout> | null = null;
   private currentLatitude: number | null = null;
   private currentLongitude: number | null = null;
   private marker: MapMarker | null = null;
@@ -2151,6 +2152,10 @@ export class MapWindow implements OnInit, OnDestroy {
     window.removeEventListener('lumascope-map-display-ready', this.onMapDisplayReady);
     window.removeEventListener('lumascope-hillshade-tile-status', this.onHillshadeTileStatus);
     this.clearRenderDisplayFallback();
+    if (this.onlineMapLoadingTimer !== null) {
+      clearTimeout(this.onlineMapLoadingTimer);
+      this.onlineMapLoadingTimer = null;
+    }
     this.renderInitStatus.set('');
     // Save the live camera value before destroying either map implementation.
     // This also covers closing the separate Location window or the overlay
@@ -2201,6 +2206,25 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private readonly onResize = (): void => { this.map?.invalidateSize(); this.offlineRenderer?.resize(); };
+
+  private beginOnlineMapLoading(): void {
+    if (this.onlineMapLoadingTimer !== null) clearTimeout(this.onlineMapLoadingTimer);
+    this.renderInitStatus.set('Loading map…');
+    this.onlineMapLoadingTimer = setTimeout(() => {
+      this.onlineMapLoadingTimer = null;
+      if (this.mapSource() === 'online' && this.renderInitStatus()) {
+        this.renderInitStatus.set('Still loading map…');
+      }
+    }, 6000);
+  }
+
+  private finishOnlineMapLoading(): void {
+    if (this.onlineMapLoadingTimer !== null) {
+      clearTimeout(this.onlineMapLoadingTimer);
+      this.onlineMapLoadingTimer = null;
+    }
+    if (this.mapSource() === 'online') this.renderInitStatus.set('');
+  }
 
   protected readonly copyFilePath = async (path: string): Promise<void> => {
     if (!path) return;
@@ -3867,6 +3891,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private async createMap(latitude: number, longitude: number, generation: number): Promise<void> {
+    this.beginOnlineMapLoading();
     this.offlineRenderer?.remove(); this.offlineRenderer = null;
     const leaflet = await this.loadLeaflet();
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'online') return;
@@ -7563,16 +7588,16 @@ ${points}
   }
   private applyMapStyle(): void {
     if (!this.map || !this.leaflet) return;
+    this.beginOnlineMapLoading();
     this.tileLayer?.remove();
     const style = this.styles[this.mapStyle()];
     this.tileLayer = this.leaflet.tileLayer(style.url, style).addTo(this.map);
     this.applyMapOpacity();
-    // Leaflet does not emit MapLibre's 'idle' event. Use the base layer's
-    // completed visible-tile batch to finish the shared Display phase.
+    // Leaflet's load event fires after the visible tile batch has completed,
+    // including failed tile requests. Keep the indicator visible until then.
     this.tileLayer.on('load', () => {
-      // Reapply the configured opacity after Leaflet has completed its initial
-      // tile batch; the pane can be recreated during first-time layer setup.
       this.applyMapOpacity();
+      this.finishOnlineMapLoading();
       window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
     });
     this.applyMapColor();
