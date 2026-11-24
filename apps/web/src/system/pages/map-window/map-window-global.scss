@@ -1162,13 +1162,3 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   border-radius: 0 8px 8px 0;
 }
 
-/* Online Nominatim rows are plain white, never green or dark/black. */
-app-map-window .reverse-geocode-values-table tr.reverse-geocode-online-row > th,
-app-map-window .reverse-geocode-values-table tr.reverse-geocode-online-row > td,
-app-map-window .reverse-geocode-values-table tr.reverse-geocode-online-full-text-row > td {
-  background-color: #fff !important;
-  color: #222 !important;
-}
-app-map-window .reverse-geocode-values-table tr.reverse-geocode-online-row > th {
-  font-weight: 600 !important;
-}
