@@ -10,7 +10,7 @@ The Location tab's **Fix location** feature reuses whichever map source is curre
 
 | Format / source | Extension / source | Online | Renderer | Details |
 | --- | --- | --- | --- | --- |
-| Online map (XYZ tiles) | URL / XYZ tile endpoint | Yes | MapLibre | Online raster or vector tiles loaded from a tile-server URL; requires an internet connection. |
+| Online map (XYZ tiles) | URL / XYZ tile endpoint | Yes | Leaflet (map window) | Online raster tiles loaded from tile-server URLs; requires an internet connection. |
 | MBTiles | `.mbtiles` | No | LumaScope / MapLibre | Offline raster or vector tile database. |
 | OsmAnd | `.obf` | No | OsmAnd native renderer | Offline vector map data; labels depend on the selected OsmAnd renderer and its resources/style. |
 | Mapsforge | `.map` | No | Mapsforge 0.25.0 | Offline vector map data; visible detail depends on the selected XML render theme. |
