@@ -78,25 +78,25 @@
                           <td class="fix-location-toggle-cell"><button type="button" class="map-toolbar-button" (click)="showPhotoAddress()" [disabled]="!coordinatesAvailable()"><span aria-hidden="true">⌖</span> Show address</button></td>
                           <td class="fix-location-photo-coordinates" role="status"><strong>Image</strong> · {{ photoGpsCoordinates() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</td>
                           <td class="fix-location-address-cell">
-                            <span class="location-address fix-location-address" role="status">{{ photoAddress() }}</span>
-                            @if (photoAddressParts().length > 0) {
-                              <strong>Offline (OsmAnd)</strong>
-                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Offline OsmAnd photo address values">
-                                <thead><tr>@for (part of photoAddressParts(); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
-                                <tbody><tr>@for (part of photoAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr></tbody>
+                            @if (photoAddressParts().length > 0 || photoOnlineAddressParts().length > 0) {
+                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Photo address values">
+                                <thead><tr><th scope="col">Source</th>@for (part of (photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts()); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
+                                <tbody>
+                                  @if (photoAddressParts().length > 0) { <tr><th scope="row">Offline (OsmAnd)</th>@for (part of photoAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr> }
+                                  @if (photoOnlineAddressParts().length > 0) { <tr><th scope="row">Online (Nominatim)</th>@for (part of photoOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr> }
+                                </tbody>
                               </table></div>
                             }
-                            @if (photoOnlineAddressParts().length > 0) {
-                              <strong>Online (Nominatim)</strong>
-                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Online Nominatim photo address values">
-                                <thead><tr>@for (part of photoOnlineAddressParts(); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
-                                <tbody><tr>@for (part of photoOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr></tbody>
-                              </table></div>
-                            }
-                            @if (photoAddressComments().length > 0) {
-                              <ul class="reverse-geocode-comments" aria-label="Administrative region selection comments">
-                                @for (comment of photoAddressComments(); track $index) { <li>{{ comment }}</li> }
-                              </ul>
+                            @if (photoAddress() || photoAddressComments().length > 0) {
+                              <details class="reverse-geocode-debug app-disclosure">
+                                <summary>Debug</summary>
+                                <pre class="location-address fix-location-address">{{ photoAddress() }}</pre>
+                                @if (photoAddressComments().length > 0) {
+                                  <ul class="reverse-geocode-comments" aria-label="Administrative region selection comments">
+                                    @for (comment of formatReverseGeocodeComments(photoAddressComments()); track $index) { <li>{{ comment }}</li> }
+                                  </ul>
+                                }
+                              </details>
                             }
                           </td>
                         </tr>
@@ -106,25 +106,25 @@
                           </td>
                           <td class="fix-location-coordinate-value" role="status"><strong>Crosshair</strong> · {{ crosshairCoordinates() }}</td>
                           <td class="fix-location-address-cell">
-                            <span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span>
-                            @if (crosshairAddressParts().length > 0) {
-                              <strong>Offline (OsmAnd)</strong>
-                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Offline OsmAnd crosshair address values">
-                                <thead><tr>@for (part of crosshairAddressParts(); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
-                                <tbody><tr>@for (part of crosshairAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr></tbody>
+                            @if (crosshairAddressParts().length > 0 || crosshairOnlineAddressParts().length > 0) {
+                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Crosshair address values">
+                                <thead><tr><th scope="col">Source</th>@for (part of (crosshairAddressParts().length > 0 ? crosshairAddressParts() : crosshairOnlineAddressParts()); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
+                                <tbody>
+                                  @if (crosshairAddressParts().length > 0) { <tr><th scope="row">Offline (OsmAnd)</th>@for (part of crosshairAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr> }
+                                  @if (crosshairOnlineAddressParts().length > 0) { <tr><th scope="row">Online (Nominatim)</th>@for (part of crosshairOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr> }
+                                </tbody>
                               </table></div>
                             }
-                            @if (crosshairOnlineAddressParts().length > 0) {
-                              <strong>Online (Nominatim)</strong>
-                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Online Nominatim crosshair address values">
-                                <thead><tr>@for (part of crosshairOnlineAddressParts(); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
-                                <tbody><tr>@for (part of crosshairOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr></tbody>
-                              </table></div>
-                            }
-                            @if (crosshairAddressComments().length > 0) {
-                              <ul class="reverse-geocode-comments" aria-label="Administrative region selection comments">
-                                @for (comment of crosshairAddressComments(); track $index) { <li>{{ comment }}</li> }
-                              </ul>
+                            @if (crosshairAddress() || crosshairAddressComments().length > 0) {
+                              <details class="reverse-geocode-debug app-disclosure">
+                                <summary>Debug</summary>
+                                <pre class="location-address fix-location-address">{{ crosshairAddress() }}</pre>
+                                @if (crosshairAddressComments().length > 0) {
+                                  <ul class="reverse-geocode-comments" aria-label="Administrative region selection comments">
+                                    @for (comment of formatReverseGeocodeComments(crosshairAddressComments()); track $index) { <li>{{ comment }}</li> }
+                                  </ul>
+                                }
+                              </details>
                             }
                           </td>
                         </tr>
