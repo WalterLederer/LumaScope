@@ -1539,6 +1539,13 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly crosshairOnlineAddressParts = signal<Array<{ label: string; value: string }>>([]);
   protected readonly photoOnlineAddressParts = signal<Array<{ label: string; value: string }>>([]);
   protected readonly crosshairAddressComments = signal<string[]>([]);
+  protected readonly reverseGeocodeDefaultParts = [
+    { label: 'Street', value: '' }, { label: 'House number', value: '' },
+    { label: 'Place', value: '' }, { label: 'Municipality', value: '' },
+    { label: 'District', value: '' }, { label: 'State', value: '' },
+    { label: 'Postcode', value: '' }, { label: 'Country', value: '' },
+    { label: 'Other regions', value: '' }
+  ];
   protected readonly photoAddressComments = signal<string[]>([]);
   protected readonly reverseGeocodeSourceText = (text: string, source: 'Offline' | 'Online'): string => {
     const prefix = `${source}: `;
@@ -2649,14 +2656,11 @@ export class MapWindow implements OnInit, OnDestroy {
           const addressParts = [
             result.building,
             result.street,
-            areaForLevel(9),
             result.place,
-            municipality,
-            areaForLevel(6),
-            areaForLevel(4),
             result.postcode,
-            areaForLevel(2),
-            ...otherAreas
+            areaForLevel(6),
+            ...otherAreas,
+            areaForLevel(4)
           ];
           const uniqueParts: string[] = [];
           const seenParts = new Set<string>();
