@@ -744,7 +744,6 @@ QJsonObject administrativeAreasForCoordinate(
         if (addressObjectKey.isEmpty() || administrativeLevelsByObjectId.contains(addressObjectKey)
             || checkedAddressBoundaryObjectKeys.contains(addressObjectKey))
             continue;
-        checkedAddressBoundaryObjectKeys.insert(addressObjectKey);
 
         const auto left = streetGroup->bbox31[0];
         const auto top = streetGroup->bbox31[1];
@@ -752,6 +751,7 @@ QJsonObject administrativeAreasForCoordinate(
         const auto bottom = streetGroup->bbox31[3];
         if (point31.x < left || point31.x > right || point31.y < top || point31.y > bottom)
             continue;
+        checkedAddressBoundaryObjectKeys.insert(addressObjectKey);
 
         const qint64 width = static_cast<qint64>(right) - left;
         const qint64 height = static_cast<qint64>(bottom) - top;
@@ -2307,7 +2307,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.23")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.24")},
     };
 
     // Administrative areas are resolved independently from the address
