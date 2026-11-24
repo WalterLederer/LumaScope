@@ -5575,9 +5575,11 @@ export class MapWindow implements OnInit, OnDestroy {
 
     // Keep the per-drive GPX cache in sync with tracks added directly from files.
     const cachePaths = added.map(track => track.path).filter(path => !path.startsWith('memory:'));
+    const importedPoints = added.reduce((total, track) => total + (this.gpxPointDataByTrack.get(track.path) ?? []).reduce((sum, segment) => sum + segment.length, 0), 0);
+    const importedSegments = added.reduce((total, track) => total + (this.gpxPointDataByTrack.get(track.path) ?? []).length, 0);
     if (this.desktop && cachePaths.length > 0) {
       try {
-        this.gpxImportStatus.set(`Updating GPX cache for ${cachePaths.length} file(s)…`);
+        this.gpxImportStatus.set(`Updating cache: ${formatNumber(importedPoints)} points · ${formatNumber(importedSegments)} segments…`);
         await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
         const result = await this.desktop.CacheManager.importGpxFiles(cachePaths);
         if (result.errors > 0) {
@@ -5589,8 +5591,6 @@ export class MapWindow implements OnInit, OnDestroy {
         this.gpxError.set(`Could not update the GPX cache: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
-    const importedPoints = added.reduce((total, track) => total + (this.gpxPointDataByTrack.get(track.path) ?? []).reduce((sum, segment) => sum + segment.length, 0), 0);
-    const importedSegments = added.reduce((total, track) => total + (this.gpxPointDataByTrack.get(track.path) ?? []).length, 0);
     this.gpxImportStatus.set(`Loaded ${formatNumber(added.length)} GPX file(s) · ${formatNumber(importedSegments)} segments · ${formatNumber(importedPoints)} points.`);
   }
 
