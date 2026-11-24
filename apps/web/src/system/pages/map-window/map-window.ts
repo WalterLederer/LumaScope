@@ -1547,9 +1547,15 @@ export class MapWindow implements OnInit, OnDestroy {
     { label: 'Other regions', value: '' }
   ];
   protected readonly photoAddressComments = signal<string[]>([]);
-  protected readonly reverseGeocodingStatus = (): string => this.useOnlineReverseGeocoding()
-    ? 'Active: Offline (OsmAnd) + Online (Nominatim)'
-    : 'Active: Offline (OsmAnd)';
+  protected readonly offlineReverseGeocodingRequests = signal(0);
+  protected readonly onlineReverseGeocodingRequests = signal(0);
+  protected readonly reverseGeocodingStatus = (): string => {
+    const offlineStatus = this.offlineReverseGeocodingRequests() > 0 ? 'Processing' : 'Idle';
+    const onlineStatus = !this.useOnlineReverseGeocoding()
+      ? 'Disabled'
+      : this.onlineReverseGeocodingRequests() > 0 ? 'Processing' : 'Idle';
+    return `Offline (OsmAnd): ${offlineStatus} · Online (Nominatim): ${onlineStatus}`;
+  };
 
   protected readonly reverseGeocodeSourceText = (text: string, source: 'Offline' | 'Online'): string => {
     const prefix = `${source}: `;
@@ -2630,7 +2636,10 @@ export class MapWindow implements OnInit, OnDestroy {
     const language = navigator.language || 'en';
     const useOnline = this.useOnlineReverseGeocoding();
     const offlineLookup = this.desktop
-      ? this.desktop.OsmAndAtlas.reverseGeocode(latitude, longitude, language)
+      ? (() => {
+          this.offlineReverseGeocodingRequests.update(count => count + 1);
+          return this.desktop!.OsmAndAtlas.reverseGeocode(latitude, longitude, language)
+        })()
         .then(result => {
           if (!result.found) return { text: 'No result', offlineParts: [], comments: [] };
 
@@ -2701,9 +2710,13 @@ export class MapWindow implements OnInit, OnDestroy {
           offlineParts: [],
           comments: []
         }))
+        .finally(() => this.offlineReverseGeocodingRequests.update(count => Math.max(0, count - 1)))
       : Promise.resolve({ text: 'Unavailable', offlineParts: [], comments: [] });
     const onlineLookup = useOnline
-      ? lookupReverseGeocoding(latitude, longitude, language)
+      ? (() => {
+          this.onlineReverseGeocodingRequests.update(count => count + 1);
+          return lookupReverseGeocoding(latitude, longitude, language);
+        })()
           .then(result => ({
             text: result?.displayName?.trim() || 'No result',
             parts: result ? [
@@ -2722,6 +2735,7 @@ export class MapWindow implements OnInit, OnDestroy {
             text: `Error: ${error instanceof Error ? error.message : String(error)}`,
             parts: []
           }))
+          .finally(() => this.onlineReverseGeocodingRequests.update(count => Math.max(0, count - 1)))
       : Promise.resolve({ text: '', parts: [] });
     const [offline, online] = await Promise.all([offlineLookup, onlineLookup]);
     return {
