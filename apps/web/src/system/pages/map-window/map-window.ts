@@ -1944,29 +1944,32 @@ export class MapWindow implements OnInit, OnDestroy {
             }
           }
 
-          // config.json is the single source of truth for the shared style.
-          // The dropdown is initialized directly from osmand.renderingStyle;
-          // runtime status must never override the user's saved selection.
-          const styles = await this.desktop!.OsmAndAtlas.getRenderingStyles();
+          // The shared config remains the source of truth, but OsmAnd's
+          // rendering resources and native managers are initialized only when
+          // an OsmAnd renderer is actually selected.
           const configuredStyle = typeof osmand?.['renderingStyle'] === 'string'
             ? osmand['renderingStyle'] as string : 'default.render.xml';
-          const selectedStyle = styles.find(style => style.fileName === configuredStyle)
-            ?? styles.find(style => style.fileName === 'default.render.xml')
-            ?? styles[0];
-          console.info('[OsmAnd Atlas][style-trace] UI restore', {
-            configStyle: configuredStyle,
-            availableStyles: styles.map(style => style.fileName),
-            selectedStyle: selectedStyle?.fileName ?? null
-          });
-          this.osmAndStyles.set(styles.map(style => ({
-            ...style, selected: !!selectedStyle && style.fileName === selectedStyle.fileName
-          })));
-          if (selectedStyle) {
-            this.osmAndStyle.set(selectedStyle.fileName);
-            await Promise.all([
-              this.desktop!.OsmAndAtlas.setRenderingStyle(selectedStyle.fileName),
-              this.desktop!.OsmAnd.setRenderingStyle(selectedStyle.fileName)
-            ]);
+          this.osmAndStyle.set(configuredStyle);
+          if (this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas') {
+            const styles = await this.desktop!.OsmAndAtlas.getRenderingStyles();
+            const selectedStyle = styles.find(style => style.fileName === configuredStyle)
+              ?? styles.find(style => style.fileName === 'default.render.xml')
+              ?? styles[0];
+            console.info('[OsmAnd Atlas][style-trace] UI restore', {
+              configStyle: configuredStyle,
+              availableStyles: styles.map(style => style.fileName),
+              selectedStyle: selectedStyle?.fileName ?? null
+            });
+            this.osmAndStyles.set(styles.map(style => ({
+              ...style, selected: !!selectedStyle && style.fileName === selectedStyle.fileName
+            })));
+            if (selectedStyle) {
+              this.osmAndStyle.set(selectedStyle.fileName);
+              await Promise.all([
+                this.desktop!.OsmAndAtlas.setRenderingStyle(selectedStyle.fileName),
+                this.desktop!.OsmAnd.setRenderingStyle(selectedStyle.fileName)
+              ]);
+            }
           }
           this.osmAndResourcesError.set('');
         } catch (error) {
@@ -1989,7 +1992,8 @@ export class MapWindow implements OnInit, OnDestroy {
       this.downloadSources.set(valid);
     }).catch(error => console.error('Could not load download source settings:', error));
     void this.desktop?.OfflineMap.getMaps().then(async maps => {
-      const mapsWithMetadata = await this.enrichObfMetadata(maps);
+      const mapsWithMetadata = this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas'
+        ? await this.enrichObfMetadata(maps) : maps;
       this.offlineMaps.set(mapsWithMetadata);
       this.offlineMapsLoaded.set(true);
       this.applyMapBoundsVisibility();
@@ -3280,9 +3284,16 @@ export class MapWindow implements OnInit, OnDestroy {
     // particular, Mapsforge must receive the saved opacity on its first style.
     await this.mapWindowConfigRestore;
     await this.mapZoomRestore;
-    // Do not let the initial map request apply the stale renderer-local
-    // default before the shared persisted OsmAnd style has been restored.
-    await this.osmAndStyleRestore;
+    // OsmAnd style restoration is irrelevant to Mapsforge, MBTiles and
+    // online maps. Do not make those renderers wait for OsmAnd resource scans.
+    const sourceBeforeRenderer = this.mapSource();
+    if (sourceBeforeRenderer === 'osmand' || sourceBeforeRenderer === 'osmand-atlas') {
+      await this.osmAndStyleRestore;
+      if (this.offlineMapsLoaded()) {
+        const mapsWithMetadata = await this.enrichObfMetadata(this.offlineMaps());
+        this.offlineMaps.set(mapsWithMetadata);
+      }
+    }
     await this.rendererTransition;
     let generation = this.mapSourceGeneration;
     if (this.mapSource() === 'mapsforge') {
@@ -4014,8 +4025,12 @@ export class MapWindow implements OnInit, OnDestroy {
     maps: import('internal-api').OfflineMapStatus[],
     resourcesAvailable?: boolean
   ): Promise<import('internal-api').OfflineMapStatus[]> {
+    // OBF metadata is needed only by the OsmAnd renderers (viewport and
+    // zoom-level selection). Mapsforge, MBTiles and online startup must not
+    // launch the native OsmAnd metadata helper in the background.
+    if (this.mapSource() !== 'osmand' && this.mapSource() !== 'osmand-atlas') return maps;
     const obfMaps = maps.filter(map => map.type === 'obf' && map.available);
-    if (!obfMaps.length) return maps;
+    if (!obfMaps.length || obfMaps.every(map => map.obfMetadataAvailable !== undefined)) return maps;
     try {
       const desktop = this.desktop;
       if (!desktop) return maps;
