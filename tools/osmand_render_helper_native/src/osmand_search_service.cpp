@@ -1807,7 +1807,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.21")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.22")},
     };
 
     // Administrative areas are resolved independently from the address
@@ -1979,6 +1979,27 @@ QString OsmAndSearchService::reverseGeocode(
                         address->position31.x, address->position31.y
                     }}
                 };
+
+                // Temporary runtime diagnostics for the Address::id decoding
+                // discrepancy. Keep this limited to street groups to avoid
+                // enlarging the nearest-building diagnostic array.
+                if (address->addressType == OsmAnd::AddressType::StreetGroup)
+                {
+                    const auto rawId = static_cast<qulonglong>(address->id.id);
+                    QJsonObject idDiagnostics{
+                        {QStringLiteral("raw_id_unsigned"), QString::number(rawId)},
+                        {QStringLiteral("raw_id_hex"),
+                            QStringLiteral("0x") + QString::number(rawId, 16).toUpper()},
+                        {QStringLiteral("is_osm_id"), address->id.isOsmId()},
+                        {QStringLiteral("is_relation"), address->id.isIdFromRelation()},
+                        {QStringLiteral("is_split"), address->id.isIdFromSplit()},
+                        {QStringLiteral("is_shifted"), address->id.isShiftedID()},
+                        {QStringLiteral("get_osm_id"),
+                            QString::number(address->id.getOsmId())}
+                    };
+                    object.insert(QStringLiteral("id_diagnostics"), idDiagnostics);
+                }
+
                 return object;
             };
 
