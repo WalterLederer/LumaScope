@@ -1485,10 +1485,10 @@ export class OfflineMapRenderer {
       this.map.on('mouseleave', layerId, () => this.trackHoverHandler?.('', Number.NaN, Number.NaN));
     }
     const directionArrowLayout = {
-      'symbol-placement': 'line' as const, 'symbol-spacing': 23,
+      'symbol-placement': 'line' as const, 'symbol-spacing': ['get', 'directionIntervalPx'],
       'text-field': ['match', ['get', 'directionStyle'], 'chevron', '❯', 'triangle', '▶', 'thin', '➜', 'large-classic', '➤', 'large-chevron', '❯', 'large-triangle', '▶', '➤'] as unknown as string,
       'text-font': ['Open Sans Semibold', 'Arial Unicode MS Regular'],
-      'text-size': ['match', ['get', 'directionStyle'], 'large-classic', 24, 'large-chevron', 24, 'large-triangle', 24, 18] as unknown as number,
+      'text-size': ['get', 'directionArrowSizePx'] as unknown as number,
       'text-rotation-alignment': 'map' as const, 'text-keep-upright': false,
       'text-allow-overlap': true, 'text-ignore-placement': true
     };
@@ -1502,7 +1502,7 @@ export class OfflineMapRenderer {
       id: 'gpx-track-direction-arrows', type: 'symbol', source: 'gpx-track',
       filter: ['==', ['get', 'showDirection'], true],
       layout: directionArrowLayout,
-      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#000000', 'text-halo-width': 1.5, 'text-halo-blur': 1, 'text-opacity': 0.92 }
+      paint: { 'text-color': ['get', 'color'], 'text-halo-color': '#000000', 'text-halo-width': ['get', 'arrowOutlineWidth'], 'text-halo-blur': 0, 'text-opacity': 0.92 }
     });
     // Reconcile overlays after tile/camera updates; retain existing DOM markers.
     const refreshOverlays = (): void => {
@@ -2501,7 +2501,7 @@ export class OfflineMapRenderer {
       features: tracks.flatMap(track => track.segments.map((segment, index) => ({ segment, index })).filter(item => item.segment.length >= 2).map(({ segment, index }) => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: segment.map(([latitude, longitude]) => [longitude, latitude]) },
-        properties: { path: track.path, segmentIndex: index, color: track.segmentColors?.[index] || track.color, lineStyle: track.lineStyle, width: track.lineWidth, trackShadow: Math.max(0, Math.min(100, track.trackShadowStrength ?? 0)) / 100, arrowShadow: Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100, outlineStrength: Math.max(0, Math.min(100, track.trackOutlineStrength ?? 0)) / 100, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic' }
+        properties: { path: track.path, segmentIndex: index, color: track.segmentColors?.[index] || track.color, lineStyle: track.lineStyle, width: track.lineWidth, trackShadow: Math.max(0, Math.min(100, track.trackShadowStrength ?? 0)) / 100, arrowShadow: Math.max(0, Math.min(100, track.arrowShadowStrength ?? 0)) / 100, outlineStrength: Math.max(0, Math.min(100, track.trackOutlineStrength ?? 0)) / 100, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic', directionIntervalPx: createGpxTrackRenderStyle(track).arrowInterval, directionArrowSizePx: createGpxTrackRenderStyle(track).arrowSize, arrowOutlineWidth: createGpxTrackRenderStyle(track).arrowOutlineWidth }
       })))
     });
     for (const layerId of ['gpx-track-line', 'gpx-track-line-dashed', 'gpx-track-line-dotted', 'gpx-track-line-long-dashed', 'gpx-track-line-short-dashed', 'gpx-track-line-dash-dot', 'gpx-track-line-dash-dot-dot']) {
