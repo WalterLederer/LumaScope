@@ -852,8 +852,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapColor = signal<MapColor>(this.readSetting('color', 'original') as MapColor);
   protected readonly mapOpacity = signal(this.readNumber('opacity', 100, 0, 100));
   protected readonly labelOpacity = signal(this.readNumber('labelOpacity', 100, 0, 100));
-  protected readonly labelsVisible = signal(this.readSetting('labelsVisible', 'true') === 'true');
-  protected readonly displayDensityFactor = signal(this.readDisplayDensityFactor(this.mapSource() === 'mapsforge' ? 'mapsforge' : 'osmand'));
+  protected readonly labelsVisible = signal(this.mapSource() === 'osmand-atlas' ? true : this.mapSource() === 'osmand' ? false : this.readSetting('labelsVisible', 'true') === 'true');
+  protected readonly displayDensityFactor = signal(this.readNumber('displayDensityFactor', this.readNumber('atlasDisplayDensityFactor', window.devicePixelRatio || 1, 1, 3), 1, 3));
   protected readonly overlayOpacity = signal(this.readNumber('overlayOpacity', 100, 0, 100));
   protected readonly mapVisible = signal(this.readSetting('mapVisible', 'true') === 'true');
   protected readonly hillshadeVisible = signal(this.readSetting('hillshadeVisible', 'false') === 'true');
@@ -2122,16 +2122,17 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineRenderer?.remove(); this.offlineRenderer = null;
     // Native OsmAnd render helpers are persistent main-process workers. Stop them
     // when their map window goes away so they cannot keep GPU contexts alive.
-    if (this.mapSource() === 'osmand-atlas' || this.mapSource() === 'osmand') {
+    if (this.mapSource() === 'osmand-atlas') {
       void (async () => {
         try {
           await this.desktop?.OsmAndAtlas.cancelRendering();
           await this.desktop?.OsmAndAtlas.shutdown();
         } catch (error) {
-          console.warn('Could not stop OsmAnd helpers:', error);
+          console.warn('Could not stop OsmAnd Atlas helpers:', error);
         }
       })();
     }
+    if (this.mapSource() === 'osmand') void this.desktop?.OsmAnd.shutdown().catch(error => console.warn('Could not stop OsmAnd helpers:', error));
   }
 
   private readonly onResize = (): void => { this.map?.invalidateSize(); this.offlineRenderer?.resize(); };
@@ -2792,11 +2793,6 @@ export class MapWindow implements OnInit, OnDestroy {
   private readNumber(key: string, fallback: number, min: number, max: number): number {
     const value = Number(this.readSetting(key, String(fallback)));
     return Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
-  }
-  private readDisplayDensityFactor(source: 'osmand' | 'mapsforge'): number {
-    const windowsScale = window.devicePixelRatio || 1;
-    const legacyFallback = this.readNumber('displayDensityFactor', this.readNumber('atlasDisplayDensityFactor', windowsScale, 1, 3), 1, 3);
-    return this.readNumber(source === 'mapsforge' ? 'mapsforgeDisplayDensityFactor' : 'osmandDisplayDensityFactor', legacyFallback, 1, 3);
   }
   private saveSetting(key: string, value: string | number | boolean): void {
     try { localStorage.setItem(this.storagePrefix + key, String(value)); } catch { /* Keep the current session setting. */ }
@@ -3569,9 +3565,9 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
 
-    let runtime: Awaited<ReturnType<Desktop['OsmAndAtlas']['getRuntimeStatus']>>;
+    let runtime: Awaited<ReturnType<Desktop['OsmAnd']['getRuntimeStatus']>>;
     try {
-      runtime = await this.desktop.OsmAndAtlas.setRenderingStyle(this.osmAndStyle());
+      runtime = await this.desktop.OsmAnd.setRenderingStyle(this.osmAndStyle());
     } catch (error) {
       if (generation === this.mapSourceGeneration) {
         this.renderInitStatus.set('');
@@ -3593,7 +3589,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
 
-    registerOsmAndTileProtocol(this.desktop, () => this.displayDensityFactor());
+    registerOsmAndTileProtocol(this.desktop);
     const renderer = new OfflineMapRenderer(
       this.mapElement().nativeElement,
       [longitude, latitude],
@@ -3604,7 +3600,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.recordMapError('OsmAnd rendering', message);
         console.error('[OsmAnd] Tile rendering error:', message);
       },
-      'lumascope', '', 2, 21, undefined, 'shortbread', [], createOsmAndMapStyle()
+      'lumascope', '', 2, 19, undefined, 'shortbread', [], createOsmAndMapStyle()
     );
     this.offlineRenderer = renderer;
     window.dispatchEvent(new CustomEvent('lumascope-osmand-tile-visuals', { detail: { enabled: this.renderVisualsEnabled() } }));
@@ -3668,7 +3664,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const cancelObsolete = obfZoomChanged;
         obfZoomChanged = false;
         const cancel = cancelObsolete
-          ? this.desktop?.OsmAndAtlas.cancelRendering() ?? Promise.resolve()
+          ? this.desktop?.OsmAnd.cancelRendering() ?? Promise.resolve()
           : Promise.resolve();
         void cancel.then(() => this.updateActiveObfMapsForViewport(renderer, 'osmand')).then(() => {
           const source = renderer.map.getSource('osmand') as { setTiles?: (tiles: string[]) => unknown } | undefined;
@@ -3784,11 +3780,12 @@ export class MapWindow implements OnInit, OnDestroy {
       // Serialize teardown before the next renderer initializes. Atlas may have
       // many queued OBF tiles; Mapsforge must not wait for their 30-second timeout.
       this.rendererTransition = this.rendererTransition.then(async () => {
-        const previousUsesAtlas = previousSource === 'osmand-atlas' || previousSource === 'osmand';
-        const nextUsesAtlas = nextSource === 'osmand-atlas' || nextSource === 'osmand';
-        if (previousUsesAtlas && !nextUsesAtlas) {
+        if (previousSource === 'osmand-atlas' && nextSource !== 'osmand-atlas') {
           await this.desktop?.OsmAndAtlas.cancelRendering();
           await this.desktop?.OsmAndAtlas.shutdown();
+        }
+        if (previousSource === 'osmand' && nextSource !== 'osmand') {
+          await this.desktop?.OsmAnd.shutdown();
         }
         if (previousSource === 'mapsforge' && nextSource !== 'mapsforge') {
           await this.desktop?.Mapsforge.close();
@@ -3798,8 +3795,10 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapSourceGeneration++;
     this.mapInitialization = null;
     this.mapSource.set(nextSource); this.saveSetting('source', nextSource);
-    if (nextSource === 'mapsforge' || nextSource === 'osmand-atlas' || nextSource === 'osmand') {
-      this.displayDensityFactor.set(this.readDisplayDensityFactor(nextSource === 'mapsforge' ? 'mapsforge' : 'osmand'));
+    if (nextSource === 'osmand-atlas' || nextSource === 'osmand') {
+      const labelsEnabled = nextSource === 'osmand-atlas';
+      this.labelsVisible.set(labelsEnabled);
+      this.saveSetting('labelsVisible', labelsEnabled);
     }
     if (nextSource !== 'offline') {
       this.currentOfflineMapId = null;
@@ -3934,7 +3933,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const paddedEast = east + longitudeSpan * 0.2;
     const paddedSouth = Math.max(-85.0511, south - latitudeSpan * 0.2);
     const paddedNorth = Math.min(85.0511, north + latitudeSpan * 0.2);
-    const renderZoom = Math.floor(renderer.map.getZoom());
+    const renderZoom = Math.floor(renderer.map.getZoom()) + (source === 'osmand' ? 1 : 0);
     const parseBounds = (value: string | null | undefined): [number, number, number, number] | null => {
       const numbers = value?.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
       return numbers.length === 4 && numbers.every(Number.isFinite)
@@ -3994,7 +3993,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.viewportObfMapIds.set(selectedIds);
     const paths = selected.map(map => map.filePath);
     try {
-      await desktop.OsmAndAtlas.setActiveObfMaps(paths);
+      if (source === 'osmand-atlas') await desktop.OsmAndAtlas.setActiveObfMaps(paths);
+      else await desktop.OsmAnd.setActiveObfMaps(paths);
     } catch (error) {
       console.warn('[OsmAnd] Could not update viewport OBF selection:', error);
     }
@@ -4462,7 +4462,7 @@ export class MapWindow implements OnInit, OnDestroy {
     // Stop any camera animation and cancel queued/in-flight Atlas helper work.
     this.offlineRenderer?.map.stop();
     try {
-      if (this.mapSource() === 'osmand-atlas' || this.mapSource() === 'osmand') {
+      if (this.mapSource() === 'osmand-atlas') {
         await this.desktop?.OsmAndAtlas.cancelRendering();
       }
     } catch (error) {
@@ -4488,9 +4488,10 @@ export class MapWindow implements OnInit, OnDestroy {
     this.currentTileRequestResults.clear();
     this.lastRenderTileCounts.set({ rendered: 0, cached: 0, failed: 0 });
     this.rerenderVisibleTilesBusy.set(true);
-    this.rerenderVisibleTilesStatus.set(`Rendering visible OsmAnd tiles without using the disk cache…`);
+    this.rerenderVisibleTilesStatus.set(`Rendering visible ${source === 'osmand-atlas' ? 'Atlas' : 'no-label'} tiles without using the disk cache…`);
     try {
       const count = await renderer.rerenderVisibleTiles(
+        (z, x, y, forceRender) => runOfflineRenderTask(() => this.desktop!.OsmAnd.renderTile(z, x, y, forceRender), 'OsmAnd', `Rerender z${z}/${x}/${y}`),
         (z, x, y, displayScale, forceRender) =>
           runOfflineRenderTask(() => this.desktop!.OsmAndAtlas.renderTile(z, x, y, displayScale, forceRender), 'OsmAnd Atlas', `Rerender z${z}/${x}/${y}`),
         this.displayDensityFactor(),
@@ -5251,10 +5252,8 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!Number.isFinite(density)) return;
     const next = Math.round(Math.max(1, Math.min(3, density)) * 20) / 20;
     this.displayDensityFactor.set(next);
-    const source = this.mapSource();
-    if (source === 'mapsforge') this.saveSetting('mapsforgeDisplayDensityFactor', next);
-    else if (source === 'osmand-atlas') this.saveSetting('osmandDisplayDensityFactor', next);
-    if ((source === 'osmand-atlas' || source === 'mapsforge') && this.currentLatitude !== null && this.currentLongitude !== null) {
+    this.saveSetting('displayDensityFactor', next);
+    if ((this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge') && this.currentLatitude !== null && this.currentLongitude !== null) {
       this.mapSourceGeneration++;
       this.mapInitialization = null;
       this.offlineRenderer?.remove();
