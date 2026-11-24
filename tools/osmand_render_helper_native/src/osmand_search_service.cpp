@@ -1407,7 +1407,7 @@ QJsonObject administrativeAreasForCoordinate(
                 {QStringLiteral("name"), candidate.name}
             });
             selectionComments.push_back(QStringLiteral(
-                "Selected '%1' for admin_level=%2: nearest boundary-box centre (%.2f km; source=%3).")
+                "Selected '%1' for admin_level=%2: nearest boundary-box centre (%3 km; source=%4).")
                 .arg(candidate.name)
                 .arg(candidate.adminLevel)
                 .arg(candidate.bboxCenterDistanceMeters / 1000.0, 0, 'f', 2)
@@ -1417,7 +1417,7 @@ QJsonObject administrativeAreasForCoordinate(
         {
             const auto selected = selectedByLevel.value(candidate.adminLevel);
             selectionComments.push_back(QStringLiteral(
-                "Filtered out '%1' for admin_level=%2: bbox-centre distance %.2f km; selected '%3' at %.2f km.")
+                "Filtered out '%1' for admin_level=%2: bbox-centre distance %3 km; selected '%4' at %5 km.")
                 .arg(candidate.name)
                 .arg(candidate.adminLevel)
                 .arg(candidate.bboxCenterDistanceMeters / 1000.0, 0, 'f', 2)
@@ -2194,7 +2194,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.22")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.23")},
     };
 
     // Administrative areas are resolved independently from the address
