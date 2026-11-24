@@ -3926,8 +3926,8 @@ export class MapWindow implements OnInit, OnDestroy {
     topographic: { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap contributors · OpenTopoMap', maxZoom: 20, maxNativeZoom: 17 },
     humanitarian: { url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap contributors · HOT', maxZoom: 20, maxNativeZoom: 19 },
     'basemap-standard': { url: 'https://mapsneu.wien.gv.at/basemap/geolandbasemap/normal/google3857/{z}/{y}/{x}.png', attribution: '&copy; <a href="https://basemap.at/" target="_blank" rel="noopener noreferrer">basemap.at</a>', maxZoom: 20, maxNativeZoom: 19 },
-    'basemap-gray': { url: 'https://mapsneu.wien.gv.at/basemap/bmapgrau/normal/google3857/{z}/{y}/{x}.png', attribution: '&copy; <a href="https://basemap.at/" target="_blank" rel="noopener noreferrer">basemap.at</a>', maxZoom: 20, maxNativeZoom: 19 },
-    'basemap-orthofoto': { url: 'https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/{z}/{y}/{x}.jpg', attribution: '&copy; <a href="https://basemap.at/" target="_blank" rel="noopener noreferrer">basemap.at</a>', maxZoom: 20, maxNativeZoom: 19 }
+    'basemap-gray': { url: 'https://mapsneu.wien.gv.at/basemap/bmapgrau/normal/google3857/{z}/{y}/{x}.png', attribution: '&copy; <a href="https://basemap.at/" target="_blank" rel="noopener noreferrer">basemap.at</a>', maxZoom: 20, maxNativeZoom: 15 },
+    'basemap-orthofoto': { url: 'https://mapsneu.wien.gv.at/basemap/bmaporthofoto30cm/normal/google3857/{z}/{y}/{x}.jpeg', attribution: '&copy; <a href="https://basemap.at/" target="_blank" rel="noopener noreferrer">basemap.at</a>', maxZoom: 20, maxNativeZoom: 19 }
   };
   private readonly filters: Record<MapColor, string> = {
     original: 'none', light: 'brightness(1.12) saturate(.82)', 'extra-light': 'brightness(1.3) saturate(.72) contrast(.94)',
