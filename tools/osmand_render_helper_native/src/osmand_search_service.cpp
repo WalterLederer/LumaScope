@@ -901,14 +901,6 @@ QJsonObject administrativeAreasForCoordinate(
                         {
                             const auto firstPoint = mapObject->points31.first();
                             const auto lastPoint = mapObject->points31.last();
-                            QJsonArray points31;
-                            for (const auto& point31 : mapObject->points31)
-                            {
-                                points31.push_back(QJsonArray{
-                                    point31.x,
-                                    point31.y
-                                });
-                            }
                             targetBoundaryLineSegments.push_back(QJsonObject{
                                 {QStringLiteral("admin_level"), level},
                                 {QStringLiteral("min_zoom"), mapLevel->minZoom},
@@ -917,7 +909,6 @@ QJsonObject administrativeAreasForCoordinate(
                                 {QStringLiteral("raw_id"), QString::number(mapObject->id.id)},
                                 {QStringLiteral("is_area"), mapObject->isArea},
                                 {QStringLiteral("point_count"), mapObject->points31.size()},
-                                {QStringLiteral("points31"), points31},
                                 {QStringLiteral("first"), QStringLiteral("%1,%2").arg(firstPoint.x).arg(firstPoint.y)},
                                 {QStringLiteral("last"), QStringLiteral("%1,%2").arg(lastPoint.x).arg(lastPoint.y)},
                                 {QStringLiteral("bbox"), QStringLiteral("%1,%2,%3,%4")
