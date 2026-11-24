@@ -905,6 +905,10 @@ QJsonObject administrativeAreasForCoordinate(
                                 const qint64 geometryHeight = std::max<qint64>(0,
                                     static_cast<qint64>(geometryBbox.bottom()) - geometryBbox.top());
                                 const qint64 geometryArea = geometryWidth * geometryHeight;
+                                const bool isClosedFigure = mapObject->isClosedFigure();
+                                const bool closedGeometryContainsQueryPoint =
+                                    !mapObject->isArea && isClosedFigure
+                                    && polygonContainsPoint(mapObject->points31, point);
                                 QJsonObject geometrySample{
                                     {QStringLiteral("name"), geometryDisplayName},
                                     {QStringLiteral("osm_id"), mapObject->id.isOsmId()
@@ -913,7 +917,8 @@ QJsonObject administrativeAreasForCoordinate(
                                     {QStringLiteral("is_relation"), mapObject->id.isIdFromRelation()},
                                     {QStringLiteral("is_split"), mapObject->id.isIdFromSplit()},
                                     {QStringLiteral("is_area"), mapObject->isArea},
-                                    {QStringLiteral("is_closed_figure"), mapObject->isClosedFigure()},
+                                    {QStringLiteral("is_closed_figure"), isClosedFigure},
+                                    {QStringLiteral("closed_geometry_contains_query_point"), closedGeometryContainsQueryPoint},
                                     {QStringLiteral("outer_point_count"), mapObject->points31.size()},
                                     {QStringLiteral("inner_ring_count"), mapObject->innerPolygonsPoints31.size()},
                                     {QStringLiteral("bbox_contains_query_point"), geometryBboxContainsPoint},
