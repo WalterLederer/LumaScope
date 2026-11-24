@@ -80,17 +80,17 @@
                           </td>
                           <td class="fix-location-photo-coordinates" role="status">{{ photoGpsCoordinates() }} @if (bearingLabel()) { · {{ bearingLabel() }} }</td>
                           <td class="fix-location-address-cell">
-                            @if (photoAddressParts().length > 0 || photoOnlineAddressParts().length > 0) {
+                            @if (photoAddressParts().length > 0 || photoOnlineAddressParts().length > 0 || useOnlineReverseGeocoding()) {
                               <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Photo address values">
-                                <thead><tr><th scope="col">Source</th>@for (part of (photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts()); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
+                                <thead><tr><th scope="col">Source</th>@for (part of (photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts().length > 0 ? photoOnlineAddressParts() : reverseGeocodeDefaultParts); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
                                 <tbody>
                                   @if (photoAddressParts().length > 0) {
                                     <tr><th scope="row">Offline (OsmAnd)</th>@for (part of photoAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
                                     <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="photoAddressParts().length + 1">{{ reverseGeocodeSourceText(photoAddress(), 'Offline') }}</td></tr>
                                   }
-                                  @if (useOnlineReverseGeocoding() && photoOnlineAddressParts().length > 0) {
-                                    <tr class="reverse-geocode-online-row"><th scope="row">Online (Nominatim)</th>@for (part of photoOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
-                                    <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="photoOnlineAddressParts().length + 1">{{ reverseGeocodeSourceText(photoAddress(), 'Online') }}</td></tr>
+                                  @if (useOnlineReverseGeocoding()) {
+                                    <tr class="reverse-geocode-online-row"><th scope="row">Online (Nominatim)</th>@for (part of (photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts().length > 0 ? photoOnlineAddressParts() : reverseGeocodeDefaultParts); track part.label) { <td>{{ photoOnlineAddressParts().find(value => value.label === part.label)?.value || '—' }}</td> }</tr>
+                                    @if (reverseGeocodeSourceText(photoAddress(), 'Online'); as onlineText) { <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="(photoAddressParts().length > 0 ? photoAddressParts() : photoOnlineAddressParts().length > 0 ? photoOnlineAddressParts() : reverseGeocodeDefaultParts).length + 1">{{ onlineText }}</td></tr> }
                                   }
                                 </tbody>
                               </table></div>
@@ -114,17 +114,17 @@
                           </td>
                           <td class="fix-location-coordinate-value" role="status">{{ crosshairCoordinates() }}</td>
                           <td class="fix-location-address-cell">
-                            @if (crosshairAddressParts().length > 0 || crosshairOnlineAddressParts().length > 0) {
+                            @if (crosshairAddressParts().length > 0 || crosshairOnlineAddressParts().length > 0 || useOnlineReverseGeocoding()) {
                               <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Crosshair address values">
-                                <thead><tr><th scope="col">Source</th>@for (part of (crosshairAddressParts().length > 0 ? crosshairAddressParts() : crosshairOnlineAddressParts()); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
+                                <thead><tr><th scope="col">Source</th>@for (part of (crosshairAddressParts().length > 0 ? crosshairAddressParts() : crosshairOnlineAddressParts().length > 0 ? crosshairOnlineAddressParts() : reverseGeocodeDefaultParts); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
                                 <tbody>
                                   @if (crosshairAddressParts().length > 0) {
                                     <tr><th scope="row">Offline (OsmAnd)</th>@for (part of crosshairAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
                                     <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="crosshairAddressParts().length + 1">{{ reverseGeocodeSourceText(crosshairAddress(), 'Offline') }}</td></tr>
                                   }
-                                  @if (useOnlineReverseGeocoding() && crosshairOnlineAddressParts().length > 0) {
-                                    <tr class="reverse-geocode-online-row"><th scope="row">Online (Nominatim)</th>@for (part of crosshairOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
-                                    <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="crosshairOnlineAddressParts().length + 1">{{ reverseGeocodeSourceText(crosshairAddress(), 'Online') }}</td></tr>
+                                  @if (useOnlineReverseGeocoding()) {
+                                    <tr class="reverse-geocode-online-row"><th scope="row">Online (Nominatim)</th>@for (part of (crosshairAddressParts().length > 0 ? crosshairAddressParts() : crosshairOnlineAddressParts().length > 0 ? crosshairOnlineAddressParts() : reverseGeocodeDefaultParts); track part.label) { <td>{{ crosshairOnlineAddressParts().find(value => value.label === part.label)?.value || '—' }}</td> }</tr>
+                                    @if (reverseGeocodeSourceText(crosshairAddress(), 'Online'); as onlineText) { <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="(crosshairAddressParts().length > 0 ? crosshairAddressParts() : crosshairOnlineAddressParts().length > 0 ? crosshairOnlineAddressParts() : reverseGeocodeDefaultParts).length + 1">{{ onlineText }}</td></tr> }
                                   }
                                 </tbody>
                               </table></div>
