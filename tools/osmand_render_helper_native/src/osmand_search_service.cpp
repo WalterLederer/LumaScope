@@ -345,6 +345,7 @@ QJsonObject administrativeAreasForCoordinate(
     // resolved StreetGroup references and bounding boxes. This is diagnostic
     // only; it does not affect the reverse-geocoding result.
     QJsonArray nameIndexBoundaryQueryResults;
+    QJsonArray poiNameIndexQueryResults;
     const bool nameIndexDiagnosticsEnabled =
         qEnvironmentVariableIsSet("LUMASCOPE_OSMAND_NAMEINDEX_DIAGNOSTICS");
     if (nameIndexDiagnosticsEnabled)
@@ -400,6 +401,69 @@ QJsonObject administrativeAreasForCoordinate(
             if (foundAddresses.isEmpty())
             {
                 nameIndexBoundaryQueryResults.push_back(QJsonObject{
+                    {QStringLiteral("query"), query},
+                    {QStringLiteral("completed"), completed},
+                    {QStringLiteral("matches"), 0}
+                });
+            }
+        }
+
+        // Probe the separate POI name index for the known administrative place
+        // names. This is a name-index lookup, not a spatial scan or boundary
+        // geometry reconstruction. It can reveal whether the OBF stores
+        // place=town/city/county/state labels independently of boundary lines.
+        for (const auto& query : boundaryNameQueries)
+        {
+            QList<std::shared_ptr<const OsmAnd::Amenity>> foundAmenities;
+            const bool completed = dataInterface->scanAmenitiesByName(
+                query,
+                &foundAmenities,
+                &point31,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
+                true,
+                OsmAnd::StringMatcherMode::CHECK_EQUALS_FROM_SPACE);
+            for (const auto& amenity : foundAmenities)
+            {
+                if (!amenity)
+                    continue;
+                const auto amenityName = amenity->getName(locale, false).trimmed();
+                const auto decodedValues = amenity->getDecodedValuesHash();
+                QJsonObject values;
+                for (auto it = decodedValues.cbegin(); it != decodedValues.cend(); ++it)
+                    values.insert(it.key(), it.value());
+                QJsonArray categories;
+                for (const auto& category : amenity->getDecodedCategories())
+                    categories.push_back(QJsonObject{
+                        {QStringLiteral("category"), category.category},
+                        {QStringLiteral("subcategory"), category.subcategory}
+                    });
+                const auto dx = static_cast<double>(amenity->position31.x) - point31.x;
+                const auto dy = static_cast<double>(amenity->position31.y) - point31.y;
+                const auto distanceMeters = std::hypot(dx, dy) * 40075016.686 / 2147483648.0;
+                poiNameIndexQueryResults.push_back(QJsonObject{
+                    {QStringLiteral("query"), query},
+                    {QStringLiteral("completed"), completed},
+                    {QStringLiteral("name"), amenityName.isEmpty() ? amenity->nativeName : amenityName},
+                    {QStringLiteral("native_name"), amenity->nativeName},
+                    {QStringLiteral("osm_id"), amenity->id.isOsmId()
+                        ? QString::number(amenity->id.getOsmId()) : QString()},
+                    {QStringLiteral("type"), amenity->type},
+                    {QStringLiteral("subtype"), amenity->subType},
+                    {QStringLiteral("categories"), categories},
+                    {QStringLiteral("values"), values},
+                    {QStringLiteral("city_from_tags"), amenity->getCityFromTagGroups(locale)},
+                    {QStringLiteral("position31"), QJsonArray{amenity->position31.x, amenity->position31.y}},
+                    {QStringLiteral("distance_m"), distanceMeters}
+                });
+            }
+            if (foundAmenities.isEmpty())
+            {
+                poiNameIndexQueryResults.push_back(QJsonObject{
                     {QStringLiteral("query"), query},
                     {QStringLiteral("completed"), completed},
                     {QStringLiteral("matches"), 0}
@@ -750,6 +814,7 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("loaded_address_street_groups"), loadedAddressStreetGroupCount},
         {QStringLiteral("name_index_diagnostics_enabled"), nameIndexDiagnosticsEnabled},
         {QStringLiteral("name_index_boundary_query_results"), nameIndexBoundaryQueryResults},
+        {QStringLiteral("poi_name_index_query_results"), poiNameIndexQueryResults},
         {QStringLiteral("address_boundary_blocks"), addressBoundaryBlockCount},
         {QStringLiteral("address_block_type_counts"), addressBlockTypeCounts},
         {QStringLiteral("matching_address_boundary_groups"), matchingAddressBoundaryGroupCount},
