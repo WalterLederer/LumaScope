@@ -1539,6 +1539,19 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly photoOnlineAddressParts = signal<Array<{ label: string; value: string }>>([]);
   protected readonly crosshairAddressComments = signal<string[]>([]);
   protected readonly photoAddressComments = signal<string[]>([]);
+  protected readonly formatReverseGeocodeComments = (comments: string[]): string[] => {
+    const retained: string[] = [];
+    const other: string[] = [];
+    for (const comment of comments) {
+      const match = comment.match(/^Retained '(.+)' as an unclassified AddressIndex boundary; no matching map object supplied an admin_level\.$/);
+      if (match) retained.push(match[1]);
+      else other.push(comment);
+    }
+    if (retained.length > 0) {
+      other.push(`Retained unclassified AddressIndex boundaries: ${retained.join(', ')} (no matching map object supplied an admin_level).`);
+    }
+    return other;
+  };
   protected readonly crosshairCoordinates = signal('—');
   protected readonly photoGpsCoordinates = signal('Photo GPS position unavailable');
   protected readonly gpsRefreshBusy = signal(false);
