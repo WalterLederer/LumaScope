@@ -2617,6 +2617,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private async lookupBothReverseGeocoders(latitude: number, longitude: number): Promise<ReverseGeocodingDisplay> {
     const language = navigator.language || 'en';
+    const useOnline = this.useOnlineReverseGeocoding();
     const offlineLookup = this.desktop
       ? this.desktop.OsmAndAtlas.reverseGeocode(latitude, longitude, language)
         .then(result => {
@@ -2693,7 +2694,7 @@ export class MapWindow implements OnInit, OnDestroy {
           comments: []
         }))
       : Promise.resolve({ text: 'Unavailable', offlineParts: [], comments: [] });
-    const onlineLookup = this.useOnlineReverseGeocoding()
+    const onlineLookup = useOnline
       ? lookupReverseGeocoding(latitude, longitude, language)
           .then(result => ({
             text: result?.displayName?.trim() || 'No result',
@@ -2716,11 +2717,11 @@ export class MapWindow implements OnInit, OnDestroy {
       : Promise.resolve({ text: '', parts: [] });
     const [offline, online] = await Promise.all([offlineLookup, onlineLookup]);
     return {
-      text: this.useOnlineReverseGeocoding()
+      text: useOnline
         ? `Offline: ${offline.text}\nOnline: ${online.text}`
         : `Offline: ${offline.text}`,
       offlineParts: offline.offlineParts,
-      onlineParts: this.useOnlineReverseGeocoding() ? online.parts : [],
+      onlineParts: useOnline ? online.parts : [],
       comments: offline.comments
     };
   }
