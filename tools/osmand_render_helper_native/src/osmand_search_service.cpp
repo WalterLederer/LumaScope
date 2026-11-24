@@ -1587,7 +1587,8 @@ QString OsmAndSearchService::reverseGeocode(
                 if (candidateName.isEmpty() || distance >= 100.0)
                     continue;
 
-                if (distance < nearestBuildingDistance - 1.0)
+                if (nearestBuildingName.isEmpty()
+                    || distance < nearestBuildingDistance - 1.0)
                 {
                     nearestBuildingDistance = distance;
                     nearestBuildingName = candidateName;
