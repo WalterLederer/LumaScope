@@ -1732,6 +1732,32 @@ QString OsmAndSearchService::reverseGeocode(
                                     seenPlaceMapObjects.insert(uniqueKey);
 
                                     const auto attributes = mapObject->getResolvedAttributes();
+                                    QJsonObject resolvedAttributes;
+                                    for (auto attributeIt = attributes.constBegin();
+                                        attributeIt != attributes.constEnd(); ++attributeIt)
+                                        resolvedAttributes.insert(attributeIt.key(), attributeIt.value());
+
+                                    QJsonObject captionsByLanguage;
+                                    const auto allCaptions = mapObject->getCaptionsInAllLanguages();
+                                    for (auto captionIt = allCaptions.constBegin();
+                                        captionIt != allCaptions.constEnd(); ++captionIt)
+                                        captionsByLanguage.insert(captionIt.key(), captionIt.value());
+
+                                    QJsonArray rawCaptions;
+                                    for (auto captionIt = mapObject->captions.constBegin();
+                                        captionIt != mapObject->captions.constEnd(); ++captionIt)
+                                    {
+                                        const auto captionTag = mapObject->attributeMapping
+                                            && mapObject->attributeMapping->decodeMap.size() > captionIt.key()
+                                            ? mapObject->attributeMapping->decodeMap[captionIt.key()].tag
+                                            : QString();
+                                        rawCaptions.push_back(QJsonObject{
+                                            {QStringLiteral("attribute_id"), static_cast<int>(captionIt.key())},
+                                            {QStringLiteral("tag"), captionTag},
+                                            {QStringLiteral("value"), captionIt.value()}
+                                        });
+                                    }
+
                                     const auto mapName = mapObject->getName(effectiveLocale, false).trimmed();
                                     const auto nativeName = mapObject->getCaptionInNativeLanguage().trimmed();
                                     placePositionMapObjects.push_back(QJsonObject{
@@ -1747,6 +1773,10 @@ QString OsmAndSearchService::reverseGeocode(
                                         {QStringLiteral("admin_level"), attributes.value(QStringLiteral("admin_level"))},
                                         {QStringLiteral("place"), attributes.value(QStringLiteral("place"))},
                                         {QStringLiteral("type"), attributes.value(QStringLiteral("type"))},
+                                        {QStringLiteral("resolved_attributes"), resolvedAttributes},
+                                        {QStringLiteral("captions_by_language"), captionsByLanguage},
+                                        {QStringLiteral("raw_captions"), rawCaptions},
+                                        {QStringLiteral("has_name_caption"), mapObject->containsCaptionTag(QStringLiteral("name"))},
                                         {QStringLiteral("geometry_point_count"), mapObject->points31.size()},
                                         {QStringLiteral("bbox31"), QJsonArray{
                                             mapObject->bbox31.left(), mapObject->bbox31.top(),
