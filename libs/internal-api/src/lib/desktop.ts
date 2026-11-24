@@ -608,6 +608,7 @@ export interface OsmAndReverseGeocodeResult {
   building: string;
   street: string;
   place: string;
+  place_type: string;
   postcode: string;
   administrative_areas: Array<{ admin_level: number; name: string }>;
   selection_comments: string[];
