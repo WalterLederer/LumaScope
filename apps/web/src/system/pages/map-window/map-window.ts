@@ -7696,19 +7696,18 @@ ${points}
         const segment = segments[segmentIndex];
         if (segment.length < 2) continue;
         const color = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments[segmentIndex].color : track.colorMode === 'track-based' ? this.gpxTrackSegmentColor(track.path, segmentIndex) : (track.color || this.gpxColor());
-        const lineStyle = track.lineStyle || 'solid';
-        const outlineStrength = Math.max(0, Math.min(100, track.trackOutlineStrength ?? 0));
-        if (outlineStrength > 0) {
-          const outlineLine = this.leaflet.polyline(segment, { color: '#080808', weight: (track.lineWidth || 4) + 2, opacity: .92 * this.gpxOpacity() / 100 * outlineStrength / 100, lineCap: 'round', lineJoin: 'round', dashArray: this.gpxLineDashArray(lineStyle) }).addTo(this.map);
+        const renderStyle = createGpxTrackRenderStyle(track, this.gpxOpacity());
+        if (renderStyle.outlineOpacity > 0) {
+          const outlineLine = this.leaflet.polyline(segment, { color: renderStyle.outlineColor, weight: renderStyle.outlineWidth, opacity: renderStyle.outlineOpacity, lineCap: 'round', lineJoin: 'round', dashArray: renderStyle.lineDashArray }).addTo(this.map);
           this.trackLayers.push(outlineLine);
         }
         const trackLine = this.leaflet.polyline(segment, {
-          color, weight: track.lineWidth || 4, opacity: .92 * this.gpxOpacity() / 100,
-          lineCap: 'round', lineJoin: 'round', dashArray: this.gpxLineDashArray(lineStyle)
+          color, weight: renderStyle.lineWidth, opacity: renderStyle.lineOpacity,
+          lineCap: 'round', lineJoin: 'round', dashArray: renderStyle.lineDashArray
         }).addTo(this.map);
-        if (track.trackShadowStrength && track.trackShadowStrength > 0) {
+        if (renderStyle.shadowOpacity > 0) {
           const element = (trackLine as unknown as { getElement?: () => SVGElement | null }).getElement?.();
-          if (element) element.style.filter = 'drop-shadow(0 0 2px rgba(0,0,0,' + Math.max(0, Math.min(100, track.trackShadowStrength)) / 100 + '))';
+          if (element) element.style.filter = 'drop-shadow(0 0 ' + renderStyle.shadowBlur + 'px rgba(0,0,0,' + renderStyle.shadowOpacity + '))';
         }
         const hoverLine = this.leaflet.polyline(segment, {
           color, weight: Math.max(14, (track.lineWidth || 4) + 10), opacity: .01,
@@ -7721,7 +7720,8 @@ ${points}
       for (let segmentIndex = 0; segmentIndex < normalSegments.length; segmentIndex++) {
         const segment = normalSegments[segmentIndex];
         if (!track.showDirection || segment.length < 2) continue;
-        const arrowSize = this.gpxDirectionArrowSize(track.directionArrowSizePx, track.directionStyle);
+        const renderStyle = createGpxTrackRenderStyle(track, this.gpxOpacity());
+        const arrowSize = renderStyle.arrowSize;
         for (const arrow of this.gpxDirectionArrows(segment, track.directionIntervalPx ?? 120)) {
           const icon = this.leaflet.divIcon({
             className: 'gpx-direction-arrow-icon',
