@@ -2708,6 +2708,7 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
     // are candidates even if their map-index copy lacks boundary/admin_level tags.
     QSet<QString> addressBoundaryKeys;
     QHash<QString, QStringList> addressBoundaryNamesByKey;
+    QHash<QString, QJsonArray> addressBoundaryMetadataByKey;
     QList<std::shared_ptr<const OsmAnd::StreetGroup>> addressBoundaryGroups;
     const auto boundaryOnlyMask = OsmAnd::ObfAddressStreetGroupTypesMask()
         .set(OsmAnd::ObfAddressStreetGroupType::Boundary);
@@ -2736,6 +2737,19 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
                         names.push_back(displayName);
                     addressBoundaryNamesByKey.insert(key, names);
                 }
+                QJsonArray metadata = addressBoundaryMetadataByKey.value(key);
+                metadata.push_back(QJsonObject{
+                    {QStringLiteral("name"), displayName},
+                    {QStringLiteral("osm_id"), QString::number(group->id.getOsmId())},
+                    {QStringLiteral("raw_id"), QString::number(group->id.id)},
+                    {QStringLiteral("is_relation"), group->id.isIdFromRelation()},
+                    {QStringLiteral("is_split"), group->id.isIdFromSplit()},
+                    {QStringLiteral("bbox31"), QJsonArray{
+                        group->bbox31[0], group->bbox31[1], group->bbox31[2], group->bbox31[3]}},
+                    {QStringLiteral("position31"), QJsonArray{
+                        group->position31.x, group->position31.y}}
+                });
+                addressBoundaryMetadataByKey.insert(key, metadata);
             }
         }
     }
@@ -2878,8 +2892,33 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
         if (!addressIndexNames.isEmpty())
         {
             xml.writeStartElement(QStringLiteral("lumascope:address_index_matches"));
-            for (const auto& addressName : addressIndexNames)
-                xml.writeTextElement(QStringLiteral("lumascope:name"), addressName);
+            const auto objectKey = administrativeObjectKey(mapObject.id);
+            const auto matches = addressBoundaryMetadataByKey.value(objectKey);
+            for (const auto& addressMatchValue : matches)
+            {
+                const auto addressMatch = addressMatchValue.toObject();
+                xml.writeStartElement(QStringLiteral("lumascope:boundary"));
+                xml.writeAttribute(QStringLiteral("name"), addressMatch.value(QStringLiteral("name")).toString());
+                xml.writeAttribute(QStringLiteral("osm_id"), addressMatch.value(QStringLiteral("osm_id")).toString());
+                xml.writeAttribute(QStringLiteral("raw_id"), addressMatch.value(QStringLiteral("raw_id")).toString());
+                xml.writeAttribute(QStringLiteral("is_relation"), addressMatch.value(QStringLiteral("is_relation")).toBool() ? QStringLiteral("true") : QStringLiteral("false"));
+                xml.writeAttribute(QStringLiteral("is_split"), addressMatch.value(QStringLiteral("is_split")).toBool() ? QStringLiteral("true") : QStringLiteral("false"));
+                const auto bbox = addressMatch.value(QStringLiteral("bbox31")).toArray();
+                if (bbox.size() == 4)
+                {
+                    xml.writeAttribute(QStringLiteral("left"), QString::number(bbox.at(0).toInt()));
+                    xml.writeAttribute(QStringLiteral("top"), QString::number(bbox.at(1).toInt()));
+                    xml.writeAttribute(QStringLiteral("right"), QString::number(bbox.at(2).toInt()));
+                    xml.writeAttribute(QStringLiteral("bottom"), QString::number(bbox.at(3).toInt()));
+                }
+                const auto position = addressMatch.value(QStringLiteral("position31")).toArray();
+                if (position.size() == 2)
+                {
+                    xml.writeAttribute(QStringLiteral("position_x"), QString::number(position.at(0).toInt()));
+                    xml.writeAttribute(QStringLiteral("position_y"), QString::number(position.at(1).toInt()));
+                }
+                xml.writeEndElement();
+            }
             xml.writeEndElement();
         }
         const auto attributes = mapObject.getResolvedAttributes();
