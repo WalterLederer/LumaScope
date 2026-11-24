@@ -11,7 +11,7 @@ param(
 
     [string]$OutputPath = (Join-Path (Get-Location) 'Stockerau_admin_boundary_candidates.gpx'),
 
-    [string]$HelperPath = (Join-Path $PSScriptRoot 'dist/osmand_search_helper.exe'),
+    [string]$HelperPath = (Join-Path $PSScriptRoot '../../build/official-workspace/binaries/windows/gcc-amd64/Release/osmand_search_helper.exe'),
 
     [ValidateRange(0.1, 100.0)]
     [double]$RadiusKm = 20.0,
