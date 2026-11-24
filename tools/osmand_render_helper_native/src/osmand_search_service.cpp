@@ -701,14 +701,16 @@ QJsonObject administrativeAreasForCoordinate(
                 .arg(displayName));
         }
         const auto addressObjectKey = administrativeObjectKey(streetGroup->id);
-        if (addressObjectKey.isEmpty())
-            continue;
-        const auto levelIt = administrativeLevelsByObjectId.constFind(addressObjectKey);
-        if (levelIt == administrativeLevelsByObjectId.cend())
-            continue;
-        ++matchedAddressBoundaryObjectIdCount;
-        if (matchedBoundaryObjectIds.size() < 20)
-            matchedBoundaryObjectIds.push_back(QString::number(streetGroup->id.id));
+        const auto levelIt = addressObjectKey.isEmpty()
+            ? administrativeLevelsByObjectId.cend()
+            : administrativeLevelsByObjectId.constFind(addressObjectKey);
+        const bool hasResolvedAdminLevel = levelIt != administrativeLevelsByObjectId.cend();
+        if (hasResolvedAdminLevel)
+        {
+            ++matchedAddressBoundaryObjectIdCount;
+            if (matchedBoundaryObjectIds.size() < 20)
+                matchedBoundaryObjectIds.push_back(QString::number(streetGroup->id.id));
+        }
 
         const auto localizedName = streetGroup->getName(locale, false).trimmed();
         const auto objectName = localizedName.isEmpty()
@@ -717,8 +719,14 @@ QJsonObject administrativeAreasForCoordinate(
         if (objectName.isEmpty())
             continue;
 
+        // Address-index Boundary groups often have no corresponding map object
+        // (or their OSM IDs differ between the two indexes). Keep those useful
+        // name/bounding-box candidates instead of discarding them. Their exact
+        // admin_level is unknown, so mark them as 99 and leave them selectable
+        // alongside the classified map-polygon results.
+        const int candidateAdminLevel = hasResolvedAdminLevel ? levelIt.value() : 99;
         const auto normalizedName = OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed();
-        const auto objectKey = QStringLiteral("%1|%2").arg(levelIt.value()).arg(normalizedName);
+        const auto objectKey = QStringLiteral("%1|%2").arg(candidateAdminLevel).arg(normalizedName);
         if (seenAreas.contains(objectKey))
             continue;
 
@@ -726,7 +734,7 @@ QJsonObject administrativeAreasForCoordinate(
         const auto width = static_cast<qint64>(right) - left;
         const auto height = static_cast<qint64>(bottom) - top;
         candidates.push_back({
-            levelIt.value(),
+            candidateAdminLevel,
             objectName,
             std::max<qint64>(0, width) * std::max<qint64>(0, height)
         });
@@ -993,15 +1001,19 @@ QJsonObject administrativeAreasForCoordinate(
             return QString::compare(left.name, right.name, Qt::CaseInsensitive) < 0;
         });
 
-    // One coordinate can belong to only one matching area at each
-    // administrative level. Generalized OBF levels can return overlapping
-    // alternatives; the smallest exact containing polygon is the local match.
+    // For classified map polygons, keep only the smallest exact match at
+    // each administrative level. Address-index-only candidates (level 99)
+    // have no reliable hierarchy level; retain all distinct names so the
+    // caller can choose the appropriate district/region from the OBF index.
     QSet<int> emittedAdminLevels;
     for (const auto& candidate : candidates)
     {
-        if (emittedAdminLevels.contains(candidate.adminLevel))
-            continue;
-        emittedAdminLevels.insert(candidate.adminLevel);
+        if (candidate.adminLevel != 99)
+        {
+            if (emittedAdminLevels.contains(candidate.adminLevel))
+                continue;
+            emittedAdminLevels.insert(candidate.adminLevel);
+        }
         areas.push_back(QJsonObject{
             {QStringLiteral("admin_level"), candidate.adminLevel},
             {QStringLiteral("name"), candidate.name}
