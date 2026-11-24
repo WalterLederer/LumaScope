@@ -2153,8 +2153,8 @@ export class MapWindow implements OnInit, OnDestroy {
     window.removeEventListener('lumascope-hillshade-tile-status', this.onHillshadeTileStatus);
     this.clearRenderDisplayFallback();
     if (this.mapLoadingTimer !== null) {
-      clearTimeout(this.onlineMapLoadingTimer);
-      this.onlineMapLoadingTimer = null;
+      clearTimeout(this.mapLoadingTimer);
+      this.mapLoadingTimer = null;
     }
     this.renderInitStatus.set('');
     // Save the live camera value before destroying either map implementation.
@@ -3991,9 +3991,9 @@ export class MapWindow implements OnInit, OnDestroy {
     setMapsforgeTileProtocolActive(false);
     if (nextSource !== 'offline') this.mapDisplayNotice.set('');
     this.renderInitStatus.set('');
-    if (this.onlineMapLoadingTimer !== null) {
-      clearTimeout(this.onlineMapLoadingTimer);
-      this.onlineMapLoadingTimer = null;
+    if (this.mapLoadingTimer !== null) {
+      clearTimeout(this.mapLoadingTimer);
+      this.mapLoadingTimer = null;
     }
     if (previousSource !== nextSource) {
       // Serialize teardown before the next renderer initializes. Atlas may have
