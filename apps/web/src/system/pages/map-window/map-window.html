@@ -69,7 +69,7 @@
                       <tbody>
                         <tr>
                           <td class="fix-location-toggle-cell">
-                            <div class="fix-location-source-cell"><strong>Mouse</strong><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label></div>
+                            <div class="fix-location-source-cell"><strong>Mouse</strong><label class="fix-location-toggle"><input type="checkbox" [checked]="useOnlineReverseGeocoding()" (change)="setUseOnlineReverseGeocoding($any($event.target).checked)"> Use online</label></div>
                           </td>
                           <td class="fix-location-coordinate-value" role="status">{{ mouseCoordinateLabel() || '—' }}</td>
                           <td class="fix-location-address-cell"></td>
@@ -88,7 +88,7 @@
                                     <tr><th scope="row">Offline (OsmAnd)</th>@for (part of photoAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
                                     <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="photoAddressParts().length + 1">{{ reverseGeocodeSourceText(photoAddress(), 'Offline') }}</td></tr>
                                   }
-                                  @if (photoOnlineAddressParts().length > 0) {
+                                  @if (useOnlineReverseGeocoding() && photoOnlineAddressParts().length > 0) {
                                     <tr class="reverse-geocode-online-row"><th scope="row">Online (Nominatim)</th>@for (part of photoOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
                                     <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="photoOnlineAddressParts().length + 1">{{ reverseGeocodeSourceText(photoAddress(), 'Online') }}</td></tr>
                                   }
@@ -110,7 +110,7 @@
                         </tr>
                         <tr>
                           <td class="fix-location-toggle-cell">
-                            <div class="fix-location-source-cell"><strong>Crosshair</strong><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button></div>
+                            <div class="fix-location-source-cell"><strong>Crosshair</strong><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button></div>
                           </td>
                           <td class="fix-location-coordinate-value" role="status">{{ crosshairCoordinates() }}</td>
                           <td class="fix-location-address-cell">
@@ -122,7 +122,7 @@
                                     <tr><th scope="row">Offline (OsmAnd)</th>@for (part of crosshairAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
                                     <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="crosshairAddressParts().length + 1">{{ reverseGeocodeSourceText(crosshairAddress(), 'Offline') }}</td></tr>
                                   }
-                                  @if (crosshairOnlineAddressParts().length > 0) {
+                                  @if (useOnlineReverseGeocoding() && crosshairOnlineAddressParts().length > 0) {
                                     <tr class="reverse-geocode-online-row"><th scope="row">Online (Nominatim)</th>@for (part of crosshairOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr>
                                     <tr class="reverse-geocode-full-text-row"><td [attr.colspan]="crosshairOnlineAddressParts().length + 1">{{ reverseGeocodeSourceText(crosshairAddress(), 'Online') }}</td></tr>
                                   }
