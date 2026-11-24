@@ -1126,16 +1126,14 @@ export class MapWindow implements OnInit, OnDestroy {
     this.persistLocationUiState({ gpxTrackSettingsSections: next });
   };
   protected readonly onGpxTrackSettingsDialogClick = (event: MouseEvent): void => {
-    const dialog = event.currentTarget as HTMLElement;
     const clickedField = (event.target as HTMLElement | null)?.closest('.gpx-style-select-field') ?? null;
-    if (!clickedField?.querySelector('.gpx-style-select-trigger[aria-label="Line style"]')) this.gpxTrackSettingsLineStyleMenuVisible.set(false);
-    if (!clickedField?.querySelector('.gpx-style-select-trigger[aria-label="Direction arrow"]')) this.gpxTrackSettingsDirectionMenuVisible.set(false);
+    const fieldLabel = clickedField?.querySelector('.gpx-style-select-heading span')?.textContent?.trim();
+    if (fieldLabel !== 'Line style') this.gpxTrackSettingsLineStyleMenuVisible.set(false);
+    if (fieldLabel !== 'Direction arrow') this.gpxTrackSettingsDirectionMenuVisible.set(false);
     if (!clickedField) {
       this.gpxTrackSettingsHoveredLineStyle.set(null);
       this.gpxTrackSettingsHoveredDirection.set(null);
     }
-    // Keep only the popup belonging to the field that was clicked.
-    void dialog;
   };
   protected readonly onGpxTrackSettingsFooterKeydown = (event: KeyboardEvent): void => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
