@@ -2543,7 +2543,6 @@ export class OfflineMapRenderer {
   }
 
   async rerenderVisibleTiles(
-    renderOsmAndTile: (z: number, x: number, y: number, forceRender: boolean) => Promise<unknown>,
     renderAtlasTile: (z: number, x: number, y: number, displayScale: number, forceRender: boolean) => Promise<unknown>,
     displayScale: number,
     onProgress?: (completed: number, total: number) => void
@@ -2554,7 +2553,7 @@ export class OfflineMapRenderer {
 
     // MapLibre raster sources use the integer zoom level below the current
     // fractional camera zoom. Calculate the complete viewport coverage in XYZ.
-    const zoom = Math.max(2, Math.min(this.tileProtocol === 'osmand-atlas' ? 21 : 18,
+    const zoom = Math.max(2, Math.min(21,
       Math.floor(this.map.getZoom())));
     const tileCount = 2 ** zoom;
     const bounds = this.map.getBounds();
@@ -2581,72 +2580,27 @@ export class OfflineMapRenderer {
     }
     if (!visibleTiles.length) return 0;
 
-    if (this.tileProtocol === 'osmand-atlas') {
-      // One MapLibre tile maps directly to one 256px Atlas tile.
-      onProgress?.(0, visibleTiles.length);
-      let completed = 0;
-      const forcedResults = await Promise.all(visibleTiles.map(async ({ x, y }) => {
-        const tileCoordinates = { protocol: 'osmand-atlas' as const, zoom, column: x, row: y };
-        emitOsmAndTileStatus({ ...tileCoordinates, status: 'rerendering' });
-        try {
-          const result = await renderAtlasTile(zoom, x, y, displayScale, true);
-          emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
-          onProgress?.(++completed, visibleTiles.length);
-          return result;
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          emitOsmAndTileStatus({
-            ...tileCoordinates,
-            status: /\b(cancelled|canceled)\b/i.test(message) ? 'cancelled' : 'error',
-            error: message
-          });
-          throw error;
-        }
-      }));
-      console.info('[osmand-atlas] Forced render diagnostics', forcedResults.map((result, index) => {
-        const tileResult = result as {
-          diagnostics?: {
-            helperPath?: string;
-            geometryEnabled?: boolean;
-            nativeRender?: boolean;
-            forceRender?: boolean;
-            geometryMessages?: string[];
-          };
-        };
-        return {
-          tile: visibleTiles[index],
-          ...(tileResult?.diagnostics ?? { diagnosticsMissing: true })
-        };
-      }));
-    } else {
-      // One MapLibre tile is composed from four native 256px OsmAnd tiles.
-      onProgress?.(0, visibleTiles.length);
-      let completed = 0;
-      await Promise.all(visibleTiles.map(async ({ x, y }) => {
-        const tileCoordinates = { protocol: 'osmand' as const, zoom, column: x, row: y };
-        emitOsmAndTileStatus({ ...tileCoordinates, status: 'rerendering' });
-        try {
-          const nativeX = x * 2;
-          const nativeY = y * 2;
-          await Promise.all([
-            renderOsmAndTile(zoom + 1, nativeX, nativeY, true),
-            renderOsmAndTile(zoom + 1, nativeX + 1, nativeY, true),
-            renderOsmAndTile(zoom + 1, nativeX, nativeY + 1, true),
-            renderOsmAndTile(zoom + 1, nativeX + 1, nativeY + 1, true)
-          ]);
-          emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
-          onProgress?.(++completed, visibleTiles.length);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          emitOsmAndTileStatus({
-            ...tileCoordinates,
-            status: /\b(cancelled|canceled)\b/i.test(message) ? 'cancelled' : 'error',
-            error: message
-          });
-          throw error;
-        }
-      }));
-    }
+    // Both OsmAnd source IDs now use the same Atlas native renderer and
+    // its overscanned 256px tile pipeline.
+    onProgress?.(0, visibleTiles.length);
+    let completed = 0;
+    await Promise.all(visibleTiles.map(async ({ x, y }) => {
+      const tileCoordinates = { protocol: this.tileProtocol as 'osmand' | 'osmand-atlas', zoom, column: x, row: y };
+      emitOsmAndTileStatus({ ...tileCoordinates, status: 'rerendering' });
+      try {
+        await renderAtlasTile(zoom, x, y, displayScale, true);
+        emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
+        onProgress?.(++completed, visibleTiles.length);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        emitOsmAndTileStatus({
+          ...tileCoordinates,
+          status: /\\b(cancelled|canceled)\\b/i.test(message) ? 'cancelled' : 'error',
+          error: message
+        });
+        throw error;
+      }
+    }));
 
     const sourceId = this.tileProtocol === 'osmand-atlas' ? 'osmand-atlas' : 'osmand';
     const protocol = this.tileProtocol;
