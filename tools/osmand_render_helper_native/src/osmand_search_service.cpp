@@ -764,6 +764,9 @@ QJsonObject administrativeAreasForCoordinate(
         });
     }
 
+    QJsonArray addressBoundaryBboxMapSearches;
+    int addressBoundaryBboxMapSearchObjectCount = 0;
+    int addressBoundaryBboxMapSearchSkippedCount = 0;
     // Diagnostic-only search: use each matching address-index Boundary
     // group's complete bbox as a map-object query. This checks whether its
     // corresponding administrative geometry exists elsewhere in the map index,
@@ -990,9 +993,6 @@ QJsonObject administrativeAreasForCoordinate(
     QJsonArray boundaryLineSamples;
     QJsonArray targetBoundaryLineSegments;
     QJsonArray targetBoundaryAreaObjects;
-    QJsonArray addressBoundaryBboxMapSearches;
-    int addressBoundaryBboxMapSearchObjectCount = 0;
-    int addressBoundaryBboxMapSearchSkippedCount = 0;
     int boundaryAreaObjectCount = 0;
     int boundaryGeometryPointCount = 0;
     // This broad scan is diagnostic-only and can be expensive on large OBF
