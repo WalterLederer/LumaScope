@@ -7488,8 +7488,8 @@ ${points}
       if (distance < nearestDistance) { nearestDistance = distance; nearest = point; }
     }
     const metadata = track?.name ?? path.split(/[\\/]/).pop() ?? path;
-    const osmId = metadata.match(/\\bOSM(?:\\s*ID)?[ :=#-]*(\\d+)\\b/i)?.[1];
-    const zoom = metadata.match(/\\b(?:zoom|z)[ :=#-]*(\\d+)\\b/i)?.[1];
+    const osmId = metadata.match(/\bOSM(?:\s*ID)?[ :=#-]*(\d+)\b/i)?.[1];
+    const zoom = metadata.match(/\b(?:zoom|z)[ :=#-]*(\d+)\b/i)?.[1];
     const parts = [
       'Track ' + metadata,
       ...(osmId ? ['OSM ID ' + osmId] : []),
