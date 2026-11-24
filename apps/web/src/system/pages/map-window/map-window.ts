@@ -7523,21 +7523,28 @@ ${points}
       const distance = dx * dx + dy * dy;
       if (distance < nearestDistance) { nearestDistance = distance; nearest = point; }
     }
-    const metadata = (this.gpxSegmentNamesByTrack.get(path) ?? [])[segmentIndex ?? -1]
-      || this.gpxSegmentNamesByTrack.get(path)?.find((name, index) => pointSegments[index]?.includes(nearest as GpxTrackPoint))
+    const resolvedSegmentIndex = segmentIndex !== undefined && segmentIndex >= 0 && segmentIndex < pointSegments.length
+      ? segmentIndex
+      : pointSegments.findIndex(segment => segment.includes(nearest as GpxTrackPoint));
+    const segmentNames = this.gpxSegmentNamesByTrack.get(path) ?? [];
+    const metadata = segmentNames[resolvedSegmentIndex]
       || track?.name || path.split(/[\\/]/).pop() || path;
     const osmId = metadata.match(/\bOSM(?:\s*ID)?[ :=#-]*(\d+)\b/i)?.[1];
     const zoom = metadata.match(/\b(?:zoom|z)[ :=#-]*(\d+)\b/i)?.[1];
-    const parts = [
+    const totalPoints = pointSegments.reduce((total, segment) => total + segment.length, 0);
+    const fileName = track?.name || path.split(/[\\/]/).pop() || path;
+    const fileSummary = fileName + ' · ' + pointSegments.length + ' track segments · ' + totalPoints + ' points';
+    const segmentSummary = [
+      'Track segment ' + (resolvedSegmentIndex >= 0 ? (resolvedSegmentIndex + 1) + '/' + pointSegments.length : '—/' + pointSegments.length),
       metadata,
       ...(osmId ? ['OSM ID ' + osmId] : []),
       ...(zoom ? ['Zoom ' + zoom] : []),
-      'Points ' + points.length,
+      'Segment points ' + points.length,
       nearest ? 'GPS ' + nearest.latitude.toFixed(6) + ', ' + nearest.longitude.toFixed(6) : 'GPS –',
       nearest?.elevation !== null && nearest?.elevation !== undefined ? 'Elevation ' + nearest.elevation.toFixed(1) + ' m' : 'Elevation –',
       nearest?.timestamp ? 'GPX time ' + (Number.isNaN(Date.parse(nearest.timestamp)) ? nearest.timestamp : new Date(nearest.timestamp).toLocaleString(this.locale)) : 'GPX time –'
     ];
-    this.gpxHoverInfo.set(parts.join(' · '));
+    this.gpxHoverInfo.set(fileSummary + '\n' + segmentSummary.join(' · '));
   }
 
   protected readonly copyGpxHoverInfo = async (): Promise<void> => {
