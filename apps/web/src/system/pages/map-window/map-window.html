@@ -80,9 +80,17 @@
                           <td class="fix-location-address-cell">
                             <span class="location-address fix-location-address" role="status">{{ photoAddress() }}</span>
                             @if (photoAddressParts().length > 0) {
-                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Photo address values">
+                              <strong>Offline (OsmAnd)</strong>
+                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Offline OsmAnd photo address values">
                                 <thead><tr>@for (part of photoAddressParts(); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
                                 <tbody><tr>@for (part of photoAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr></tbody>
+                              </table></div>
+                            }
+                            @if (photoOnlineAddressParts().length > 0) {
+                              <strong>Online (Nominatim)</strong>
+                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Online Nominatim photo address values">
+                                <thead><tr>@for (part of photoOnlineAddressParts(); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
+                                <tbody><tr>@for (part of photoOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr></tbody>
                               </table></div>
                             }
                             @if (photoAddressComments().length > 0) {
@@ -100,9 +108,17 @@
                           <td class="fix-location-address-cell">
                             <span class="location-address fix-location-address" role="status">{{ crosshairAddress() }}</span>
                             @if (crosshairAddressParts().length > 0) {
-                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Crosshair address values">
+                              <strong>Offline (OsmAnd)</strong>
+                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Offline OsmAnd crosshair address values">
                                 <thead><tr>@for (part of crosshairAddressParts(); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
                                 <tbody><tr>@for (part of crosshairAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr></tbody>
+                              </table></div>
+                            }
+                            @if (crosshairOnlineAddressParts().length > 0) {
+                              <strong>Online (Nominatim)</strong>
+                              <div class="reverse-geocode-table-wrap"><table class="reverse-geocode-values-table" aria-label="Online Nominatim crosshair address values">
+                                <thead><tr>@for (part of crosshairOnlineAddressParts(); track part.label) { <th scope="col">{{ part.label }}</th> }</tr></thead>
+                                <tbody><tr>@for (part of crosshairOnlineAddressParts(); track part.label) { <td>{{ part.value || '—' }}</td> }</tr></tbody>
                               </table></div>
                             }
                             @if (crosshairAddressComments().length > 0) {
