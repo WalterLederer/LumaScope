@@ -884,6 +884,32 @@ const floatToHalf = (value: number): number => {
 
 export default class ElectronEvents {
   static bootstrapElectronEvents(): Electron.IpcMain {
+    // Measure main-process event-loop stalls independently of renderer responsiveness.
+    let expectedTick = Date.now() + 250;
+    const eventLoopMonitor = setInterval(() => {
+      const now = Date.now();
+      const delayMs = now - expectedTick;
+      expectedTick += 250;
+      if (delayMs >= 150) {
+        console.warn('[Performance] Main process event-loop lag', {
+          delayMs,
+          timestamp: new Date(now).toISOString(),
+          processId: process.pid
+        });
+      }
+    }, 250);
+    eventLoopMonitor.unref();
+
+    ipcMain.handle('Diagnostics.ping', (event): { receivedAt: number; windowRole: string } => {
+      const senderWindow = BrowserWindow.fromWebContents(event.sender);
+      const windowRole = senderWindow === App.mainWindow ? 'main'
+        : senderWindow === App.mapWindow ? 'location'
+        : senderWindow === App.mapOverlayWindow ? 'location-overlay'
+        : senderWindow === App.capturePreviewWindow ? 'capture-preview'
+        : 'unknown';
+      return { receivedAt: Date.now(), windowRole };
+    });
+
     const injector = Injector.getInstance();
 
     IpcRegistry
