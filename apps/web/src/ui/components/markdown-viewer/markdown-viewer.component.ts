@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import { SliderComponent } from '@light-matter/ui';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FileSystem } from '../../../ipc/file-system';
@@ -176,6 +177,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
 })
 export class MarkdownViewerComponent {
   readonly initialDocument = input<string | null>(null);
+  private readonly document = inject(DOCUMENT);
   private readonly fileSystem = inject(FileSystem);
   private readonly processManager = inject(ProcessManager);
 
