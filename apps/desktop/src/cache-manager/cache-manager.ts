@@ -2520,6 +2520,8 @@ export class CacheManager {
     const folder = this.toRelativeFolderPath(root, databaseKey);
     if (folder === null) throw new Error('The selected folder is outside the photo database drive.');
 
+    const coverageStartedAt = performance.now();
+    const queryStartedAt = performance.now();
     const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
     const rows = db.prepare(`SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path
       FROM photos JOIN paths ON paths.id = photos.path_id
@@ -2530,6 +2532,7 @@ export class CacheManager {
       .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as Array<{
         file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
       }>;
+    const queryDurationMs = performance.now() - queryStartedAt;
 
     const records = new Map<string, { size: number; modifiedAt: number }>();
     for (const row of rows) {
@@ -2541,19 +2544,31 @@ export class CacheManager {
 
     let total = 0;
     let missingCount = 0;
+    let directoryCount = 0;
+    let directoryReadMs = 0;
+    let statDurationMs = 0;
+    let statErrors = 0;
+    let batchCount = 0;
+    let maxBatchDurationMs = 0;
     const pendingDirectories = [root];
     const pendingFiles: Array<{ name: string; parent: string }> = [];
     const verifyBatch = async (): Promise<void> => {
       if (!pendingFiles.length) return;
       const batch = pendingFiles.splice(0, pendingFiles.length);
+      const batchStartedAt = performance.now();
       const verified = await Promise.all(batch.map(async file => {
         try {
           const info = await stat(join(file.parent, file.name));
           return { ...file, size: info.size, modifiedAt: info.mtimeMs };
         } catch {
+          statErrors++;
           return null;
         }
       }));
+      const batchDurationMs = performance.now() - batchStartedAt;
+      statDurationMs += batchDurationMs;
+      maxBatchDurationMs = Math.max(maxBatchDurationMs, batchDurationMs);
+      batchCount++;
       for (const file of verified) {
         if (!file) continue;
         total++;
@@ -2566,7 +2581,9 @@ export class CacheManager {
 
     while (pendingDirectories.length) {
       const currentDirectory = pendingDirectories.pop()!;
+      const directoryStartedAt = performance.now();
       const handle = await opendir(currentDirectory);
+      directoryCount++;
       for await (const entry of handle) {
         if (entry.isDirectory()) {
           if (recursive && !['.cache', '.thumbnails'].includes(entry.name.toLowerCase())) {
@@ -2578,8 +2595,16 @@ export class CacheManager {
           if (pendingFiles.length >= 256) await verifyBatch();
         }
       }
+      directoryReadMs += performance.now() - directoryStartedAt;
     }
     await verifyBatch();
+    console.info('[PHOTO-DB-COVERAGE] complete', {
+      folder: root, recursive, databaseRows: rows.length, directories: directoryCount,
+      filesChecked: total, missingCount, statErrors, batches: batchCount,
+      queryMs: Number(queryDurationMs.toFixed(1)), directoryReadMs: Number(directoryReadMs.toFixed(1)),
+      statBatchMs: Number(statDurationMs.toFixed(1)), maxStatBatchMs: Number(maxBatchDurationMs.toFixed(1)),
+      totalMs: Number((performance.now() - coverageStartedAt).toFixed(1))
+    });
     return { total, missingCount };
   };
 
