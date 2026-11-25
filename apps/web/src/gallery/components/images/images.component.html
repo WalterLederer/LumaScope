@@ -44,7 +44,7 @@
       </colgroup>
       <thead>
         <tr class="detail-header detail-header-labels" [class.cache-build-active]="cacheRunActive()">
-          <th class="detail-actions-heading folder-actions-heading" scope="col" [hidden]="detailActionsColumnPosition() !== 'left'" aria-label="Folder actions"><span class="table-header-row-count" [attr.aria-label]="(images()?.length ?? 0) + ' image rows'">{{ images()?.length ?? 0 }}</span>
+          <th class="detail-actions-heading folder-actions-heading" scope="col" [hidden]="detailActionsColumnPosition() !== 'left'" aria-label="Folder actions"><span class="table-header-row-count" [attr.aria-label]="totalFileCount() + ' image rows'">{{ totalFileCount() }}</span>
             <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger"
                     [cdkMenuTriggerFor]="folderActionsMenu"
                     aria-label="Folder actions" title="Folder actions">☰</button>
@@ -116,7 +116,7 @@
             <button type="button" (click)="sortDetailBy('path')">@if (detailSortAriaSort('path') !== 'none') {<span class="sort-indicator" aria-hidden="true">{{ detailSortIndicator('path') }}</span>}<span class="sort-label">Path</span></button>
             <button type="button" class="column-resizer" role="separator" aria-orientation="vertical" aria-label="Resize path column" (pointerdown)="startColumnResize($event, 12)" (dblclick)="autofitDetailColumn($event, 12)"></button>
           </th>
-          <th class="detail-actions-heading folder-actions-heading detail-actions-heading-right" scope="col" [hidden]="detailActionsColumnPosition() !== 'right'" aria-label="Folder actions"><span class="table-header-row-count" [attr.aria-label]="(images()?.length ?? 0) + ' image rows'">{{ images()?.length ?? 0 }}</span>
+          <th class="detail-actions-heading folder-actions-heading detail-actions-heading-right" scope="col" [hidden]="detailActionsColumnPosition() !== 'right'" aria-label="Folder actions"><span class="table-header-row-count" [attr.aria-label]="totalFileCount() + ' image rows'">{{ totalFileCount() }}</span>
             <button type="button" class="file-row-menu-trigger detail-row-menu-trigger folder-actions-menu-trigger" [cdkMenuTriggerFor]="folderActionsMenu" aria-label="Folder actions" title="Folder actions">☰</button>
           </th>
         </tr>
