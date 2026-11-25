@@ -38,6 +38,8 @@ public:
         double displayScale = 1.0;
         // Atlas tile renders intentionally allow the overscan viewport to extend beyond the Mercator world.
         bool allowVerticalViewportOverflow = false;
+        // Render only OBF symbols over a transparent framebuffer for map overlays.
+        bool labelsOnly = false;
     };
 
     static OsmAndNativeMapWidget* create(const Configuration& configuration, QWidget* parent, QString& errorMessage);
