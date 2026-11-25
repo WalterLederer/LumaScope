@@ -10,11 +10,6 @@ import { cleanupStaleJsonTemporaryFiles } from '../file-system/json-file';
 import { flushAppSettingsWrites, startAppSettingsCheckpoint } from '../settings/app-settings';
 import { rendererAppName, rendererAppPort } from './constants';
 
-// Resolve the Windows regional locale after Electron is ready. The renderer's
-// Intl.NumberFormat(undefined) then uses the OS number separators, independently
-// of the English application UI.
-
-
 export default class App {
   // Keep a global reference of the window object, if you don't, the window will
   // be closed automatically when the JavaScript object is garbage collected.
@@ -142,6 +137,8 @@ export default class App {
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
     if (process.platform === 'win32') {
+      // Use the Windows regional locale for renderer formatting while keeping
+      // the application's visible UI text in English.
       app.commandLine.appendSwitch('lang', app.getSystemLocale());
     }
     if (rendererAppName) {
