@@ -218,6 +218,8 @@ export class MarkdownViewerComponent {
   protected readonly searchResultCount = computed(() => this.searchResults().reduce((count, group) => count + group.results.length, 0));
   protected readonly flatSearchResults = computed(() => this.searchResults().flatMap(group => group.results));
   protected readonly activeSearchResultIndex = signal(-1);
+  protected readonly searchPaneSize = signal(42);
+  private resizePointerId: number | null = null;
   protected readonly searchBusy = signal(false);
   protected readonly searchError = signal('');
   private documentLoadRequest = 0;
@@ -289,6 +291,50 @@ export class MarkdownViewerComponent {
     }
   };
 
+
+  protected readonly beginSearchPaneResize = (event: PointerEvent): void => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    this.resizePointerId = event.pointerId;
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  };
+
+  protected readonly resizeSearchPane = (event: PointerEvent): void => {
+    if (this.resizePointerId !== event.pointerId) return;
+    const container = (event.currentTarget as HTMLElement).parentElement;
+    const searchPane = container?.querySelector<HTMLElement>('.markdown-help-search');
+    const article = container?.querySelector<HTMLElement>('.markdown-body');
+    const resizer = event.currentTarget as HTMLElement;
+    if (!searchPane || !article) return;
+    const availableHeight = article.getBoundingClientRect().bottom
+      - searchPane.getBoundingClientRect().top - resizer.getBoundingClientRect().height;
+    if (availableHeight <= 0) return;
+    const requestedHeight = event.clientY - searchPane.getBoundingClientRect().top
+      - resizer.getBoundingClientRect().height / 2;
+    const percentage = requestedHeight / availableHeight * 100;
+    this.searchPaneSize.set(Math.min(70, Math.max(20, Math.round(percentage))));
+  };
+
+  protected readonly endSearchPaneResize = (event: PointerEvent): void => {
+    if (this.resizePointerId !== event.pointerId) return;
+    const handle = event.currentTarget as HTMLElement;
+    if (handle.hasPointerCapture(event.pointerId)) handle.releasePointerCapture(event.pointerId);
+    this.resizePointerId = null;
+  };
+
+  protected readonly onSearchPaneResizeKeydown = (event: KeyboardEvent): void => {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      const delta = event.key === 'ArrowUp' ? -2 : 2;
+      this.searchPaneSize.update(value => Math.min(70, Math.max(20, value + delta)));
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      this.searchPaneSize.set(20);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      this.searchPaneSize.set(70);
+    }
+  };
 
   protected readonly onSearchKeydown = (event: KeyboardEvent): void => {
     if (event.key === 'Enter' || event.key === 'F3') {
