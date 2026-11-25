@@ -2595,6 +2595,8 @@ export class OfflineMapRenderer {
     // use the requested value for properties whose default is implicit.
     for (const layer of this.map.getStyle().layers) {
       if (layer.id === 'osmand-hillshade-raster' || layer.id.startsWith('osmand-hillshade-raster-')
+        || layer.id.startsWith('label-') || layer.id.startsWith('omt-label-')
+        || layer.id === 'osmand-labels-layer'
         || (('source' in layer) && (layer.source === 'photo-markers' || layer.source === 'gpx-track'
           || layer.source === 'osmand-hillshade' || String(layer.source).startsWith('osmand-hillshade-')))) continue;
 
