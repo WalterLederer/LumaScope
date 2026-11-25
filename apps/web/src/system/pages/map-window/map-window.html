@@ -875,6 +875,9 @@
       <option value="pastel">Pastel</option><option value="contrast">High contrast</option><option value="night">Night</option>
     </select>
   </label>
+  @if (mapSource() === 'online') {
+    <span class="online-center-tile-url" [attr.title]="onlineCenterTileUrl()" aria-label="URL of the online map tile at the map center" style="display:inline-block;max-width:min(52vw,680px);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;font:10px/1.4 ui-monospace,monospace;opacity:.82;user-select:text">{{ onlineCenterTileUrl() || 'Tile URL unavailable' }}</span>
+  }
   </div>
   <details class="zoom-settings-section app-disclosure">
     <summary>
