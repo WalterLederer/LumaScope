@@ -8149,7 +8149,7 @@ ${points}
     const map = this.map;
     const leaflet = this.leaflet;
     const desktop = this.desktop;
-    if (!map || !leaflet || !desktop || !this.osmAndLabelsVisible() || this.configuredOsmandMapCount() === 0) {
+    if (!map || !leaflet || !desktop || !this.osmAndLabelsVisible()) {
       this.leafletOsmAndLabelsLayer?.remove();
       this.leafletOsmAndLabelsLayer = null;
       return;
