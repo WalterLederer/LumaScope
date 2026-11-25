@@ -423,6 +423,36 @@ bool OsmAndNativeMapWidget::grabFrameRgba(
     frameWidth = rgbaFrame.width();
     frameHeight = rgbaFrame.height();
     frameStride = rgbaFrame.bytesPerLine();
+    if (_configuration.labelsOnly && std::getenv("OSMAND_ATLAS_DEBUG_ALPHA") != nullptr)
+    {
+        static bool alphaDiagnosticsReported = false;
+        if (!alphaDiagnosticsReported)
+        {
+            alphaDiagnosticsReported = true;
+            const auto* bytes = rgbaFrame.constBits();
+            std::uint64_t transparent = 0;
+            std::uint64_t translucent = 0;
+            std::uint64_t opaque = 0;
+            for (int y = 0; y < rgbaFrame.height(); ++y)
+            {
+                const auto* row = bytes + y * rgbaFrame.bytesPerLine();
+                for (int x = 0; x < rgbaFrame.width(); ++x)
+                {
+                    const auto alpha = row[x * 4 + 3];
+                    if (alpha == 0) ++transparent;
+                    else if (alpha == 255) ++opaque;
+                    else ++translucent;
+                }
+            }
+            std::cerr << "[atlas-helper] labels_frame_alpha"
+                      << " size=" << rgbaFrame.width() << "x" << rgbaFrame.height()
+                      << " format=" << static_cast<int>(rgbaFrame.format())
+                      << " transparent=" << transparent
+                      << " translucent=" << translucent
+                      << " opaque=" << opaque
+                      << std::endl;
+        }
+    }
     pixelData = QByteArray(
         reinterpret_cast<const char*>(rgbaFrame.constBits()),
         static_cast<qsizetype>(rgbaFrame.sizeInBytes()));
