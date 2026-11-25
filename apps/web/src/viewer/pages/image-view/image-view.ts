@@ -1995,7 +1995,7 @@ export class ImageView {
           const candidates = entries
             .filter(file => !file.isDirectory && /\.gpx$/i.test(file.name))
             .filter(file => file.name.replace(/^\d{4}[-_.]\d{2}[-_.]\d{2}(?:[ T_-]+\d{2}[-_.:]\d{2}[-_.:]\d{2})?[_ -]{1,2}/, '').replace(/\.gpx$/i, '').toLowerCase() === expectedStem)
-            .sort((a, b) => b.modifiedAt - a.modifiedAt);
+            .sort((a, b) => (b.modifiedAt ?? 0) - (a.modifiedAt ?? 0));
           for (const candidate of candidates) {
             const candidateResult = await this.desktopApi.FileSystem.readText(candidate.path);
             if (!candidateResult.success) continue;
@@ -2009,7 +2009,7 @@ export class ImageView {
         }
       }
       if (!result.success) {
-        missingNames.push(track['name']);
+        missingNames.push(trackName);
         continue;
       }
       try {
