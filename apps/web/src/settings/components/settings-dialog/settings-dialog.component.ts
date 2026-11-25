@@ -419,7 +419,7 @@ export class SettingsPanelComponent {
 
   protected readonly helpSearchQuery = signal('');
   protected readonly helpSearchResults = computed(() => {
-    const terms = this.helpSearchQuery().trim().toLocaleLowerCase().split(/\\s+/).filter(Boolean);
+    const terms = this.helpSearchQuery().trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     if (!terms.length) return [];
     const entries: Array<{ section: string; title: string; searchText: string; targetId: string }> = [];
     const add = (section: string, targetId: string, title: string, searchText: string): void => {
