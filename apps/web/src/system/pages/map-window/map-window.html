@@ -953,7 +953,7 @@
       <div class="range-setting osmand-label-opacity-setting lumascope-surface-box label-opacity-surface-box" [class.setting-unavailable]="configuredOsmandMapCount() === 0">
         <div class="opacity-row-label">
           <label class="visibility-toggle">OsmAnd Labels <input type="checkbox" [checked]="osmAndLabelsVisible()" (change)="changeOsmAndLabelsVisibility($any($event.target).checked)" [disabled]="configuredOsmandMapCount() === 0" aria-label="Show OsmAnd Labels"></label>
-          <button type="button" class="map-toolbar-button osmand-label-rerender-button" (click)="rerenderVisibleOsmAndLabels()"
+          <button type="button" class="routing-help-button opacity-fit-button osmand-label-rerender-button" (click)="rerenderVisibleOsmAndLabels()"
             [disabled]="configuredOsmandMapCount() === 0 || rerenderVisibleTilesBusy()"
             title="Rerender tiles" aria-label="Rerender tiles">
             <span aria-hidden="true">↻</span>
