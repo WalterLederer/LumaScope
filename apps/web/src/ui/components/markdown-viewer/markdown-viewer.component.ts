@@ -87,7 +87,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
       index++;
       const code: string[] = [];
       while (index < lines.length && !lines[index].trim().startsWith('```')) {
-        code.push('<span id="help-search-line-' + (index + 1) + '" class="help-search-line-anchor"></span>' + escapeHtml(lines[index]));
+        code.push('<span class="help-search-line-anchor help-search-line-' + (index + 1) + '"></span>' + escapeHtml(lines[index]));
         index++;
       }
       if (index < lines.length) index++;
@@ -99,13 +99,13 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
     if (heading) {
       const lineNumber = index + 1;
       const level = heading[1].length;
-      output.push('<span id="help-search-line-' + lineNumber + '" class="help-search-line-anchor"></span><h' + level + '>' + renderInline(heading[2], imageSources, searchQuery) + '</h' + level + '>');
+      output.push('<span class="help-search-line-anchor help-search-line-' + lineNumber + '"></span><h' + level + '>' + renderInline(heading[2], imageSources, searchQuery) + '</h' + level + '>');
       index++;
       continue;
     }
 
     if (/^\s*([-*_])\1\1+\s*$/.test(line)) {
-      output.push('<span id="help-search-line-' + (index + 1) + '" class="help-search-line-anchor"></span><hr>');
+      output.push('<span class="help-search-line-anchor help-search-line-' + (index + 1) + '"></span><hr>');
       index++;
       continue;
     }
@@ -117,17 +117,17 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
       const rows: string[] = [];
       while (index < lines.length && lines[index].trim().startsWith('|')) {
         const cells = splitTableRow(lines[index]);
-        rows.push('<tr id="help-search-line-' + (index + 1) + '">' + headers.map((_header, cellIndex) => '<td>' + renderInline(cells[cellIndex] ?? '', imageSources, searchQuery) + '</td>').join('') + '</tr>');
+        rows.push('<tr class="help-search-line-' + (index + 1) + '">' + headers.map((_header, cellIndex) => '<td>' + renderInline(cells[cellIndex] ?? '', imageSources, searchQuery) + '</td>').join('') + '</tr>');
         index++;
       }
-      output.push('<span id="help-search-line-' + tableLineNumber + '" class="help-search-line-anchor"></span><div class="markdown-table-wrap"><table><thead><tr>' + headers.map(cell => '<th>' + renderInline(cell, imageSources, searchQuery) + '</th>').join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>');
+      output.push('<span class="help-search-line-anchor help-search-line-' + tableLineNumber + '"></span><div class="markdown-table-wrap"><table><thead><tr>' + headers.map(cell => '<th>' + renderInline(cell, imageSources, searchQuery) + '</th>').join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>');
       continue;
     }
 
     if (/^\s*[-*+]\s+/.test(line)) {
       const items: string[] = [];
       while (index < lines.length && /^\s*[-*+]\s+/.test(lines[index])) {
-        items.push('<li id="help-search-line-' + (index + 1) + '">' + renderInline(lines[index].replace(/^\s*[-*+]\s+/, ''), imageSources, searchQuery) + '</li>');
+        items.push('<li class="help-search-line-' + (index + 1) + '">' + renderInline(lines[index].replace(/^\s*[-*+]\s+/, ''), imageSources, searchQuery) + '</li>');
         index++;
       }
       output.push('<ul>' + items.join('') + '</ul>');
@@ -138,7 +138,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
       const listLineNumber = index + 1;
       const items: string[] = [];
       while (index < lines.length && /^\s*\d+\.\s+/.test(lines[index])) {
-        items.push('<li id="help-search-line-' + (index + 1) + '">' + renderInline(lines[index].replace(/^\s*\d+\.\s+/, ''), imageSources, searchQuery) + '</li>');
+        items.push('<li class="help-search-line-' + (index + 1) + '">' + renderInline(lines[index].replace(/^\s*\d+\.\s+/, ''), imageSources, searchQuery) + '</li>');
         index++;
       }
       output.push('<ol>' + items.join('') + '</ol>');
@@ -148,7 +148,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
     if (/^\s*>/.test(line)) {
       const quote: string[] = [];
       while (index < lines.length && /^\s*>/.test(lines[index])) {
-        quote.push('<span id="help-search-line-' + (index + 1) + '" class="help-search-line-anchor"></span>' + renderInline(lines[index].replace(/^\s*>\s?/, ''), imageSources, searchQuery));
+        quote.push('<span class="help-search-line-anchor help-search-line-' + (index + 1) + '"></span>' + renderInline(lines[index].replace(/^\s*>\s?/, ''), imageSources, searchQuery));
         index++;
       }
       output.push('<blockquote>' + quote.join('<br>') + '</blockquote>');
@@ -444,7 +444,7 @@ export class MarkdownViewerComponent {
       // narrow it before using the DOM query APIs.
       const hostElement = this.host.nativeElement as HTMLElement;
       const article = hostElement.querySelector('.markdown-body') as HTMLElement | null;
-      const target = article?.querySelector('#help-search-line-' + result.lineNumber) as HTMLElement | null;
+      const target = article?.querySelector('.help-search-line-' + result.lineNumber) as HTMLElement | null;
       if (!article || !target) {
         attempts++;
         if (attempts === 1 || attempts >= 12) {
@@ -457,8 +457,8 @@ export class MarkdownViewerComponent {
             currentFile: this.currentFile(),
             loading: this.loading(),
             renderedHtmlLength: this.renderedHtml().length,
-            expectedAnchorId: 'help-search-line-' + result.lineNumber,
-            availableAnchorIds: article ? Array.from(article.querySelectorAll('[id^="help-search-line-"]')).slice(0, 30).map((element: Element) => element.id) : []
+            expectedAnchorClass: 'help-search-line-' + result.lineNumber,
+            availableAnchorClasses: article ? Array.from(article.querySelectorAll('[class*="help-search-line-"]')).slice(0, 30).map((element: Element) => element.className) : []
           }));
         }
         if (attempts < 12) view.requestAnimationFrame(findAndScroll);
