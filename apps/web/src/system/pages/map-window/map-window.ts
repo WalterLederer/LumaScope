@@ -47,7 +47,7 @@ interface LeafletMapApi {
   tileLayer(url: string, options: { attribution: string; maxZoom: number; maxNativeZoom?: number }): LeafletTileLayer;
   GridLayer: { extend(definition: { createTile(coords: { x: number; y: number; z: number }, done: (error: Error | null, tile: HTMLCanvasElement) => void): HTMLCanvasElement }): new(options?: { pane?: string; opacity?: number; tileSize?: number; minZoom?: number; maxZoom?: number; maxNativeZoom?: number; zIndex?: number }) => LeafletGridLayer };
   canvas(options?: { padding?: number }): unknown;
-  polyline(points: [number, number][], options: { color: string; weight: number; opacity: number; lineCap: string; lineJoin: string; dashArray?: string; renderer?: unknown }): { addTo(map: MapInstance): { remove(): void; on(event: 'mousemove' | 'mouseout', callback: (event: { latlng: { lat: number; lng: number } }) => void): unknown } };
+  polyline(points: [number, number][] | [number, number][][], options: { color: string; weight: number; opacity: number; lineCap: string; lineJoin: string; dashArray?: string; renderer?: unknown }): { addTo(map: MapInstance): { remove(): void; on(event: 'mousemove' | 'mouseout', callback: (event: { latlng: { lat: number; lng: number } }) => void): unknown; getElement?(): SVGElement | null } };
   polygon(points: [number, number][], options: { color: string; weight: number; opacity: number; fillColor: string; fillOpacity: number }): { addTo(map: MapInstance): { remove(): void } };
   marker(position: [number, number], options?: { icon?: unknown }): MapMarker & { addTo(map: MapInstance | MapMarkerGroup): MapMarker };
   divIcon(options: { className: string; html: string; iconSize: [number, number]; iconAnchor: [number, number] }): unknown;
@@ -8084,68 +8084,103 @@ ${points}
       this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude, segmentIndex) => this.updateGpxHover(path, latitude, longitude, segmentIndex));
       return;
     }
+
     for (const layer of this.trackLayers) layer.remove();
     this.trackLayers = [];
     if (!this.map || !this.leaflet || !this.gpxVisible()) return;
+
     for (const track of activeTracks) {
       const speedSegments = track.colorMode === 'speed' ? this.gpxSpeedSegments(track) : track.colorMode === 'elevation' ? this.gpxElevationSegments(track) : [];
       const normalSegments = this.visibleGpxSegments(track);
       const segments = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments.map(item => item.coordinates) : normalSegments;
       const trackPointCount = segments.reduce((sum, segment) => sum + segment.length, 0);
+      const largeTrack = trackPointCount >= 10000;
       let rendererOptions: { renderer?: unknown } = {};
-      if (trackPointCount >= 10000) {
+      if (largeTrack) {
         if (this.gpxCanvasRendererMap !== this.map) {
           this.gpxCanvasRenderer = this.leaflet.canvas({ padding: 0.5 });
           this.gpxCanvasRendererMap = this.map;
         }
         rendererOptions = { renderer: this.gpxCanvasRenderer };
       }
+
+      const renderStyle = createGpxTrackRenderStyle(track, this.gpxOpacity());
+      const colorGroups = new Map<string, [number, number][][]>();
       for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
         const segment = segments[segmentIndex];
         if (segment.length < 2) continue;
-        const color = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments[segmentIndex].color : track.colorMode === 'track-based' ? this.gpxTrackSegmentColor(track.path, segmentIndex) : (track.color || this.gpxColor());
-        const renderStyle = createGpxTrackRenderStyle(track, this.gpxOpacity());
-        if (renderStyle.outlineOpacity > 0) {
-          const outlineLine = this.leaflet.polyline(segment, { color: renderStyle.outlineColor, weight: renderStyle.outlineWidth, opacity: renderStyle.outlineOpacity, lineCap: 'round', lineJoin: 'round', dashArray: renderStyle.lineDashArray, ...rendererOptions }).addTo(this.map);
+        const color = track.colorMode === 'speed' || track.colorMode === 'elevation'
+          ? (speedSegments[segmentIndex]?.color || track.color || this.gpxColor())
+          : track.colorMode === 'track-based'
+            ? this.gpxTrackSegmentColor(track.path, segmentIndex)
+            : (track.color || this.gpxColor());
+        const group = colorGroups.get(color) ?? [];
+        group.push(segment);
+        colorGroups.set(color, group);
+      }
+
+      // Leaflet accepts nested coordinate arrays as a MultiPolyline. Grouping the
+      // disconnected Search Helper geometries avoids creating two layers per
+      // trkseg (visible + hover), which was the dominant cost for highly fragmented GPX.
+      if (renderStyle.outlineOpacity > 0 && segments.length > 0) {
+        const validSegments = [...colorGroups.values()].flat();
+        if (validSegments.length > 0) {
+          const outlineLine = this.leaflet.polyline(validSegments, {
+            color: renderStyle.outlineColor, weight: renderStyle.outlineWidth,
+            opacity: renderStyle.outlineOpacity, lineCap: 'round', lineJoin: 'round',
+            dashArray: renderStyle.lineDashArray, ...rendererOptions
+          }).addTo(this.map);
           this.trackLayers.push(outlineLine);
         }
-        const trackLine = this.leaflet.polyline(segment, {
+      }
+
+      for (const [color, groupedSegments] of colorGroups) {
+        const trackLine = this.leaflet.polyline(groupedSegments, {
           color, weight: renderStyle.lineWidth, opacity: renderStyle.lineOpacity,
-          lineCap: 'round', lineJoin: 'round', dashArray: renderStyle.lineDashArray, ...rendererOptions
+          lineCap: 'round', lineJoin: 'round', dashArray: renderStyle.lineDashArray,
+          ...rendererOptions
         }).addTo(this.map);
         if (renderStyle.shadowOpacity > 0) {
           const element = (trackLine as unknown as { getElement?: () => SVGElement | null }).getElement?.();
           if (element) element.style.filter = 'drop-shadow(0 0 ' + renderStyle.shadowBlur + 'px rgba(0,0,0,' + renderStyle.shadowOpacity + '))';
         }
-        const hoverLine = this.leaflet.polyline(segment, {
-          color, weight: Math.max(14, (track.lineWidth || 4) + 10), opacity: .01,
+        this.trackLayers.push(trackLine);
+      }
+
+      // A single transparent MultiPolyline handles hover for every disconnected
+      // segment. updateGpxHover resolves the nearest source point and its segment.
+      const hoverSegments = [...colorGroups.values()].flat();
+      if (hoverSegments.length > 0) {
+        const hoverLine = this.leaflet.polyline(hoverSegments, {
+          color: track.color || this.gpxColor(),
+          weight: Math.max(14, (track.lineWidth || 4) + 10), opacity: .01,
           lineCap: 'round', lineJoin: 'round', ...rendererOptions
         }).addTo(this.map);
-        hoverLine.on('mousemove', event => this.updateGpxHover(track.path, event.latlng.lat, event.latlng.lng, segmentIndex));
+        hoverLine.on('mousemove', event => this.updateGpxHover(track.path, event.latlng.lat, event.latlng.lng));
         hoverLine.on('mouseout', () => this.clearGpxHover(track.path));
-        this.trackLayers.push(trackLine, hoverLine);
+        this.trackLayers.push(hoverLine);
       }
-      // Direction arrows must use the same rendered geometry as the track line.
-      // Speed/elevation rendering splits source segments into individually coloured
-      // pieces; drawing arrows from normalSegments would give them the base track colour.
+
+      // Direction arrows retain the original per-segment color and geometry.
       const arrowSegments = track.colorMode === 'speed' || track.colorMode === 'elevation' ? segments : normalSegments;
-      for (let segmentIndex = 0; segmentIndex < arrowSegments.length; segmentIndex++) {
-        const segment = arrowSegments[segmentIndex];
-        if (!track.showDirection || segment.length < 2) continue;
-        const renderStyle = createGpxTrackRenderStyle(track, this.gpxOpacity());
-        const arrowSize = renderStyle.arrowSize;
-        const arrowColor = track.colorMode === 'speed' || track.colorMode === 'elevation'
-          ? (speedSegments[segmentIndex]?.color || track.color || this.gpxColor())
-          : track.colorMode === 'track-based'
-            ? this.gpxTrackSegmentColor(track.path, segmentIndex)
-            : (track.color || this.gpxColor());
-        for (const arrow of this.gpxDirectionArrows(segment, renderStyle.arrowInterval)) {
-          const icon = this.leaflet.divIcon({
-            className: 'gpx-direction-arrow-icon',
-            html: '<span class="gpx-direction-arrow" style="font-size:' + arrowSize + 'px;color:' + arrowColor + ';opacity:' + renderStyle.arrowOpacity + ';-webkit-text-stroke-width:' + renderStyle.arrowOutlineWidth + 'px;-webkit-text-stroke-color:' + renderStyle.arrowOutlineColor + ';text-shadow:' + renderStyle.arrowShadowOffset + 'px ' + renderStyle.arrowShadowOffset + 'px ' + renderStyle.arrowShadowBlur + 'px rgba(0,0,0,' + renderStyle.arrowShadowOpacity + ');transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + renderStyle.arrowGlyph + '</span>',
-            iconSize: [arrowSize + 4, arrowSize + 4], iconAnchor: [(arrowSize + 4) / 2, (arrowSize + 4) / 2]
-          });
-          this.trackLayers.push(this.leaflet.marker(arrow.position, { icon }).addTo(this.map) as MapMarker & { remove(): void });
+      if (track.showDirection) {
+        for (let segmentIndex = 0; segmentIndex < arrowSegments.length; segmentIndex++) {
+          const segment = arrowSegments[segmentIndex];
+          if (segment.length < 2) continue;
+          const arrowColor = track.colorMode === 'speed' || track.colorMode === 'elevation'
+            ? (speedSegments[segmentIndex]?.color || track.color || this.gpxColor())
+            : track.colorMode === 'track-based'
+              ? this.gpxTrackSegmentColor(track.path, segmentIndex)
+              : (track.color || this.gpxColor());
+          for (const arrow of this.gpxDirectionArrows(segment, renderStyle.arrowInterval)) {
+            const arrowSize = renderStyle.arrowSize;
+            const icon = this.leaflet.divIcon({
+              className: 'gpx-direction-arrow-icon',
+              html: '<span class="gpx-direction-arrow" style="font-size:' + arrowSize + 'px;color:' + arrowColor + ';opacity:' + renderStyle.arrowOpacity + ';-webkit-text-stroke-width:' + renderStyle.arrowOutlineWidth + 'px;-webkit-text-stroke-color:' + renderStyle.arrowOutlineColor + ';text-shadow:' + renderStyle.arrowShadowOffset + 'px ' + renderStyle.arrowShadowOffset + 'px ' + renderStyle.arrowShadowBlur + 'px rgba(0,0,0,' + renderStyle.arrowShadowOpacity + ');transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + renderStyle.arrowGlyph + '</span>',
+              iconSize: [arrowSize + 4, arrowSize + 4], iconAnchor: [(arrowSize + 4) / 2, (arrowSize + 4) / 2]
+            });
+            this.trackLayers.push(this.leaflet.marker(arrow.position, { icon }).addTo(this.map) as MapMarker & { remove(): void });
+          }
         }
       }
     }
