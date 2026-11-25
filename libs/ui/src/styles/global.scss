@@ -1265,3 +1265,10 @@ html[data-theme='dark'][data-tab-bar-style] body .image-controls-sidebar .mode-r
   box-shadow: inset 0 0 0 1px #25282c !important;
   font-weight: 700 !important;
 }
+
+
+/* Subtle violet tint to visually group the two independent label-opacity controls. */
+html body .label-opacity-surface-box {
+  padding: 8px 10px;
+  background: rgb(167 139 250 / 5%);
+}
