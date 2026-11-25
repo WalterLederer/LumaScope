@@ -1,5 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog';
-import { AsyncPipe, DecimalPipe, DOCUMENT } from '@angular/common';
+import { AsyncPipe, DecimalPipe, DOCUMENT, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, HostListener, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -131,6 +131,7 @@ const loadLeaflet = (document: Document): Promise<LeafletApi> => {
   selector: 'app-image-view',
   imports: [
     AsyncPipe,
+    NgTemplateOutlet,
     ImageRendererComponent,
     SettingsPanelComponent,
     ReactiveFormsModule,
