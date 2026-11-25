@@ -3143,3 +3143,18 @@
   grid-row: 1 !important;
   align-self: center !important;
 }
+
+
+/* Compact question-mark mark for the Help sidebar tab. */
+.image-sidebar-tabs .image-sidebar-help-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
