@@ -429,7 +429,16 @@ export class MarkdownViewerComponent {
     if (!view) return;
     let attempts = 0;
     const findAndScroll = (): void => {
-      if (expectedRequest !== this.documentLoadRequest || this.currentFile() !== result.fileName) return;
+      if (expectedRequest !== this.documentLoadRequest || this.currentFile() !== result.fileName) {
+        console.debug('[HelpSearchNav] scroll aborted', {
+          fileName: result.fileName,
+          lineNumber: result.lineNumber,
+          expectedRequest,
+          currentRequest: this.documentLoadRequest,
+          currentFile: this.currentFile()
+        });
+        return;
+      }
       // Resolve the article inside this single Help viewer instance.
       // ElementRef.nativeElement is typed as any by Angular's DI token, so
       // narrow it before using the DOM query APIs.
@@ -437,7 +446,20 @@ export class MarkdownViewerComponent {
       const article = hostElement.querySelector('.markdown-body') as HTMLElement | null;
       const target = article?.querySelector('#help-search-line-' + result.lineNumber) as HTMLElement | null;
       if (!article || !target) {
-        if (++attempts < 12) view.requestAnimationFrame(findAndScroll);
+        attempts++;
+        if (attempts === 1 || attempts >= 12) {
+          console.warn('[HelpSearchNav] target not found', {
+            fileName: result.fileName,
+            lineNumber: result.lineNumber,
+            attempt: attempts,
+            hostConnected: hostElement.isConnected,
+            articleFound: !!article,
+            currentFile: this.currentFile(),
+            loading: this.loading(),
+            renderedHtmlLength: this.renderedHtml().length
+          });
+        }
+        if (attempts < 12) view.requestAnimationFrame(findAndScroll);
         return;
       }
       // Highlight the containing block. Heading and table-start anchors are
@@ -452,7 +474,27 @@ export class MarkdownViewerComponent {
       // Let the browser calculate the scroll delta for the exact source-line
       // anchor. This also handles anchors nested in paragraphs, code blocks,
       // lists and tables without relying on offset-parent geometry.
+      const before = {
+        scrollTop: article.scrollTop,
+        scrollHeight: article.scrollHeight,
+        clientHeight: article.clientHeight,
+        targetTop: target.getBoundingClientRect().top,
+        articleTop: article.getBoundingClientRect().top,
+        targetTag: target.tagName,
+        targetClass: target.className,
+        blockTag: block?.tagName ?? null,
+        blockClass: block?.className ?? null
+      };
       target.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+      console.debug('[HelpSearchNav] scrolled to result', {
+        fileName: result.fileName,
+        lineNumber: result.lineNumber,
+        attempt: attempts,
+        ...before,
+        scrollTopAfter: article.scrollTop,
+        targetTopAfter: target.getBoundingClientRect().top,
+        articleTopAfter: article.getBoundingClientRect().top
+      });
     };
     view.requestAnimationFrame(() => view.requestAnimationFrame(findAndScroll));
   };
@@ -479,7 +521,20 @@ export class MarkdownViewerComponent {
       : (currentIndex + direction + results.length) % results.length;
     this.activeSearchResultIndex.set(nextIndex);
     const result = results[nextIndex];
-    if (this.currentFile() === result.fileName && !this.loading()) this.scrollToSearchResult(result);
+    const samePage = this.currentFile() === result.fileName;
+    console.debug('[HelpSearchNav] navigate', {
+      direction,
+      resultCount: results.length,
+      previousIndex: currentIndex,
+      nextIndex,
+      fileName: result.fileName,
+      lineNumber: result.lineNumber,
+      currentFile: this.currentFile(),
+      loading: this.loading(),
+      samePage,
+      documentLoadRequest: this.documentLoadRequest
+    });
+    if (samePage && !this.loading()) this.scrollToSearchResult(result);
     else void this.loadDocument(result.fileName, result.lineNumber);
   };
 
