@@ -1989,11 +1989,11 @@ export class ImageView {
         try {
           const folder = await this.desktopApi.FileSystem.dirname(trackPath);
           const expectedName = trackName.split(/[\\/]/).pop() || trackName;
-          const expectedStem = expectedName.replace(/\\.gpx$/i, '').toLowerCase();
+          const expectedStem = expectedName.replace(/\.gpx$/i, '').toLowerCase();
           const entries = await this.desktopApi.FileSystem.readDir(folder);
           const candidates = entries
-            .filter(file => !file.isDirectory && /\\.gpx$/i.test(file.name))
-            .filter(file => file.name.replace(/^\\d{4}[-_.]\\d{2}[-_.]\\d{2}(?:[ T_-]+\\d{2}[-_.:]\\d{2}[-_.:]\\d{2})?[_ -]{1,2}/, '').replace(/\\.gpx$/i, '').toLowerCase() === expectedStem)
+            .filter(file => !file.isDirectory && /\.gpx$/i.test(file.name))
+            .filter(file => file.name.replace(/^\d{4}[-_.]\d{2}[-_.]\d{2}(?:[ T_-]+\d{2}[-_.:]\d{2}[-_.:]\d{2})?[_ -]{1,2}/, '').replace(/\.gpx$/i, '').toLowerCase() === expectedStem)
             .sort((a, b) => b.modifiedAt - a.modifiedAt);
           for (const candidate of candidates) {
             const candidateResult = await this.desktopApi.FileSystem.readText(candidate.path);
