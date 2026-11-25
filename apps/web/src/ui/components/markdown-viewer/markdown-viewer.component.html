@@ -53,9 +53,12 @@
                 <summary><span>{{ group.title }}</span><small>{{ group.results.length }} {{ group.results.length === 1 ? 'match' : 'matches' }}</small></summary>
                 <div class="markdown-help-search-group-results">
                   @for (result of group.results; track result.lineNumber) {
-                    <button type="button" class="markdown-help-search-result" [class.active]="activeSearchResultIndex() >= 0 && flatSearchResults()[activeSearchResultIndex()] === result" (click)="openSearchResult(result)">
+                    <div class="markdown-help-search-result" role="button" tabindex="0"
+                         [attr.aria-current]="activeSearchResultIndex() >= 0 && flatSearchResults()[activeSearchResultIndex()] === result ? 'location' : null"
+                         [class.active]="activeSearchResultIndex() >= 0 && flatSearchResults()[activeSearchResultIndex()] === result"
+                         (click)="openSearchResult(result)" (keydown)="onSearchResultKeydown($event, result)">
                       <span>Line {{ result.lineNumber }}</span><small>{{ result.snippet }}</small>
-                    </button>
+                    </div>
                   }
                 </div>
               </details>
