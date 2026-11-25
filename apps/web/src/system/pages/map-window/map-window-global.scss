@@ -1264,7 +1264,8 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
 /* Label opacity controls use a compact two-row layout: title/value above,
    full-width slider below. Crosshair and map scale share a flexible row. */
 .opacity-settings .opacity-content > .hillshade-opacity-surface-box {
-  background: rgb(128 128 128 / 6%);
+  /* Keep the subtle grey surface visible above the generic opacity-control background. */
+  background: rgb(128 128 128 / 9%) !important;
 }
 
 .opacity-settings .opacity-content > .label-opacity-surface-box {
