@@ -4771,18 +4771,55 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly rerenderVisibleOsmAndLabels = async (): Promise<void> => {
     if (this.rerenderVisibleTilesBusy()) return;
-    const renderer = this.offlineRenderer;
     if (!this.desktop) {
       this.rerenderOsmAndLabelsStatus.set('Rerender unavailable: desktop API is not connected.');
       return;
     }
-    if (!renderer) {
-      this.rerenderOsmAndLabelsStatus.set('Rerender unavailable: map renderer is not ready.');
-      console.warn('[OsmAnd Labels] Rerender requested without an initialized map renderer.');
-      return;
-    }
     if (this.configuredOsmandMapCount() === 0) {
       this.rerenderOsmAndLabelsStatus.set('Rerender unavailable: no active OsmAnd map is configured.');
+      return;
+    }
+
+    // The map window can become interactive while OsmAnd style/runtime
+    // restoration is still in progress. Do not treat a temporarily null
+    // renderer as a permanent failure: join the in-flight initialization,
+    // then explicitly start it if no initialization was pending.
+    let renderer = this.offlineRenderer;
+    if (!renderer && (this.mapSource() === 'osmand-atlas' || this.mapSource() === 'osmand')) {
+      this.rerenderOsmAndLabelsStatus.set('Waiting for the OsmAnd map renderer…');
+      const pendingInitialization = this.mapInitialization;
+      console.info('[OsmAnd Labels] Renderer readiness check', {
+        source: this.mapSource(),
+        initializationPending: !!pendingInitialization,
+        initializationStatus: this.renderInitStatus()
+      });
+      if (pendingInitialization) {
+        try {
+          await pendingInitialization;
+        } catch (error) {
+          console.warn('[OsmAnd Labels] Pending map initialization failed:', error);
+        }
+      }
+      renderer = this.offlineRenderer;
+      if (!renderer && this.currentLatitude !== null && this.currentLongitude !== null) {
+        console.info('[OsmAnd Labels] Starting missing map renderer before rerender.');
+        await this.initialize(this.currentLatitude, this.currentLongitude);
+        renderer = this.offlineRenderer;
+      }
+    }
+    if (!renderer) {
+      const source = this.mapSource();
+      const reason = this.renderInitStatus()
+        ? ' ' + this.renderInitStatus()
+        : '';
+      this.rerenderOsmAndLabelsStatus.set('Rerender unavailable: ' + source + ' map renderer could not be initialized.' + reason);
+      console.warn('[OsmAnd Labels] Rerender requested without a ready map renderer.', {
+        source,
+        initializationPending: !!this.mapInitialization,
+        initializationStatus: this.renderInitStatus(),
+        hasLeafletMap: !!this.map,
+        hasOfflineRenderer: !!this.offlineRenderer
+      });
       return;
     }
 
