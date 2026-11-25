@@ -40,15 +40,15 @@ export interface GpxTrackPreviewData {
           </linearGradient>
         </defs>
         <path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5"
+          fill="none" stroke="#080808"
+          [attr.stroke-width]="renderStyle().outlineWidth"
+          [attr.stroke-opacity]="renderStyle().outlineOpacity"
+          [attr.stroke-dasharray]="dashPattern()" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5"
           fill="none" stroke="#000000"
           [attr.stroke-width]="renderStyle().shadowWidth"
           [attr.stroke-opacity]="renderStyle().shadowOpacity"
           [style.filter]="'blur(' + renderStyle().shadowBlur + 'px)'"
-          [attr.stroke-dasharray]="dashPattern()" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5"
-          fill="none" stroke="#080808"
-          [attr.stroke-width]="renderStyle().outlineWidth"
-          [attr.stroke-opacity]="renderStyle().outlineOpacity"
           [attr.stroke-dasharray]="dashPattern()" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5"
           fill="none"
