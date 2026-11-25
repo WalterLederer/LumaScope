@@ -694,6 +694,7 @@ export class MapWindow implements OnInit, OnDestroy {
   });
   protected readonly activeOfflineMapCount = computed(() => this.offlineMapStats().activeCount);
   protected readonly activeOsmandMapCount = computed(() => this.viewportObfMapIds().length);
+  protected readonly configuredOsmandMapCount = computed(() => this.offlineMaps().filter(map => map.type === 'obf' && map.enabled && map.available).length);
   protected readonly inUseOfflineMapCount = computed(() => this.offlineMapStats().inUseIds.size);
   protected readonly filteredOffline = computed(() => {
     const maps = this.offlineMaps();
@@ -8145,7 +8146,7 @@ ${points}
     const map = this.map;
     const leaflet = this.leaflet;
     const desktop = this.desktop;
-    if (!map || !leaflet || !desktop || !this.osmAndLabelsVisible() || this.activeOsmandMapCount() === 0) {
+    if (!map || !leaflet || !desktop || !this.osmAndLabelsVisible() || this.configuredOsmandMapCount() === 0) {
       this.leafletOsmAndLabelsLayer?.remove();
       this.leafletOsmAndLabelsLayer = null;
       return;
