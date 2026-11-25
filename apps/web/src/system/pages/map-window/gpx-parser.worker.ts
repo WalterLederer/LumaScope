@@ -41,10 +41,11 @@ function decodeXmlText(value: string): string {
 }
 
 function readAttribute(tag: string, name: string): string | null {
-  const doubleQuoted = tag.match(new RegExp('(?:^|\\s)' + name + '\\s*=\\s*"([^"]*)"', 'i'));
-  if (doubleQuoted) return doubleQuoted[1];
-  const singleQuoted = tag.match(new RegExp("(?:^|\\\\s)" + name + "\\\\s*=\\\\s*'([^']*)'", 'i'));
-  return singleQuoted?.[1] ?? null;
+  const attributes = tag.matchAll(/([A-Za-z_:][\\w:.-]*)\\s*=\\s*(?:"([^"]*)"|'([^']*)')/g);
+  for (const attribute of attributes) {
+    if (attribute[1] === name) return attribute[2] ?? attribute[3] ?? null;
+  }
+  return null;
 }
 
 function countTrackPoints(content: string): number {
