@@ -607,7 +607,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly activeOsmandMapCount = computed(() => this.viewportObfMapIds().length);
   protected readonly configuredOsmandMapCount = computed(() => this.offlineMaps().filter(map => map.type === 'obf' && map.enabled && map.available).length);
   protected readonly configuredMbtilesMapCount = computed(() => this.offlineMaps().filter(map => (map.type === 'mbtiles' || !map.type) && map.enabled && map.available).length);
-  protected readonly canShowMbtilesLabels = computed(() => (this.mapSource() === 'offline' || this.mapSource() === 'online') && this.configuredMbtilesMapCount() > 0);
+  protected readonly canShowMbtilesLabels = computed(() => ['offline', 'online', 'mapsforge'].includes(this.mapSource()) && this.configuredMbtilesMapCount() > 0);
   protected readonly inUseOfflineMapCount = computed(() => this.offlineMapStats().inUseIds.size);
   protected readonly filteredOffline = computed(() => {
     const maps = this.offlineMaps();
@@ -3345,6 +3345,8 @@ export class MapWindow implements OnInit, OnDestroy {
     const syncOfflineZoom = (): void => this.persistZoom(renderer.map.getZoom());
     renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
     renderer.map.on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
+      renderer.map.on('moveend', () => { void this.updateOnlineMbtilesLabelSource(renderer); });
+      void this.updateOnlineMbtilesLabelSource(renderer);
     this.updateCrosshairCoordinates();
     renderer.map.on('zoomend', syncOfflineZoom);
     renderer.map.on('contextmenu', event => {
@@ -3753,7 +3755,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private async updateOnlineMbtilesLabelSource(renderer: OfflineMapRenderer): Promise<void> {
     const request = ++this.onlineMbtilesLabelRequest;
-    if (this.mapSource() !== 'online' || this.offlineRenderer !== renderer) return;
+    if ((this.mapSource() !== 'online' && this.mapSource() !== 'mapsforge') || this.offlineRenderer !== renderer) return;
     if (!this.desktop) {
       this.onlineMbtilesLabelMapId = null;
       renderer.setOnlineMbtilesLabelSource(null);
@@ -3767,7 +3769,7 @@ export class MapWindow implements OnInit, OnDestroy {
       console.warn('[OnlineMap] Could not select MBTiles label source:', error);
       return;
     }
-    if (request !== this.onlineMbtilesLabelRequest || this.mapSource() !== 'online' || this.offlineRenderer !== renderer) return;
+    if (request !== this.onlineMbtilesLabelRequest || (this.mapSource() !== 'online' && this.mapSource() !== 'mapsforge') || this.offlineRenderer !== renderer) return;
     const nextId = selected?.id ?? null;
     if (nextId === this.onlineMbtilesLabelMapId) return;
     this.onlineMbtilesLabelMapId = nextId;
