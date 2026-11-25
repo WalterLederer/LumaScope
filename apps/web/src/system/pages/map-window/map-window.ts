@@ -193,6 +193,7 @@ export class MapWindow implements OnInit, OnDestroy {
     input: Array<{ coordinates: [number, number][]; color: string }>;
     source: [number, number][][];
   }>();
+  private readonly gpxViewportChunkPreparing = new Map<string, [number, number][][]>();
   private gpxCanvasRenderer: unknown = null;
   private gpxCanvasRendererMap: MapInstance | null = null;
   private gpxSegments: [number, number][][] = [];
@@ -6317,8 +6318,19 @@ export class MapWindow implements OnInit, OnDestroy {
     const bounds = this.map?.getBounds() ?? this.offlineRenderer?.map.getBounds();
     const cached = this.gpxViewportChunkCache.get(track.path);
     // Never build chunk bounds synchronously during rendering. If preparation is
-    // incomplete (or the source changed), skip this pass instead of freezing the map.
-    if (!cached || cached.source !== segments) return [];
+    // incomplete (or the source changed), prepare it in the background and skip this pass.
+    if (!cached || cached.source !== segments) {
+      if (this.gpxViewportChunkPreparing.get(track.path) !== segments) {
+        this.gpxViewportChunkPreparing.set(track.path, segments);
+        void this.prepareGpxViewportChunks(track, segments).then(() => {
+          if (this.gpxViewportChunkPreparing.get(track.path) === segments) {
+            this.gpxViewportChunkPreparing.delete(track.path);
+            this.applyGpxTrack();
+          }
+        });
+      }
+      return [];
+    }
     if (!bounds) return cached.chunks.map(chunk => ({ coordinates: chunk.coordinates, sourceSegmentIndex: chunk.sourceSegmentIndex }));
 
     const south = bounds.getSouth(), north = bounds.getNorth();
