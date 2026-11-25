@@ -454,7 +454,38 @@
 .markdown-help-search.has-query {
   flex: 0 1 42%;
   min-height: 120px;
-  max-height: 55%;
+  max-height: none;
+}
+.markdown-help-search-resizer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: 0 0 9px;
+  align-items: center;
+  justify-content: center;
+  min-height: 9px;
+  margin: 0;
+  cursor: row-resize;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+.markdown-help-search-resizer > span {
+  display: block;
+  width: 42px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--color-border-default, rgb(128 128 128 / 65%));
+  transition: width 120ms ease, background-color 120ms ease;
+}
+.markdown-help-search-resizer:hover > span,
+.markdown-help-search-resizer:focus-visible > span {
+  width: 64px;
+  background: var(--color-content-accent, #69aee8);
+}
+.markdown-help-search-resizer:focus-visible {
+  outline: 1px solid var(--color-content-accent, #69aee8);
+  outline-offset: -1px;
 }
 .markdown-help-search > input {
   flex: 0 0 auto;
