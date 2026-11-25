@@ -961,7 +961,7 @@
           {{ rerenderOsmAndLabelsStatus() }}
         </span>
       </div>
-      <div class="range-setting" [class.setting-unavailable]="activeHillshadeDatabaseCount() === 0">
+      <div class="range-setting lumascope-surface-box hillshade-opacity-surface-box" [class.setting-unavailable]="activeHillshadeDatabaseCount() === 0">
         <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="activeHillshadeDatabaseCount() === 0" aria-label="Show Hillshade"></label>
         <ui-slider id="hillshade-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="hillshadeOpacity()" (valueChange)="changeHillshadeOpacity($event)" [color]="themeService.sliderColor()" [isDisabled]="activeHillshadeDatabaseCount() === 0 || !hillshadeVisible()" aria-label="Hillshade opacity" />
         <span class="range-value">{{ hillshadeOpacity() }}%</span>
