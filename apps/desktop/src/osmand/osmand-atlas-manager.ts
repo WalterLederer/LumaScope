@@ -294,7 +294,8 @@ class OsmAndAtlasWorker {
     private readonly resourcesPath: string,
     private readonly stylePath: string,
     private readonly environment: NodeJS.ProcessEnv,
-    private readonly displayScale: number
+    private readonly displayScale: number,
+    private readonly labelsOnly = false
   ) {}
 
   render(longitude: number, latitude: number, zoom: number): Promise<{ pixels: Buffer; geometryMessages: string[]; queueWaitMs: number }> {
@@ -414,7 +415,8 @@ class OsmAndAtlasWorker {
         encodePathArgument(configurationPath),
         encodePathArgument(this.resourcesPath),
         encodePathArgument(this.stylePath),
-        String(this.displayScale)
+        String(this.displayScale),
+        ...(this.labelsOnly ? ['--labels-only'] : [])
       ], {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
@@ -590,6 +592,8 @@ export class OsmAndAtlasManager {
   private scaleChange: Promise<void> = Promise.resolve();
   private workers = this.createWorkers();
   private nextWorker = 0;
+  private labelWorkers = this.createWorkers(this.readRenderWorkerCount(), true);
+  private nextLabelWorker = 0;
   private readonly pendingTiles = new Map<string, Promise<{ pixels: Buffer; geometryMessages: string[]; queueWaitMs: number }>>();
   private readonly diagnosedTiles = new Set<string>();
   private temporaryFileId = 0;
@@ -598,6 +602,7 @@ export class OsmAndAtlasManager {
     this.hillshadeWorkers = this.createHillshadeWorkers();
     app.once('will-quit', () => {
       for (const worker of this.workers) void worker.shutdown();
+      for (const worker of this.labelWorkers) void worker.shutdown();
       for (const worker of this.hillshadeWorkers) void worker.shutdown();
       this.stopSearchWorker();
     });
@@ -733,12 +738,17 @@ export class OsmAndAtlasManager {
   private async ensureRenderWorkerPools(): Promise<void> {
     const count = this.readRenderWorkerCount();
     const previousWorkers = this.workers.length === count ? null : this.workers;
+    const previousLabelWorkers = this.labelWorkers.length === count ? null : this.labelWorkers;
     const previousHillshadeWorkers = this.hillshadeWorkers.length === count ? null : this.hillshadeWorkers;
-    if (!previousWorkers && !previousHillshadeWorkers) return;
+    if (!previousWorkers && !previousLabelWorkers && !previousHillshadeWorkers) return;
     if (previousWorkers) {
       this.workers = this.createWorkers(count);
       this.nextWorker = 0;
       this.pendingTiles.clear();
+    }
+    if (previousLabelWorkers) {
+      this.labelWorkers = this.createWorkers(count, true);
+      this.nextLabelWorker = 0;
     }
     if (previousHillshadeWorkers) {
       this.hillshadeWorkers = this.createHillshadeWorkers(count);
@@ -746,6 +756,7 @@ export class OsmAndAtlasManager {
     }
     await Promise.all([
       ...(previousWorkers ?? []).map(worker => worker.retire()),
+      ...(previousLabelWorkers ?? []).map(worker => worker.retire()),
       ...(previousHillshadeWorkers ?? []).map(worker => worker.shutdown())
     ]);
     console.info('[OsmAnd Atlas] render_worker_count=' + count);
@@ -846,19 +857,25 @@ export class OsmAndAtlasManager {
 
   private async retireWorkers(): Promise<void> {
     const previousWorkers = this.workers;
+    const previousLabelWorkers = this.labelWorkers;
     this.workers = [];
     this.nextWorker = 0;
-    await Promise.all(previousWorkers.map(worker => worker.retire()));
+    this.labelWorkers = [];
+    this.nextLabelWorker = 0;
+    await Promise.all([...previousWorkers, ...previousLabelWorkers].map(worker => worker.retire()));
   }
 
   private async replaceWorkers(): Promise<void> {
     const previousWorkers = this.workers;
+    const previousLabelWorkers = this.labelWorkers;
     // Publish the replacement first. Existing requests retain their worker
     // references and finish before the old helper processes are stopped.
     this.workers = this.createWorkers();
     this.nextWorker = 0;
+    this.labelWorkers = this.createWorkers(this.readRenderWorkerCount(), true);
+    this.nextLabelWorker = 0;
     this.pendingTiles.clear();
-    await Promise.all(previousWorkers.map(worker => worker.retire()));
+    await Promise.all([...previousWorkers, ...previousLabelWorkers].map(worker => worker.retire()));
   }
 
   private async refreshSelectedObf(): Promise<void> {
@@ -906,10 +923,10 @@ export class OsmAndAtlasManager {
     return update;
   }
 
-  private createWorkers(count = this.readRenderWorkerCount()): OsmAndAtlasWorker[] {
+  private createWorkers(count = this.readRenderWorkerCount(), labelsOnly = false): OsmAndAtlasWorker[] {
     return Array.from({ length: count }, () =>
       new OsmAndAtlasWorker(
-        this.helperPath, this.obfPaths, this.resourcesPath, this.stylePath, this.environment, this.displayScale
+        this.helperPath, this.obfPaths, this.resourcesPath, this.stylePath, this.environment, this.displayScale, labelsOnly
       )
     );
   }
@@ -1454,7 +1471,17 @@ export class OsmAndAtlasManager {
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.renderTile' })
-  readonly renderTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, requestedDisplayScale?: number, forceRender = false): Promise<OsmAndAtlasTileResult> => {
+  readonly renderTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, requestedDisplayScale?: number, forceRender = false): Promise<OsmAndAtlasTileResult> =>
+    this.renderTileInternal(event, z, x, y, requestedDisplayScale, forceRender, false);
+
+  @IpcHandler({ name: 'OsmAndAtlas.renderLabelsTile' })
+  readonly renderLabelsTile = async (event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number, requestedDisplayScale?: number, forceRender = false): Promise<OsmAndAtlasTileResult> =>
+    this.renderTileInternal(event, z, x, y, requestedDisplayScale, forceRender, true);
+
+  private renderTileInternal = async (
+    event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number,
+    requestedDisplayScale?: number, forceRender = false, labelsOnly = false
+  ): Promise<OsmAndAtlasTileResult> => {
     await this.ensureRenderWorkerPools();
     await this.styleChange;
     // OBF selection is refreshed by getRuntimeStatus() during map initialization.
@@ -1486,7 +1513,8 @@ export class OsmAndAtlasManager {
 
     const tileX = x;
     const tileY = y;
-    if (!this.workers.length) throw new Error('OsmAnd Atlas worker pool is not initialized.');
+    const renderWorkers = labelsOnly ? this.labelWorkers : this.workers;
+    if (!renderWorkers.length) throw new Error(labelsOnly ? 'OsmAnd Labels worker pool is not initialized.' : 'OsmAnd Atlas worker pool is not initialized.');
 
     const mapCacheKey = this.obfPaths.length
       ? createHash('sha256').update(this.obfPaths.join('\0')).digest('hex').slice(0, 20)
@@ -1497,7 +1525,7 @@ export class OsmAndAtlasManager {
       .replace(/[^a-zA-Z0-9_-]/g, '_')
       .toLowerCase();
     const cacheFile = join(
-      this.cachePath, 'xyz-256', mapCacheKey, densityCacheKey, styleCacheKey,
+      this.cachePath, labelsOnly ? 'labels-xyz-256' : 'xyz-256', mapCacheKey, densityCacheKey, styleCacheKey,
       String(z), String(tileX), tileY + '.png'
     );
 
@@ -1510,7 +1538,7 @@ export class OsmAndAtlasManager {
       // entry, otherwise an in-flight render could overwrite the forced result.
       const previousRender = this.pendingTiles.get(cacheFile);
       if (previousRender) await previousRender.catch(() => undefined);
-      const forcedRender = this.renderAndCacheTile(z, tileX, tileY, cacheFile);
+      const forcedRender = this.renderAndCacheTile(z, tileX, tileY, cacheFile, labelsOnly);
       this.pendingTiles.set(cacheFile, forcedRender);
       try {
         const rendered = await forcedRender;
@@ -1523,7 +1551,7 @@ export class OsmAndAtlasManager {
     } else if (!tilePixels) {
       let pending = this.pendingTiles.get(cacheFile);
       if (!pending) {
-        pending = this.renderAndCacheTile(z, tileX, tileY, cacheFile);
+        pending = this.renderAndCacheTile(z, tileX, tileY, cacheFile, labelsOnly);
         this.pendingTiles.set(cacheFile, pending);
         void pending.finally(() => {
           if (this.pendingTiles.get(cacheFile) === pending) this.pendingTiles.delete(cacheFile);
@@ -1567,29 +1595,29 @@ export class OsmAndAtlasManager {
         geometryMessages
       }
     };
-  };
-
   @IpcHandler({ name: 'OsmAndAtlas.cancelRendering' })
   readonly cancelRendering = async (): Promise<void> => {
     this.pendingTiles.clear();
-    await Promise.all(this.workers.map(worker => worker.abort()));
+    await Promise.all([...this.workers, ...this.labelWorkers].map(worker => worker.abort()));
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.shutdown' })
   readonly shutdown = async (): Promise<void> => {
     // Stop helper processes only after active/queued frames have completed.
     // Worker objects remain reusable; ensureStarted() lazily restarts them.
-    await Promise.all(this.workers.map(worker => worker.stop()));
+    await Promise.all([...this.workers, ...this.labelWorkers].map(worker => worker.stop()));
     await Promise.all(this.hillshadeWorkers.map(worker => worker.shutdown()));
   };
 
-  private async renderAndCacheTile(z: number, tileX: number, tileY: number, cacheFile: string): Promise<{ pixels: Buffer; geometryMessages: string[]; queueWaitMs: number }> {
+  private async renderAndCacheTile(z: number, tileX: number, tileY: number, cacheFile: string, labelsOnly = false): Promise<{ pixels: Buffer; geometryMessages: string[]; queueWaitMs: number }> {
     // Render the centre of this exact XYZ tile; no 2x2 grouping or zoom shift.
     const longitude = (tileX + 0.5) / (2 ** z) * 360 - 180;
     const mercatorY = Math.PI * (1 - 2 * (tileY + 0.5) / (2 ** z));
     const latitude = Math.atan(Math.sinh(mercatorY)) * 180 / Math.PI;
-    if (!this.workers.length) throw new Error('OsmAnd Atlas worker pool is not initialized.');
-    const worker = this.workers[this.nextWorker++ % this.workers.length];
+    const renderWorkers = labelsOnly ? this.labelWorkers : this.workers;
+    const workerIndex = labelsOnly ? this.nextLabelWorker++ : this.nextWorker++;
+    if (!renderWorkers.length) throw new Error(labelsOnly ? 'OsmAnd Labels worker pool is not initialized.' : 'OsmAnd Atlas worker pool is not initialized.');
+    const worker = renderWorkers[workerIndex % renderWorkers.length];
     // The native helper renders one 256px XYZ tile at the same zoom.
     const rendered = await worker.render(longitude, latitude, z);
     const pixels = rendered.pixels;
