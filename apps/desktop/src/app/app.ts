@@ -28,6 +28,14 @@ export default class App {
   private static capturePreviewBoundsTimer: ReturnType<typeof setTimeout> | null = null;
   private static pendingCaptureHotkey: string | null = null;
   private static shutdownStartedAt: number | null = null;
+  private static startupStartedAt: number | null = null;
+
+  private static logStartup(event: string, details: Record<string, unknown> = {}): void {
+    console.warn(`[Startup] ${event}`, {
+      elapsedMs: App.startupStartedAt === null ? null : Date.now() - App.startupStartedAt,
+      ...details
+    });
+  }
 
   private static logShutdown(event: string, details: Record<string, unknown> = {}): void {
     try {
@@ -228,6 +236,7 @@ export default class App {
     App.mainWindow.setTitle(mainWindowTitle);
     App.mainWindow.center();
     const startupStartedAt = Date.now();
+    App.startupStartedAt = startupStartedAt;
     const logRendererStartup = (event: string, details: Record<string, unknown> = {}): void => {
       console.warn(`[Startup] ${event}`, { elapsedMs: Date.now() - startupStartedAt, ...details });
     };
@@ -513,6 +522,14 @@ export default class App {
   }
 
   static openMapWindow(latitude: number | null, longitude: number | null, bearing?: number, imagePath?: string | null, folderPath?: string | null, recursive?: boolean, focusWindow = true): boolean {
+    const openRequestedAt = Date.now();
+    App.logStartup('Location window open requested', {
+      alreadyOpen: App.isMapWindowOpen(),
+      focusWindow,
+      hasImage: Boolean(imagePath),
+      hasFolder: Boolean(folderPath),
+      recursive: recursive ?? false
+    });
     const hasCoordinates = Number.isFinite(latitude) && Number.isFinite(longitude)
       && latitude! >= -90 && latitude! <= 90 && longitude! >= -180 && longitude! <= 180;
     if ((latitude !== null || longitude !== null) && !hasCoordinates) {
@@ -593,6 +610,12 @@ export default class App {
       if (!App.isMapWindowOpen()) return;
       if (App.startupConfig.devToolsOpen()) App.mapWindow.webContents.openDevTools();
       App.mapWindow.showInactive();
+      App.logStartup('Location window shown', {
+        requestToShowMs: Date.now() - openRequestedAt,
+        hasCoordinates: hasResolvedCoordinates,
+        hasImage: Boolean(imagePath),
+        hasFolder: Boolean(location.folderPath)
+      });
     });
     App.mapWindow.on('closed', () => {
       App.logShutdown('window-closed', { window: 'location' });
