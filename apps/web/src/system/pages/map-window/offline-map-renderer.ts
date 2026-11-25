@@ -18,7 +18,7 @@ let osmAndHillshadeDatabasesProvider: (() => OsmAndHillshadeDatabase[]) | null =
 let osmAndHillshadeProtocolRegistered = false;
 let osmAndHillshadeDiagnosticCount = 0;
 
-export type OfflineRenderHelper = 'OsmAnd' | 'OsmAnd Atlas' | 'Mapsforge' | 'Hillshade';
+export type OfflineRenderHelper = 'OsmAnd' | 'OsmAnd Atlas' | 'OsmAnd Labels' | 'Mapsforge' | 'Hillshade';
 export interface OfflineRenderTaskStatus {
   id: number;
   helper: OfflineRenderHelper;
@@ -2807,7 +2807,8 @@ export class OfflineMapRenderer {
     this.overlayElement.remove();
     this.map.remove();
   }
-}
+
+
   setOsmAndLabelsOpacity(opacity: number): void {
     this.osmAndLabelsOpacity = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 1;
     if (this.map.getLayer('osmand-labels-layer')) {
@@ -2847,3 +2848,4 @@ export class OfflineMapRenderer {
     this.map.moveLayer('osmand-labels-layer');
   }
 
+}
