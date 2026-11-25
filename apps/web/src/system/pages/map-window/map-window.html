@@ -935,12 +935,12 @@
         <input id="overlay-opacity" class="opacity-slider" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" [disabled]="!overlayMode" aria-label="Window opacity">
         <span class="range-value">{{ overlayOpacity() }}%</span>
       </div>
-      <div class="range-setting" [class.setting-unavailable]="!canShowMbtilesLabels()">
+      <div class="range-setting mbtiles-label-opacity-setting" [class.setting-unavailable]="!canShowMbtilesLabels()">
         <label class="visibility-toggle">MBTiles Labels <input type="checkbox" [checked]="labelsVisible()" (change)="changeLabelsVisibility($any($event.target).checked)" [disabled]="!canShowMbtilesLabels()" aria-label="Show MBTiles labels"></label>
-        <ui-slider id="map-label-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="labelOpacity()" (valueChange)="changeLabelOpacity($event)" [color]="themeService.sliderColor()" aria-label="MBTiles label opacity" />
+        <ui-slider id="map-label-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="labelOpacity()" (valueChange)="changeLabelOpacity($event)" [color]="'#20b8a5'" aria-label="MBTiles label opacity" />
         <span class="range-value">{{ labelOpacity() }}%</span>
       </div>
-      <div class="range-setting" [class.setting-unavailable]="configuredOsmandMapCount() === 0">
+      <div class="range-setting osmand-label-opacity-setting" [class.setting-unavailable]="configuredOsmandMapCount() === 0">
         <div class="opacity-row-label">
           <label class="visibility-toggle">OsmAnd Labels <input type="checkbox" [checked]="osmAndLabelsVisible()" (change)="changeOsmAndLabelsVisibility($any($event.target).checked)" [disabled]="configuredOsmandMapCount() === 0" aria-label="Show OsmAnd Labels"></label>
           <button type="button" class="map-toolbar-button osmand-label-rerender-button" (click)="rerenderVisibleOsmAndLabels()"
@@ -949,7 +949,7 @@
             {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
           </button>
         </div>
-        <ui-slider id="osmand-labels-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="osmAndLabelsOpacity()" (valueChange)="changeOsmAndLabelsOpacity($event)" [color]="themeService.sliderColor()" [isDisabled]="configuredOsmandMapCount() === 0 || !osmAndLabelsVisible()" aria-label="OsmAnd Labels opacity" />
+        <ui-slider id="osmand-labels-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="osmAndLabelsOpacity()" (valueChange)="changeOsmAndLabelsOpacity($event)" [color]="'#20b8a5'" [isDisabled]="configuredOsmandMapCount() === 0 || !osmAndLabelsVisible()" aria-label="OsmAnd Labels opacity" />
         <span class="range-value">{{ osmAndLabelsOpacity() }}%</span>
         <span class="offline-map-status osmand-label-rerender-status" role="status" aria-live="polite">
           {{ rerenderOsmAndLabelsStatus() }}
