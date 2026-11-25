@@ -2521,6 +2521,14 @@ export class OfflineMapRenderer {
       if (!layer.id.startsWith('gpx-track-')) continue;
       this.map.setLayoutProperty(layer.id, 'visibility', enabled ? 'visible' : 'none');
     }
+    if (!enabled) {
+      // Hiding the layers alone leaves the complete GeoJSON source attached to
+      // MapLibre. Large offscreen GPX files can still burden source processing
+      // while the camera is moving. Drop the source data for the duration of
+      // the gesture; refreshGpxViewport() repopulates only intersecting chunks.
+      const source = this.map.getSource('gpx-track') as import('maplibre-gl').GeoJSONSource | undefined;
+      source?.setData({ type: 'FeatureCollection', features: [] });
+    }
   }
 
   setTrack(tracks: Array<{ path: string; segments: [number, number][][]; segmentSourceIndices?: number[]; segmentColors?: string[]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; trackShadowStrength?: number; arrowShadowStrength?: number; trackOutlineStrength?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; directionIntervalPx?: number; directionArrowSizePx?: number; directionArrowOutlineWidthPx?: number }>, opacity: number): void {
