@@ -353,14 +353,14 @@ export class MarkdownViewerComponent {
   };
 
   @HostListener('document:keydown', ['$event'])
-  protected readonly onGlobalSearchKeydown = (event: KeyboardEvent): void => {
+  protected onGlobalSearchKeydown(event: KeyboardEvent): void {
     // F3 navigation must remain available after focus moves from the search field
     // to a result row or into the Markdown article.
     if (event.key !== 'F3' || !this.flatSearchResults().length || this.searchBusy()) return;
     event.preventDefault();
     event.stopPropagation();
     this.navigateSearchResult(event.shiftKey ? -1 : 1);
-  };
+  }
 
   protected readonly onSearchPanelKeydown = (event: KeyboardEvent): void => {
     if (event.key !== 'F3' || !this.flatSearchResults().length || this.searchBusy()) return;
