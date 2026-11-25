@@ -1,5 +1,5 @@
 import { app } from 'electron';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, renameSync, rmdirSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 /* Add an absolute timestamp to every Electron main-process console entry.
@@ -21,5 +21,51 @@ const roamingAppData = process.env.APPDATA || app.getPath('appData');
 const lumaScopeUserData = join(roamingAppData, 'LumaScope');
 mkdirSync(lumaScopeUserData, { recursive: true });
 app.setPath('userData', lumaScopeUserData);
+
+// Keep all LumaScope-owned settings and caches below the single userData root.
+// Older builds placed OsmAnd tiles below %LOCALAPPDATA%\\LumaScope\\cache.
+if (process.platform === 'win32') {
+  const localAppData = process.env.LOCALAPPDATA || join(app.getPath('home'), 'AppData', 'Local');
+  const legacyTileCache = join(localAppData, 'LumaScope', 'cache', 'maps', 'obf');
+  const unifiedTileCache = join(lumaScopeUserData, 'Cache', 'maps', 'obf');
+
+  const mergeCacheDirectory = (source: string, target: string): void => {
+    mkdirSync(target, { recursive: true });
+    for (const entry of readdirSync(source, { withFileTypes: true })) {
+      const sourceEntry = join(source, entry.name);
+      const targetEntry = join(target, entry.name);
+      if (entry.isDirectory()) {
+        if (existsSync(targetEntry)) mergeCacheDirectory(sourceEntry, targetEntry);
+        else renameSync(sourceEntry, targetEntry);
+      } else if (!existsSync(targetEntry)) {
+        renameSync(sourceEntry, targetEntry);
+      } else {
+        // Both locations contain the same cache key. Keep the unified copy;
+        // tile images can always be regenerated if a cached entry is stale.
+        unlinkSync(sourceEntry);
+      }
+    }
+    rmdirSync(source);
+  };
+
+  try {
+    if (existsSync(legacyTileCache)) {
+      if (existsSync(unifiedTileCache)) mergeCacheDirectory(legacyTileCache, unifiedTileCache);
+      else {
+        mkdirSync(join(lumaScopeUserData, 'Cache', 'maps'), { recursive: true });
+        renameSync(legacyTileCache, unifiedTileCache);
+      }
+      for (const directory of [
+        join(localAppData, 'LumaScope', 'cache', 'maps'),
+        join(localAppData, 'LumaScope', 'cache')
+      ]) {
+        try { rmdirSync(directory); } catch { /* Other legacy data may still be present. */ }
+      }
+      console.info('[Startup] Migrated the legacy OsmAnd tile cache into the unified userData directory.');
+    }
+  } catch (error) {
+    console.warn('[Startup] Could not fully migrate the legacy OsmAnd tile cache:', error);
+  }
+}
 
 console.info(`[Startup] Electron userData path: ${app.getPath('userData')}`);
