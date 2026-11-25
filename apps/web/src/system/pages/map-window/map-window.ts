@@ -1828,8 +1828,14 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       if (typeof saved['scaleVisible'] === 'boolean') {
         this.scaleVisible.set(saved['scaleVisible']);
-        this.applyScaleVisibility();
       }
+      if (typeof saved['mapScaleOpacity'] === 'number' && Number.isFinite(saved['mapScaleOpacity'])) {
+        this.mapScaleOpacity.set(Math.max(0, Math.min(100, Math.round(saved['mapScaleOpacity']))));
+      }
+      if (typeof saved['crosshairOpacity'] === 'number' && Number.isFinite(saved['crosshairOpacity'])) {
+        this.crosshairOpacity.set(Math.max(0, Math.min(100, Math.round(saved['crosshairOpacity']))));
+      }
+      this.applyScaleVisibility();
       if (typeof saved['mapBoundsVisible'] === 'boolean') {
         this.mapBoundsVisible.set(saved['mapBoundsVisible']);
         this.applyMapBoundsVisibility();
