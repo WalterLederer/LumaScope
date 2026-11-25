@@ -165,9 +165,11 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
       index++;
     }
     const renderedParagraphLines = paragraph.map(line => renderInline(line, imageSources, searchQuery));
-    const paragraphHtml = renderedParagraphLines.map((renderedLine, lineIndex) =>
-      '<span id="help-search-line-' + (paragraphLineNumber + lineIndex) + '" class="help-search-line-anchor"></span>' + renderedLine
-    ).join('<br>');
+    const paragraphHtml = renderedParagraphLines.map((renderedLine, lineIndex) => {
+      const lineNumber = paragraphLineNumber + lineIndex;
+      return '<span class="help-search-line-anchor help-search-line-' + lineNumber + '"></span>' +
+        '<span class="help-search-line-content help-search-line-content-' + lineNumber + '">' + renderedLine + '</span>';
+    }).join('<br>');
     if (renderedParagraphLines.every(renderedLine => /^\s*(?:<img\b[^>]*>\s*)+$/i.test(renderedLine))) {
       output.push('<div class="markdown-image-row">' + paragraphHtml + '</div>');
     } else {
@@ -470,8 +472,16 @@ export class MarkdownViewerComponent {
         ? target
         : target.closest('p, li, tr, blockquote, pre, h1, h2, h3, h4, h5, h6, .markdown-image-row')
           ?? target.nextElementSibling as HTMLElement | null;
-      article.querySelectorAll('.active-search-line').forEach((element: Element) => element.classList.remove('active-search-line'));
+      article.querySelectorAll('.active-search-line, .active-search-target').forEach((element: Element) => {
+        element.classList.remove('active-search-line', 'active-search-target');
+      });
       block?.classList.add('active-search-line');
+      // Paragraph lines have their own inline wrapper, so distinguish the exact
+      // destination even when several yellow matches share the same paragraph.
+      const lineContent = target.nextElementSibling as HTMLElement | null;
+      if (lineContent?.classList.contains('help-search-line-content')) {
+        lineContent.classList.add('active-search-target');
+      }
 
       // Let the browser calculate the scroll delta for the exact source-line
       // anchor. This also handles anchors nested in paragraphs, code blocks,
