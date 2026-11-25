@@ -116,6 +116,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private readonly mapElement = viewChild.required<ElementRef<HTMLElement>>('map');
   private offlineRenderer: OfflineMapRenderer | null = null;
   private onlineMbtilesLabelMapId: string | null = null;
+  private onlineMbtilesLabelRequest = 0;
   private mapLoadingTimer: ReturnType<typeof setTimeout> | null = null;
   private currentLatitude: number | null = null;
   private currentLongitude: number | null = null;
@@ -2968,7 +2969,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineRenderer?.setCurrentPhotoPreview(path, path?.split(/[\\/]/).pop() ?? '');
   }
 
-    protected readonly recheckPhotoDatabase = async (): Promise<void> => {
+  protected readonly recheckPhotoDatabase = async (): Promise<void> => {
     const desktop = this.desktop;
     const directory = this.currentFolderPath ?? (this.currentImagePath ? await desktop?.FileSystem.dirname(this.currentImagePath) : '');
     if (!desktop || !directory) {
@@ -3734,6 +3735,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private async updateOnlineMbtilesLabelSource(renderer: OfflineMapRenderer): Promise<void> {
+    const request = ++this.onlineMbtilesLabelRequest;
     if (this.mapSource() !== 'online' || this.offlineRenderer !== renderer) return;
     if (!this.desktop) {
       this.onlineMbtilesLabelMapId = null;
@@ -3748,7 +3750,7 @@ export class MapWindow implements OnInit, OnDestroy {
       console.warn('[OnlineMap] Could not select MBTiles label source:', error);
       return;
     }
-    if (this.mapSource() !== 'online' || this.offlineRenderer !== renderer) return;
+    if (request !== this.onlineMbtilesLabelRequest || this.mapSource() !== 'online' || this.offlineRenderer !== renderer) return;
     const nextId = selected?.id ?? null;
     if (nextId === this.onlineMbtilesLabelMapId) return;
     this.onlineMbtilesLabelMapId = nextId;
@@ -3761,6 +3763,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineRenderer?.remove();
     this.offlineRenderer = null;
     this.onlineMbtilesLabelMapId = null;
+    this.onlineMbtilesLabelRequest++;
     if (this.desktop) registerOsmAndLabelsTileProtocol(this.desktop, () => this.displayDensityFactor());
 
     const style = this.styles[this.mapStyle()];
@@ -3797,7 +3800,6 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
 
-    await this.updateOnlineMbtilesLabelSource(renderer);
     renderer.map.setMinZoom(1);
     renderer.map.setMaxZoom(20);
     renderer.map.on('contextmenu', event => {
@@ -3824,6 +3826,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.finishMapLoading('online');
       window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
     });
+    void this.updateOnlineMbtilesLabelSource(renderer);
 
     const latestLatitude = this.currentLatitude ?? latitude;
     const latestLongitude = this.currentLongitude ?? longitude;
