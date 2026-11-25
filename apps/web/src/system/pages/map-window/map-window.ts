@@ -5887,37 +5887,6 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   }
 
-  private async reloadGpxTracks(): Promise<void> {
-    if (!this.desktop) return;
-    const valid: GpxTrackFile[] = [];
-    this.gpxSegmentsByTrack.clear();
-    this.gpxPointDataByTrack.clear();
-    this.gpxSegmentNamesByTrack.clear();
-    this.gpxSpeedSegmentsCache.clear();
-    for (const track of this.gpxTracks()) {
-      if (track.path.startsWith('memory:')) continue;
-      const [result, metadata] = await Promise.all([
-        this.desktop.FileSystem.readText(track.path),
-        this.readGpxFileMetadata(track.path)
-      ]);
-      if (!result.success) { valid.push({ ...track, missing: metadata === null, readError: metadata !== null }); continue; }
-      try {
-        const parsedData = await this.parseGpxTrackBundle(result.data, (processed, total) => {
-          this.gpxRestoreStatus.set(`Loading ${track.name}: ${formatNumber(processed)} / ${formatNumber(total)} points…`);
-        });
-        this.gpxPointDataByTrack.set(track.path, parsedData.pointData);
-        this.gpxSegmentNamesByTrack.set(track.path, parsedData.segmentNames);
-        this.gpxSegmentsByTrack.set(track.path, parsedData.coordinates);
-        valid.push({ ...track, sizeBytes: metadata?.size ?? track.sizeBytes, lastModified: metadata?.modifiedAt ?? track.lastModified, missing: false, readError: false, active: track.active !== false, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? (track.lineStyle ?? 'solid') : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? (track.lineWidth ?? 4) : 4, showDirection: track.showDirection === true, directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? 16, directionArrowOutlineWidthPx: track.directionArrowOutlineWidthPx ?? 2, trackShadowStrength: track.trackShadowStrength ?? 0, arrowShadowStrength: track.arrowShadowStrength ?? 0, trackOutlineStrength: track.trackOutlineStrength ?? 0, directionStyle: ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'].includes(track.directionStyle ?? '') ? (track.directionStyle ?? 'classic') : 'classic' });
-      }
-      catch { /* Keep malformed files out of the rendered track set. */ }
-    }
-    this.gpxTracks.set(valid);
-    void this.persistGpxTracks(valid);
-    this.rebuildGpxSegments();
-    this.applyGpxTrack();
-  }
-
   private gpxSettingsWriteQueue: Promise<void> = Promise.resolve();
 
   private async persistGpxMapSettings(patch: Record<string, unknown>): Promise<void> {
