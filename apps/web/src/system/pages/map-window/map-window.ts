@@ -8233,8 +8233,11 @@ ${points}
                 throw new Error('OsmAnd Labels returned an invalid RGBA8 frame.');
               }
               context.putImageData(new ImageData(new Uint8ClampedArray(tile.pixels), 256, 256), 0, 0);
-              emitOsmAndLabelsTileStatus(tile.cacheHit ? 'cache-loading' : 'loaded', coords.z, x, coords.y,
-                undefined, tile.cacheHit ? undefined : performance.now() - renderStartedAt);
+              if (tile.cacheHit) {
+                emitOsmAndLabelsTileStatus('cache-loading', coords.z, x, coords.y);
+              }
+              emitOsmAndLabelsTileStatus('loaded', coords.z, x, coords.y, undefined,
+                tile.cacheHit ? undefined : performance.now() - renderStartedAt);
               done(null, canvas);
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
