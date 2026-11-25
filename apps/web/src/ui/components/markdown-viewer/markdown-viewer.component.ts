@@ -7,7 +7,7 @@ import { ProcessManager } from '../../../ipc/process-manager';
 interface HelpSearchResult { fileName: string; lineNumber: number; snippet: string; }
 interface HelpSearchGroup { fileName: string; title: string; results: HelpSearchResult[]; }
 
-const helpDocuments = ['README.md', 'build-from-source.md', 'external-programs.md', 'features.md', 'gpx-cache.md', 'image-detail-table.md', 'image-formats.md', 'licensing.md', 'location-fix-automatic.md', 'location-fix-manual.md', 'map-formats.md', 'offline-address-search.md', 'ohsp-format.md', 'photo-markers-tab.md', 'platform-support.md', 'resource-package-format.md', 'routing.md', 'screen-capture-formats.md', 'screen-capture.md', 'shortcuts.md', 'time-slider-animation.md', 'time-slider.md', 'track-tab.md', 'windows-api.md'] as const;
+const helpDocuments = ['README.md', 'build-from-source.md', 'help-and-markdown.md', 'external-programs.md', 'features.md', 'gpx-cache.md', 'image-detail-table.md', 'image-formats.md', 'licensing.md', 'location-fix-automatic.md', 'location-fix-manual.md', 'map-formats.md', 'offline-address-search.md', 'ohsp-format.md', 'photo-markers-tab.md', 'platform-support.md', 'resource-package-format.md', 'routing.md', 'screen-capture-formats.md', 'screen-capture.md', 'shortcuts.md', 'time-slider-animation.md', 'time-slider.md', 'track-tab.md', 'windows-api.md'] as const;
 
 const isDocumentationFile = (fileName: string): boolean => /^[a-zA-Z0-9_-]+\.md$/i.test(fileName);
 
