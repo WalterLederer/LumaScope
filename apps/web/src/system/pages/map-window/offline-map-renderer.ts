@@ -1805,6 +1805,8 @@ export class OfflineMapRenderer {
       : [
         { layerId: 'label-places-anchor', sourceLayer: 'place_labels', kind: 'place' },
         { layerId: 'label-boundaries-anchor', sourceLayer: 'boundary_labels', kind: 'boundary' },
+        { layerId: 'label-streets-anchor', sourceLayer: 'street_labels', kind: 'street' },
+        { layerId: 'label-water-anchor', sourceLayer: 'water_lines_labels', kind: 'water' },
         { layerId: 'label-water-polygons-anchor', sourceLayer: 'water_polygons_labels', kind: 'water' },
         { layerId: 'label-street-polygons-anchor', sourceLayer: 'streets_polygons_labels', kind: 'street' },
         { layerId: 'label-street-points-anchor', sourceLayer: 'street_labels_points', kind: 'street' },
