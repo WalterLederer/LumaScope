@@ -592,8 +592,7 @@ export class OsmAndAtlasManager {
   private hillshadeDatabases = this.readSavedHillshadeDatabases();
   private hillshadeWorkers: OsmAndHillshadeWorker[] = [];
   private nextHillshadeWorker = 0;
-  private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
-  private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
+  private readonly cachePath = join(app.getPath('userData'), 'Cache', 'maps', 'obf');
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
   private readonly searchHelperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_search_helper.exe');
   private readonly hillshadeHelperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_atlas_render_helper.exe');
