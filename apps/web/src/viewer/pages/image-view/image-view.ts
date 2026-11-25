@@ -351,6 +351,16 @@ export class ImageView {
     }
   };
 
+  protected readonly openSettingsFolder = async (): Promise<void> => {
+    this.settingsFileError.set(null);
+    try {
+      const error = await this.processManager.openConfigFolder();
+      if (error) this.settingsFileError.set(error);
+    } catch (error) {
+      this.settingsFileError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
+
   private readonly loadSettingsFilePath = async (): Promise<void> => {
     try {
       this.settingsFilePath.set((await this.processManager.getSystemPaths()).appConfig);
