@@ -1017,6 +1017,7 @@ export class OfflineMapRenderer {
   private readonly clusterLabels = new Map<number, { element: HTMLSpanElement; coordinates: [number, number] }>();
   private readonly textLabels = new Map<string, { element: HTMLSpanElement; coordinates: [number, number] }>();
   private textLabelOpacity = 1;
+  private photoMarkers: OfflinePhotoMarker[] = [];
   private photoOpacity = 1;
   private photoClustersVisible = true;
   private photoClusterColor = 'dynamic';
@@ -1226,6 +1227,8 @@ export class OfflineMapRenderer {
       cooperativeGestures: false, renderWorldCopies: false
     };
     this.map = new MapLibreMap(options);
+    this.map.on('moveend', () => this.refreshPhotoMarkersInViewport());
+    this.map.on('zoomend', () => this.refreshPhotoMarkersInViewport());
     this.map.addControl(new ScaleControl({ maxWidth: 140, unit: 'metric' }), 'bottom-left');
     // MapLibre puts all controls in a low-z-index stacking context (2).
     // Raise that parent above our geographic marker overlay (z-index 20),
@@ -2087,19 +2090,33 @@ export class OfflineMapRenderer {
     if (this.currentMarkerElement) this.currentMarkerElement.style.opacity = String(opacity);
   }
 
-  setPhotoMarkers(markers: OfflinePhotoMarker[], onSelected: (path: string) => void, opacity: number): void {
-    this.onPhotoSelected = onSelected;
+  private refreshPhotoMarkersInViewport(): void {
     const source = this.map.getSource('photo-markers') as import('maplibre-gl').GeoJSONSource | undefined;
     if (!source) return;
+    const bounds = this.map.getBounds();
+    const west = bounds.getWest(), east = bounds.getEast();
+    const south = bounds.getSouth(), north = bounds.getNorth();
+    const visibleMarkers = this.photoMarkers.filter(marker =>
+      marker.latitude >= south && marker.latitude <= north
+      && marker.longitude >= west && marker.longitude <= east
+    );
     this.clearPhotoPreview();
     source.setData({
       type: 'FeatureCollection',
-      features: markers.map(marker => ({
+      features: visibleMarkers.map(marker => ({
         type: 'Feature' as const,
         geometry: { type: 'Point' as const, coordinates: [marker.longitude, marker.latitude] },
         properties: { path: marker.path, fileName: marker.fileName }
       }))
     });
+    this.refreshClusterLabels();
+  }
+
+  setPhotoMarkers(markers: OfflinePhotoMarker[], onSelected: (path: string) => void, opacity: number): void {
+    this.photoMarkers = markers;
+    this.onPhotoSelected = onSelected;
+    this.photoOpacity = opacity;
+    this.refreshPhotoMarkersInViewport();
     this.photoOpacity = opacity;
     this.map.setPaintProperty('photo-unclustered', 'circle-opacity', opacity);
     this.map.setPaintProperty('photo-unclustered', 'circle-stroke-opacity', opacity);
