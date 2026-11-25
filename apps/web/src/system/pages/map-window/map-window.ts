@@ -7986,7 +7986,7 @@ ${points}
       return;
     }
     const style = this.styles[this.mapStyle()];
-    const zoom = Math.max(0, Math.min(style.maxZoom, Math.round(map.getZoom())));
+    const zoom = Math.max(0, Math.min(style.maxNativeZoom ?? style.maxZoom, Math.round(map.getZoom())));
     const center = map.getCenter();
     const latitude = Math.max(-85.05112878, Math.min(85.05112878, center.lat));
     const longitude = Math.max(-180, Math.min(180, center.lng));
