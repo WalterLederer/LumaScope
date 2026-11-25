@@ -430,17 +430,18 @@ export class MarkdownViewerComponent {
     let attempts = 0;
     const findAndScroll = (): void => {
       if (expectedRequest !== this.documentLoadRequest || this.currentFile() !== result.fileName) return;
-      // There can be more than one Help viewer in the DOM (for example while
-      // tabs are kept alive). Always resolve the article inside this component;
-      // a document-wide query can otherwise scroll a hidden/stale viewer.
-      const article = this.host.nativeElement.querySelector<HTMLElement>('.markdown-body');
-      const target = article?.querySelector<HTMLElement>('#help-search-line-' + result.lineNumber);
+      // Resolve the article inside this single Help viewer instance.
+      // ElementRef.nativeElement is typed as any by Angular's DI token, so
+      // narrow it before using the DOM query APIs.
+      const hostElement = this.host.nativeElement as HTMLElement;
+      const article = hostElement.querySelector('.markdown-body') as HTMLElement | null;
+      const target = article?.querySelector('#help-search-line-' + result.lineNumber) as HTMLElement | null;
       if (!article || !target) {
         if (++attempts < 12) view.requestAnimationFrame(findAndScroll);
         return;
       }
       const block = target.matches('li, tr') ? target : target.closest('p, li, tr, blockquote, pre, h1, h2, h3, h4, h5, h6, .markdown-image-row') as HTMLElement | null;
-      article.querySelectorAll('.active-search-line').forEach(element => element.classList.remove('active-search-line'));
+      article.querySelectorAll('.active-search-line').forEach((element: Element) => element.classList.remove('active-search-line'));
       block?.classList.add('active-search-line');
       // Scroll the article itself, not whichever ancestor scrollIntoView might choose.
       // Use the exact line anchor (not its containing paragraph), so matches on
