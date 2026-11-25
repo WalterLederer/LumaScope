@@ -3106,13 +3106,14 @@ export class MapWindow implements OnInit, OnDestroy {
     return this.leaflet!.divIcon({ className: 'folder-image-marker', html: `<span style=\"display:block;width:${size}px;height:${size}px;border:2px solid #fff;border-radius:50%;background:${color};box-shadow:0 1px 5px #0009\"></span>`, iconSize: [size + 4, size + 4], iconAnchor: [(size + 4) / 2, (size + 4) / 2] });
   }
   private updateCurrentMarkerPhotoPreview(): void {
-    if (!this.marker) return;
     const path = this.currentImagePath;
+    const fileName = path?.split(/[\\/]/).pop() ?? '';
+    this.offlineRenderer?.setCurrentPhotoPreview(path, fileName);
+    if (!this.marker) return;
     if (!path) {
       this.marker.unbindTooltip();
       return;
     }
-    const fileName = path.split(/[\\/]/).pop() ?? path;
     this.marker.bindTooltip(buildPhotoMarkerPreviewHtml(path, fileName, this.photoPreviewSize()), {
       direction: 'top', className: 'folder-marker-tooltip', opacity: 1
     });
@@ -3939,76 +3940,90 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private async createMap(latitude: number, longitude: number, generation: number): Promise<void> {
     this.beginMapLoading('online');
-    this.offlineRenderer?.remove(); this.offlineRenderer = null;
-    const leaflet = await this.loadLeaflet();
-    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'online') return;
-    this.leaflet = leaflet;
-    const center: [number, number] = [latitude, longitude];
-    const map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
-      .setView(center, this.validZoom(this.zoomLevel()));
-    this.map = map;
-    this.applyMapBoundsVisibility();
-    map.on('contextmenu', event => {
+    this.offlineRenderer?.remove();
+    this.offlineRenderer = null;
+    this.map = null;
+    this.leaflet = null;
+    if (this.desktop) registerOsmAndLabelsTileProtocol(this.desktop, () => this.displayDensityFactor());
+
+    const style = this.styles[this.mapStyle()];
+    const renderer = new OfflineMapRenderer(
+      this.mapElement().nativeElement,
+      [longitude, latitude],
+      this.validZoom(this.zoomLevel()),
+      message => {
+        if (generation !== this.mapSourceGeneration) return;
+        this.recordMapError('Online map rendering', message);
+        console.error('[OnlineMap] MapLibre rendering error:', message);
+      },
+      'lumascope', '', 1, 20, undefined, 'shortbread', [],
+      createOnlineMapStyle(style.url, style.attribution, style.maxNativeZoom ?? style.maxZoom)
+    );
+    this.offlineRenderer = renderer;
+    try {
+      await renderer.ready;
+    } catch (error) {
+      renderer.remove();
+      if (this.offlineRenderer === renderer) this.offlineRenderer = null;
+      if (generation === this.mapSourceGeneration) {
+        this.finishMapLoading('online');
+        const message = error instanceof Error ? error.message : String(error);
+        this.recordMapError('Online map initialization', message);
+        this.mapDisplayNotice.set('Online map renderer could not be initialized: ' + message);
+        console.error('[OnlineMap] Initialization failed:', error);
+      }
+      return;
+    }
+    if (generation !== this.mapSourceGeneration || this.mapSource() !== 'online') {
+      renderer.remove();
+      if (this.offlineRenderer === renderer) this.offlineRenderer = null;
+      return;
+    }
+
+    renderer.map.setMinZoom(1);
+    renderer.map.setMaxZoom(20);
+    renderer.map.on('contextmenu', event => {
       if (!this.settingsOpen() || this.activeSettingsTab() !== 'routing') return;
       event.originalEvent.preventDefault();
-      this.addRouteWaypoint(event.latlng.lat, event.latlng.lng);
+      this.addRouteWaypoint(event.lngLat.lat, event.lngLat.lng);
     });
-    this.updateWalkingMarker();
-    this.leaflet.control.scale({ metric: true, imperial: false, position: 'bottomleft', maxWidth: 140 }).addTo(map);
-    const leafletScale = this.mapElement().nativeElement.querySelector<HTMLElement>('.leaflet-control-scale');
-    if (leafletScale) {
-      // Place the scale directly on the map surface, outside Leaflet's control pane.
-      leafletScale.style.position = 'absolute';
-      leafletScale.style.left = '10px';
-      leafletScale.style.bottom = '10px';
-      leafletScale.style.margin = '0';
-      leafletScale.style.zIndex = '10000';
-      leafletScale.style.pointerEvents = 'auto';
-      this.mapElement().nativeElement.appendChild(leafletScale);
-    }
-    this.applyScaleVisibility();
-    this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
-    const syncZoom = (): void => { this.persistZoom(map.getZoom()); this.applyGpxTrack(); };
-    map.on('moveend', () => this.updateOnlineCenterTileUrl());
-    map.on('zoomend', () => this.updateOnlineCenterTileUrl());
-    this.updateOnlineCenterTileUrl();
-    map.on('movestart', this.suspendGpxViewportRendering);
-    map.on('moveend', this.refreshGpxViewport);
-    map.on('moveend', () => this.applyDirectoryPhotoMarkers());
-    map.on('zoomend', () => this.applyDirectoryPhotoMarkers());
-    map.on('zoomend', syncZoom);
-    (map as unknown as { on: (event: 'moveend', callback: () => void) => unknown })
-      .on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
+    renderer.map.on('movestart', this.suspendGpxViewportRendering);
+    renderer.map.on('moveend', this.refreshGpxViewport);
+    renderer.map.on('moveend', () => {
+      this.updateOnlineCenterTileUrl();
+      this.applyDirectoryPhotoMarkers();
+      this.updateCrosshairCoordinates();
+      this.scheduleGpxDatabaseViewportRefresh();
+    });
+    renderer.map.on('zoomend', () => {
+      this.updateOnlineCenterTileUrl();
+      this.persistZoom(renderer.map.getZoom());
+      this.applyDirectoryPhotoMarkers();
+    });
+    renderer.map.once('idle', () => {
+      if (generation !== this.mapSourceGeneration || this.offlineRenderer !== renderer) return;
+      this.finishMapLoading('online');
+      window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
+    });
+
+    const latestLatitude = this.currentLatitude ?? latitude;
+    const latestLongitude = this.currentLongitude ?? longitude;
+    renderer.setCurrentLocation(
+      latestLatitude, latestLongitude, this.currentMarkerColor(),
+      (this.coordinatesAvailable() && this.locationVisible() ? this.locationOpacity() / 100 : 0),
+      this.currentMarkerShape()
+    );
+    renderer.setCurrentPhotoPreview(this.currentImagePath, this.currentImagePath?.split(/[\\/]/).pop() ?? '');
+    this.applyMapBoundsVisibility();
     this.updateRouteWaypointMarkers();
-    this.marker = this.leaflet.marker(center, { icon: this.createCurrentLocationIcon() }).addTo(this.map).setOpacity((!this.coordinatesAvailable() ? 0 : this.locationVisible() ? this.locationOpacity() / 100 : 0));
-    this.updateCurrentMarkerPhotoPreview();
+    this.updateOnlineCenterTileUrl();
     this.updateCrosshairCoordinates();
-    this.directoryMarkerGroup = this.leaflet.markerClusterGroup({
-      chunkedLoading: true, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
-      iconCreateFunction: cluster => {
-        const count = cluster.getChildCount();
-        const size = count < 10 ? 40 : count < 100 ? 48 : 56;
-        const fontSize = count < 100 ? 15 : 14;
-        const shape = this.markerShape();
-        const fill = this.markerColorVisible() ? this.markerColor() : 'transparent';
-        const dynamicFill = count < 10 ? '#34c759' : count < 100 ? '#ffd60a' : '#ff3b30';
-        const markerFill = this.markerColor() === 'dynamic' ? dynamicFill : fill;
-        const shapeMarkup = shape === 'double-circle'
-          ? `<circle cx="28" cy="28" r="25" fill="${markerFill}" stroke="#fff" stroke-width="2.5"/><circle cx="28" cy="28" r="18" fill="none" stroke="#fff" stroke-width="1.5" opacity=".9"/>`
-          : shape === 'hexagon'
-            ? `<polygon points="28,2 51,15 51,41 28,54 5,41 5,15" fill="${markerFill}" stroke="#fff" stroke-width="2.5"/>`
-            : shape === 'circle'
-              ? `<circle cx="28" cy="28" r="25" fill="${markerFill}" stroke="#fff" stroke-width="2.5"/>`
-              : `<rect x="3" y="3" width="50" height="50" rx="3" fill="${markerFill}" stroke="#fff" stroke-width="2.5"/>`;
-        const html = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 56 56" opacity="${this.markerColorVisible() ? 1 : 0}">${shapeMarkup}<text x="28" y="33" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="${fontSize}" font-weight="700" fill="#fff">${count}</text></svg>`;
-        return this.leaflet!.divIcon({ className: 'lumascope-marker-cluster', html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
-      }
-    }).addTo(this.map);
-    if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
-    this.applyMapStyle();
     this.applyMapColor();
     this.applyMapOpacity();
+    this.applyHillshadeSettings(renderer);
+    if (this.directoryMarkersEnabled()) void this.scanDirectoryMarkers();
     await this.restoreGpxTrack();
+    if (generation !== this.mapSourceGeneration || this.offlineRenderer !== renderer) return;
     this.applyOpacitySettings();
     window.addEventListener('resize', this.onResize);
   }
@@ -8135,7 +8150,7 @@ ${points}
   }
 
   private updateOnlineCenterTileUrl(): void {
-    const map = this.map;
+    const map = this.offlineRenderer?.map;
     if (!map || this.mapSource() !== 'online') {
       this.onlineCenterTileUrl.set('');
       return;
@@ -8151,7 +8166,6 @@ ${points}
     const y = Math.max(0, Math.min(tileCount - 1, Math.floor(
       (1 - Math.asinh(Math.tan(latitudeRadians)) / Math.PI) / 2 * tileCount
     )));
-    // Leaflet's default subdomain selection is (x + y) modulo the subdomain count.
     const subdomains = 'abc';
     const subdomain = subdomains[(x + y) % subdomains.length];
     const url = style.url
@@ -8164,30 +8178,24 @@ ${points}
   }
 
   private applyMapStyle(): void {
-    if (!this.map || !this.leaflet) return;
+    const renderer = this.offlineRenderer;
+    if (!renderer || this.mapSource() !== 'online') return;
     this.beginMapLoading('online');
-    this.updateOnlineCenterTileUrl();
-    this.tileLayer?.remove();
     const style = this.styles[this.mapStyle()];
-    const layer = this.leaflet.tileLayer(style.url, style);
-    this.tileLayer = layer;
-    // Register before addTo() so even an immediately cached tile batch cannot
-    // finish before the loading handler is attached.
-    layer.on('load', () => {
-      this.applyMapOpacity();
-      this.finishMapLoading('online');
-      window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
-    });
-    layer.addTo(this.map);
+    renderer.setOnlineBasemap(style.url, style.attribution, style.maxNativeZoom ?? style.maxZoom);
+    this.updateOnlineCenterTileUrl();
     this.applyMapOpacity();
     this.applyMapColor();
     this.applyHillshadeSettingsIfReady(true);
+    renderer.map.once('idle', () => {
+      if (this.mapSource() !== 'online' || this.offlineRenderer !== renderer) return;
+      this.finishMapLoading('online');
+      window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
+    });
   }
   private applyMapColor(): void {
     const mapLibreCanvas = this.mapElement().nativeElement.querySelector<HTMLElement>('.maplibregl-canvas');
     if (mapLibreCanvas) mapLibreCanvas.style.filter = this.filters[this.mapColor()];
-    const pane = this.mapElement().nativeElement.querySelector<HTMLElement>('.leaflet-tile-pane');
-    if (pane) pane.style.filter = this.filters[this.mapColor()];
   }
   private applyOpacitySettings(): void {
     // Reapply persisted values only after all map layers and restored tracks exist.
@@ -8208,15 +8216,8 @@ ${points}
     this.applyScaleVisibility();
   }
 
-  private applyHillshadeSettingsIfReady(refreshLeafletTiles = false): void {
-    if (this.offlineRenderer) {
-      this.applyHillshadeSettings(this.offlineRenderer);
-      return;
-    }
-    if (this.map && this.leaflet) {
-      this.applyLeafletHillshadeSettings(refreshLeafletTiles);
-      this.applyLeafletOsmAndLabelsSettings(refreshLeafletTiles);
-    }
+  private applyHillshadeSettingsIfReady(_refreshTiles = false): void {
+    if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
   }
 
   private applyLeafletHillshadeSettings(refreshTiles: boolean): void {
@@ -8420,7 +8421,6 @@ ${points}
   private applyMapOpacity(): void {
     const opacity = this.mapVisible() ? this.mapOpacity() / 100 : 0;
     this.offlineRenderer?.setBasemapOpacity(opacity);
-    this.tileLayer?.setOpacity(opacity);
 
   }
   private gpxLineDashArray(style: NonNullable<GpxTrackFile['lineStyle']>): string | undefined {
