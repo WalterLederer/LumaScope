@@ -66,6 +66,22 @@ if (process.platform === 'win32') {
   } catch (error) {
     console.warn('[Startup] Could not fully migrate the legacy OsmAnd tile cache:', error);
   }
+
+  // The standalone OsmAnd SDK prototype was also stored in LocalAppData.
+  // Keep it beside the app configuration, without copying a potentially large tree.
+  const legacySdkDirectory = join(localAppData, 'LumaScope', 'OsmAnd-SDK');
+  const unifiedSdkDirectory = join(lumaScopeUserData, 'OsmAnd-SDK');
+  try {
+    if (existsSync(legacySdkDirectory) && !existsSync(unifiedSdkDirectory)) {
+      renameSync(legacySdkDirectory, unifiedSdkDirectory);
+      console.info('[Startup] Moved the local OsmAnd SDK directory into the unified userData directory.');
+    } else if (existsSync(legacySdkDirectory) && existsSync(unifiedSdkDirectory)) {
+      console.warn('[Startup] Both legacy and unified OsmAnd SDK directories exist; the legacy directory was left untouched.');
+    }
+    try { rmdirSync(join(localAppData, 'LumaScope')); } catch { /* Other legacy files may still be present. */ }
+  } catch (error) {
+    console.warn('[Startup] Could not migrate the legacy OsmAnd SDK directory:', error);
+  }
 }
 
 console.info(`[Startup] Electron userData path: ${app.getPath('userData')}`);
