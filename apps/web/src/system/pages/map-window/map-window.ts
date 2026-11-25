@@ -36,6 +36,7 @@ interface MapInstance {
   project(latlng: [number, number], zoom?: number): { x: number; y: number };
   unproject(point: [number, number], zoom?: number): { lat: number; lng: number };
   on(event: 'zoomend', callback: () => void): MapInstance;
+  on(event: 'movestart', callback: () => void): MapInstance;
   on(event: 'moveend', callback: () => void): MapInstance;
   on(event: 'contextmenu', callback: (event: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent }) => void): MapInstance;
   createPane(name: string): HTMLElement;
