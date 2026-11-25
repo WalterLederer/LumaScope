@@ -35,7 +35,7 @@ import {
 import { ThumbnailComponent } from '../../../ui/components/thumbnail/thumbnail.component';
 import { TimelineIndicatorsComponent } from '../timeline-indicators/timeline-indicators.component';
 import { imageUrl, thumbUrl } from '../../../viewer/utils/image-url';
-import { formatNumber } from '../../../ui/utils/format-number';
+import { formatDecimalNumber, formatNumber } from '../../../ui/utils/format-number';
 import { GalleryViewMode, groupImagesByYearAndMonth, YearGroup } from './images.component.types';
 
 type DetailSortColumn = 'name' | 'date' | 'gpsDate' | 'size' | 'suffix' | 'gps' | 'location' | 'path';
@@ -118,6 +118,7 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
   }
 })
 export class ImagesComponent {
+  readonly formatNumber = formatNumber;
   private readonly elementRef = inject(ElementRef);
   private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
@@ -413,12 +414,12 @@ export class ImagesComponent {
     }).filter(value => value.width > 0 && value.height > 0);
 
     const formatSize = (bytes: number) => {
-      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024) return `${formatNumber(bytes)} B`;
       const units = ['KB', 'MB', 'GB', 'TB'];
       let value = bytes / 1024;
       let unit = 0;
       while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit++; }
-      return `${value.toFixed(1)} ${units[unit]}`;
+      return `${formatDecimalNumber(value)} ${units[unit]}`;
     };
     const minDimensions = dimensionValues.length
       ? dimensionValues.reduce((min, value) => value.area < min.area ? value : min)
@@ -437,8 +438,8 @@ export class ImagesComponent {
         ? [formatSize(ranges.size[0]), formatSize(ranges.size[1])]
         : ['—', '—'],
       dimensions: [
-        minDimensions ? `${minDimensions.width} × ${minDimensions.height}` : '—',
-        maxDimensions ? `${maxDimensions.width} × ${maxDimensions.height}` : '—'
+        minDimensions ? `${formatNumber(minDimensions.width)} × ${formatNumber(minDimensions.height)}` : '—',
+        maxDimensions ? `${formatNumber(maxDimensions.width)} × ${formatNumber(maxDimensions.height)}` : '—'
       ]
     };
   });
