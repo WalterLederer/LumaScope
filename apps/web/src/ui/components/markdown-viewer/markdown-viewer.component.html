@@ -36,7 +36,14 @@
         @else if (searchError()) { <p class="markdown-state markdown-error" role="alert">{{ searchError() }}</p> }
         @else if (searchResults().length === 0) { <p class="markdown-state">No matching help pages found.</p> }
         @else {
-          <p class="markdown-help-search-count">{{ searchResultCount() }} results in {{ searchResults().length }} pages</p>
+          <div class="markdown-help-search-toolbar">
+            <p class="markdown-help-search-count">{{ searchResultCount() }} results in {{ searchResults().length }} pages</p>
+            <div class="markdown-help-search-navigation">
+              <button type="button" (click)="navigateSearchResult(-1)" [disabled]="!flatSearchResults().length" title="Find previous result">Previous</button>
+              <span>{{ activeSearchResultIndex() >= 0 ? activeSearchResultIndex() + 1 : 0 }} / {{ searchResultCount() }}</span>
+              <button type="button" (click)="navigateSearchResult(1)" [disabled]="!flatSearchResults().length" title="Find next result">Next</button>
+            </div>
+          </div>
           @for (group of searchResults(); track group.fileName) {
             <section class="markdown-help-search-group">
               <h3>{{ group.title }}</h3>
@@ -54,9 +61,7 @@
   @if (openFileError()) {
     <p class="markdown-state markdown-error" role="alert">{{ openFileError() }}</p>
   }
-  @if (searchQuery().trim().length >= 2) {
-    <div class="markdown-help-search-placeholder">Search results are shown above. Select a result to open its location in the document.</div>
-  } @else if (loading()) {
+  @if (loading()) {
     <p class="markdown-state" role="status">Loading documentation…</p>
   } @else if (error()) {
     <p class="markdown-state markdown-error" role="alert">{{ error() }}</p>
