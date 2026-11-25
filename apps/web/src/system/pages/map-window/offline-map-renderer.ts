@@ -685,7 +685,7 @@ function withOsmAndHillshadeOverlay(style: StyleSpecification): StyleSpecificati
 }
 
 export function createOnlineMapStyle(tileUrl: string, attribution: string, maxNativeZoom: number): StyleSpecification {
-  const tiles = tileUrl.replace(/\\{s\\}/g, '{a,b,c}');
+  const tiles = tileUrl.replace(/\{s\}/g, '{a,b,c}');
   return {
     version: 8,
     name: 'LumaScope Online',
@@ -2522,7 +2522,7 @@ export class OfflineMapRenderer {
     if (this.map.getSource('online-basemap')) this.map.removeSource('online-basemap');
     this.map.addSource('online-basemap', {
       type: 'raster',
-      tiles: [tileUrl.replace(/\\{s\\}/g, '{a,b,c}')],
+      tiles: [tileUrl.replace(/\{s\}/g, '{a,b,c}')],
       tileSize: 256,
       minzoom: 0,
       maxzoom: Math.max(0, Math.min(22, Math.round(maxNativeZoom))),
