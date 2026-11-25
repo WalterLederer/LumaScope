@@ -6,6 +6,32 @@
 @let exif = exifState();
 @let isHdrImage = (selected?.path ?? '').toLowerCase().endsWith('.ohsp') || imageDynamicRange(selected?.path ?? '', imageTags(), imageBitDepth()) === 'HDR';
 
+<ng-template #imageSidebarTabBar let-closeSidebar="closeSidebar">
+  <nav class="image-sidebar-tabs" role="tablist" aria-label="Image settings tabs">
+    @for (tab of imageSidebarTabs; track tab.id) {
+      <button type="button" role="tab"
+              [class.active]="activeImageSidebarTab() === tab.id"
+              [class.image-neutral-tab]="tab.id === 'image'"
+              [class.tabs-right-start]="tab.id === 'general'"
+              [attr.aria-selected]="activeImageSidebarTab() === tab.id"
+              [attr.aria-label]="tab.id === 'help' ? 'Help' : null"
+              (click)="onImageSidebarTabClick(tab.id)">
+        @if (tab.id === 'help') {
+          <span class="image-sidebar-help-logo" aria-hidden="true">?</span>
+        } @else {
+          {{tab.label}}
+        }
+      </button>
+    }
+    <button class="sidebar-close-tab" type="button" aria-label="Close sidebar" title="Close sidebar" (click)="closeSidebar()">×</button>
+    <button class="sidebar-side-toggle" type="button"
+            [attr.aria-label]="sidebarOnLeft() ? 'Move sidebar to the right' : 'Move sidebar to the left'"
+            [title]="sidebarOnLeft() ? 'Move sidebar to the right' : 'Move sidebar to the left'"
+            (click)="toggleSidebarSide()">⇄</button>
+  </nav>
+</ng-template>
+
+
 @if (activeImageSidebarTab() === 'cache') {
   <!-- Keep the Browse cache-build controller mounted even when no image is selected. -->
   }
@@ -26,7 +52,7 @@
                  (locationSelected)="onGalleryFolderSelected()" />
   @if (controlsSidebarVisible()) {
     <aside class="image-controls-sidebar gallery-shell-sidebar" [class.sidebar-left]="sidebarOnLeft()" aria-label="Image controls" [style.position]="'relative'" [style.width]="'100%'" [style.min-width]="'0'">
-      <nav class="image-sidebar-tabs" role="tablist" aria-label="Image settings tabs">@for (tab of imageSidebarTabs; track tab.id) { <button type="button" role="tab" [class.active]="activeImageSidebarTab() === tab.id" [class.image-neutral-tab]="tab.id === 'image'" [class.tabs-right-start]="tab.id === 'general'" [attr.aria-selected]="activeImageSidebarTab() === tab.id" [attr.aria-label]="tab.id === 'help' ? 'Help' : null" (click)="onImageSidebarTabClick(tab.id)">@if (tab.id === 'help') { <span class="image-sidebar-help-logo" aria-hidden="true">?</span> } @else { {{tab.label}} }</button> }<button class="sidebar-close-tab" type="button" aria-label="Close sidebar" title="Close sidebar" (click)="toggleSidebarVisibility()">×</button><button class="sidebar-side-toggle" type="button" [attr.aria-label]="sidebarOnLeft() ? 'Move sidebar to the right' : 'Move sidebar to the left'" [title]="sidebarOnLeft() ? 'Move sidebar to the right' : 'Move sidebar to the left'" (click)="toggleSidebarSide()">⇄</button></nav>
+      <ng-container [ngTemplateOutlet]="imageSidebarTabBar" [ngTemplateOutletContext]="{ closeSidebar: toggleSidebarVisibility }" />
       <div class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" title="Drag to resize sidebar" (pointerdown)="startSidebarResize($event)"></div>
       <app-gallery class="browse-favourites-tree" [showFolderTree]="true" [showImageGrid]="false" (locationSelected)="onGalleryFolderSelected()" />
     </aside>
@@ -134,7 +160,7 @@
   }
   @if (!fullScreen && controlsSidebarVisible()) {
     <aside class="image-controls-sidebar" [class.sidebar-left]="sidebarOnLeft()" [class.location-tab-active]="activeImageSidebarTab() === 'location'" [class.help-tab-active]="activeImageSidebarTab() === 'help'" [class.hex-tab-active]="activeImageSidebarTab() === 'image' && activeImageSubTab() === 'hex'" aria-label="Image controls" [style.width.px]="sidebarWidth()">
-      <nav class="image-sidebar-tabs" role="tablist" aria-label="Image settings tabs">@for (tab of imageSidebarTabs; track tab.id) { <button type="button" role="tab" [class.active]="activeImageSidebarTab() === tab.id" [class.image-neutral-tab]="tab.id === 'image'" [class.tabs-right-start]="tab.id === 'general'" [attr.aria-selected]="activeImageSidebarTab() === tab.id" [attr.aria-label]="tab.id === 'help' ? 'Help' : null" (click)="onImageSidebarTabClick(tab.id)">@if (tab.id === 'help') { <span class="image-sidebar-help-logo" aria-hidden="true">?</span> } @else { {{tab.label}} }</button> }<button class="sidebar-close-tab" type="button" aria-label="Close sidebar" title="Close sidebar" (click)="toggleControlsSidebar()">×</button><button class="sidebar-side-toggle" type="button" [attr.aria-label]="sidebarOnLeft() ? 'Move sidebar to the right' : 'Move sidebar to the left'" [title]="sidebarOnLeft() ? 'Move sidebar to the right' : 'Move sidebar to the left'" (click)="toggleSidebarSide()">⇄</button></nav>
+      <ng-container [ngTemplateOutlet]="imageSidebarTabBar" [ngTemplateOutletContext]="{ closeSidebar: toggleControlsSidebar }" />
       @if (activeImageSidebarTab() === 'image') { <nav class="image-sidebar-tabs image-sidebar-subtabs" role="tablist" aria-label="Image detail tabs">@for (tab of imageSubTabs; track tab.id) { <button type="button" role="tab" [class.active]="activeImageSubTab() === tab.id" [class.image-neutral-tab]="tab.id === 'view'" [attr.aria-selected]="activeImageSubTab() === tab.id" (click)="setActiveImageSubTab(tab.id)">{{tab.label}}</button> }</nav> }
       <div class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" title="Drag to resize sidebar" (pointerdown)="startSidebarResize($event)"></div>
       @if (activeImageSidebarTab() === 'memory') {
@@ -733,7 +759,7 @@
   <div class="image-empty-stage" aria-hidden="true"></div>
   @if (controlsSidebarVisible()) {
     <aside class="image-controls-sidebar" aria-label="Image controls" [style.width.px]="sidebarWidth()">
-      <nav class="image-sidebar-tabs" role="tablist" aria-label="Image settings tabs">@for (tab of imageSidebarTabs; track tab.id) { <button type="button" role="tab" [class.active]="activeImageSidebarTab() === tab.id" [class.image-neutral-tab]="tab.id === 'image'" [class.tabs-right-start]="tab.id === 'general'" [attr.aria-selected]="activeImageSidebarTab() === tab.id" [attr.aria-label]="tab.id === 'help' ? 'Help' : null" (click)="onImageSidebarTabClick(tab.id)">@if (tab.id === 'help') { <span class="image-sidebar-help-logo" aria-hidden="true">?</span> } @else { {{tab.label}} }</button> }<button class="sidebar-close-tab" type="button" aria-label="Close sidebar" title="Close sidebar" (click)="toggleSidebarVisibility()">×</button><button class="sidebar-side-toggle" type="button" [attr.aria-label]="sidebarOnLeft() ? 'Move sidebar to the right' : 'Move sidebar to the left'" [title]="sidebarOnLeft() ? 'Move sidebar to the right' : 'Move sidebar to the left'" (click)="toggleSidebarSide()">⇄</button></nav>
+      <ng-container [ngTemplateOutlet]="imageSidebarTabBar" [ngTemplateOutletContext]="{ closeSidebar: toggleSidebarVisibility }" />
       <div class="sidebar-resize-handle" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" title="Drag to resize sidebar" (pointerdown)="startSidebarResize($event)"></div>
       @if (activeImageSidebarTab() === 'memory') {
         <app-renderer-memory-panel [enabled]="activeImageSidebarTab() === 'memory'" windowLabel="Main window">
