@@ -19,6 +19,15 @@ type MapStyle = 'standard' | 'satellite' | 'cycling' | 'topographic' | 'humanita
 type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 'grayscale' | 'pastel' | 'contrast' | 'night';
 type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
 type CurrentMarkerShape = 'pin' | 'circle' | 'square' | 'diamond';
+type BoundsMapKind = 'world' | 'europe';
+interface BoundsMapView { x: number; y: number; width: number; height: number; }
+interface ObfBoundsPreview {
+  name: string;
+  bounds: string | null;
+  zoom: string;
+  error: string | null;
+  rectangles: Array<{ x: number; y: number; width: number; height: number }>;
+}
 
 interface GpxTrackPoint { latitude: number; longitude: number; elevation: number | null; timestamp: string | null; inViewport?: boolean; }
 type RouteProfile = 'driving-car' | 'cycling-regular' | 'foot-walking';
@@ -2362,7 +2371,7 @@ export class MapWindow implements OnInit, OnDestroy {
       // also creates the marker when the previous image had no GPS position.
       this.offlineRenderer.setCurrentLocation(latitude!, longitude!, this.currentMarkerColor(), markerOpacity, this.currentMarkerShape());
       this.offlineRenderer.setCurrentPhotoPreview(this.currentImagePath, this.currentImagePath?.split(/[\\/]/).pop() ?? '');
-
+    }
     this.applyCurrentPhotoVisibility();
     this.locationAddress.set('');
   }
@@ -2505,6 +2514,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!Number.isFinite(result.latitude) || !Number.isFinite(result.longitude)) return;
     if (this.offlineRenderer) {
       this.offlineRenderer.map.jumpTo({ center: [result.longitude, result.latitude], zoom: Math.max(15, this.offlineRenderer.map.getZoom()) });
+    }
   };
   protected readonly centerMarker = (): void => {
     const latitude = this.currentLatitude, longitude = this.currentLongitude;
@@ -2517,9 +2527,15 @@ export class MapWindow implements OnInit, OnDestroy {
           (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape()
         );
         this.offlineRenderer.map.jumpTo({ center: [longitude, latitude] });
+      }
     }
   };
   protected readonly formatGpsCoordinates = formatSystemGpsCoordinates;
+
+  private escapeMarkerHtml(value: string): string {
+    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  }
 
   private formatCoordinateDms(value: number, latitude: boolean): string {
     const hemisphere = latitude ? (value < 0 ? 'S' : 'N') : (value < 0 ? 'W' : 'E');
@@ -6548,6 +6564,35 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateSelectedWalkingFigureSettings({ rotation: snapped });
   };
 
+  protected readonly changeTimeSliderStart = (input: HTMLInputElement): void => {
+    const value = Number(input.value);
+    if (!Number.isFinite(value)) return;
+    const next = Math.max(this.timeSliderMinimum(), Math.min(value, this.timeSliderEnd()));
+    this.timeSliderStart.set(next);
+    this.saveSetting('timeSliderStart', next);
+    this.rebuildGpxSegments();
+    this.applyGpxTrack();
+    this.applyDirectoryPhotoMarkers();
+    this.applyCurrentPhotoVisibility();
+  };
+
+  protected readonly changeTimeSliderEnd = (input: HTMLInputElement): void => {
+    const value = Number(input.value);
+    if (!Number.isFinite(value)) return;
+    this.setTimeSliderEnd(value);
+  };
+
+  private setTimeSliderEnd(value: number): void {
+    const next = Math.max(this.timeSliderStart(), Math.min(value, this.timeSliderMaximum()));
+    this.timeSliderEnd.set(next);
+    this.saveSetting('timeSliderEnd', next);
+    this.rebuildGpxSegments();
+    this.applyGpxTrack();
+    this.applyDirectoryPhotoMarkers();
+    this.applyCurrentPhotoVisibility();
+    this.updateWalkingMarker();
+  }
+
   protected readonly changeTimeSliderActive = (active: boolean): void => {
     this.timeSliderActive.set(active);
     this.saveSetting('timeSliderActive', active);
@@ -6556,6 +6601,13 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyDirectoryPhotoMarkers();
     this.applyCurrentPhotoVisibility();
   };
+
+  private applyCurrentPhotoVisibility(): void {
+    const opacity = this.currentImageHasGps() && this.locationVisible()
+      ? this.locationOpacity() / 100
+      : 0;
+    this.offlineRenderer?.setCurrentOpacity(opacity);
+  }
 
   private timeSliderHandleGap(_trackWidth: number): number {
     // The handles are visually offset by half their width in CSS, so equal timestamps
@@ -8055,5 +8107,4 @@ ${points}
       this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude, segmentIndex) => this.updateGpxHover(path, latitude, longitude, segmentIndex));
       return;
     }
-  
 }
