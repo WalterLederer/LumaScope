@@ -3773,7 +3773,10 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     if (request !== this.onlineMbtilesLabelRequest || (this.mapSource() !== 'online' && this.mapSource() !== 'mapsforge') || this.offlineRenderer !== renderer) return;
     const nextId = selected?.id ?? null;
-    if (nextId === this.onlineMbtilesLabelMapId) return;
+    // The selected map ID may survive a basemap switch, while the new
+    // renderer has no MBTiles vector source yet. Check the actual renderer too.
+    if (nextId === this.onlineMbtilesLabelMapId
+      && (nextId === null || renderer.map.getSource('shortbread'))) return;
     this.onlineMbtilesLabelMapId = nextId;
     renderer.setOnlineMbtilesLabelSource(selected);
     renderer.setTextLabelOpacity(this.labelsVisible() ? this.labelOpacity() / 100 : 0);
