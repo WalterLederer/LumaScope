@@ -152,10 +152,27 @@ interface OsmAndTileStatusEventDetail {
   row: number;
   status: OsmAndTileStatus;
   error?: string;
+  totalDurationMs?: number;
+  queueWaitMs?: number;
 }
 
 function emitOsmAndTileStatus(detail: OsmAndTileStatusEventDetail): void {
   window.dispatchEvent(new CustomEvent<OsmAndTileStatusEventDetail>('lumascope-osmand-tile-status', { detail }));
+}
+
+export function emitOsmAndLabelsTileStatus(
+  status: OsmAndTileStatus,
+  zoom: number,
+  column: number,
+  row: number,
+  error?: string,
+  totalDurationMs?: number
+): void {
+  emitOsmAndTileStatus({
+    protocol: 'osmand-labels', zoom, column, row, status,
+    ...(error ? { error } : {}),
+    ...(totalDurationMs !== undefined ? { totalDurationMs } : {})
+  });
 }
 
 /**

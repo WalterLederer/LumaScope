@@ -485,7 +485,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.recordMapError('OsmAnd Atlas helper', detail.error);
       return;
     }
-    if (!detail || (detail.protocol !== 'osmand' && detail.protocol !== 'osmand-atlas' && detail.protocol !== 'mapsforge')) return;
+    if (!detail || (detail.protocol !== 'osmand' && detail.protocol !== 'osmand-atlas' && detail.protocol !== 'osmand-labels' && detail.protocol !== 'mapsforge')) return;
     const key = `${detail.protocol}/${detail.zoom}/${detail.column}/${detail.row}`;
     if (detail.status === 'loading' || detail.status === 'rerendering') {
       this.clearRenderDisplayFallback();
