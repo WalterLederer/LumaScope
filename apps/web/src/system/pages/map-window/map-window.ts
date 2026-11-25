@@ -13,7 +13,7 @@ import { take } from 'rxjs';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { formatNumber } from '../../../ui/utils/format-number';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
-import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndLabelsTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, setOfflineRenderConcurrency, runOfflineRenderTask, subscribeOfflineRenderStatus, type OfflineRenderTaskStatus, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
+import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndLabelsTileProtocol, emitOsmAndLabelsTileStatus, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, setOfflineRenderConcurrency, runOfflineRenderTask, subscribeOfflineRenderStatus, type OfflineRenderTaskStatus, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapPresetOption { id: string; name: string; osmAndRegex: string; mapsForgeRegex?: string; hillshadeRegex?: string; }
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; unbindTooltip(): MapMarker; }
@@ -8185,15 +8185,17 @@ ${points}
     const map = this.map;
     const leaflet = this.leaflet;
     const desktop = this.desktop;
-    if (!map || !leaflet || !desktop || !this.osmAndLabelsVisible()) {
+    if (!map || !leaflet || !desktop) {
       this.leafletOsmAndLabelsLayer?.remove();
       this.leafletOsmAndLabelsLayer = null;
       return;
     }
 
+    // Keep an existing layer attached when unchecked. Opacity zero hides it
+    // without discarding Leaflet's loaded tile objects; re-enabling is instant.
+    if (!this.osmAndLabelsVisible() && !this.leafletOsmAndLabelsLayer) return;
     if (refreshTiles && this.leafletOsmAndLabelsLayer) {
-      this.leafletOsmAndLabelsLayer.remove();
-      this.leafletOsmAndLabelsLayer = null;
+      this.leafletOsmAndLabelsLayer.redraw();
     }
 
     if (!this.leafletOsmAndLabelsLayer) {
@@ -8219,6 +8221,9 @@ ${points}
                 done(null, canvas);
                 return;
               }
+              emitOsmAndLabelsTileStatus('loading', coords.z, x, coords.y);
+              const renderStartedAt = performance.now();
+              emitOsmAndLabelsTileStatus('rendering', coords.z, x, coords.y);
               const tile = await runOfflineRenderTask(
                 () => desktop.OsmAndAtlas.renderLabelsTile(coords.z, x, coords.y, this.displayDensityFactor()),
                 'OsmAnd Labels', `Tile z${coords.z}/${x}/${coords.y}`
@@ -8228,9 +8233,13 @@ ${points}
                 throw new Error('OsmAnd Labels returned an invalid RGBA8 frame.');
               }
               context.putImageData(new ImageData(new Uint8ClampedArray(tile.pixels), 256, 256), 0, 0);
+              emitOsmAndLabelsTileStatus(tile.cacheHit ? 'cache-loading' : 'loaded', coords.z, x, coords.y,
+                undefined, tile.cacheHit ? undefined : performance.now() - renderStartedAt);
               done(null, canvas);
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
+              emitOsmAndLabelsTileStatus(/cancelled|canceled/i.test(message) ? 'cancelled' : 'error',
+                coords.z, coords.x, coords.y, message);
               this.recordMapError('OsmAnd Labels tile', message + ' [z=' + coords.z + ', x=' + coords.x + ', y=' + coords.y + ']');
               done(error instanceof Error ? error : new Error(message), canvas);
             }
@@ -8240,13 +8249,13 @@ ${points}
       });
       this.leafletOsmAndLabelsLayer = new OsmAndLabelsGridLayer({
         pane: 'osmandLabelsPane', tileSize: 256, minZoom: 2, maxZoom: 21, maxNativeZoom: 20,
-        opacity: this.osmAndLabelsOpacity() / 100, zIndex: 260
+        opacity: this.osmAndLabelsVisible() ? this.osmAndLabelsOpacity() / 100 : 0, zIndex: 260
       }).addTo(map);
       this.leafletOsmAndLabelsLayer.on('load', () => {
         window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
       });
     } else {
-      this.leafletOsmAndLabelsLayer.setOpacity(this.osmAndLabelsOpacity() / 100);
+      this.leafletOsmAndLabelsLayer.setOpacity(this.osmAndLabelsVisible() ? this.osmAndLabelsOpacity() / 100 : 0);
     }
   }
 

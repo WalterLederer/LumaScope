@@ -951,7 +951,9 @@ bool OsmAndNativeMapWidget::ensureRenderer()
         auto debugSettings = _mapRenderer->getDebugSettings();
         debugSettings->disableSkyStage = true;
         _mapRenderer->setDebugSettings(debugSettings);
-        _mapRenderer->setBackgroundColor(OsmAnd::FColorRGB(0.0f, 0.0f, 0.0f), true);
+        // Keep the labels-only framebuffer transparent. paintGL() has already
+        // cleared it to alpha=0; an RGB background here makes it opaque.
+        _mapRenderer->resetMapTarget();
     }
     _mapRenderer->setResourceWorkerThreadsLimit(static_cast<unsigned int>(std::clamp(QThread::idealThreadCount(), 4, 8)));
     syncRendererViewport(true);

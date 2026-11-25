@@ -142,7 +142,7 @@ export function cacheHillshadeTile(key: string, png: Uint8Array): void {
   hillshadePngCacheBytes += stored.byteLength;
 }
 
-type OsmAndTileProtocol = 'osmand' | 'osmand-atlas' | 'maplibre' | 'mapsforge';
+type OsmAndTileProtocol = 'osmand' | 'osmand-atlas' | 'osmand-labels' | 'maplibre' | 'mapsforge';
 type OsmAndTileStatus = 'loading' | 'cache-loading' | 'rendering' | 'rerendering' | 'loaded' | 'warning' | 'error' | 'cancelled' | 'diagnostic';
 interface OsmAndTileStatusEventDetail {
   protocol: OsmAndTileProtocol;
@@ -349,24 +349,38 @@ export function registerOsmAndLabelsTileProtocol(desktop: Desktop, getDisplaySca
     if (row < 0 || row >= tileCount) {
       return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256)) };
     }
+    const tileCoordinates = { protocol: 'osmand-labels' as const, zoom, column, row };
+    emitOsmAndTileStatus({ ...tileCoordinates, status: 'loading' });
     const displayScale = osmAndAtlasDisplayScaleProvider?.() ?? window.devicePixelRatio ?? 1;
-    const tile = await runOfflineRenderTask(
-      () => desktop.OsmAndAtlas.renderLabelsTile(zoom, column, row, displayScale),
-      'OsmAnd Labels', `Tile z${zoom}/${column}/${row}`
-    );
-    if (abortController.signal.aborted) throw new Error('OsmAnd Labels tile request was cancelled.');
-    if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024
-      || tile.pixels.byteLength !== 256 * 256 * 4) {
-      throw new Error('OsmAnd Labels returned an invalid RGBA8 frame.');
+    const renderStartedAt = performance.now();
+    try {
+      emitOsmAndTileStatus({ ...tileCoordinates, status: 'rendering' });
+      const tile = await runOfflineRenderTask(
+        () => desktop.OsmAndAtlas.renderLabelsTile(zoom, column, row, displayScale),
+        'OsmAnd Labels', `Tile z${zoom}/${column}/${row}`
+      );
+      if (abortController.signal.aborted) throw new Error('OsmAnd Labels tile request was cancelled.');
+      if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024
+        || tile.pixels.byteLength !== 256 * 256 * 4) {
+        throw new Error('OsmAnd Labels returned an invalid RGBA8 frame.');
+      }
+      if (tile.cacheHit) emitOsmAndTileStatus({ ...tileCoordinates, status: 'cache-loading' });
+      const pixels = new Uint8ClampedArray(tile.pixels.byteLength);
+      pixels.set(tile.pixels);
+      const bitmap = await createImageBitmap(new ImageData(pixels, 256, 256));
+      if (abortController.signal.aborted) {
+        bitmap.close();
+        throw new Error('OsmAnd Labels tile request was cancelled.');
+      }
+      emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded',
+        ...(!tile.cacheHit ? { totalDurationMs: performance.now() - renderStartedAt } : {}) });
+      return { data: bitmap };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const cancelled = abortController.signal.aborted || /cancelled|canceled/i.test(message);
+      emitOsmAndTileStatus({ ...tileCoordinates, status: cancelled ? 'cancelled' : 'error', error: message });
+      throw error;
     }
-    const pixels = new Uint8ClampedArray(tile.pixels.byteLength);
-    pixels.set(tile.pixels);
-    const bitmap = await createImageBitmap(new ImageData(pixels, 256, 256));
-    if (abortController.signal.aborted) {
-      bitmap.close();
-      throw new Error('OsmAnd Labels tile request was cancelled.');
-    }
-    return { data: bitmap };
   });
   osmAndLabelsProtocolRegistered = true;
 }
