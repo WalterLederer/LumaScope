@@ -36,6 +36,7 @@ interface MapInstance {
   project(latlng: [number, number], zoom?: number): { x: number; y: number };
   unproject(point: [number, number], zoom?: number): { lat: number; lng: number };
   on(event: 'zoomend', callback: () => void): MapInstance;
+  on(event: 'moveend', callback: () => void): MapInstance;
   on(event: 'contextmenu', callback: (event: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent }) => void): MapInstance;
   createPane(name: string): HTMLElement;
   fitBounds(bounds: [[number, number], [number, number]], options?: { padding?: [number, number]; maxZoom?: number; animate?: boolean }): MapInstance;
@@ -184,6 +185,10 @@ export class MapWindow implements OnInit, OnDestroy {
   private tileLayer: LeafletTileLayer | null = null;
   private mapBoundsLayers: Array<{ remove(): void }> = [];
   private trackLayers: Array<{ remove(): void }> = [];
+  private readonly gpxViewportChunkCache = new Map<string, {
+    source: [number, number][][];
+    chunks: Array<{ coordinates: [number, number][]; sourceSegmentIndex: number; south: number; north: number; west: number; east: number }>;
+  }>();
   private gpxCanvasRenderer: unknown = null;
   private gpxCanvasRendererMap: MapInstance | null = null;
   private gpxSegments: [number, number][][] = [];
@@ -3933,6 +3938,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyScaleVisibility();
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
     const syncZoom = (): void => { this.persistZoom(map.getZoom()); this.applyGpxTrack(); };
+    map.on('moveend', this.refreshGpxViewport);
     map.on('zoomend', syncZoom);
     (map as unknown as { on: (event: 'moveend', callback: () => void) => unknown })
       .on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
@@ -6111,6 +6117,11 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxProgress.set({ active: false, percent: 100, label: '' });
     this.gpxRestoreBusy.set(false);
     this.gpxRestoreStatus.set('');
+    // Register viewport refresh once the map instance is ready. Both Leaflet and
+    // MapLibre expose the same moveend event; zoomend is included for settled zooms.
+    this.map?.on('zoomend', this.refreshGpxViewport);
+    this.offlineRenderer?.map.on('moveend', this.refreshGpxViewport);
+    this.offlineRenderer?.map.on('zoomend', this.refreshGpxViewport);
   }
 
   protected readonly changeGpxTrackColor = (path: string, color: string): void => {
@@ -6255,6 +6266,55 @@ export class MapWindow implements OnInit, OnDestroy {
     });
     return visible;
   }
+
+  private viewportGpxSegments(
+    track: GpxTrackFile,
+    segments: [number, number][][]
+  ): { coordinates: [number, number][]; sourceSegmentIndex: number }[] {
+    const bounds = this.map?.getBounds() ?? this.offlineRenderer?.map.getBounds();
+    if (!bounds) return segments.map((coordinates, sourceSegmentIndex) => ({ coordinates, sourceSegmentIndex }));
+
+    let cached = this.gpxViewportChunkCache.get(track.path);
+    if (!cached || cached.source !== segments) {
+      const chunks: Array<{ coordinates: [number, number][]; sourceSegmentIndex: number; south: number; north: number; west: number; east: number }> = [];
+      const chunkPointCount = 256;
+      for (let sourceSegmentIndex = 0; sourceSegmentIndex < segments.length; sourceSegmentIndex++) {
+        const source = segments[sourceSegmentIndex];
+        if (!source || source.length < 2) continue;
+        // Keep one shared endpoint between adjacent chunks so no visual gaps appear.
+        for (let start = 0; start < source.length - 1; start += chunkPointCount - 1) {
+          const coordinates = source.slice(start, Math.min(source.length, start + chunkPointCount));
+          if (coordinates.length < 2) continue;
+          let south = Number.POSITIVE_INFINITY, north = Number.NEGATIVE_INFINITY;
+          let west = Number.POSITIVE_INFINITY, east = Number.NEGATIVE_INFINITY;
+          for (const [latitude, longitude] of coordinates) {
+            south = Math.min(south, latitude); north = Math.max(north, latitude);
+            west = Math.min(west, longitude); east = Math.max(east, longitude);
+          }
+          chunks.push({ coordinates, sourceSegmentIndex, south, north, west, east });
+        }
+      }
+      cached = { source: segments, chunks };
+      this.gpxViewportChunkCache.set(track.path, cached);
+    }
+
+    const south = bounds.getSouth(), north = bounds.getNorth();
+    const west = bounds.getWest(), east = bounds.getEast();
+    // A small margin avoids visible gaps while panning and lets the renderer
+    // retain nearby geometry just outside the viewport.
+    const latitudePadding = Math.max(0.0005, (north - south) * 0.05);
+    const longitudePadding = Math.max(0.0005, (east - west) * 0.05);
+    const minLatitude = south - latitudePadding, maxLatitude = north + latitudePadding;
+    const minLongitude = west - longitudePadding, maxLongitude = east + longitudePadding;
+    return cached.chunks
+      .filter(chunk => chunk.north >= minLatitude && chunk.south <= maxLatitude
+        && chunk.east >= minLongitude && chunk.west <= maxLongitude)
+      .map(chunk => ({ coordinates: chunk.coordinates, sourceSegmentIndex: chunk.sourceSegmentIndex }));
+  }
+
+  private readonly refreshGpxViewport = (): void => {
+    this.applyGpxTrack();
+  };
 
   private isTimeSliderTimestampVisible(timestamp: number | null | undefined): boolean {
     if (!this.timeSliderActive() || timestamp == null || !Number.isFinite(timestamp)) return true;
@@ -8111,10 +8171,11 @@ ${points}
       this.offlineRenderer.setTrack(activeTracks.map(track => {
         const speedSegments = track.colorMode === 'speed' ? this.gpxSpeedSegments(track) : track.colorMode === 'elevation' ? this.gpxElevationSegments(track) : [];
         const normalSegments = this.visibleGpxSegments(track);
-        const segments = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments.map(item => item.coordinates) : normalSegments;
+        const viewportSegments = this.viewportGpxSegments(track, normalSegments);
+        const segments = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments.map(item => item.coordinates) : viewportSegments.map(item => item.coordinates);
         const segmentColors = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments.map(item => item.color)
           : track.colorMode === 'track-based' ? normalSegments.map((_, index) => this.gpxTrackSegmentColor(track.path, index)) : undefined;
-        return { path: track.path, segments, segmentColors, color: track.colorMode === 'track-based' ? (trackBasedColorByPath.get(track.path) || this.gpxColor()) : (track.color || this.gpxColor()), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic', directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? (track.directionStyle?.startsWith('large-') ? 24 : 18), directionArrowOutlineWidthPx: track.directionArrowOutlineWidthPx ?? 2, trackShadowStrength: track.trackShadowStrength ?? 0, arrowShadowStrength: track.arrowShadowStrength ?? 0, trackOutlineStrength: track.trackOutlineStrength ?? 0 };
+        return { path: track.path, segments, segmentSourceIndices: track.colorMode === 'speed' || track.colorMode === 'elevation' ? segments.map((_, index) => index) : viewportSegments.map(item => item.sourceSegmentIndex), segmentColors, color: track.colorMode === 'track-based' ? (trackBasedColorByPath.get(track.path) || this.gpxColor()) : (track.color || this.gpxColor()), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic', directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? (track.directionStyle?.startsWith('large-') ? 24 : 18), directionArrowOutlineWidthPx: track.directionArrowOutlineWidthPx ?? 2, trackShadowStrength: track.trackShadowStrength ?? 0, arrowShadowStrength: track.arrowShadowStrength ?? 0, trackOutlineStrength: track.trackOutlineStrength ?? 0 };
       }), this.gpxOpacity() / 100);
       this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude, segmentIndex) => this.updateGpxHover(path, latitude, longitude, segmentIndex));
       return;
@@ -8127,7 +8188,8 @@ ${points}
     for (const track of activeTracks) {
       const speedSegments = track.colorMode === 'speed' ? this.gpxSpeedSegments(track) : track.colorMode === 'elevation' ? this.gpxElevationSegments(track) : [];
       const normalSegments = this.visibleGpxSegments(track);
-      const segments = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments.map(item => item.coordinates) : normalSegments;
+      const viewportSegments = this.viewportGpxSegments(track, normalSegments);
+      const segments = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments.map(item => item.coordinates) : viewportSegments.map(item => item.coordinates);
       const trackPointCount = segments.reduce((sum, segment) => sum + segment.length, 0);
       const largeTrack = trackPointCount >= 10000;
       let rendererOptions: { renderer?: unknown } = {};
