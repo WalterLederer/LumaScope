@@ -1269,18 +1269,17 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   background: rgb(128 128 128 / 9%);
 }
 .opacity-settings .opacity-content .text-layer-symbol {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 15px;
-  height: 15px;
-  margin-left: 2px;
-  border: 1px solid currentColor;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  vertical-align: middle;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-left: 3px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -2px;
+  opacity: .9;
 }
 
 .opacity-settings .opacity-content > .label-opacity-surface-box {
