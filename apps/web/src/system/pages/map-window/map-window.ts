@@ -5861,7 +5861,12 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxSpeedSegmentsCache.delete(path);
     this.gpxTracks.set(next);
     void this.persistGpxTracks(next.filter(track => !track.path.startsWith('memory:')));
-    await this.reloadGpxTracks();
+
+    // The remaining tracks are already parsed and cached. Rebuild the rendered
+    // collection from those caches instead of rereading and reparsing every file.
+    this.rebuildGpxSegments();
+    this.applyGpxTrack();
+    void this.refreshLatestGpxElevationProfile();
   };
 
   private async readGpxFileMetadata(path: string): Promise<{ size: number; modifiedAt: number } | null> {
