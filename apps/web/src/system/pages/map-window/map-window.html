@@ -944,6 +944,11 @@
         <label class="visibility-toggle">OsmAnd Labels <input type="checkbox" [checked]="osmAndLabelsVisible()" (change)="changeOsmAndLabelsVisibility($any($event.target).checked)" [disabled]="configuredOsmandMapCount() === 0" aria-label="Show OsmAnd Labels"></label>
         <ui-slider id="osmand-labels-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="osmAndLabelsOpacity()" (valueChange)="changeOsmAndLabelsOpacity($event)" [color]="themeService.sliderColor()" [isDisabled]="configuredOsmandMapCount() === 0 || !osmAndLabelsVisible()" aria-label="OsmAnd Labels opacity" />
         <span class="range-value">{{ osmAndLabelsOpacity() }}%</span>
+        <button type="button" class="map-toolbar-button osmand-label-rerender-button" (click)="rerenderVisibleOsmAndLabels()"
+          [disabled]="configuredOsmandMapCount() === 0 || rerenderVisibleTilesBusy()"
+          title="Force a fresh native render of the visible OsmAnd Labels tiles instead of using cached tile images">
+          {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
+        </button>
       </div>
       <div class="range-setting" [class.setting-unavailable]="activeHillshadeDatabaseCount() === 0">
         <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="activeHillshadeDatabaseCount() === 0" aria-label="Show Hillshade"></label>
