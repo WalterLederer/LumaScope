@@ -431,3 +431,51 @@
 :host .markdown-help-search-results button.markdown-help-search-result small { color:inherit; opacity:.9; }
 :host ::ng-deep .markdown-body mark.markdown-search-hit { padding:0 1px; border-radius:2px; background:#ffe36a; color:#17202a; font-weight:750; }
 :host ::ng-deep .markdown-body .active-search-line { border-radius:4px; outline:2px solid #2689d8; outline-offset:3px; background:color-mix(in srgb, #2689d8 13%, transparent); }
+
+
+/* Search results are interactive navigation controls. Use deep, high-specificity
+   rules so the application's global action-button theme cannot override them. */
+:host ::ng-deep .markdown-help .markdown-help-search-results button.markdown-help-search-result,
+:host ::ng-deep .markdown-help .markdown-help-search-results .markdown-help-search-navigation button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  box-sizing: border-box !important;
+  color: var(--color-content-default-high, #202124) !important;
+  background: var(--color-surface-default, #f4f4f4) !important;
+  background-image: none !important;
+  border: 1px solid var(--color-border-default, #888) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  transform: none !important;
+  font: inherit !important;
+  cursor: pointer !important;
+}
+:host ::ng-deep .markdown-help .markdown-help-search-results button.markdown-help-search-result {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 3px 10px !important;
+  width: 100% !important;
+  margin: 2px 0 !important;
+  padding: 7px 8px !important;
+  text-align: left !important;
+}
+:host ::ng-deep .markdown-help .markdown-help-search-results .markdown-help-search-navigation button {
+  padding: 4px 7px !important;
+  font-size: 10px !important;
+}
+:host ::ng-deep .markdown-help .markdown-help-search-results button.markdown-help-search-result:hover,
+:host ::ng-deep .markdown-help .markdown-help-search-results button.markdown-help-search-result.active {
+  color: #fff !important;
+  background: #286fae !important;
+  border-color: #78b9ed !important;
+}
+:host ::ng-deep .markdown-help .markdown-help-search-results button.markdown-help-search-result span,
+:host ::ng-deep .markdown-help .markdown-help-search-results button.markdown-help-search-result small {
+  color: inherit !important;
+}
+:host ::ng-deep .markdown-help .markdown-help-search-results .markdown-help-search-navigation button:disabled {
+  opacity: .45 !important;
+  cursor: default !important;
+}
