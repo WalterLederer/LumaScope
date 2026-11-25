@@ -1266,7 +1266,7 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
 .opacity-settings .opacity-content > .hillshade-opacity-surface-box {
   /* Match the working label surfaces: component-scoped selector with higher specificity
      than .opacity-content .range-setting, so the grey tint is not overwritten. */
-  background: rgb(128 128 128 / 9%);
+  background: rgb(128 128 128 / 15%);
 }
 .opacity-settings .opacity-content .text-layer-symbol {
   display: inline-block;
@@ -1373,4 +1373,15 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
 .opacity-settings .opacity-content > .label-opacity-surface-box > .osmand-label-rerender-status {
   grid-column: 1 / -1;
   grid-row: 3;
+}
+
+
+/* Place visibility checkboxes consistently before their labels. */
+.opacity-settings .opacity-content .visibility-toggle {
+  display: inline-flex;
+  align-items: center;
+}
+.opacity-settings .opacity-content .visibility-toggle > input[type="checkbox"] {
+  order: -1;
+  margin: 0 4px 0 0 !important;
 }
