@@ -7,7 +7,7 @@
           <span>Always on top</span>
         </label>
         <div class="titlebar-mouse-coordinate" title="Current mouse position on the map">Mouse: {{ mouseCoordinateLabel() || '—' }}</div>
-        <div class="map-title"><span class="map-title-icon">⌖</span></div>
+        <div class="map-title"></div>
         @if (overlayMode) {
           <button type="button" class="overlay-close-button" (click)="closeOverlayWindow()" title="Close overlay" aria-label="Close overlay">×</button>
         }
