@@ -1484,6 +1484,7 @@ export class OsmAndAtlasManager {
     event: Electron.IpcMainInvokeEvent, z: number, x: number, y: number,
     requestedDisplayScale?: number, forceRender = false, labelsOnly = false
   ): Promise<OsmAndAtlasTileResult> => {
+    if (labelsOnly) await this.refreshSelectedObf();
     await this.ensureRenderWorkerPools();
     await this.styleChange;
     // OBF selection is refreshed by getRuntimeStatus() during map initialization.
