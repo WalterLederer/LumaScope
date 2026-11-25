@@ -97,7 +97,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
     if (heading) {
       const lineNumber = index + 1;
       const level = heading[1].length;
-      output.push('<span id="help-search-line-' + lineNumber + '"></span><h' + level + '>' + renderInline(heading[2], imageSources) + '</h' + level + '>');
+      output.push('<span id="help-search-line-' + lineNumber + '"></span><h' + level + '>' + renderInline(heading[2], imageSources, searchQuery) + '</h' + level + '>');
       index++;
       continue;
     }
@@ -115,10 +115,10 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
       const rows: string[] = [];
       while (index < lines.length && lines[index].trim().startsWith('|')) {
         const cells = splitTableRow(lines[index]);
-        rows.push('<tr>' + headers.map((_header, cellIndex) => '<td>' + renderInline(cells[cellIndex] ?? '', imageSources) + '</td>').join('') + '</tr>');
+        rows.push('<tr>' + headers.map((_header, cellIndex) => '<td>' + renderInline(cells[cellIndex] ?? '', imageSources, searchQuery) + '</td>').join('') + '</tr>');
         index++;
       }
-      output.push('<span id="help-search-line-' + tableLineNumber + '"></span><div class="markdown-table-wrap"><table><thead><tr>' + headers.map(cell => '<th>' + renderInline(cell, imageSources) + '</th>').join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>');
+      output.push('<span id="help-search-line-' + tableLineNumber + '"></span><div class="markdown-table-wrap"><table><thead><tr>' + headers.map(cell => '<th>' + renderInline(cell, imageSources, searchQuery) + '</th>').join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>');
       continue;
     }
 
@@ -126,7 +126,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
       const listLineNumber = index + 1;
       const items: string[] = [];
       while (index < lines.length && /^\s*[-*+]\s+/.test(lines[index])) {
-        items.push('<li>' + renderInline(lines[index].replace(/^\s*[-*+]\s+/, ''), imageSources) + '</li>');
+        items.push('<li>' + renderInline(lines[index].replace(/^\s*[-*+]\s+/, ''), imageSources, searchQuery) + '</li>');
         index++;
       }
       output.push('<span id="help-search-line-' + listLineNumber + '"></span><ul>' + items.join('') + '</ul>');
@@ -137,7 +137,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
       const listLineNumber = index + 1;
       const items: string[] = [];
       while (index < lines.length && /^\s*\d+\.\s+/.test(lines[index])) {
-        items.push('<li>' + renderInline(lines[index].replace(/^\s*\d+\.\s+/, ''), imageSources) + '</li>');
+        items.push('<li>' + renderInline(lines[index].replace(/^\s*\d+\.\s+/, ''), imageSources, searchQuery) + '</li>');
         index++;
       }
       output.push('<span id="help-search-line-' + listLineNumber + '"></span><ol>' + items.join('') + '</ol>');
@@ -147,7 +147,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
     if (/^\s*>/.test(line)) {
       const quoteLineNumber = index + 1;
       const quote: string[] = [];
-      while (index < lines.length && /^\s*>/.test(lines[index])) quote.push(renderInline(lines[index++].replace(/^\s*>\s?/, ''), imageSources));
+      while (index < lines.length && /^\s*>/.test(lines[index])) quote.push(renderInline(lines[index++].replace(/^\s*>\s?/, ''), imageSources, searchQuery));
       output.push('<span id="help-search-line-' + quoteLineNumber + '"></span><blockquote>' + quote.join('<br>') + '</blockquote>');
       continue;
     }
@@ -161,7 +161,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
       paragraph.push(line.trim());
       index++;
     }
-    const paragraphHtml = paragraph.map(line => renderInline(line, imageSources)).join('<br>');
+    const paragraphHtml = paragraph.map(line => renderInline(line, imageSources, searchQuery)).join('<br>');
     if (/^(?:\s*<img\b[^>]*>\s*)+$/i.test(paragraphHtml)) {
       output.push('<span id="help-search-line-' + paragraphLineNumber + '"></span><div class="markdown-image-row">' + paragraphHtml + '</div>');
     } else {
