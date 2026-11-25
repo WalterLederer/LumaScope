@@ -338,6 +338,7 @@
             <col [style.width.px]="gpxDatabaseColumnWidths()['active']">
             <col [style.width.px]="gpxDatabaseColumnWidths()['name']">
             <col [style.width.px]="gpxDatabaseColumnWidths()['points']">
+            <col style="width:82px">
             <col [style.width.px]="gpxDatabaseColumnWidths()['modified']">
             <col [style.width.px]="gpxDatabaseColumnWidths()['time']">
             <col [style.width.px]="gpxDatabaseColumnWidths()['size']">
@@ -350,6 +351,7 @@
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('active')">Active <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('active') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'active')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('name')">File <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('name') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'name')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('points')">Points <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('points') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'points')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
+              <th scope="col" title="Percentage of the track geometry inside the current map viewport">Rendered</th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('modified')">Date <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('modified') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'modified')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('time')">Track time <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('time') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'time')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
               <th scope="col"><span class="gpx-db-sort-label" (click)="sortGpxDatabase('size')">Size <span class="table-sort-indicator">{{ gpxDatabaseSortIndicator('size') }}</span></span><span class="gpx-column-resizer" (pointerdown)="startGpxColumnResize($event, 'size')" (click)="$event.stopPropagation(); $event.preventDefault()"></span></th>
@@ -366,6 +368,7 @@
                 <td class="gpx-active-toggle" [title]="'Show ' + track.name"><input type="checkbox" [checked]="track.active !== false" (change)="changeGpxListTrack(track.path, { active: $any($event.target).checked })" [attr.aria-label]="'Show track ' + track.name"></td>
                 <td class="gpx-file-name" [title]="track.databasePath || track.path">{{ track.name }}</td>
                 <td class="gpx-waypoint-count">{{ track.missing || track.readError ? '—' : gpxListWaypointCount(track) }}</td>
+                <td class="gpx-waypoint-count" [title]="gpxRenderedPercent(track) + '% of track length in the current map viewport'">{{ track.missing || track.readError ? '—' : gpxRenderedPercent(track) + '%' }}</td>
                 <td>{{ track.missing || track.readError ? (track.missing ? 'Missing' : 'Read error') : formatGpxDate(track.lastModified) }}</td>
                 <td class="gpx-time-range" [title]="gpxTrackTimeRange(track.path)">{{ track.missing || track.readError ? '—' : gpxTrackTimeRange(track.path) }}</td>
                 <td>{{ track.missing || track.readError ? '—' : formatGpxFileSize(track.sizeBytes) }}</td>
