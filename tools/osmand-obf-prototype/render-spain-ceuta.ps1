@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [string]$SdkRoot = (Join-Path $env:LOCALAPPDATA 'LumaScope\OsmAnd-SDK'),
+    [string]$SdkRoot = (Join-Path ($env:APPDATA ?? (Join-Path $env:USERPROFILE 'AppData\Roaming')) 'LumaScope\OsmAnd-SDK'),
     [string]$QtRoot = 'C:\Qt\6.12.0\mingw_64',
     [string]$MinGWRoot = 'C:\Qt\Tools\mingw1310_64',
     [string]$PythonExe = 'python',
