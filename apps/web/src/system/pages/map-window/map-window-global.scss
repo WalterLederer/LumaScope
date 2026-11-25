@@ -1301,26 +1301,12 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   grid-row: 3;
   min-width: 0;
 }
-.opacity-content > .crosshair-map-scale-opacity-surface-box {
+.opacity-content > .crosshair-opacity-surface-box,
+.opacity-content > .map-scale-opacity-surface-box {
   display: flex;
-  flex: 1 1 220px;
-  flex-wrap: wrap;
+  flex: 1 1 180px;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px 16px;
-  min-width: 0;
-}
-.opacity-content > .crosshair-map-scale-opacity-surface-box > .range-setting {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: flex-end;
-  min-width: 0;
+  min-width: 150px;
   white-space: nowrap;
-  /* The shared outer surface is the only box around these two toggles. */
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
 }
