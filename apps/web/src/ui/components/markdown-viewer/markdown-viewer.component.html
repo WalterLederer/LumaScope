@@ -29,7 +29,7 @@
     </nav>
   }
   <div class="markdown-help-search" [class.has-query]="searchQuery().trim().length >= 2">
-    <input type="search" [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)" placeholder="Search all help pages…" aria-label="Search all help pages" />
+    <input type="search" [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)" (keydown)="onSearchKeydown($event)" placeholder="Search all help pages…" aria-label="Search all help pages" title="Enter / F3: next result · Shift+Enter / Shift+F3: previous result" />
     @if (searchQuery().trim().length >= 2) {
       <div class="markdown-help-search-panel">
         @if (searchBusy()) {
