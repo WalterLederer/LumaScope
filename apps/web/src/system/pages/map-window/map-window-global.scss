@@ -1271,6 +1271,8 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   column-gap: 5px;
   row-gap: 4px;
   min-width: 0;
+  /* Keep the subtle violet tint visible over the generic opacity-card background. */
+  background: rgb(167 139 250 / 5%);
 }
 .opacity-settings .opacity-content > .label-opacity-surface-box > .opacity-row-label,
 .opacity-settings .opacity-content > .label-opacity-surface-box > .visibility-toggle {
@@ -1311,4 +1313,10 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   flex: 1 1 105px;
   min-width: 0;
   white-space: nowrap;
+  /* The shared outer surface is the only box around these two toggles. */
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
