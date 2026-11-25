@@ -197,6 +197,7 @@ export class MarkdownViewerComponent {
   protected readonly openFileError = signal('');
   protected readonly searchQuery = signal('');
   protected readonly searchResults = signal<HelpSearchGroup[]>([]);
+  protected readonly searchResultCount = computed(() => this.searchResults().reduce((count, group) => count + group.results.length, 0));
   protected readonly searchBusy = signal(false);
   protected readonly searchError = signal('');
   private documentLoadRequest = 0;
