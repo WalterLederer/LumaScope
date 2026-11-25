@@ -8171,10 +8171,14 @@ ${points}
       this.offlineRenderer.setTrack(activeTracks.map(track => {
         const speedSegments = track.colorMode === 'speed' ? this.gpxSpeedSegments(track) : track.colorMode === 'elevation' ? this.gpxElevationSegments(track) : [];
         const normalSegments = this.visibleGpxSegments(track);
-        const viewportSegments = this.viewportGpxSegments(track, normalSegments);
-        const segments = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments.map(item => item.coordinates) : viewportSegments.map(item => item.coordinates);
-        const segmentColors = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments.map(item => item.color)
-          : track.colorMode === 'track-based' ? normalSegments.map((_, index) => this.gpxTrackSegmentColor(track.path, index)) : undefined;
+        const coloredMode = track.colorMode === 'speed' || track.colorMode === 'elevation';
+        const sourceSegments = coloredMode ? speedSegments.map(item => item.coordinates) : normalSegments;
+        const viewportSegments = this.viewportGpxSegments(track, sourceSegments);
+        const segments = viewportSegments.map(item => item.coordinates);
+        const segmentColors = coloredMode
+          ? viewportSegments.map(item => speedSegments[item.sourceSegmentIndex]?.color || track.color || this.gpxColor())
+          : track.colorMode === 'track-based'
+            ? viewportSegments.map(item => this.gpxTrackSegmentColor(track.path, item.sourceSegmentIndex)) : undefined;
         return { path: track.path, segments, segmentSourceIndices: track.colorMode === 'speed' || track.colorMode === 'elevation' ? segments.map((_, index) => index) : viewportSegments.map(item => item.sourceSegmentIndex), segmentColors, color: track.colorMode === 'track-based' ? (trackBasedColorByPath.get(track.path) || this.gpxColor()) : (track.color || this.gpxColor()), lineStyle: track.lineStyle || 'solid', lineWidth: track.lineWidth || 4, showDirection: track.showDirection === true, directionStyle: track.directionStyle || 'classic', directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? (track.directionStyle?.startsWith('large-') ? 24 : 18), directionArrowOutlineWidthPx: track.directionArrowOutlineWidthPx ?? 2, trackShadowStrength: track.trackShadowStrength ?? 0, arrowShadowStrength: track.arrowShadowStrength ?? 0, trackOutlineStrength: track.trackOutlineStrength ?? 0 };
       }), this.gpxOpacity() / 100);
       this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude, segmentIndex) => this.updateGpxHover(path, latitude, longitude, segmentIndex));
@@ -8188,8 +8192,10 @@ ${points}
     for (const track of activeTracks) {
       const speedSegments = track.colorMode === 'speed' ? this.gpxSpeedSegments(track) : track.colorMode === 'elevation' ? this.gpxElevationSegments(track) : [];
       const normalSegments = this.visibleGpxSegments(track);
-      const viewportSegments = this.viewportGpxSegments(track, normalSegments);
-      const segments = track.colorMode === 'speed' || track.colorMode === 'elevation' ? speedSegments.map(item => item.coordinates) : viewportSegments.map(item => item.coordinates);
+      const coloredMode = track.colorMode === 'speed' || track.colorMode === 'elevation';
+      const sourceSegments = coloredMode ? speedSegments.map(item => item.coordinates) : normalSegments;
+      const viewportSegments = this.viewportGpxSegments(track, sourceSegments);
+      const segments = viewportSegments.map(item => item.coordinates);
       const trackPointCount = segments.reduce((sum, segment) => sum + segment.length, 0);
       const largeTrack = trackPointCount >= 10000;
       let rendererOptions: { renderer?: unknown } = {};
@@ -8206,10 +8212,11 @@ ${points}
       for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
         const segment = segments[segmentIndex];
         if (segment.length < 2) continue;
-        const color = track.colorMode === 'speed' || track.colorMode === 'elevation'
-          ? (speedSegments[segmentIndex]?.color || track.color || this.gpxColor())
+        const sourceSegmentIndex = viewportSegments[segmentIndex]?.sourceSegmentIndex ?? segmentIndex;
+        const color = coloredMode
+          ? (speedSegments[sourceSegmentIndex]?.color || track.color || this.gpxColor())
           : track.colorMode === 'track-based'
-            ? this.gpxTrackSegmentColor(track.path, segmentIndex)
+            ? this.gpxTrackSegmentColor(track.path, sourceSegmentIndex)
             : (track.color || this.gpxColor());
         const group = colorGroups.get(color) ?? [];
         group.push(segment);
