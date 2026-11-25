@@ -189,6 +189,10 @@ export class MapWindow implements OnInit, OnDestroy {
     source: [number, number][][];
     chunks: Array<{ coordinates: [number, number][]; sourceSegmentIndex: number; south: number; north: number; west: number; east: number }>;
   }>();
+  private readonly gpxColoredViewportSources = new Map<string, {
+    input: Array<{ coordinates: [number, number][]; color: string }>;
+    source: [number, number][][];
+  }>();
   private gpxCanvasRenderer: unknown = null;
   private gpxCanvasRendererMap: MapInstance | null = null;
   private gpxSegments: [number, number][][] = [];
@@ -5690,7 +5694,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const coordinates = pointSegments.map(segment => segment.map(point => [point.latitude, point.longitude] as [number, number]));
         this.gpxPointDataByTrack.set(path, pointSegments);
         this.gpxSegmentsByTrack.set(path, coordinates);
-        void this.prepareGpxViewportChunks({ path, name: file.name, sizeBytes: file.sizeBytes, lastModified: file.lastModified }, coordinates);
+        void this.prepareGpxViewportChunks({ path, name: file.name, sizeBytes: file.sizeBytes, lastModified: file.lastModified }, coordinates).then(() => this.applyGpxTrack());
         return {
           path, databasePath: file.path, name: file.name, sizeBytes: file.sizeBytes,
           lastModified: file.lastModified, active: previous?.active ?? true,
@@ -6293,6 +6297,17 @@ export class MapWindow implements OnInit, OnDestroy {
       }
     }
     this.gpxViewportChunkCache.set(track.path, { source: segments, chunks });
+  }
+
+  private coloredGpxViewportSource(
+    path: string,
+    segments: Array<{ coordinates: [number, number][]; color: string }>
+  ): [number, number][][] {
+    const cached = this.gpxColoredViewportSources.get(path);
+    if (cached?.input === segments) return cached.source;
+    const source = segments.map(item => item.coordinates);
+    this.gpxColoredViewportSources.set(path, { input: segments, source });
+    return source;
   }
 
   private viewportGpxSegments(
@@ -8182,7 +8197,7 @@ ${points}
         const speedSegments = track.colorMode === 'speed' ? this.gpxSpeedSegments(track) : track.colorMode === 'elevation' ? this.gpxElevationSegments(track) : [];
         const normalSegments = this.visibleGpxSegments(track);
         const coloredMode = track.colorMode === 'speed' || track.colorMode === 'elevation';
-        const sourceSegments = coloredMode ? speedSegments.map(item => item.coordinates) : normalSegments;
+        const sourceSegments = coloredMode ? this.coloredGpxViewportSource(track.path, speedSegments) : normalSegments;
         const viewportSegments = this.viewportGpxSegments(track, sourceSegments);
         const segments = viewportSegments.map(item => item.coordinates);
         const segmentColors = coloredMode
