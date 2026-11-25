@@ -592,7 +592,18 @@
 /* Keep the current Help search destination visibly marked while navigating. */
 :host ::ng-deep .markdown-body .active-search-line {
   border-radius: 3px;
-  background: color-mix(in srgb, var(--color-content-accent, #69aee8) 16%, transparent);
-  outline: 1px solid color-mix(in srgb, var(--color-content-accent, #69aee8) 35%, transparent);
+  background: color-mix(in srgb, var(--color-content-accent, #69aee8) 13%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--color-content-accent, #69aee8) 45%, transparent);
   outline-offset: 2px;
+}
+
+:host ::ng-deep .markdown-body .help-search-line-content {
+  border-radius: 2px;
+}
+
+:host ::ng-deep .markdown-body .help-search-line-content.active-search-target {
+  background: color-mix(in srgb, var(--color-content-accent, #69aee8) 38%, #fff2a8);
+  box-shadow: inset 0 -2px 0 var(--color-content-accent, #69aee8);
+  outline: 1px solid var(--color-content-accent, #69aee8);
+  outline-offset: 1px;
 }
