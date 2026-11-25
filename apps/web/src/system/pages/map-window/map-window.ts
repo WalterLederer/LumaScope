@@ -623,6 +623,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   protected readonly alwaysOnTop = signal(this.readSetting('alwaysOnTop', 'false') === 'true');
   protected readonly mapStyle = signal<MapStyle>(this.readSetting('style', 'standard') as MapStyle);
+  protected readonly onlineCenterTileUrl = signal('');
   protected readonly mapSource = signal<'online' | 'offline' | 'osmand' | 'osmand-atlas' | 'mapsforge'>(this.readSetting('source', 'online') === 'offline' ? 'offline' : this.readSetting('source', 'online') === 'osmand' ? 'osmand' : this.readSetting('source', 'online') === 'osmand-atlas' ? 'osmand-atlas' : this.readSetting('source', 'online') === 'mapsforge' ? 'mapsforge' : 'online');
   protected readonly offlineMapStyle = signal<OfflineMapStyle>(this.readSetting('offlineStyle', 'lumascope') as OfflineMapStyle);
   protected readonly osmAndStyle = signal('default.render.xml');
@@ -3966,6 +3967,9 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyScaleVisibility();
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
     const syncZoom = (): void => { this.persistZoom(map.getZoom()); this.applyGpxTrack(); };
+    map.on('moveend', () => this.updateOnlineCenterTileUrl());
+    map.on('zoomend', () => this.updateOnlineCenterTileUrl());
+    this.updateOnlineCenterTileUrl();
     map.on('movestart', this.suspendGpxViewportRendering);
     map.on('moveend', this.refreshGpxViewport);
     map.on('moveend', () => this.applyDirectoryPhotoMarkers());
@@ -4056,6 +4060,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapSourceGeneration++;
     this.mapInitialization = null;
     this.mapSource.set(nextSource); this.saveSetting('source', nextSource);
+    if (nextSource !== 'online') this.onlineCenterTileUrl.set('');
     if (nextSource === 'osmand-atlas' || nextSource === 'osmand') {
       // When the app started in Mapsforge/online mode, defer the OsmAnd style
       // directory scan until the user explicitly switches to an OsmAnd source.
@@ -7973,9 +7978,40 @@ ${points}
     return Number.isFinite(latitude) && Number.isFinite(longitude) && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180
       ? [latitude, longitude] : null;
   }
+
+  private updateOnlineCenterTileUrl(): void {
+    const map = this.map;
+    if (!map || this.mapSource() !== 'online') {
+      this.onlineCenterTileUrl.set('');
+      return;
+    }
+    const style = this.styles[this.mapStyle()];
+    const zoom = Math.max(0, Math.min(style.maxZoom, Math.round(map.getZoom())));
+    const center = map.getCenter();
+    const latitude = Math.max(-85.05112878, Math.min(85.05112878, center.lat));
+    const longitude = Math.max(-180, Math.min(180, center.lng));
+    const tileCount = 2 ** zoom;
+    const x = Math.max(0, Math.min(tileCount - 1, Math.floor((longitude + 180) / 360 * tileCount)));
+    const latitudeRadians = latitude * Math.PI / 180;
+    const y = Math.max(0, Math.min(tileCount - 1, Math.floor(
+      (1 - Math.asinh(Math.tan(latitudeRadians)) / Math.PI) / 2 * tileCount
+    )));
+    // Leaflet's default subdomain selection is (x + y) modulo the subdomain count.
+    const subdomains = 'abc';
+    const subdomain = subdomains[(x + y) % subdomains.length];
+    const url = style.url
+      .replace('{s}', subdomain)
+      .replace('{z}', String(zoom))
+      .replace('{x}', String(x))
+      .replace('{y}', String(y))
+      .replace('{-y}', String(tileCount - y - 1));
+    this.onlineCenterTileUrl.set(url);
+  }
+
   private applyMapStyle(): void {
     if (!this.map || !this.leaflet) return;
     this.beginMapLoading('online');
+    this.updateOnlineCenterTileUrl();
     this.tileLayer?.remove();
     const style = this.styles[this.mapStyle()];
     const layer = this.leaflet.tileLayer(style.url, style);
