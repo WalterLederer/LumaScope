@@ -10,11 +10,10 @@ import { cleanupStaleJsonTemporaryFiles } from '../file-system/json-file';
 import { flushAppSettingsWrites, startAppSettingsCheckpoint } from '../settings/app-settings';
 import { rendererAppName, rendererAppPort } from './constants';
 
-// Set Chromium's language before startup. getLocale() is available before
-// Electron is ready; getSystemLocale() is not and would crash during startup.
-if (process.platform === 'win32') {
-  app.commandLine.appendSwitch('lang', app.getLocale());
-}
+// Resolve the Windows regional locale after Electron is ready. The renderer's
+// Intl.NumberFormat(undefined) then uses the OS number separators, independently
+// of the English application UI.
+
 
 export default class App {
   // Keep a global reference of the window object, if you don't, the window will
@@ -142,6 +141,9 @@ export default class App {
     // This method will be called when Electron has finished
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
+    if (process.platform === 'win32') {
+      app.commandLine.appendSwitch('lang', app.getSystemLocale());
+    }
     if (rendererAppName) {
       protocol.handle(appProtocol, protocolHandler);
 
