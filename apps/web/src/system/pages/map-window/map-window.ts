@@ -846,6 +846,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly gpxDatabaseClearBusy = signal(false);
   protected readonly gpxDatabaseClearStatus = signal('');
   protected readonly rerenderVisibleTilesBusy = signal(false);
+  private readonly rerenderingOsmAndLabels = signal(false);
   protected readonly rerenderVisibleTilesStatus = signal('');
   protected readonly rerenderVisibleTilesProgress = signal({ completed: 0, total: 0 });
   protected readonly offlineMapImportErrors = signal<string[]>([]);
@@ -4748,7 +4749,7 @@ export class MapWindow implements OnInit, OnDestroy {
     // Stop any camera animation and cancel queued/in-flight Atlas helper work.
     this.offlineRenderer?.map.stop();
     try {
-      if (this.mapSource() === 'osmand-atlas') {
+      if (this.mapSource() === 'osmand-atlas' || this.rerenderingOsmAndLabels()) {
         await this.desktop?.OsmAndAtlas.cancelRendering();
       }
     } catch (error) {
@@ -4771,6 +4772,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const renderer = this.offlineRenderer;
     if (!this.desktop || !renderer || this.configuredOsmandMapCount() === 0 || this.rerenderVisibleTilesBusy()) return;
     this.rerenderVisibleTilesBusy.set(true);
+    this.rerenderingOsmAndLabels.set(true);
     this.rerenderVisibleTilesStatus.set('Rendering visible OsmAnd Labels without using the disk cache…');
     this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
     try {
@@ -4790,6 +4792,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
       console.error('[OsmAnd Labels] Could not rerender visible labels:', error);
     } finally {
+      this.rerenderingOsmAndLabels.set(false);
       this.rerenderVisibleTilesBusy.set(false);
       this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
     }
