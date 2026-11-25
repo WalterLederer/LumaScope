@@ -2699,7 +2699,7 @@ export class OfflineMapRenderer {
         onProgress?.(++completed, tiles.length);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        emitOsmAndTileStatus({ ...tileCoordinates, status: /\\b(cancelled|canceled)\\b/i.test(message) ? 'cancelled' : 'error', error: message });
+        emitOsmAndTileStatus({ ...tileCoordinates, status: /\b(cancelled|canceled)\b/i.test(message) ? 'cancelled' : 'error', error: message });
         throw error;
       }
     }));
