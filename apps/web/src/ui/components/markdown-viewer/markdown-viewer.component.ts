@@ -99,13 +99,13 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
     if (heading) {
       const lineNumber = index + 1;
       const level = heading[1].length;
-      output.push('<span id="help-search-line-' + lineNumber + '"></span><h' + level + '>' + renderInline(heading[2], imageSources, searchQuery) + '</h' + level + '>');
+      output.push('<span id="help-search-line-' + lineNumber + '" class="help-search-line-anchor"></span><h' + level + '>' + renderInline(heading[2], imageSources, searchQuery) + '</h' + level + '>');
       index++;
       continue;
     }
 
     if (/^\s*([-*_])\1\1+\s*$/.test(line)) {
-      output.push('<span id="help-search-line-' + (index + 1) + '"></span><hr>');
+      output.push('<span id="help-search-line-' + (index + 1) + '" class="help-search-line-anchor"></span><hr>');
       index++;
       continue;
     }
@@ -120,7 +120,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
         rows.push('<tr id="help-search-line-' + (index + 1) + '">' + headers.map((_header, cellIndex) => '<td>' + renderInline(cells[cellIndex] ?? '', imageSources, searchQuery) + '</td>').join('') + '</tr>');
         index++;
       }
-      output.push('<span id="help-search-line-' + tableLineNumber + '"></span><div class="markdown-table-wrap"><table><thead><tr>' + headers.map(cell => '<th>' + renderInline(cell, imageSources, searchQuery) + '</th>').join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>');
+      output.push('<span id="help-search-line-' + tableLineNumber + '" class="help-search-line-anchor"></span><div class="markdown-table-wrap"><table><thead><tr>' + headers.map(cell => '<th>' + renderInline(cell, imageSources, searchQuery) + '</th>').join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>');
       continue;
     }
 
@@ -452,7 +452,7 @@ export class MarkdownViewerComponent {
       // also works after the article has already been scrolled.
       const targetOffset = targetRect.top - articleRect.top - article.clientTop;
       const desiredTop = Math.max(0, article.scrollTop + targetOffset - 32);
-      article.scrollTo({ top: desiredTop, behavior: 'instant' });
+      article.scrollTop = desiredTop;
     };
     view.requestAnimationFrame(() => view.requestAnimationFrame(findAndScroll));
   };
