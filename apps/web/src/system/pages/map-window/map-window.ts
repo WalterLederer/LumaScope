@@ -848,6 +848,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly rerenderVisibleTilesBusy = signal(false);
   private readonly rerenderingOsmAndLabels = signal(false);
   protected readonly rerenderVisibleTilesStatus = signal('');
+  protected readonly rerenderOsmAndLabelsStatus = signal('');
   protected readonly rerenderVisibleTilesProgress = signal({ completed: 0, total: 0 });
   protected readonly offlineMapImportErrors = signal<string[]>([]);
   protected readonly mapErrors = signal<MapErrorEntry[]>([]);
@@ -4769,12 +4770,30 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly rerenderVisibleOsmAndLabels = async (): Promise<void> => {
+    if (this.rerenderVisibleTilesBusy()) return;
     const renderer = this.offlineRenderer;
-    if (!this.desktop || !renderer || this.configuredOsmandMapCount() === 0 || this.rerenderVisibleTilesBusy()) return;
+    if (!this.desktop) {
+      this.rerenderOsmAndLabelsStatus.set('Rerender unavailable: desktop API is not connected.');
+      return;
+    }
+    if (!renderer) {
+      this.rerenderOsmAndLabelsStatus.set('Rerender unavailable: map renderer is not ready.');
+      console.warn('[OsmAnd Labels] Rerender requested without an initialized map renderer.');
+      return;
+    }
+    if (this.configuredOsmandMapCount() === 0) {
+      this.rerenderOsmAndLabelsStatus.set('Rerender unavailable: no active OsmAnd map is configured.');
+      return;
+    }
+
     this.rerenderVisibleTilesBusy.set(true);
     this.rerenderingOsmAndLabels.set(true);
-    this.rerenderVisibleTilesStatus.set('Rendering visible OsmAnd Labels without using the disk cache…');
+    this.rerenderOsmAndLabelsStatus.set('Preparing visible OsmAnd Labels tiles…');
     this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
+    console.info('[OsmAnd Labels] Visible tile rerender requested', {
+      zoom: renderer.map.getZoom(),
+      bounds: renderer.map.getBounds().toArray()
+    });
     try {
       const count = await renderer.rerenderVisibleOsmAndLabels(
         (z, x, y, displayScale, forceRender) => runOfflineRenderTask(
@@ -4782,13 +4801,18 @@ export class MapWindow implements OnInit, OnDestroy {
           'OsmAnd Labels', 'Rerender z' + z + '/' + x + '/' + y
         ),
         this.displayDensityFactor(),
-        (completed, total) => this.rerenderVisibleTilesProgress.set({ completed, total })
+        (completed, total) => {
+          this.rerenderVisibleTilesProgress.set({ completed, total });
+          this.rerenderOsmAndLabelsStatus.set('Rendering OsmAnd Labels: ' + completed + ' / ' + total + ' tiles…');
+        }
       );
-      this.rerenderVisibleTilesStatus.set(count > 0 ? 'Rendered ' + count + ' visible OsmAnd Labels tiles.' : 'No visible OsmAnd Labels tiles to render.');
+      this.rerenderOsmAndLabelsStatus.set(count > 0
+        ? 'Rerendered ' + count + ' visible OsmAnd Labels tiles.'
+        : 'No visible OsmAnd Labels tiles were found.');
       await this.refreshOsmAndTileCache();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.rerenderVisibleTilesStatus.set('OsmAnd Labels rerender failed: ' + message);
+      this.rerenderOsmAndLabelsStatus.set('Rerender failed: ' + message);
       this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
       console.error('[OsmAnd Labels] Could not rerender visible labels:', error);
     } finally {
