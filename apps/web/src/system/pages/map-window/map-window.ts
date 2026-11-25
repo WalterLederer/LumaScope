@@ -2138,7 +2138,7 @@ export class MapWindow implements OnInit, OnDestroy {
         void this.initialize(nextLatitude!, nextLongitude!);
       } else if (this.offlineRenderer) {
         this.offlineRenderer.updateCurrentLocation(nextLatitude!, nextLongitude!);
-        this.offlineRenderer.map.easeTo({ center: [nextLongitude!, nextLatitude!] });
+        this.centerMapAt(nextLatitude!, nextLongitude!);
       } else if (!this.map) {
         void this.initialize(nextLatitude!, nextLongitude!);
       } else {
@@ -2427,10 +2427,19 @@ export class MapWindow implements OnInit, OnDestroy {
     this.crosshairCoordinates.set(center ? this.formatManualGpsPosition(center.lat, center.lng) : '—');
   }
 
+  private centerMapAt(latitude: number, longitude: number): void {
+    if (this.offlineRenderer) {
+      // fitBounds() can leave MapLibre camera padding active. Clear it so
+      // the geographic center matches the fixed crosshair position.
+      this.offlineRenderer.map.easeTo({ center: [longitude, latitude], padding: 0 });
+    } else if (this.map) {
+      this.map.setView([latitude, longitude], this.map.getZoom());
+    }
+  }
+
   protected readonly centerMapOnPhoto = (): void => {
     if (!this.coordinatesAvailable() || this.currentLatitude === null || this.currentLongitude === null) return;
-    if (this.offlineRenderer) this.offlineRenderer.map.easeTo({ center: [this.currentLongitude, this.currentLatitude] });
-    else if (this.map) this.map.setView([this.currentLatitude, this.currentLongitude], this.map.getZoom());
+    this.centerMapAt(this.currentLatitude, this.currentLongitude);
     this.updateCrosshairCoordinates();
   };
 
@@ -3343,7 +3352,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.mapSource() === 'mapsforge') {
       if (this.offlineRenderer) {
         this.offlineRenderer.updateCurrentLocation(latitude, longitude);
-        this.offlineRenderer.map.easeTo({ center: [longitude, latitude] });
+        this.centerMapAt(latitude, longitude);
         return;
       }
       if (this.mapInitialization) await this.mapInitialization;
@@ -3356,7 +3365,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.mapSource() === 'osmand-atlas') {
       if (this.offlineRenderer) {
         this.offlineRenderer.updateCurrentLocation(latitude, longitude);
-        this.offlineRenderer.map.easeTo({ center: [longitude, latitude] });
+        this.centerMapAt(latitude, longitude);
         return;
       }
       if (this.mapInitialization) await this.mapInitialization;
@@ -3369,7 +3378,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.mapSource() === 'osmand') {
       if (this.offlineRenderer) {
         this.offlineRenderer.updateCurrentLocation(latitude, longitude);
-        this.offlineRenderer.map.easeTo({ center: [longitude, latitude] });
+        this.centerMapAt(latitude, longitude);
         return;
       }
       if (this.mapInitialization) await this.mapInitialization;
@@ -3417,7 +3426,7 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       this.mapDisplayNotice.set('');
       this.offlineMapStatus.set(selected);
-      if (this.offlineRenderer) { this.offlineRenderer.updateCurrentLocation(latitude, longitude); this.offlineRenderer.map.easeTo({ center: [longitude, latitude] }); return; }
+      if (this.offlineRenderer) { this.offlineRenderer.updateCurrentLocation(latitude, longitude); this.centerMapAt(latitude, longitude); return; }
       if (this.mapInitialization) await this.mapInitialization;
       if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
       if (this.offlineRenderer) return;
@@ -7832,7 +7841,7 @@ ${points}
     if (latitude === null || longitude === null
       || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
     if (this.offlineRenderer) {
-      this.offlineRenderer.map.easeTo({ center: [longitude, latitude] });
+      this.centerMapAt(latitude, longitude);
     } else if (this.map) {
       this.map.setView([latitude, longitude], this.map.getZoom());
     }
