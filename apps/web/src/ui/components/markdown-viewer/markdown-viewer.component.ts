@@ -271,16 +271,7 @@ export class MarkdownViewerComponent {
         this.imageSources.set(imageSources);
         this.markdown.set(response.data);
         if (targetLine && targetLine > 0) {
-          this.document.defaultView?.setTimeout(() => {
-            if (request !== this.documentLoadRequest) return;
-            const anchors = Array.from(this.document.querySelectorAll<HTMLElement>('[id^="help-search-line-"]'));
-            const target = anchors.find(element => element.id === 'help-search-line-' + targetLine);
-            if (!target) return;
-            const block = target.nextElementSibling as HTMLElement | null;
-            this.document.querySelectorAll('.markdown-body .active-search-line').forEach(element => element.classList.remove('active-search-line'));
-            block?.classList.add('active-search-line');
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }, 0);
+          this.scrollToSearchResult({ fileName, lineNumber: targetLine, snippet: '' }, request);
         }
       } else {
         this.error.set(response.errorMessage);
@@ -347,18 +338,21 @@ export class MarkdownViewerComponent {
     }
   };
 
-  private readonly scrollToSearchResult = (result: HelpSearchResult): void => {
-    const request = this.documentLoadRequest;
-    this.document.defaultView?.setTimeout(() => {
-      if (request !== this.documentLoadRequest) return;
-      const anchors = Array.from(this.document.querySelectorAll<HTMLElement>('[id^="help-search-line-"]'));
-      const target = anchors.find(element => element.id === 'help-search-line-' + result.lineNumber);
+  private readonly scrollToSearchResult = (result: HelpSearchResult, expectedRequest = this.documentLoadRequest): void => {
+    const view = this.document.defaultView;
+    if (!view) return;
+    // Wait for Angular to commit the updated innerHTML before resolving the line anchor.
+    view.requestAnimationFrame(() => view.requestAnimationFrame(() => {
+      if (expectedRequest !== this.documentLoadRequest || this.currentFile() !== result.fileName) return;
+      const article = this.document.querySelector<HTMLElement>('.markdown-body');
+      if (!article) return;
+      const target = article.querySelector<HTMLElement>('#help-search-line-' + result.lineNumber);
       if (!target) return;
       const block = target.nextElementSibling as HTMLElement | null;
-      this.document.querySelectorAll('.markdown-body .active-search-line').forEach(element => element.classList.remove('active-search-line'));
+      article.querySelectorAll('.active-search-line').forEach(element => element.classList.remove('active-search-line'));
       block?.classList.add('active-search-line');
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 0);
+    }));
   };
 
   protected readonly openSearchResult = (result: HelpSearchResult): void => {
