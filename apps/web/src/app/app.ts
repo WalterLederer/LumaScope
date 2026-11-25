@@ -43,7 +43,26 @@ export class App {
   // The capture panel itself may not be mounted until its detached window is opened.
   private readonly captureHotkeyService = inject(CaptureHotkeyService);
 
+  private readonly rendererLongTaskObserver = typeof PerformanceObserver !== 'undefined'
+    ? new PerformanceObserver(entries => {
+      for (const entry of entries.getEntries()) {
+        if (entry.duration < 100) continue;
+        console.warn('[Performance] Renderer long task', {
+          durationMs: Math.round(entry.duration),
+          startTimeMs: Math.round(entry.startTime),
+          page: window.location.href,
+          visibility: document.visibilityState
+        });
+      }
+    })
+    : null;
+
   constructor() {
+    try {
+      this.rendererLongTaskObserver?.observe({ entryTypes: ['longtask'] });
+    } catch (error) {
+      console.warn('[Performance] Long-task observation is unavailable:', error);
+    }
     this.setAppTitle();
     this.keyboard.keydown().pipe(takeUntilDestroyed()).subscribe(event => {
       if (event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
