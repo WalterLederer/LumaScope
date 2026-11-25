@@ -2400,6 +2400,9 @@ export class OfflineMapRenderer {
 
   rerenderHillshadeTiles(): void {
     const styleLoaded = this.map.isStyleLoaded();
+    const currentStyle = this.map.getStyle();
+    const currentSources = currentStyle?.sources ?? {};
+    const currentLayers = currentStyle?.layers ?? [];
     console.info('[Hillshade][rerender-enter]', {
       styleLoaded,
       zoom: this.map.getZoom(),
@@ -2410,8 +2413,8 @@ export class OfflineMapRenderer {
         enabled: database.enabled,
         available: database.available
       })),
-      existingSources: Object.keys(this.map.getStyle().sources).filter(id => id.startsWith('osmand-hillshade-source-')),
-      existingLayers: this.map.getStyle().layers.filter(layer => layer.id.startsWith('osmand-hillshade-raster-')).map(layer => ({
+      existingSources: Object.keys(currentSources).filter(id => id.startsWith('osmand-hillshade-source-')),
+      existingLayers: currentLayers.filter(layer => layer.id.startsWith('osmand-hillshade-raster-')).map(layer => ({
         id: layer.id,
         visibility: layer.layout?.visibility
       }))
@@ -2464,6 +2467,17 @@ export class OfflineMapRenderer {
       return;
     }
     const style = this.map.getStyle();
+    if (!style?.sources || !style.layers) {
+      console.warn('[Hillshade][sync-deferred]', 'MapLibre style sources are not available yet.');
+      if (!this.hillshadeRerenderPending) {
+        this.hillshadeRerenderPending = true;
+        this.map.once('idle', () => {
+          this.hillshadeRerenderPending = false;
+          this.rerenderHillshadeTiles();
+        });
+      }
+      return;
+    }
     console.info('[Hillshade][sync-start]', {
       zoom: this.map.getZoom(),
       visible: this.hillshadeVisible,
