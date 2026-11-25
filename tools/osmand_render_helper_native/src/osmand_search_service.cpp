@@ -437,7 +437,8 @@ QJsonObject administrativeAreasForCoordinate(
             bestPlaceCenterDistance = centerDistance;
             bestPlaceBboxArea = bboxArea;
             placeName = candidateName;
-            placeType = group->type == OsmAnd::ObfAddressStreetGroupType::Village
+            placeType = group->type == OsmAnd::ObfAddressStreetGroupSubtype::Village
+                || group->type == OsmAnd::ObfAddressStreetGroupSubtype::Hamlet
                 ? QStringLiteral("village")
                 : QStringLiteral("city_or_town");
         }
@@ -2408,10 +2409,12 @@ QString OsmAndSearchService::reverseGeocode(
         {
             payload.insert(QStringLiteral("place"), placeName);
             if (result->streetGroup
-                && result->streetGroup->type == OsmAnd::ObfAddressStreetGroupType::Village)
+                && (result->streetGroup->type == OsmAnd::ObfAddressStreetGroupSubtype::Village
+                    || result->streetGroup->type == OsmAnd::ObfAddressStreetGroupSubtype::Hamlet))
                 payload.insert(QStringLiteral("place_type"), QStringLiteral("village"));
             else if (result->streetGroup
-                && result->streetGroup->type == OsmAnd::ObfAddressStreetGroupType::CityOrTown)
+                && (result->streetGroup->type == OsmAnd::ObfAddressStreetGroupSubtype::City
+                    || result->streetGroup->type == OsmAnd::ObfAddressStreetGroupSubtype::Town))
                 payload.insert(QStringLiteral("place_type"), QStringLiteral("city_or_town"));
         }
         // OsmAnd stores the postcode on the resolved building. Keep it as a
