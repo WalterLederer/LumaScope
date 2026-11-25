@@ -46,9 +46,9 @@ export interface GpxTrackPreviewData {
           [attr.stroke-dasharray]="dashPattern()" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5"
           fill="none" stroke="#000000"
-          [attr.stroke-width]="renderStyle().shadowWidth"
-          [attr.stroke-opacity]="renderStyle().shadowOpacity"
-          [style.filter]="'blur(' + renderStyle().shadowBlur + 'px)'"
+          [attr.stroke-width]="renderStyle().shadowWidth + 4"
+          [attr.stroke-opacity]="Math.min(1, renderStyle().shadowOpacity * 1.2)"
+          [style.filter]="'blur(' + Math.max(0.75, renderStyle().shadowBlur * 0.75) + 'px)'"
           [attr.stroke-dasharray]="dashPattern()" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M3 17 L22 6 L42 14 L62 5 L82 16 L102 7 L122 15 L147 5"
           fill="none"
