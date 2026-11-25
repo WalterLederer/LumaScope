@@ -598,6 +598,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly activeOfflineMapCount = computed(() => this.offlineMapStats().activeCount);
   protected readonly activeOsmandMapCount = computed(() => this.viewportObfMapIds().length);
   protected readonly configuredOsmandMapCount = computed(() => this.offlineMaps().filter(map => map.type === 'obf' && map.enabled && map.available).length);
+  protected readonly configuredMbtilesMapCount = computed(() => this.offlineMaps().filter(map => (map.type === 'mbtiles' || !map.type) && map.enabled && map.available).length);
+  protected readonly canShowMbtilesLabels = computed(() => (this.mapSource() === 'offline' || this.mapSource() === 'online') && this.configuredMbtilesMapCount() > 0);
   protected readonly inUseOfflineMapCount = computed(() => this.offlineMapStats().inUseIds.size);
   protected readonly filteredOffline = computed(() => {
     const maps = this.offlineMaps();
