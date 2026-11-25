@@ -417,6 +417,49 @@ export class SettingsPanelComponent {
     { keys: 'F / F11', action: 'Toggle fullscreen mode', global: false, id: null }
   ] as const;
 
+  protected readonly helpSearchQuery = signal('');
+  protected readonly helpSearchResults = computed(() => {
+    const terms = this.helpSearchQuery().trim().toLocaleLowerCase().split(/\\s+/).filter(Boolean);
+    if (!terms.length) return [];
+    const entries: Array<{ section: string; title: string; searchText: string; targetId: string }> = [];
+    const add = (section: string, targetId: string, title: string, searchText: string): void => {
+      entries.push({ section, title, searchText, targetId });
+    };
+
+    this.supportedMapFormats.forEach((format, index) =>
+      add('Supported map formats', `help-map-${index}`, format.name,
+        [format.name, format.extensions, format.online ? 'online' : 'offline', format.renderer, format.details].join(' · ')));
+    this.supportedFormats.forEach((format, index) =>
+      add('Supported image formats', `help-image-${index}`, format.name,
+        [format.name, format.extensions.join(', '), format.hdr ? 'HDR' : 'SDR', format.fullSizeCache ? 'full-size cache' : 'no full-size cache',
+          format.bitDepth, this.decoderFor(format.extensions), format.details].join(' · ')));
+    this.keyShortcuts.forEach((shortcut, index) =>
+      add('Key shortcuts', `help-shortcut-${index}`, shortcut.keys,
+        [shortcut.keys, shortcut.action, shortcut.global ? 'global shortcut' : 'local shortcut'].join(' · ')));
+    this.externalPrograms().forEach((program, index) =>
+      add('External Programs', `help-external-${index}`, program.programName, program.function));
+    this.windowsApiCalls.forEach((call, index) =>
+      add('Windows API calls', `help-api-${index}`, `${call.dll} · ${call.api}`, call.purpose));
+
+    return entries
+      .filter(entry => {
+        const searchable = `${entry.title} ${entry.section} ${entry.searchText}`.toLocaleLowerCase();
+        return terms.every(term => searchable.includes(term));
+      })
+      .map(entry => ({
+        ...entry,
+        excerpt: entry.searchText.length > 220 ? `${entry.searchText.slice(0, 217)}…` : entry.searchText
+      }));
+  });
+
+  protected readonly openHelpSearchResult = (targetId: string): void => {
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    const details = target.closest('details');
+    if (details) details.open = true;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
   protected readonly globalShortcutStatuses = signal<GlobalShortcutStatus[]>([]);
   protected readonly globalShortcutLoading = signal(true);
   protected readonly globalShortcutError = signal<string | null>(null);
