@@ -182,6 +182,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineRenderTasks = signal<OfflineRenderTaskStatus[]>([]);
   private offlineRenderStatusUnsubscribe: (() => void) | null = null;
   protected readonly scaleVisible = signal(this.readSetting('scaleVisible', 'true') === 'true');
+  protected readonly mapScaleOpacity = signal(this.readNumber('mapScaleOpacity', 100, 0, 100));
   protected readonly mapBoundsVisible = signal(this.readSetting('mapBoundsVisible', 'false') === 'true');
   protected readonly optimizedObfSelectionEnabled = signal(this.readSetting('optimizedObfSelectionEnabled', 'true') === 'true');
   protected readonly canShowMapBounds = computed(() => {
@@ -277,9 +278,27 @@ export class MapWindow implements OnInit, OnDestroy {
     this.persistLocationUiState({ scaleVisible: visible });
     this.applyScaleVisibility();
   };
+  protected readonly changeMapScaleOpacity = (value: string | number): void => {
+    const opacity = Number(value);
+    if (!Number.isFinite(opacity)) return;
+    const next = Math.max(0, Math.min(100, Math.round(opacity)));
+    this.mapScaleOpacity.set(next);
+    this.saveSetting('mapScaleOpacity', next);
+    this.persistLocationUiState({ mapScaleOpacity: next });
+    this.offlineRenderer?.setScaleOpacity(next / 100);
+  };
+  protected readonly changeCrosshairOpacity = (value: string | number): void => {
+    const opacity = Number(value);
+    if (!Number.isFinite(opacity)) return;
+    const next = Math.max(0, Math.min(100, Math.round(opacity)));
+    this.crosshairOpacity.set(next);
+    this.saveSetting('crosshairOpacity', next);
+    this.persistLocationUiState({ crosshairOpacity: next });
+  };
   private applyScaleVisibility(): void {
     const visible = this.scaleVisible();
     this.offlineRenderer?.setScaleVisible(visible);
+    this.offlineRenderer?.setScaleOpacity(this.mapScaleOpacity() / 100);
   }
   protected readonly changeMapBoundsVisible = (visible: boolean): void => {
     if (visible && !this.canShowMapBounds()) return;
@@ -1397,6 +1416,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly coordinatesAvailable = signal(false);
   protected readonly currentImageHasGps = signal(false);
   protected readonly fixLocationEnabled = signal(false);
+  protected readonly crosshairOpacity = signal(this.readNumber('crosshairOpacity', 100, 0, 100));
   protected readonly useOnlineReverseGeocoding = signal(true);
   protected readonly fixLocationSectionOpen = signal(true);
   protected readonly autoFixCheckOnly = signal(false);
@@ -2148,7 +2168,10 @@ export class MapWindow implements OnInit, OnDestroy {
       clearTimeout(this.mapLoadingTimer);
       this.mapLoadingTimer = null;
     }
-    if (this.mapSource() === source) this.renderInitStatus.set('');
+    if (this.mapSource() === source) {
+      this.renderInitStatus.set('');
+      this.applyScaleVisibility();
+    }
   }
 
   protected readonly copyFilePath = async (path: string): Promise<void> => {
