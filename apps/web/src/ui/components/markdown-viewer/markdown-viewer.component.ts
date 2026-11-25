@@ -325,7 +325,7 @@ export class MarkdownViewerComponent {
         const lines = document.content.split(/\r?\n/);
         let matchesInDocument = 0;
         const documentResults: HelpSearchResult[] = [];
-        for (let index = 0; index < lines.length && totalResults < 100 && matchesInDocument < 5; index++) {
+        for (let index = 0; index < lines.length; index++) {
           const line = lines[index].trim();
           if (!line || !line.toLocaleLowerCase().includes(needle)) continue;
           const snippet = line.replace(/^#{1,6}\s*/, '').replace(/^[-*+]\s*/, '');
