@@ -6,7 +6,7 @@ This is an isolated developer test. It does not change the LumaScope map window 
 
 Render the repository test map `tools/Spain_ceuta_europe.obf` with the OsmAndCore renderer and the OsmAnd `default.render.xml` style. The prototype produces a PNG screenshot so the OBF data, renderer, style and Windows runtime can be checked before any LumaScope integration.
 
-The test uses the external [PySide6-OsmAnd-SDK](https://github.com/OliverZhaohaibin/PySide6-OsmAnd-SDK) as a standalone GPL-3.0-or-later test application. Its source and binaries are downloaded into `%LOCALAPPDATA%\LumaScope\OsmAnd-SDK`, outside this repository. They are not bundled with LumaScope.
+The test uses the external [PySide6-OsmAnd-SDK](https://github.com/OliverZhaohaibin/PySide6-OsmAnd-SDK) as a standalone GPL-3.0-or-later test application. Its source and binaries are downloaded into `%APPDATA%\LumaScope\OsmAnd-SDK`, outside this repository. They are not bundled with LumaScope.
 
 ## Requirements
 
