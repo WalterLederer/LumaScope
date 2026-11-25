@@ -2514,7 +2514,7 @@ export class OfflineMapRenderer {
     id: string;
     minZoom: number;
     maxZoom: number;
-    bounds?: string;
+    bounds?: string | null;
     schema?: 'shortbread' | 'openmaptiles';
     vectorLayers?: string[];
   } | null): void {
