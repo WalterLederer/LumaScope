@@ -13,7 +13,7 @@ import { take } from 'rxjs';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { formatNumber } from '../../../ui/utils/format-number';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
-import { OfflineMapRenderer, createOnlineMapStyle, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndLabelsTileProtocol, emitOsmAndLabelsTileStatus, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, setOfflineRenderConcurrency, runOfflineRenderTask, subscribeOfflineRenderStatus, type OfflineRenderTaskStatus, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
+import { OfflineMapRenderer, createOnlineMapStyle, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndLabelsTileProtocol, emitOsmAndLabelsTileStatus, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, setOfflineRenderConcurrency, runOfflineRenderTask, subscribeOfflineRenderStatus, type OfflineRenderTaskStatus, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapPresetOption { id: string; name: string; osmAndRegex: string; mapsForgeRegex?: string; hillshadeRegex?: string; }
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; unbindTooltip(): MapMarker; }
@@ -397,7 +397,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.photoPreviewSize.set(next);
     this.saveSetting('photoPreviewSize', next);
     this.offlineRenderer?.setPhotoPreviewSize(next);
-    if (this.leaflet && this.directoryMarkerGroup) this.applyDirectoryPhotoMarkers();
   };
   protected readonly changeRenderVisualsEnabled = (enabled: boolean): void => {
     this.renderVisualsEnabled.set(enabled);
@@ -2443,15 +2442,7 @@ export class MapWindow implements OnInit, OnDestroy {
       // also creates the marker when the previous image had no GPS position.
       this.offlineRenderer.setCurrentLocation(latitude!, longitude!, this.currentMarkerColor(), markerOpacity, this.currentMarkerShape());
       this.offlineRenderer.setCurrentPhotoPreview(this.currentImagePath, this.currentImagePath?.split(/[\\/]/).pop() ?? '');
-    } else if (this.map && this.leaflet) {
-      if (this.marker) {
-        this.marker.setLatLng([latitude!, longitude!]);
-      } else {
-        this.marker = this.leaflet.marker([latitude!, longitude!], { icon: this.createCurrentLocationIcon() }).addTo(this.map);
-      }
-      this.marker.setOpacity(markerOpacity);
-      this.updateCurrentMarkerPhotoPreview();
-    }
+
     this.applyCurrentPhotoVisibility();
     this.locationAddress.set('');
   }
@@ -2934,7 +2925,6 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly changeCurrentMarkerShape = (value: string): void => {
     if (value !== 'pin' && value !== 'circle' && value !== 'square' && value !== 'diamond') return;
     this.currentMarkerShape.set(value); this.saveSetting('currentMarkerShape', value);
-    this.marker?.setIcon(this.createCurrentLocationIcon());
     if (this.offlineRenderer && this.currentLatitude !== null && this.currentLongitude !== null) this.offlineRenderer.setCurrentLocation(this.currentLatitude, this.currentLongitude, this.currentMarkerColor(), (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape());
   };
   protected readonly changeCurrentMarkerColor = (value: string): void => {
@@ -5477,7 +5467,6 @@ export class MapWindow implements OnInit, OnDestroy {
       renderer.setOsmAndLabelsVisibility(this.osmAndLabelsVisible());
       return;
     }
-    if (this.map && this.leaflet) this.applyLeafletOsmAndLabelsSettings(false);
   }
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
     this.hillshadeVisible.set(visible);
