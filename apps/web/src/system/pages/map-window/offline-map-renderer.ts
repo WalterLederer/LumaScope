@@ -684,6 +684,28 @@ function withOsmAndHillshadeOverlay(style: StyleSpecification): StyleSpecificati
   return JSON.parse(JSON.stringify(style)) as StyleSpecification;
 }
 
+export function createOnlineMapStyle(tileUrl: string, attribution: string, maxNativeZoom: number): StyleSpecification {
+  const tiles = tileUrl.replace(/\\{s\\}/g, '{a,b,c}');
+  return {
+    version: 8,
+    name: 'LumaScope Online',
+    sources: {
+      'online-basemap': {
+        type: 'raster',
+        tiles: [tiles],
+        tileSize: 256,
+        minzoom: 0,
+        maxzoom: Math.max(0, Math.min(22, Math.round(maxNativeZoom))),
+        attribution
+      }
+    },
+    layers: [
+      { id: 'background', type: 'background', paint: { 'background-color': '#e8e6df' } },
+      { id: 'online-basemap-layer', type: 'raster', source: 'online-basemap', paint: { 'raster-fade-duration': 0 } }
+    ]
+  };
+}
+
 export function createMapsforgeMapStyle(refresh = Date.now()): StyleSpecification {
   return {
     version: 8,
@@ -2487,6 +2509,34 @@ export class OfflineMapRenderer {
 
   private readonly basemapOpacityDefaults = new Map<string, unknown>();
   private basemapOpacity = 1;
+
+  setOnlineBasemap(tileUrl: string, attribution: string, maxNativeZoom: number): void {
+    if (!this.map.isStyleLoaded()) {
+      this.map.once('style.load', () => this.setOnlineBasemap(tileUrl, attribution, maxNativeZoom));
+      return;
+    }
+    const style = this.map.getStyle();
+    for (const layer of style.layers.filter(item => 'source' in item && item.source === 'online-basemap')) {
+      this.map.removeLayer(layer.id);
+    }
+    if (this.map.getSource('online-basemap')) this.map.removeSource('online-basemap');
+    this.map.addSource('online-basemap', {
+      type: 'raster',
+      tiles: [tileUrl.replace(/\\{s\\}/g, '{a,b,c}')],
+      tileSize: 256,
+      minzoom: 0,
+      maxzoom: Math.max(0, Math.min(22, Math.round(maxNativeZoom))),
+      attribution
+    });
+    const firstOverlayLayer = this.map.getStyle().layers.find(layer => layer.id !== 'background')?.id;
+    this.map.addLayer({
+      id: 'online-basemap-layer',
+      type: 'raster',
+      source: 'online-basemap',
+      paint: { 'raster-fade-duration': 0, 'raster-opacity': this.basemapOpacity }
+    }, firstOverlayLayer);
+    this.map.triggerRepaint();
+  }
 
   setBasemapOpacity(opacity: number): void {
     const value = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 1;
