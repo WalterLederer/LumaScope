@@ -1177,12 +1177,14 @@
             <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay</label>
             <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
             <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()" title="Map bounds are drawn only at zoom level 10 or lower (zoom ≤ 10). Zoom in beyond level 10 to hide them."><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
-            <div class="range-setting photo-preview-size-setting">
-              <label for="photo-preview-size">Image marker preview size</label>
-              <ui-slider id="photo-preview-size" class="opacity-slider" [min]="60" [max]="240" [step]="10"
-                [value]="photoPreviewSize()" (valueChange)="changePhotoPreviewSize($event)"
-                [color]="themeService.sliderColor()" aria-label="Image marker preview size" />
-              <span class="range-value">{{ photoPreviewSize() }} px</span>
+            <div class="lumascope-surface-box photo-preview-size-box">
+              <div class="range-setting photo-preview-size-setting">
+                <label for="photo-preview-size">Image marker preview size</label>
+                <ui-slider id="photo-preview-size" class="opacity-slider" [min]="60" [max]="240" [step]="10"
+                  [value]="photoPreviewSize()" (valueChange)="changePhotoPreviewSize($event)"
+                  [color]="themeService.sliderColor()" aria-label="Image marker preview size" />
+                <span class="range-value">{{ photoPreviewSize() }} px</span>
+              </div>
             </div>
           </div>
         </details>
