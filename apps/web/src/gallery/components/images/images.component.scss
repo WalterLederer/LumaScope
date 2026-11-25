@@ -1982,3 +1982,8 @@
   max-height: var(--detail-row-height, 27px) !important;
   overflow: hidden !important;
 }
+
+
+/* Number of image rows, aligned immediately before the header hamburger menu. */
+.detail-header-labels .folder-actions-heading{white-space:nowrap;text-align:center}
+.detail-header-labels .table-header-row-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:20px;margin-right:5px;padding:0 4px;box-sizing:border-box;border-radius:4px;background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-high,#fff);font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;vertical-align:middle}
