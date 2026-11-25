@@ -501,22 +501,51 @@ void OsmAndNativeMapWidget::showEvent(QShowEvent* event)
 
 void OsmAndNativeMapWidget::paintGL()
 {
-
-    if (auto* functions = context() ? context()->functions() : nullptr)
+    auto* glFunctions = context() ? context()->functions() : nullptr;
+    const auto debugAlpha = _configuration.labelsOnly
+        && std::getenv("OSMAND_ATLAS_DEBUG_ALPHA") != nullptr;
+    static bool alphaStageDiagnosticsReported = false;
+    const auto reportAlphaStage = [glFunctions](const char* stage)
     {
-        const auto hadScissor = functions->glIsEnabled(kGlScissorTest) == GL_TRUE;
-        if (hadScissor)
-            functions->glDisable(kGlScissorTest);
+        if (!glFunctions)
+            return;
+        GLint alphaBits = -1;
+        GLboolean colorMask[4] = { GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE };
+        GLubyte pixel[4] = { 0, 0, 0, 0 };
+        glFunctions->glGetIntegerv(GL_ALPHA_BITS, &alphaBits);
+        glFunctions->glGetBooleanv(GL_COLOR_WRITEMASK, colorMask);
+        glFunctions->glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
+        std::cerr << "[atlas-helper] alpha_stage"
+                  << " stage=" << stage
+                  << " alpha_bits=" << alphaBits
+                  << " color_mask=" << static_cast<int>(colorMask[0])
+                  << static_cast<int>(colorMask[1])
+                  << static_cast<int>(colorMask[2])
+                  << static_cast<int>(colorMask[3])
+                  << " pixel=" << static_cast<int>(pixel[0]) << ","
+                  << static_cast<int>(pixel[1]) << ","
+                  << static_cast<int>(pixel[2]) << ","
+                  << static_cast<int>(pixel[3])
+                  << std::endl;
+    };
 
-        functions->glClearColor(
+    if (glFunctions)
+    {
+        const auto hadScissor = glFunctions->glIsEnabled(kGlScissorTest) == GL_TRUE;
+        if (hadScissor)
+            glFunctions->glDisable(kGlScissorTest);
+
+        glFunctions->glClearColor(
             _configuration.labelsOnly ? 0.0f : 0.53f,
             _configuration.labelsOnly ? 0.0f : 0.65f,
             _configuration.labelsOnly ? 0.0f : 0.76f,
             _configuration.labelsOnly ? 0.0f : 1.0f);
-        functions->glClear(kGlColorBufferBit | kGlDepthBufferBit);
+        glFunctions->glClear(kGlColorBufferBit | kGlDepthBufferBit);
+        if (debugAlpha && !alphaStageDiagnosticsReported)
+            reportAlphaStage("after_widget_clear");
 
         if (hadScissor)
-            functions->glEnable(kGlScissorTest);
+            glFunctions->glEnable(kGlScissorTest);
     }
 
     if (!ensureRenderer())
@@ -532,6 +561,11 @@ void OsmAndNativeMapWidget::paintGL()
     if (framePrepared)
     {
         _mapRenderer->renderFrame();
+    }
+    if (debugAlpha && !alphaStageDiagnosticsReported)
+    {
+        reportAlphaStage("after_osmand_render");
+        alphaStageDiagnosticsReported = true;
     }
 
     if (std::getenv("OSMAND_ATLAS_DEBUG_GEOMETRY") != nullptr)
