@@ -430,13 +430,13 @@ export class MarkdownViewerComponent {
     let attempts = 0;
     const findAndScroll = (): void => {
       if (expectedRequest !== this.documentLoadRequest || this.currentFile() !== result.fileName) {
-        console.debug('[HelpSearchNav] scroll aborted', {
+        console.debug('[HelpSearchNav] scroll aborted ' + JSON.stringify({
           fileName: result.fileName,
           lineNumber: result.lineNumber,
           expectedRequest,
           currentRequest: this.documentLoadRequest,
           currentFile: this.currentFile()
-        });
+        }));
         return;
       }
       // Resolve the article inside this single Help viewer instance.
@@ -448,7 +448,7 @@ export class MarkdownViewerComponent {
       if (!article || !target) {
         attempts++;
         if (attempts === 1 || attempts >= 12) {
-          console.warn('[HelpSearchNav] target not found', {
+          console.warn('[HelpSearchNav] target not found ' + JSON.stringify({
             fileName: result.fileName,
             lineNumber: result.lineNumber,
             attempt: attempts,
@@ -456,8 +456,10 @@ export class MarkdownViewerComponent {
             articleFound: !!article,
             currentFile: this.currentFile(),
             loading: this.loading(),
-            renderedHtmlLength: this.renderedHtml().length
-          });
+            renderedHtmlLength: this.renderedHtml().length,
+            expectedAnchorId: 'help-search-line-' + result.lineNumber,
+            availableAnchorIds: article ? Array.from(article.querySelectorAll('[id^="help-search-line-"]')).slice(0, 30).map((element: Element) => element.id) : []
+          }));
         }
         if (attempts < 12) view.requestAnimationFrame(findAndScroll);
         return;
@@ -486,7 +488,7 @@ export class MarkdownViewerComponent {
         blockClass: block?.className ?? null
       };
       target.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
-      console.debug('[HelpSearchNav] scrolled to result', {
+      console.debug('[HelpSearchNav] scrolled to result ' + JSON.stringify({
         fileName: result.fileName,
         lineNumber: result.lineNumber,
         attempt: attempts,
@@ -494,7 +496,7 @@ export class MarkdownViewerComponent {
         scrollTopAfter: article.scrollTop,
         targetTopAfter: target.getBoundingClientRect().top,
         articleTopAfter: article.getBoundingClientRect().top
-      });
+      }));
     };
     view.requestAnimationFrame(() => view.requestAnimationFrame(findAndScroll));
   };
@@ -522,7 +524,7 @@ export class MarkdownViewerComponent {
     this.activeSearchResultIndex.set(nextIndex);
     const result = results[nextIndex];
     const samePage = this.currentFile() === result.fileName;
-    console.debug('[HelpSearchNav] navigate', {
+    console.debug('[HelpSearchNav] navigate ' + JSON.stringify({
       direction,
       resultCount: results.length,
       previousIndex: currentIndex,
@@ -533,7 +535,7 @@ export class MarkdownViewerComponent {
       loading: this.loading(),
       samePage,
       documentLoadRequest: this.documentLoadRequest
-    });
+    }));
     if (samePage && !this.loading()) this.scrollToSearchResult(result);
     else void this.loadDocument(result.fileName, result.lineNumber);
   };
