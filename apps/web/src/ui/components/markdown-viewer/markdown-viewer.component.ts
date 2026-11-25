@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { SliderComponent } from '@light-matter/ui';
-import { ChangeDetectionStrategy, Component, HostListener, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, HostListener, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FileSystem } from '../../../ipc/file-system';
 import { ProcessManager } from '../../../ipc/process-manager';
 
@@ -188,6 +188,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
 export class MarkdownViewerComponent {
   readonly initialDocument = input<string | null>(null);
   private readonly document = inject(DOCUMENT);
+  private readonly host = inject(ElementRef<HTMLElement>);
   private readonly fileSystem = inject(FileSystem);
   private readonly processManager = inject(ProcessManager);
 
@@ -429,7 +430,10 @@ export class MarkdownViewerComponent {
     let attempts = 0;
     const findAndScroll = (): void => {
       if (expectedRequest !== this.documentLoadRequest || this.currentFile() !== result.fileName) return;
-      const article = this.document.querySelector<HTMLElement>('.markdown-body');
+      // There can be more than one Help viewer in the DOM (for example while
+      // tabs are kept alive). Always resolve the article inside this component;
+      // a document-wide query can otherwise scroll a hidden/stale viewer.
+      const article = this.host.nativeElement.querySelector<HTMLElement>('.markdown-body');
       const target = article?.querySelector<HTMLElement>('#help-search-line-' + result.lineNumber);
       if (!article || !target) {
         if (++attempts < 12) view.requestAnimationFrame(findAndScroll);
@@ -443,9 +447,12 @@ export class MarkdownViewerComponent {
       // different lines of the same Markdown page remain independently navigable.
       const articleRect = article.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
-      const targetTop = article.scrollTop + targetRect.top - articleRect.top;
-      const desiredTop = Math.max(0, targetTop - 32);
-      article.scrollTop = desiredTop;
+      // Calculate the target position relative to the article's scrollport,
+      // accounting for its border. Scroll by the measured delta so navigation
+      // also works after the article has already been scrolled.
+      const targetOffset = targetRect.top - articleRect.top - article.clientTop;
+      const desiredTop = Math.max(0, article.scrollTop + targetOffset - 32);
+      article.scrollTo({ top: desiredTop, behavior: 'instant' });
     };
     view.requestAnimationFrame(() => view.requestAnimationFrame(findAndScroll));
   };
