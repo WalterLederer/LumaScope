@@ -39,20 +39,22 @@
           <div class="markdown-help-search-toolbar">
             <p class="markdown-help-search-count">{{ searchResultCount() }} results in {{ searchResults().length }} pages</p>
             <div class="markdown-help-search-navigation">
-              <button type="button" (click)="navigateSearchResult(-1)" [disabled]="!flatSearchResults().length" title="Find previous result">Previous</button>
+              <button type="button" (click)="navigateSearchResult(-1)" [disabled]="!flatSearchResults().length" title="Find previous result"><span aria-hidden="true">↑</span> Previous</button>
               <span>{{ activeSearchResultIndex() >= 0 ? activeSearchResultIndex() + 1 : 0 }} / {{ searchResultCount() }}</span>
-              <button type="button" (click)="navigateSearchResult(1)" [disabled]="!flatSearchResults().length" title="Find next result">Next</button>
+              <button type="button" (click)="navigateSearchResult(1)" [disabled]="!flatSearchResults().length" title="Find next result"><span aria-hidden="true">↓</span> Next</button>
             </div>
           </div>
           @for (group of searchResults(); track group.fileName) {
-            <section class="markdown-help-search-group">
-              <h3>{{ group.title }}</h3>
-              @for (result of group.results; track result.lineNumber) {
-                <button type="button" class="markdown-help-search-result" [class.active]="activeSearchResultIndex() >= 0 && flatSearchResults()[activeSearchResultIndex()] === result" (click)="openSearchResult(result)">
-                  <span>Line {{ result.lineNumber }}</span><small>{{ result.snippet }}</small>
-                </button>
-              }
-            </section>
+            <details class="markdown-help-search-group">
+              <summary><span>{{ group.title }}</span><small>{{ group.results.length }} {{ group.results.length === 1 ? 'match' : 'matches' }}</small></summary>
+              <div class="markdown-help-search-group-results">
+                @for (result of group.results; track result.lineNumber) {
+                  <button type="button" class="markdown-help-search-result" [class.active]="activeSearchResultIndex() >= 0 && flatSearchResults()[activeSearchResultIndex()] === result" (click)="openSearchResult(result)">
+                    <span>Line {{ result.lineNumber }}</span><small>{{ result.snippet }}</small>
+                  </button>
+                }
+              </div>
+            </details>
           }
         }
       </div>
