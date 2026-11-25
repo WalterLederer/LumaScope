@@ -5983,6 +5983,29 @@ export class MapWindow implements OnInit, OnDestroy {
     await operation;
   }
 
+  private async findTimestampPrefixedGpxPath(path: string): Promise<string | null> {
+    if (!this.desktop || !path) return null;
+    try {
+      const directory = await this.desktop.FileSystem.dirname(path);
+      const storedName = path.split(/[\\\\/]/).pop() ?? '';
+      if (!storedName || !/\\.gpx$/i.test(storedName)) return null;
+      const entries = await this.desktop.FileSystem.readDir(directory);
+      const matches = entries.filter(entry => {
+        if (entry.isDirectory || !/\\.gpx$/i.test(entry.name)) return false;
+        const separator = entry.name.indexOf('__');
+        if (separator <= 0) return false;
+        const prefix = entry.name.slice(0, separator);
+        const datePrefix = /^\\d{4}[-_.]\\d{2}[-_.]\\d{2}(?:[ T_-]+\\d{2}[-_.]\\d{2}[-_.]\\d{2})?$/;
+        return datePrefix.test(prefix)
+          && entry.name.slice(separator + 2).toLowerCase() === storedName.toLowerCase();
+      });
+      // Never select an arbitrary file if more than one dated copy matches.
+      return matches.length === 1 ? matches[0].path : null;
+    } catch {
+      return null;
+    }
+  }
+
   private async restoreGpxTrack(): Promise<void> {
     if (!this.desktop) return;
     this.gpxRestoreBusy.set(true);
@@ -6056,11 +6079,25 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxPointDataByTrack.clear();
     this.gpxSegmentNamesByTrack.clear();
     this.gpxSpeedSegmentsCache.clear();
-    for (const track of tracks) {
-      const [result, metadata] = await Promise.all([
+    for (const storedTrack of tracks) {
+      let track = storedTrack;
+      let [result, metadata] = await Promise.all([
         this.desktop.FileSystem.readText(track.path),
         this.readGpxFileMetadata(track.path)
       ]);
+      if (!result.success) {
+        const replacementPath = await this.findTimestampPrefixedGpxPath(track.path);
+        if (replacementPath) {
+          track = { ...track, path: replacementPath, name: replacementPath.split(/[\\\\/]/).pop() ?? track.name };
+          [result, metadata] = await Promise.all([
+            this.desktop.FileSystem.readText(track.path),
+            this.readGpxFileMetadata(track.path)
+          ]);
+          if (result.success) {
+            console.info('[GPX] Restored renamed track from date-prefixed file:', { previousPath: storedTrack.path, resolvedPath: track.path });
+          }
+        }
+      }
       if (!result.success) { available.push({ ...track, missing: metadata === null, readError: metadata !== null }); continue; }
       try {
         const parsed = this.parseGpxTrackData(result.data);
