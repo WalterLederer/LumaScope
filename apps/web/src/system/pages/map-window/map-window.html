@@ -80,7 +80,7 @@
                         </tr>
                         <tr>
                           <td class="fix-location-toggle-cell">
-                            <div class="fix-location-source-cell"><span class="fix-location-source-heading"><svg class="fix-location-large-symbol crosshair-symbol" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M20 1v11M20 28v11M1 20h11M28 20h11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="20" cy="20" r="2.5" fill="currentColor"/></svg><strong>Crosshair</strong></span><label class="fix-location-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button></div>
+                            <div class="fix-location-source-cell"><span class="fix-location-source-heading"><svg class="fix-location-large-symbol crosshair-symbol" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/><path d="M20 1v11M20 28v11M1 20h11M28 20h11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="20" cy="20" r="2.5" fill="currentColor"/></svg><strong>Crosshair</strong></span><button type="button" class="map-toolbar-button" (click)="showCrosshairAddress()" [disabled]="!fixLocationEnabled()"><span aria-hidden="true">⌖</span> Show address</button></div>
                           </td>
                           <td class="fix-location-coordinate-value" role="status">{{ crosshairCoordinates() }}</td>
                           <td class="fix-location-address-cell">
@@ -929,6 +929,11 @@
         <div class="opacity-row-label"><label class="visibility-toggle">Location <input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="centerSelectedImageLocation()" [disabled]="!canCenterSelectedImageLocation()" title="Center map on selected image" aria-label="Center map on selected image"><span aria-hidden="true">◎</span></button></div>
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="locationOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeLocationOpacity($event)" />
         <span class="range-value">{{ locationOpacity() }}%</span>
+      </div>
+      <div class="lumascope-surface-box crosshair-opacity-surface-box">
+        <div class="range-setting">
+          <label class="visibility-toggle">Crosshair <input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)" aria-label="Show crosshair"></label>
+        </div>
       </div>
       <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
         <label for="overlay-opacity">Window</label>
