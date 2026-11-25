@@ -14,10 +14,30 @@
       </label>
     </div>
   </header>
+  <div class="markdown-help-search">
+    <input type="search" [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)" placeholder="Search all help pages…" aria-label="Search all help pages" />
+    @if (searchQuery().trim().length >= 2) {
+      <div class="markdown-help-search-results" role="region" aria-label="Help search results" aria-live="polite">
+        @if (searchBusy()) { <p class="markdown-state" role="status">Searching help pages…</p> }
+        @else if (searchError()) { <p class="markdown-state markdown-error" role="alert">{{ searchError() }}</p> }
+        @else if (searchResults().length === 0) { <p class="markdown-state">No matching help pages found.</p> }
+        @else {
+          <p class="markdown-help-search-count">{{ searchResults().length }} results</p>
+          @for (result of searchResults(); track result.fileName + ':' + result.lineNumber) {
+            <button type="button" class="markdown-help-search-result" (click)="openSearchResult(result)">
+              <strong>{{ result.title }}</strong><span>Line {{ result.lineNumber }}</span><small>{{ result.snippet }}</small>
+            </button>
+          }
+        }
+      </div>
+    }
+  </div>
   @if (openFileError()) {
     <p class="markdown-state markdown-error" role="alert">{{ openFileError() }}</p>
   }
-  @if (loading()) {
+  @if (searchQuery().trim().length >= 2) {
+    <div class="markdown-help-search-placeholder">Search results are shown above. Select a result to open its location in the document.</div>
+  } @else if (loading()) {
     <p class="markdown-state" role="status">Loading documentation…</p>
   } @else if (error()) {
     <p class="markdown-state markdown-error" role="alert">{{ error() }}</p>
