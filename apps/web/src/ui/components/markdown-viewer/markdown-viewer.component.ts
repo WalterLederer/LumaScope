@@ -312,7 +312,6 @@ export class MarkdownViewerComponent {
 
   private readonly searchDocumentation = async (query: string, request: number): Promise<void> => {
     const groups: HelpSearchGroup[] = [];
-    let totalResults = 0;
     const needle = query.toLocaleLowerCase();
     try {
       const documents = await Promise.all(helpDocuments.map(async fileName => {
@@ -323,7 +322,6 @@ export class MarkdownViewerComponent {
       for (const document of documents) {
         if (!document) continue;
         const lines = document.content.split(/\r?\n/);
-        let matchesInDocument = 0;
         const documentResults: HelpSearchResult[] = [];
         for (let index = 0; index < lines.length; index++) {
           const line = lines[index].trim();
@@ -334,8 +332,6 @@ export class MarkdownViewerComponent {
             lineNumber: index + 1,
             snippet: snippet.length > 220 ? snippet.slice(0, 217) + '…' : snippet
           });
-          matchesInDocument++;
-          totalResults++;
         }
         if (documentResults.length) groups.push({
           fileName: document.fileName,
