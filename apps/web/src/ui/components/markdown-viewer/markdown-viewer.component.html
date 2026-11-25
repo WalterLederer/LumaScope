@@ -28,7 +28,8 @@
       </div>
     </nav>
   }
-  <div class="markdown-help-search" [class.has-query]="searchQuery().trim().length >= 2">
+  <div class="markdown-help-search" [class.has-query]="searchQuery().trim().length >= 2"
+       [style.flex-basis.%]="searchQuery().trim().length >= 2 ? searchPaneSize() : null">
     <input type="search" [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)" (keydown)="onSearchKeydown($event)" placeholder="Search all help pages…" aria-label="Search all help pages" title="Enter / F3: next result · Shift+Enter / Shift+F3: previous result" />
     @if (searchQuery().trim().length >= 2) {
       <div class="markdown-help-search-panel">
@@ -68,6 +69,18 @@
       </div>
     }
   </div>
+  @if (searchQuery().trim().length >= 2 && !loading() && !error()) {
+    <div class="markdown-help-search-resizer" role="separator" tabindex="0"
+         aria-label="Resize search results and help text" aria-orientation="horizontal"
+         [attr.aria-valuemin]="20" [attr.aria-valuemax]="70" [attr.aria-valuenow]="searchPaneSize()"
+         (pointerdown)="beginSearchPaneResize($event)"
+         (pointermove)="resizeSearchPane($event)"
+         (pointerup)="endSearchPaneResize($event)"
+         (pointercancel)="endSearchPaneResize($event)"
+         (keydown)="onSearchPaneResizeKeydown($event)">
+      <span aria-hidden="true"></span>
+    </div>
+  }
   @if (openFileError()) {
     <p class="markdown-state markdown-error" role="alert">{{ openFileError() }}</p>
   }
