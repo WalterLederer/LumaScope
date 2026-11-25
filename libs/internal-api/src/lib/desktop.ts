@@ -252,6 +252,7 @@ export interface DesktopCacheManager {
   readonly selectDatabaseForDirectory: (directory: string) => Promise<boolean>;
   readonly getDirectoryPhotoLocations: (directory: string, recursive?: boolean) => Promise<PhotoLocation[]>;
   readonly getPhotoLocationsInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey: string) => Promise<PhotoLocation[]>;
+  readonly checkPhotoDatabaseCoverage: (directory: string, recursive?: boolean) => Promise<{ total: number; missingCount: number }>;
   readonly getPhotoDatabaseRecord: (sourceName: string) => Promise<PhotoDatabaseRecord | null>;
   readonly resolvePhotoLocation: (sourceName: string, latitude: number, longitude: number) => Promise<string | null>;
 }
