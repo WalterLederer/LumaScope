@@ -186,25 +186,8 @@ export class ImageView {
     this.overlayMapWindowOpen.set(true);
   };
 
-  private readonly checkLocationPhotoDatabase = async (directory: string, recursive = false): Promise<{ total: number; missing: string[] }> => {
-    const result = await this.fileSystem.readImages(directory, 'name', 'asc', false, recursive);
-    if (!result.success) throw new Error(result.errorMessage || `Could not read images in ${directory}`);
-    const images = result.data.filter(image => !image.isDirectory);
-    const missing: string[] = [];
-    for (let offset = 0; offset < images.length; offset += 100) {
-      const batch = images.slice(offset, offset + 100);
-      const records = await Promise.all(batch.map(image => this.cacheManager.getPhotoDatabaseRecord(image.path)));
-      records.forEach((record, index) => {
-        const image = batch[index];
-        const modifiedAt = image.modifiedAt ?? image.createdAt;
-        if (!record || Number(record['file_size']) !== image.size
-          || (Number.isFinite(modifiedAt) && Number(record['modified_at']) !== modifiedAt)) {
-          missing.push(image.name);
-        }
-      });
-    }
-    return { total: images.length, missing };
-  };
+  private readonly checkLocationPhotoDatabase = async (directory: string, recursive = false): Promise<{ total: number; missingCount: number }> =>
+    this.cacheManager.checkPhotoDatabaseCoverage(directory, recursive);
 
   private readonly openLocationWindowAfterCache = async (directory: string, previousTab: string): Promise<void> => {
     try {
@@ -218,9 +201,9 @@ export class ImageView {
         await this.galleryCacheBuild.startCacheBuild(directory);
       }
       const completeness = await this.checkLocationPhotoDatabase(directory, this.galleryState.includeFilesRecursiveValue());
-      if (completeness.missing.length > 0) {
+      if (completeness.missingCount > 0) {
         this.document.defaultView?.alert(
-          `The photo database is still incomplete: ${completeness.missing.length} of ${completeness.total} images are missing current records. The Location window was not opened.`
+          `The photo database is still incomplete: ${completeness.missingCount} of ${completeness.total} images are missing current records. The Location window was not opened.`
         );
         return;
       }
@@ -246,11 +229,11 @@ export class ImageView {
     if (directory) {
       try {
         const completeness = await this.checkLocationPhotoDatabase(directory, this.galleryState.includeFilesRecursiveValue());
-        if (completeness.missing.length > 0) {
+        if (completeness.missingCount > 0) {
           const previousTab = this.activeImageSidebarTab();
           ConfirmationDialogComponent.open(this.dialog, {
             title: 'Photo database incomplete',
-            description: `${completeness.missing.length} of ${completeness.total} images in the current folder are missing database records or have changed since caching. Run “Cache folder” now before opening the Location window?`,
+            description: `${completeness.missingCount} of ${completeness.total} images in the current folder are missing database records or have changed since caching. Run “Cache folder” now before opening the Location window?`,
             confirmLabel: 'Cache folder',
             defaultAction: 'confirm'
           }).pipe(take(1)).subscribe(() => {
