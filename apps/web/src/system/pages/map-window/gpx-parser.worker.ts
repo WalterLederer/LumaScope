@@ -53,7 +53,7 @@ function countTrackPoints(content: string): number {
   const searchable = content.replace(/<!--[\\s\\S]*?-->|<!\\[CDATA\\[[\\s\\S]*?\\]\\]>/g, '');
   const pointTagPattern = /<(?:[a-z0-9_-]+:)?(?:trkpt|rtept)\b/gi;
   let total = 0;
-  while (pointTagPattern.exec(content)) total++;
+  while (pointTagPattern.exec(searchable)) total++;
   return total;
 }
 
