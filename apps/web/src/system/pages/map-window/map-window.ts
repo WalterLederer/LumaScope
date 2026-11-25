@@ -8034,15 +8034,24 @@ ${points}
         hoverLine.on('mouseout', () => this.clearGpxHover(track.path));
         this.trackLayers.push(trackLine, hoverLine);
       }
-      for (let segmentIndex = 0; segmentIndex < normalSegments.length; segmentIndex++) {
-        const segment = normalSegments[segmentIndex];
+      // Direction arrows must use the same rendered geometry as the track line.
+      // Speed/elevation rendering splits source segments into individually coloured
+      // pieces; drawing arrows from normalSegments would give them the base track colour.
+      const arrowSegments = track.colorMode === 'speed' || track.colorMode === 'elevation' ? segments : normalSegments;
+      for (let segmentIndex = 0; segmentIndex < arrowSegments.length; segmentIndex++) {
+        const segment = arrowSegments[segmentIndex];
         if (!track.showDirection || segment.length < 2) continue;
         const renderStyle = createGpxTrackRenderStyle(track, this.gpxOpacity());
         const arrowSize = renderStyle.arrowSize;
+        const arrowColor = track.colorMode === 'speed' || track.colorMode === 'elevation'
+          ? (speedSegments[segmentIndex]?.color || track.color || this.gpxColor())
+          : track.colorMode === 'track-based'
+            ? this.gpxTrackSegmentColor(track.path, segmentIndex)
+            : (track.color || this.gpxColor());
         for (const arrow of this.gpxDirectionArrows(segment, renderStyle.arrowInterval)) {
           const icon = this.leaflet.divIcon({
             className: 'gpx-direction-arrow-icon',
-            html: '<span class="gpx-direction-arrow" style="font-size:' + arrowSize + 'px;color:' + (track.colorMode === 'track-based' ? this.gpxTrackSegmentColor(track.path, segmentIndex) : (track.color || this.gpxColor())) + ';opacity:' + renderStyle.arrowOpacity + ';-webkit-text-stroke-width:' + renderStyle.arrowOutlineWidth + 'px;-webkit-text-stroke-color:' + renderStyle.arrowOutlineColor + ';text-shadow:' + renderStyle.arrowShadowOffset + 'px ' + renderStyle.arrowShadowOffset + 'px ' + renderStyle.arrowShadowBlur + 'px rgba(0,0,0,' + renderStyle.arrowShadowOpacity + ');transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + renderStyle.arrowGlyph + '</span>',
+            html: '<span class="gpx-direction-arrow" style="font-size:' + arrowSize + 'px;color:' + arrowColor + ';opacity:' + renderStyle.arrowOpacity + ';-webkit-text-stroke-width:' + renderStyle.arrowOutlineWidth + 'px;-webkit-text-stroke-color:' + renderStyle.arrowOutlineColor + ';text-shadow:' + renderStyle.arrowShadowOffset + 'px ' + renderStyle.arrowShadowOffset + 'px ' + renderStyle.arrowShadowBlur + 'px rgba(0,0,0,' + renderStyle.arrowShadowOpacity + ');transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + renderStyle.arrowGlyph + '</span>',
             iconSize: [arrowSize + 4, arrowSize + 4], iconAnchor: [(arrowSize + 4) / 2, (arrowSize + 4) / 2]
           });
           this.trackLayers.push(this.leaflet.marker(arrow.position, { icon }).addTo(this.map) as MapMarker & { remove(): void });
