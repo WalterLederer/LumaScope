@@ -7458,6 +7458,9 @@ ${points}
   ): Promise<{ coordinates: [number, number][][]; pointData: GpxTrackPoint[][]; segmentNames: string[] }> {
     const xml = new DOMParser().parseFromString(content, 'application/xml');
     if (xml.getElementsByTagName('parsererror').length) throw new Error('The selected file is not valid GPX/XML.');
+    // Traverse the XML tree only once. GPX track points are direct children of
+    // trkseg; scanning every descendant of every segment repeatedly becomes
+    // disproportionately expensive for large files with many extension nodes.
     const elements = Array.from(xml.getElementsByTagName('*'));
     const trackElements = elements.filter(element => element.localName === 'trk');
     const trackIndices = new Map<Element, number>(trackElements.map((element, index) => [element, index]));
@@ -7471,7 +7474,7 @@ ${points}
         const name = parent
           ? Array.from(parent.children).find(child => child.localName === 'name')?.textContent?.trim()
           : '';
-        const points = Array.from(segment.getElementsByTagName('*')).filter(point => point.localName === 'trkpt');
+        const points = Array.from(segment.children).filter(point => point.localName === 'trkpt');
         if (points.length) groups.push({ elements: points, name: name || `Track ${trackIndex + 1}` });
       }
     } else {
@@ -7495,7 +7498,7 @@ ${points}
         processed++;
         const coordinate = this.parseGpxPoint(point);
         if (!coordinate) {
-          if (processed % 2000 === 0) {
+          if (processed % 1000 === 0) {
             onProgress?.(processed, total);
             await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
           }
@@ -7513,7 +7516,7 @@ ${points}
         }
         coordinateSegment.push(coordinate);
         metadataSegment.push({ latitude: coordinate[0], longitude: coordinate[1], elevation, timestamp });
-        if (processed % 2000 === 0) {
+        if (processed % 1000 === 0) {
           onProgress?.(processed, total);
           await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
         }
