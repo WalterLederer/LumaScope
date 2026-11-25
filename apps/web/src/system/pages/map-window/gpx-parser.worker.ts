@@ -47,8 +47,14 @@ function readAttribute(tag: string, name: string): string | null {
   return singleQuoted?.[1] ?? null;
 }
 
-function parse(content: string): ParsedGpx {
-  const total = (content.match(/<(?:[a-z0-9_-]+:)?(?:trkpt|rtept)\b/gi) ?? []).length;
+function countTrackPoints(content: string): number {
+  const pointTagPattern = /<(?:[a-z0-9_-]+:)?(?:trkpt|rtept)\b/gi;
+  let total = 0;
+  while (pointTagPattern.exec(content)) total++;
+  return total;
+}
+
+function parse(content: string, total: number): ParsedGpx {
   if (!total) throw new Error('No GPX track or route points were found.');
   const coordinates: [number, number][][] = [];
   const pointData: GpxTrackPoint[][] = [];
@@ -104,8 +110,12 @@ function parse(content: string): ParsedGpx {
     }
   };
 
-  const tokens = content.match(/<[^>]*>|[^<]+/g) ?? [];
-  for (const token of tokens) {
+  // Use an incremental regex scan instead of materializing hundreds of
+  // thousands of token strings for large GPX files.
+  const tokenPattern = /<[^>]*>|[^<]+/g;
+  let tokenMatch: RegExpExecArray | null;
+  while ((tokenMatch = tokenPattern.exec(content)) !== null) {
+    const token = tokenMatch[0];
     if (token.startsWith('<!--') || token.startsWith('<?') || /^<!DOCTYPE/i.test(token)) continue;
     if (token.startsWith('<![CDATA[') || token === ']]>') continue;
     if (token.startsWith('</')) {
