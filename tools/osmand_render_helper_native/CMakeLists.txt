@@ -140,6 +140,33 @@ set(ENV{OSMAND_SYSTEM_QT} "1")
 # Include Qt configuration (will skip embedded Qt due to OSMAND_SYSTEM_QT)
 include("${OSMAND_VENDOR_ROOT}/build/qt.cmake")
 
+# OsmAndCore clears the Atlas framebuffer with an opaque alpha value, even when
+# only vector symbols are rendered. Make that alpha configurable per helper
+# process so labels-only tiles can retain the transparent QOpenGLWidget clear,
+# without changing normal OsmAnd Atlas rendering.
+set(OSMAND_ATLAS_RENDERER_OPENGL_SOURCE
+    "${OSMAND_VENDOR_ROOT}/core/src/Map/OpenGL/AtlasMapRenderer_OpenGL.cpp")
+if(NOT EXISTS "${OSMAND_ATLAS_RENDERER_OPENGL_SOURCE}")
+    message(FATAL_ERROR "Missing OsmAnd Atlas renderer source: ${OSMAND_ATLAS_RENDERER_OPENGL_SOURCE}")
+endif()
+
+file(READ "${OSMAND_ATLAS_RENDERER_OPENGL_SOURCE}" _osmand_atlas_renderer_source)
+set(_osmand_opaque_clear
+    "glClearColor(currentState.backgroundColor.r, currentState.backgroundColor.g, currentState.backgroundColor.b, 1.0f);")
+set(_osmand_configurable_clear
+    "glClearColor(currentState.backgroundColor.r, currentState.backgroundColor.g, currentState.backgroundColor.b, qEnvironmentVariableIntValue(\"OSMAND_ATLAS_TRANSPARENT_BACKGROUND\") > 0 ? 0.0f : 1.0f);")
+string(FIND "${_osmand_atlas_renderer_source}" "${_osmand_opaque_clear}" _osmand_opaque_clear_index)
+if(NOT _osmand_opaque_clear_index EQUAL -1)
+    string(REPLACE "${_osmand_opaque_clear}" "${_osmand_configurable_clear}"
+        _osmand_atlas_renderer_source "${_osmand_atlas_renderer_source}")
+    file(WRITE "${OSMAND_ATLAS_RENDERER_OPENGL_SOURCE}" "${_osmand_atlas_renderer_source}")
+else()
+    string(FIND "${_osmand_atlas_renderer_source}" "${_osmand_configurable_clear}" _osmand_configurable_clear_index)
+    if(_osmand_configurable_clear_index EQUAL -1)
+        message(FATAL_ERROR "Could not locate the expected OsmAnd Atlas framebuffer clear call; review the OsmAndCore source version before building.")
+    endif()
+endif()
+
 include("${OSMAND_VENDOR_ROOT}/core/core.cmake")
 
 set(OSMAND_COMMON_SOURCES
