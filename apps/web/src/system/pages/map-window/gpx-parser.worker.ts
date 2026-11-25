@@ -41,8 +41,10 @@ function decodeXmlText(value: string): string {
 }
 
 function readAttribute(tag: string, name: string): string | null {
-  const match = tag.match(new RegExp('(?:^|\\s)' + name + '\\s*=\\s*(["\\'])(.*?)\\1', 'i'));
-  return match?.[2] ?? null;
+  const doubleQuoted = tag.match(new RegExp('(?:^|\\s)' + name + '\\s*=\\s*"([^"]*)"', 'i'));
+  if (doubleQuoted) return doubleQuoted[1];
+  const singleQuoted = tag.match(new RegExp("(?:^|\\\\s)" + name + "\\\\s*=\\\\s*'([^']*)'", 'i'));
+  return singleQuoted?.[1] ?? null;
 }
 
 function parse(content: string): ParsedGpx {
