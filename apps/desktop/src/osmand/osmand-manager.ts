@@ -280,7 +280,6 @@ class OsmAndHelperWorker {
 }
 
 export class OsmAndManager {
-  private readonly localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
   private readonly helperPath = join(process.resourcesPath, 'osmand', 'helpers', 'osmand_render_helper.exe');
   private resourcesPath = this.readSavedResourcesPath();
   private styleFileName = this.readSavedStyleFileName();
@@ -288,7 +287,7 @@ export class OsmAndManager {
     ? join(this.resourcesPath, 'rendering_styles', this.styleFileName) : '';
   private obfPaths = this.getFallbackObfPaths();
   private runtimeObfSelection = false;
-  private readonly cachePath = join(this.localAppData, 'LumaScope', 'cache', 'maps', 'obf');
+  private readonly cachePath = join(app.getPath('userData'), 'Cache', 'maps', 'obf');
   private workers: OsmAndHelperWorker[];
   private styleChange: Promise<void> = Promise.resolve();
   private nextWorker = 0;
