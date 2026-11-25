@@ -998,7 +998,7 @@
           <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
         }
       </div>
-      <details class="render-helper-activity-section app-disclosure">
+      <details class="render-helper-activity-section app-disclosure" [class.render-helper-active]="offlineRenderTasks().some(task => task.state === 'Running')">
         <summary>Render helper</summary>
         <div class="render-statistics-content">
           <div class="range-setting render-worker-setting">
