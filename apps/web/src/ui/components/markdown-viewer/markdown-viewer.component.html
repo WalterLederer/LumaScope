@@ -28,14 +28,17 @@
       </div>
     </nav>
   }
-  <div class="markdown-help-search">
+  <div class="markdown-help-search" [class.has-query]="searchQuery().trim().length >= 2">
     <input type="search" [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)" placeholder="Search all help pages…" aria-label="Search all help pages" />
     @if (searchQuery().trim().length >= 2) {
-      <div class="markdown-help-search-results" role="region" aria-label="Help search results" aria-live="polite">
-        @if (searchBusy()) { <p class="markdown-state" role="status">Searching help pages…</p> }
-        @else if (searchError()) { <p class="markdown-state markdown-error" role="alert">{{ searchError() }}</p> }
-        @else if (searchResults().length === 0) { <p class="markdown-state">No matching help pages found.</p> }
-        @else {
+      <div class="markdown-help-search-panel">
+        @if (searchBusy()) {
+          <p class="markdown-state" role="status">Searching help pages…</p>
+        } @else if (searchError()) {
+          <p class="markdown-state markdown-error" role="alert">{{ searchError() }}</p>
+        } @else if (searchResults().length === 0) {
+          <p class="markdown-state">No matching help pages found.</p>
+        } @else {
           <div class="markdown-help-search-toolbar">
             <p class="markdown-help-search-count">{{ searchResultCount() }} results in {{ searchResults().length }} pages</p>
             <div class="markdown-help-search-navigation">
@@ -44,18 +47,20 @@
               <button type="button" (click)="navigateSearchResult(1)" [disabled]="!flatSearchResults().length" title="Find next result"><span aria-hidden="true">↓</span> Next</button>
             </div>
           </div>
-          @for (group of searchResults(); track group.fileName) {
-            <details class="markdown-help-search-group">
-              <summary><span>{{ group.title }}</span><small>{{ group.results.length }} {{ group.results.length === 1 ? 'match' : 'matches' }}</small></summary>
-              <div class="markdown-help-search-group-results">
-                @for (result of group.results; track result.lineNumber) {
-                  <button type="button" class="markdown-help-search-result" [class.active]="activeSearchResultIndex() >= 0 && flatSearchResults()[activeSearchResultIndex()] === result" (click)="openSearchResult(result)">
-                    <span>Line {{ result.lineNumber }}</span><small>{{ result.snippet }}</small>
-                  </button>
-                }
-              </div>
-            </details>
-          }
+          <div class="markdown-help-search-results" role="region" aria-label="Help search results" aria-live="polite">
+            @for (group of searchResults(); track group.fileName) {
+              <details class="markdown-help-search-group">
+                <summary><span>{{ group.title }}</span><small>{{ group.results.length }} {{ group.results.length === 1 ? 'match' : 'matches' }}</small></summary>
+                <div class="markdown-help-search-group-results">
+                  @for (result of group.results; track result.lineNumber) {
+                    <button type="button" class="markdown-help-search-result" [class.active]="activeSearchResultIndex() >= 0 && flatSearchResults()[activeSearchResultIndex()] === result" (click)="openSearchResult(result)">
+                      <span>Line {{ result.lineNumber }}</span><small>{{ result.snippet }}</small>
+                    </button>
+                  }
+                </div>
+              </details>
+            }
+          </div>
         }
       </div>
     }
