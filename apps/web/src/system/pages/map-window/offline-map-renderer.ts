@@ -2516,6 +2516,13 @@ export class OfflineMapRenderer {
 
   setTrackHoverHandler(handler: ((path: string, latitude: number, longitude: number, segmentIndex?: number) => void) | null): void { this.trackHoverHandler = handler; }
 
+  setTrackRenderingEnabled(enabled: boolean): void {
+    for (const layer of this.map.getStyle().layers) {
+      if (!layer.id.startsWith('gpx-track-')) continue;
+      this.map.setLayoutProperty(layer.id, 'visibility', enabled ? 'visible' : 'none');
+    }
+  }
+
   setTrack(tracks: Array<{ path: string; segments: [number, number][][]; segmentSourceIndices?: number[]; segmentColors?: string[]; color: string; lineStyle: 'solid' | 'dashed' | 'dotted' | 'long-dashed' | 'short-dashed' | 'dash-dot' | 'dash-dot-dot'; lineWidth: number; trackShadowStrength?: number; arrowShadowStrength?: number; trackOutlineStrength?: number; showDirection?: boolean; directionStyle?: 'classic' | 'chevron' | 'triangle' | 'thin' | 'large-classic' | 'large-chevron' | 'large-triangle'; directionIntervalPx?: number; directionArrowSizePx?: number; directionArrowOutlineWidthPx?: number }>, opacity: number): void {
     const source = this.map.getSource('gpx-track') as import('maplibre-gl').GeoJSONSource | undefined;
     if (!source) return;
