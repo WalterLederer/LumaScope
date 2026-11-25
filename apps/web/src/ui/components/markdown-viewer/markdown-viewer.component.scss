@@ -479,3 +479,35 @@
   opacity: .45 !important;
   cursor: default !important;
 }
+
+
+/* Search results are grouped by source document; each page can be expanded independently. */
+:host ::ng-deep .markdown-help-search-group {
+  margin: 3px 0;
+  border: 1px solid var(--color-border-default, rgb(128 128 128 / 25%));
+  border-radius: 5px;
+  overflow: hidden;
+}
+:host ::ng-deep .markdown-help-search-group > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 9px;
+  color: var(--color-content-default-high);
+  background: var(--color-surface-default-high, rgb(128 128 128 / 10%));
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: capitalize;
+  cursor: pointer;
+  list-style: revert;
+}
+:host ::ng-deep .markdown-help-search-group > summary small {
+  flex: 0 0 auto;
+  color: var(--color-content-default-medium);
+  font-size: 10px;
+  font-weight: 400;
+  text-transform: none;
+}
+:host ::ng-deep .markdown-help-search-group-results { padding: 3px 5px; }
+:host ::ng-deep .markdown-help-search-navigation button span { margin-right: 3px; font-size: 13px; font-weight: 700; }
