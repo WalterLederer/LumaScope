@@ -41,7 +41,7 @@ const renderInline = (source: string, imageSources: ReadonlyMap<string, string>,
   });
   let value = escapeHtml(withImagePlaceholders);
   if (searchQuery.trim()) {
-    const escapedQuery = searchQuery.trim().replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\  let value = escapeHtml(withImagePlaceholders);');
+    const escapedQuery = escapeHtml(Array.from(searchQuery.trim()).map(character => '.+*?^${}()|[]\\'.includes(character) ? '\\' + character : character).join(''));
     value = value.replace(new RegExp(escapedQuery, 'gi'), match => '<mark class="markdown-search-hit">' + match + '</mark>');
   }
   value = value.replace(/\x60([^\x60]+)\x60/g, '<code>$1</code>');
@@ -274,11 +274,12 @@ export class MarkdownViewerComponent {
           this.document.defaultView?.setTimeout(() => {
             if (request !== this.documentLoadRequest) return;
             const anchors = Array.from(this.document.querySelectorAll<HTMLElement>('[id^="help-search-line-"]'));
-            const target = anchors
-              .map(element => ({ element, line: Number(element.id.slice('help-search-line-'.length)) }))
-              .filter(item => Number.isFinite(item.line) && item.line <= targetLine)
-              .sort((a, b) => b.line - a.line)[0]?.element;
-            target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const target = anchors.find(element => element.id === 'help-search-line-' + targetLine);
+            if (!target) return;
+            const block = target.nextElementSibling as HTMLElement | null;
+            this.document.querySelectorAll('.markdown-body .active-search-line').forEach(element => element.classList.remove('active-search-line'));
+            block?.classList.add('active-search-line');
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }, 0);
         }
       } else {
