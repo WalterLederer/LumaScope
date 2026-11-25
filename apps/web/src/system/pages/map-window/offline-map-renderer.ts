@@ -352,7 +352,7 @@ export function registerOsmAndLabelsTileProtocol(desktop: Desktop, getDisplaySca
   osmAndAtlasDisplayScaleProvider = getDisplayScale;
   if (osmAndLabelsProtocolRegistered) return;
   addProtocol('osmand-labels', async (request, abortController) => {
-    const match = /^osmand-labels:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(request.url);
+    const match = /^osmand-labels:\/\/(\d+)\/(\d+)\/(\d+)(?:\?.*)?$/.exec(request.url);
     if (!match) throw new Error('Invalid OsmAnd Labels XYZ tile URL: ' + request.url);
     const zoom = Number(match[1]);
     const requestedColumn = Number(match[2]);
@@ -2657,6 +2657,60 @@ export class OfflineMapRenderer {
       zoom: this.map.getZoom(),
       refresh
     });
+  }
+
+  async rerenderVisibleOsmAndLabels(
+    renderLabelsTile: (z: number, x: number, y: number, displayScale: number, forceRender: boolean) => Promise<unknown>,
+    displayScale: number,
+    onProgress?: (completed: number, total: number) => void
+  ): Promise<number> {
+    const source = this.map.getSource('osmand-labels-source') as { setTiles?: (tiles: string[]) => unknown } | undefined;
+    if (!source?.setTiles) throw new Error('The OsmAnd Labels raster source is unavailable.');
+
+    const zoom = Math.max(2, Math.min(21, Math.floor(this.map.getZoom())));
+    const tileCount = 2 ** zoom;
+    const bounds = this.map.getBounds();
+    const clampLatitude = (latitude: number): number => Math.max(-85.05112878, Math.min(85.05112878, latitude));
+    const xForLongitude = (longitude: number): number =>
+      Math.max(0, Math.min(tileCount - 1, Math.floor((longitude + 180) / 360 * tileCount)));
+    const yForLatitude = (latitude: number): number => {
+      const radians = clampLatitude(latitude) * Math.PI / 180;
+      return Math.max(0, Math.min(tileCount - 1,
+        Math.floor((1 - Math.asinh(Math.tan(radians)) / Math.PI) / 2 * tileCount)));
+    };
+    const minX = xForLongitude(bounds.getWest());
+    const maxX = xForLongitude(bounds.getEast() - 1e-10);
+    const minY = yForLatitude(bounds.getNorth());
+    const maxY = yForLatitude(bounds.getSouth());
+    const tiles: Array<{ x: number; y: number }> = [];
+    for (let y = Math.min(minY, maxY); y <= Math.max(minY, maxY); y++) {
+      for (let x = Math.min(minX, maxX); x <= Math.max(minX, maxX); x++) tiles.push({ x, y });
+    }
+    if (!tiles.length) return 0;
+
+    onProgress?.(0, tiles.length);
+    let completed = 0;
+    await Promise.all(tiles.map(async ({ x, y }) => {
+      const tileCoordinates = { protocol: 'osmand-labels' as const, zoom, column: x, row: y };
+      emitOsmAndTileStatus({ ...tileCoordinates, status: 'rerendering' });
+      try {
+        await renderLabelsTile(zoom, x, y, displayScale, true);
+        emitOsmAndTileStatus({ ...tileCoordinates, status: 'loaded' });
+        onProgress?.(++completed, tiles.length);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        emitOsmAndTileStatus({ ...tileCoordinates, status: /\\b(cancelled|canceled)\\b/i.test(message) ? 'cancelled' : 'error', error: message });
+        throw error;
+      }
+    }));
+
+    // Change the URL identity so MapLibre drops its own raster cache and loads
+    // the freshly rendered PNGs from the native disk cache.
+    const refresh = Date.now();
+    source.setTiles(['osmand-labels://{z}/{x}/{y}?refresh=' + refresh]);
+    this.map.triggerRepaint();
+    console.info('[osmand-labels] Forced visible labels rerender completed', { zoom, tiles: tiles.length, refresh });
+    return tiles.length;
   }
 
   async rerenderVisibleTiles(
