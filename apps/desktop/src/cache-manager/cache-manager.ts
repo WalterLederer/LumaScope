@@ -2507,6 +2507,82 @@ export class CacheManager {
     }));
   };
 
+  @IpcHandler({ name: 'CacheManager.checkPhotoDatabaseCoverage' })
+  readonly checkPhotoDatabaseCoverage = async (
+    _event: IpcMainInvokeEvent,
+    directory: string,
+    recursive = false
+  ): Promise<{ total: number; missingCount: number }> => {
+    if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid image folder path is required.');
+    const root = resolve(directory);
+    const databaseKey = this.databaseKeyForPath(root);
+    const db = this.databaseForPath(root);
+    const folder = this.toRelativeFolderPath(root, databaseKey);
+    if (folder === null) throw new Error('The selected folder is outside the photo database drive.');
+
+    const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
+    const rows = db.prepare(`SELECT photos.file_name, photos.file_size, photos.modified_at, paths.relative_folder_path
+      FROM photos JOIN paths ON paths.id = photos.path_id
+      WHERE paths.relative_folder_path = :folder COLLATE NOCASE
+        OR (:recursive = 1
+          AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
+          AND paths.relative_folder_path < (:folderPrefix || char(1114111)) COLLATE NOCASE)`)
+      .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as Array<{
+        file_name: string; file_size: number; modified_at: number; relative_folder_path: string;
+      }>;
+
+    const records = new Map<string, { size: number; modifiedAt: number }>();
+    for (const row of rows) {
+      records.set(
+        row.relative_folder_path.toLowerCase() + String.fromCharCode(0) + row.file_name.toLowerCase(),
+        { size: row.file_size, modifiedAt: row.modified_at }
+      );
+    }
+
+    let total = 0;
+    let missingCount = 0;
+    const pendingDirectories = [root];
+    const pendingFiles: Array<{ name: string; parent: string }> = [];
+    const verifyBatch = async (): Promise<void> => {
+      if (!pendingFiles.length) return;
+      const batch = pendingFiles.splice(0, pendingFiles.length);
+      const verified = await Promise.all(batch.map(async file => {
+        try {
+          const info = await stat(join(file.parent, file.name));
+          return { ...file, size: info.size, modifiedAt: info.mtimeMs };
+        } catch {
+          return null;
+        }
+      }));
+      for (const file of verified) {
+        if (!file) continue;
+        total++;
+        const relativeFolder = this.toRelativeFolderPath(file.parent, databaseKey);
+        const key = (relativeFolder ?? '').toLowerCase() + String.fromCharCode(0) + file.name.toLowerCase();
+        const record = records.get(key);
+        if (!record || record.size !== file.size || record.modifiedAt !== file.modifiedAt) missingCount++;
+      }
+    };
+
+    while (pendingDirectories.length) {
+      const currentDirectory = pendingDirectories.pop()!;
+      const handle = await opendir(currentDirectory);
+      for await (const entry of handle) {
+        if (entry.isDirectory()) {
+          if (recursive && !['.cache', '.thumbnails'].includes(entry.name.toLowerCase())) {
+            pendingDirectories.push(join(currentDirectory, entry.name));
+          }
+        } else if (entry.isFile()
+          && supportedFileExtensions.includes(extname(entry.name).toLowerCase().replace('.', ''))) {
+          pendingFiles.push({ name: entry.name, parent: currentDirectory });
+          if (pendingFiles.length >= 256) await verifyBatch();
+        }
+      }
+    }
+    await verifyBatch();
+    return { total, missingCount };
+  };
+
   @IpcHandler({ name: 'CacheManager.getPhotoDatabaseRecord' })
   readonly getPhotoDatabaseRecord = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<Record<string, string | number | null> | null> => {
     if (typeof sourceName !== 'string' || !sourceName.trim()) throw new Error('A valid image path is required.');
