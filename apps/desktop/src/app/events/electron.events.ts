@@ -889,7 +889,7 @@ export default class ElectronEvents {
     const eventLoopMonitor = setInterval(() => {
       const now = Date.now();
       const delayMs = now - expectedTick;
-      expectedTick += 250;
+      expectedTick = now + 250;
       if (delayMs >= 150) {
         console.warn('[Performance] Main process event-loop lag', {
           delayMs,
