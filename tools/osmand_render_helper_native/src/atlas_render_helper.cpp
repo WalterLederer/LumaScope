@@ -585,7 +585,8 @@ int main(int argc, char* argv[])
         return runHillshadeWorker();
     }
 
-    if (argc != 5)
+    const bool labelsOnly = argc == 6 && std::string(argv[5]) == "--labels-only";
+    if (argc != 5 && !labelsOnly)
     {
         std::cerr
             << "Usage: osmand_atlas_render_helper.exe <obf-paths-json-file> <resources-root> <style-file> <display-scale>\n"
@@ -654,7 +655,8 @@ int main(int argc, char* argv[])
     SetUnhandledExceptionFilter(atlasUnhandledExceptionFilter);
     std::cerr << "[atlas-helper] process_started pid=" << GetCurrentProcessId()
               << " obf_count=" << obfPaths.size()
-              << " display_scale=" << displayScale << std::endl;
+              << " display_scale=" << displayScale
+              << " labels_only=" << (labelsOnly ? 1 : 0) << std::endl;
 #else
     std::cerr << "[atlas-helper] process_started obf_count=" << obfPaths.size()
               << " display_scale=" << displayScale << std::endl;
@@ -666,7 +668,8 @@ int main(int argc, char* argv[])
         decodePathArgument(argv[3]),
         false,
         displayScale,
-        true
+        true,
+        labelsOnly
     };
 
     QElapsedTimer widgetCreationTimer;
@@ -683,7 +686,9 @@ int main(int argc, char* argv[])
     widget->setAttribute(Qt::WA_DontShowOnScreen, true);
     widget->setMinimumSize(1, 1);
     widget->resize(1280, 960);
-    widget->setWindowTitle(QStringLiteral("OsmAnd Atlas Render Helper"));
+    widget->setWindowTitle(labelsOnly
+        ? QStringLiteral("OsmAnd Labels Render Helper")
+        : QStringLiteral("OsmAnd Atlas Render Helper"));
     widget->move(100, 100);
     widget->setZoomLevel(13.0);
     widget->setCenterLonLat(16.3738, 48.2082);
