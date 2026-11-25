@@ -165,12 +165,15 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
       index++;
     }
     const renderedParagraphLines = paragraph.map(line => renderInline(line, imageSources, searchQuery));
+    const isImageRow = renderedParagraphLines.every(renderedLine => /^\s*(?:<img\b[^>]*>\s*)+$/i.test(renderedLine));
     const paragraphHtml = renderedParagraphLines.map((renderedLine, lineIndex) => {
       const lineNumber = paragraphLineNumber + lineIndex;
-      return '<span class="help-search-line-anchor help-search-line-' + lineNumber + '"></span>' +
-        '<span class="help-search-line-content help-search-line-content-' + lineNumber + '">' + renderedLine + '</span>';
+      const anchor = '<span class="help-search-line-anchor help-search-line-' + lineNumber + '"></span>';
+      return anchor + (isImageRow
+        ? renderedLine
+        : '<span class="help-search-line-content help-search-line-content-' + lineNumber + '">' + renderedLine + '</span>');
     }).join('<br>');
-    if (renderedParagraphLines.every(renderedLine => /^\s*(?:<img\b[^>]*>\s*)+$/i.test(renderedLine))) {
+    if (isImageRow) {
       output.push('<div class="markdown-image-row">' + paragraphHtml + '</div>');
     } else {
       output.push('<p>' + paragraphHtml + '</p>');
