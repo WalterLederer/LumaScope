@@ -2346,7 +2346,6 @@ export class MapWindow implements OnInit, OnDestroy {
       this.photoCoordinateLabel.set('Photo: GPS coordinates unavailable');
       this.photoGpsCoordinates.set('Photo GPS position unavailable');
       this.locationAddress.set('');
-      this.marker?.setOpacity(0);
       this.offlineRenderer?.setCurrentOpacity(0);
       return;
     }
@@ -2746,10 +2745,9 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly openLocationIn = (provider: string): void => {
-    const marker = this.marker?.getLatLng();
-    if (!marker) return;
-    const lat = marker.lat;
-    const lon = marker.lng;
+    const lat = this.currentLatitude;
+    const lon = this.currentLongitude;
+    if (lat === null || lon === null || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
     const urls: Record<string, string> = {
       'google-earth': `https://earth.google.com/web/@${lat},${lon},1000a,1000d,35y,0h,0t,0r`,
       'google-maps': `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`,
@@ -3738,8 +3736,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.beginMapLoading('online');
     this.offlineRenderer?.remove();
     this.offlineRenderer = null;
-    this.map = null;
-    this.leaflet = null;
     if (this.desktop) registerOsmAndLabelsTileProtocol(this.desktop, () => this.displayDensityFactor());
 
     const style = this.styles[this.mapStyle()];
