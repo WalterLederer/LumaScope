@@ -367,19 +367,22 @@ export class MarkdownViewerComponent {
       const block = target.matches('li, tr') ? target : target.closest('p, li, tr, blockquote, pre, h1, h2, h3, h4, h5, h6, .markdown-image-row') as HTMLElement | null;
       article.querySelectorAll('.active-search-line').forEach(element => element.classList.remove('active-search-line'));
       block?.classList.add('active-search-line');
-      // Scroll the actual hit, not just its containing paragraph/list/table block.
-      // scrollIntoView resolves the nearest scrollable ancestor (the Markdown article),
-      // avoiding fragile manual offsets for inline per-line anchors.
-      target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
-      // Keep the Help article as the sole scrolling pane if an outer layout is scrollable.
+      // Calculate the target position in the article's own scroll coordinate system.
+      // This avoids scrollIntoView selecting an outer pane and works for inline anchors
+      // inside paragraphs, blockquotes and code blocks as well as standalone list/table rows.
       const articleRect = article.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
-      if (targetRect.top < articleRect.top || targetRect.bottom > articleRect.bottom) {
-        const delta = targetRect.top - articleRect.top - Math.max(12, article.clientHeight * 0.2);
-        article.scrollTo({ top: Math.max(0, article.scrollTop + delta), behavior: 'smooth' });
-      }
+      const targetTop = article.scrollTop + targetRect.top - articleRect.top;
+      const desiredTop = Math.max(0, targetTop - Math.max(24, article.clientHeight * 0.3));
+      article.scrollTo({ top: desiredTop, behavior: 'smooth' });
     };
     view.requestAnimationFrame(() => view.requestAnimationFrame(findAndScroll));
+  };
+
+  protected readonly onSearchResultKeydown = (event: KeyboardEvent, result: HelpSearchResult): void => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    this.openSearchResult(result);
   };
 
   protected readonly openSearchResult = (result: HelpSearchResult): void => {
