@@ -56,6 +56,7 @@ interface DetailTablePreferences {
   dimensionsProgressEnabled: boolean;
   sizeProgressEnabled: boolean;
   progressTransparency: number;
+  rowVerticalGap: number;
 }
 const defaultDetailTablePreferences: DetailTablePreferences = {
   date: '#d18b24',
@@ -71,7 +72,8 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
   gpsDateProgressEnabled: true,
   dimensionsProgressEnabled: true,
   sizeProgressEnabled: true,
-  progressTransparency: 78
+  progressTransparency: 78,
+  rowVerticalGap: 0
 };
 
 @Component({
@@ -96,6 +98,7 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
     '[style.--detail-thumb-width.px]': 'detailThumbnailWidth()',
     '[style.--detail-thumb-height.px]': 'detailThumbnailHeight()',
     '[style.--detail-row-height.px]': 'detailVirtualRowHeight()',
+    '[style.--detail-row-gap.px]': 'detailPreferenceValues().rowVerticalGap',
     '[style.--detail-date-progress-color]': 'detailPreferenceValues().date',
     '[style.--detail-gps-date-progress-color]': 'detailPreferenceValues().gpsDate',
     '[style.--detail-dimensions-progress-color]': 'detailPreferenceValues().dimensions',
@@ -126,6 +129,7 @@ export class ImagesComponent {
   readonly appConfig = toSignal(this.configuration.config(), { initialValue: null });
   readonly detailPreferenceDraft = signal<DetailTablePreferences>({ ...defaultDetailTablePreferences });
   readonly detailPreferencesOpen = signal(false);
+  readonly detailPreferenceSections = signal<Record<string, boolean>>({ favorites: true, fontSize: true, indicators: true, backgrounds: true });
   readonly detailPreferenceFavorites = signal<Array<{ name: string; settings: DetailTablePreferences }>>([]);
   private readonly defaultDetailPreferenceFavorite = {
     name: 'Default',
@@ -149,7 +153,8 @@ export class ImagesComponent {
       gpsDateProgressEnabled: preferences?.galleryDetailGpsDateProgressEnabled ?? defaultDetailTablePreferences.gpsDateProgressEnabled,
       dimensionsProgressEnabled: preferences?.galleryDetailDimensionsProgressEnabled ?? defaultDetailTablePreferences.dimensionsProgressEnabled,
       sizeProgressEnabled: preferences?.galleryDetailSizeProgressEnabled ?? defaultDetailTablePreferences.sizeProgressEnabled,
-      progressTransparency: preferences?.galleryDetailProgressTransparency ?? defaultDetailTablePreferences.progressTransparency
+      progressTransparency: preferences?.galleryDetailProgressTransparency ?? defaultDetailTablePreferences.progressTransparency,
+      rowVerticalGap: Math.max(0, Math.min(24, preferences?.galleryDetailRowVerticalGap ?? defaultDetailTablePreferences.rowVerticalGap))
     };
   });
 
@@ -445,7 +450,7 @@ export class ImagesComponent {
   readonly detailVirtualRowHeight = computed(() => Math.max(
     Math.ceil(this.detailFontSize() * 1.25),
     this.viewMode() === 'details-no-thumbnails' ? 22 : this.detailThumbnailHeight()
-  ));
+  ) + this.detailPreferenceValues().rowVerticalGap);
   private readonly detailVirtualOverscan = 12;
   readonly detailVirtualCount = computed(() =>
     Math.max(1, Math.ceil(Math.max(200, this.detailViewportHeight()) / this.detailVirtualRowHeight()) + this.detailVirtualOverscan * 2)
@@ -582,6 +587,7 @@ export class ImagesComponent {
 
   openDetailPreferences(): void {
     this.detailPreferenceDraft.set({ ...this.detailPreferenceValues() });
+    this.detailPreferenceSections.set({ favorites: true, fontSize: true, indicators: true, backgrounds: true, ...(this.appConfig()?.system.galleryDetailPreferenceSections ?? {}) });
     const favorites = this.appConfig()?.system.galleryDetailPreferencesFavorites ?? [this.defaultDetailPreferenceFavorite];
     this.detailPreferenceFavorites.set(favorites as Array<{ name: string; settings: DetailTablePreferences }>);
     this.detailPreferenceFavoriteName.set('');
@@ -612,6 +618,17 @@ export class ImagesComponent {
     event.stopPropagation();
     buttons[event.key === 'ArrowRight' ? Math.min(buttons.length - 1, index + 1) : Math.max(0, index - 1)].focus();
   };
+
+  protected readonly onDetailPreferenceSectionToggle = (key: string, event: Event): void => {
+    const open = (event.currentTarget as HTMLDetailsElement | null)?.open ?? false;
+    const next = { ...this.detailPreferenceSections(), [key]: open };
+    this.detailPreferenceSections.set(next);
+    this.configuration.updateSystemConfig({ galleryDetailPreferenceSections: next });
+  };
+
+  protected updateDetailRowVerticalGap(value: number): void {
+    this.detailPreferenceDraft.update(current => ({ ...current, rowVerticalGap: Math.max(0, Math.min(24, Math.round(value))) }));
+  }
 
   protected applyDetailPreferenceFavorite(name: string): void {
     this.detailPreferenceFavoriteSelection.set(name);
@@ -674,7 +691,8 @@ export class ImagesComponent {
       galleryDetailGpsDateProgressEnabled: preferences.gpsDateProgressEnabled,
       galleryDetailDimensionsProgressEnabled: preferences.dimensionsProgressEnabled,
       galleryDetailSizeProgressEnabled: preferences.sizeProgressEnabled,
-      galleryDetailProgressTransparency: preferences.progressTransparency
+      galleryDetailProgressTransparency: preferences.progressTransparency,
+      galleryDetailRowVerticalGap: preferences.rowVerticalGap
     });
     this.detailPreferencesOpen.set(false);
   }
