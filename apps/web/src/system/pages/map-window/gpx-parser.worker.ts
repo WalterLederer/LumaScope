@@ -175,8 +175,8 @@ function parse(content: string, total: number): ParsedGpx {
 
 workerScope.onmessage = (event: MessageEvent<WorkerRequest>): void => {
   try {
-    const result = parse(event.data.content);
-    const total = (event.data.content.match(/<(?:[a-z0-9_-]+:)?(?:trkpt|rtept)\b/gi) ?? []).length;
+    const total = countTrackPoints(event.data.content);
+    const result = parse(event.data.content, total);
     workerScope.postMessage({ type: 'complete', total, result } satisfies WorkerResponse);
   } catch (error) {
     workerScope.postMessage({
