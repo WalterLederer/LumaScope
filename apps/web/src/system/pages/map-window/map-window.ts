@@ -2053,7 +2053,7 @@ export class MapWindow implements OnInit, OnDestroy {
         // also handles transitions between offline maps and the online fallback.
         void this.initialize(nextLatitude!, nextLongitude!);
       } else if (this.offlineRenderer) {
-        this.offlineRenderer.updateCurrentLocation(nextLatitude!, nextLongitude!);
+        this.updateCurrentMapLocation(nextLatitude!, nextLongitude!);
         this.centerMapAt(nextLatitude!, nextLongitude!);
       } else if (!this.offlineRenderer) {
         void this.initialize(nextLatitude!, nextLongitude!);
@@ -3181,7 +3181,7 @@ export class MapWindow implements OnInit, OnDestroy {
     let generation = this.mapSourceGeneration;
     if (this.mapSource() === 'mapsforge') {
       if (this.offlineRenderer) {
-        this.offlineRenderer.updateCurrentLocation(latitude, longitude);
+        this.updateCurrentMapLocation(latitude, longitude);
         this.centerMapAt(latitude, longitude);
         return;
       }
@@ -3194,7 +3194,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     if (this.mapSource() === 'osmand-atlas') {
       if (this.offlineRenderer) {
-        this.offlineRenderer.updateCurrentLocation(latitude, longitude);
+        this.updateCurrentMapLocation(latitude, longitude);
         this.centerMapAt(latitude, longitude);
         return;
       }
@@ -3207,7 +3207,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     if (this.mapSource() === 'osmand') {
       if (this.offlineRenderer) {
-        this.offlineRenderer.updateCurrentLocation(latitude, longitude);
+        this.updateCurrentMapLocation(latitude, longitude);
         this.centerMapAt(latitude, longitude);
         return;
       }
@@ -3251,7 +3251,7 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       this.mapDisplayNotice.set('');
       this.offlineMapStatus.set(selected);
-      if (this.offlineRenderer) { this.offlineRenderer.updateCurrentLocation(latitude, longitude); this.centerMapAt(latitude, longitude); return; }
+      if (this.offlineRenderer) { this.updateCurrentMapLocation(latitude, longitude); this.centerMapAt(latitude, longitude); return; }
       if (this.mapInitialization) await this.mapInitialization;
       if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
       if (this.offlineRenderer) return;
@@ -3264,7 +3264,7 @@ export class MapWindow implements OnInit, OnDestroy {
     // initialized instance and update its geographic location instead of
     // constructing another map for each photo/location update.
     if (this.offlineRenderer) {
-      this.offlineRenderer.updateCurrentLocation(latitude, longitude);
+      this.updateCurrentMapLocation(latitude, longitude);
       this.centerMapAt(latitude, longitude);
       return;
     }
@@ -3272,7 +3272,7 @@ export class MapWindow implements OnInit, OnDestroy {
       await this.mapInitialization;
       if (generation !== this.mapSourceGeneration || this.mapSource() !== 'online') return;
       if (this.offlineRenderer) {
-        this.offlineRenderer.updateCurrentLocation(latitude, longitude);
+        this.updateCurrentMapLocation(latitude, longitude);
         this.centerMapAt(latitude, longitude);
       }
       return;
@@ -6601,6 +6601,14 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyDirectoryPhotoMarkers();
     this.applyCurrentPhotoVisibility();
   };
+
+  private updateCurrentMapLocation(latitude: number, longitude: number): void {
+    this.offlineRenderer?.setCurrentLocation(
+      latitude, longitude, this.currentMarkerColor(),
+      this.locationVisible() ? this.locationOpacity() / 100 : 0,
+      this.currentMarkerShape()
+    );
+  }
 
   private applyCurrentPhotoVisibility(): void {
     const opacity = this.currentImageHasGps() && this.locationVisible()
