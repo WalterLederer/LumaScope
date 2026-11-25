@@ -1440,6 +1440,15 @@
   max-height: var(--detail-row-height, 44px);
   overflow: hidden;
 }
+/* In text-only detail mode remove the thumbnail component from layout entirely.
+   Merely hiding its image leaves component-internal sizing constraints behind. */
+.detail-table.without-thumbnails .detail-native-table > tbody.images.details-list > tr.detail-virtual-row > td app-thumbnail {
+  display: none !important;
+}
+.detail-table.without-thumbnails .detail-native-table > tbody.images.details-list > tr.detail-virtual-row > td {
+  padding-top: 1px !important;
+  padding-bottom: 1px !important;
+}
 .detail-native-table > tbody.images.details-list > tr.detail-virtual-spacer {
   display: grid;
   grid-template-columns: var(--detail-grid-columns);
@@ -1496,6 +1505,7 @@
    The colgroup is the single source of column widths; no CSS Grid tracks. */
 .detail-native-table {
   display: table !important;
+  border-spacing: 0 var(--detail-row-gap, 0px) !important;
   width: max-content !important;
   /* Do not stretch the table to the viewport: header-cell bottom borders
      otherwise continue through the unused horizontal space after the last
