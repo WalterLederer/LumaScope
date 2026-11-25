@@ -1303,7 +1303,7 @@ export class OfflineMapRenderer {
     });
   };
 
-  constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void, private readonly styleName: OfflineMapStyle = 'lumascope', private readonly mapId = '', private readonly minZoom = 0, private readonly maxZoom = 14, private readonly bounds?: [number, number, number, number], private readonly schema: 'shortbread' | 'openmaptiles' = 'shortbread', private readonly vectorLayers: string[] = [], styleOverride?: StyleSpecification) {
+  constructor(container: HTMLElement, center: [number, number], zoom: number, private readonly onError?: (message: string) => void, private readonly styleName: OfflineMapStyle = 'lumascope', private readonly mapId = '', private readonly minZoom = 0, private readonly maxZoom = 14, private readonly bounds?: [number, number, number, number], private schema: 'shortbread' | 'openmaptiles' = 'shortbread', private readonly vectorLayers: string[] = [], styleOverride?: StyleSpecification) {
     const options: MapOptions = {
       container, style: withOsmAndHillshadeOverlay(styleOverride ?? createOfflineMapStyle(styleName, mapId, minZoom, maxZoom, bounds, schema, vectorLayers)),
       center, zoom,
@@ -2509,6 +2509,52 @@ export class OfflineMapRenderer {
 
   private readonly basemapOpacityDefaults = new Map<string, unknown>();
   private basemapOpacity = 1;
+
+  setOnlineMbtilesLabelSource(map: {
+    id: string;
+    minZoom: number;
+    maxZoom: number;
+    bounds?: string;
+    schema?: 'shortbread' | 'openmaptiles';
+    vectorLayers?: string[];
+  } | null): void {
+    if (!this.map.isStyleLoaded()) {
+      this.map.once('style.load', () => this.setOnlineMbtilesLabelSource(map));
+      return;
+    }
+
+    // The online raster basemap remains the visual base. Reuse the selected
+    // MBTiles vector source only for its existing label-anchor layers.
+    for (const layer of this.map.getStyle().layers.filter(item =>
+      item.id.startsWith('label-') || item.id.startsWith('omt-label-'))) {
+      this.map.removeLayer(layer.id);
+    }
+    if (this.map.getSource('shortbread')) this.map.removeSource('shortbread');
+    if (!map) {
+      this.schema = 'shortbread';
+      this.refreshTextLabels();
+      return;
+    }
+
+    const values = map.bounds?.split(',').map(Number) ?? [];
+    const bounds = values.length === 4 && values.every(Number.isFinite)
+      ? values as [number, number, number, number]
+      : undefined;
+    const labelStyle = createOfflineMapStyle(
+      'lumascope', map.id, map.minZoom, map.maxZoom, bounds,
+      map.schema ?? 'shortbread', map.vectorLayers ?? []
+    );
+    const source = labelStyle.sources?.['shortbread'];
+    if (!source || source.type !== 'vector') return;
+
+    this.schema = map.schema ?? 'shortbread';
+    this.map.addSource('shortbread', source);
+    for (const layer of labelStyle.layers.filter(item => item.id.endsWith('-anchor'))) {
+      this.map.addLayer(layer);
+    }
+    this.map.triggerRepaint();
+    this.refreshTextLabels();
+  }
 
   setOnlineBasemap(tileUrl: string, attribution: string, maxNativeZoom: number): void {
     if (!this.map.isStyleLoaded()) {
