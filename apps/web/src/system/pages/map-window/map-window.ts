@@ -5883,7 +5883,6 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private async reloadGpxTracks(): Promise<void> {
     if (!this.desktop) return;
-    const segments: [number, number][][] = [];
     const valid: GpxTrackFile[] = [];
     this.gpxSegmentsByTrack.clear();
     this.gpxPointDataByTrack.clear();
@@ -5903,7 +5902,6 @@ export class MapWindow implements OnInit, OnDestroy {
         this.gpxPointDataByTrack.set(track.path, parsedData.pointData);
         this.gpxSegmentNamesByTrack.set(track.path, parsedData.segmentNames);
         this.gpxSegmentsByTrack.set(track.path, parsedData.coordinates);
-        if (track.active !== false) segments.push(...parsed);
         valid.push({ ...track, sizeBytes: metadata?.size ?? track.sizeBytes, lastModified: metadata?.modifiedAt ?? track.lastModified, missing: false, readError: false, active: track.active !== false, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? (track.lineStyle ?? 'solid') : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? (track.lineWidth ?? 4) : 4, showDirection: track.showDirection === true, directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? 16, directionArrowOutlineWidthPx: track.directionArrowOutlineWidthPx ?? 2, trackShadowStrength: track.trackShadowStrength ?? 0, arrowShadowStrength: track.arrowShadowStrength ?? 0, trackOutlineStrength: track.trackOutlineStrength ?? 0, directionStyle: ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'].includes(track.directionStyle ?? '') ? (track.directionStyle ?? 'classic') : 'classic' });
       }
       catch { /* Keep malformed files out of the rendered track set. */ }
@@ -6079,7 +6077,6 @@ export class MapWindow implements OnInit, OnDestroy {
         gpxTrackOpacity: undefined, gpxTrackColor: undefined, gpxTrackVisible: undefined
       });
     }
-    const segments: [number, number][][] = [];
     const available: GpxTrackFile[] = [];
     this.gpxSegmentsByTrack.clear();
     this.gpxPointDataByTrack.clear();
@@ -6114,7 +6111,6 @@ export class MapWindow implements OnInit, OnDestroy {
         this.gpxPointDataByTrack.set(track.path, parsedData.pointData);
         this.gpxSegmentNamesByTrack.set(track.path, parsedData.segmentNames);
         this.gpxSegmentsByTrack.set(track.path, parsedData.coordinates);
-        if (active) segments.push(...parsedData.coordinates);
         available.push({ ...track, sizeBytes: metadata?.size ?? track.sizeBytes, lastModified: metadata?.modifiedAt ?? track.lastModified, missing: false, readError: false, active, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? (track.lineStyle ?? 'solid') : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? (track.lineWidth ?? 4) : 4, showDirection: track.showDirection === true, directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? 16, directionArrowOutlineWidthPx: track.directionArrowOutlineWidthPx ?? 2, trackShadowStrength: track.trackShadowStrength ?? 0, arrowShadowStrength: track.arrowShadowStrength ?? 0, trackOutlineStrength: track.trackOutlineStrength ?? 0, directionStyle: ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'].includes(track.directionStyle ?? '') ? (track.directionStyle ?? 'classic') : 'classic' });
       } catch (error) { this.gpxError.set(`${track.name}: ${error instanceof Error ? error.message : String(error)}`); }
     }
