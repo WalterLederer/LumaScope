@@ -379,3 +379,15 @@
 :host ::ng-deep .markdown-body img.markdown-image-width-98 { width: 98% !important; flex: 0 1 98% !important; }
 :host ::ng-deep .markdown-body img.markdown-image-width-99 { width: 99% !important; flex: 0 1 99% !important; }
 :host ::ng-deep .markdown-body img.markdown-image-width-100 { width: 100% !important; flex: 0 1 100% !important; }
+
+
+.markdown-help-search { position: relative; flex: 0 0 auto; padding: 7px 10px; border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 25%)); }
+.markdown-help-search > input { display: block; box-sizing: border-box; width: 100%; min-width: 0; padding: 7px 10px; border: 1px solid var(--color-border-default, rgb(128 128 128 / 40%)); border-radius: 5px; background: var(--color-surface-default-low); color: var(--color-content-default); font: inherit; }
+.markdown-help-search-results { position: absolute; z-index: 20; top: calc(100% + 1px); left: 10px; right: 10px; max-height: min(55vh, 520px); overflow: auto; padding: 6px; border: 1px solid var(--color-border-default, rgb(128 128 128 / 45%)); border-radius: 6px; background: var(--color-surface-default, #222); box-shadow: 0 5px 18px rgb(0 0 0 / 28%); }
+.markdown-help-search-count { margin: 3px 6px 6px; color: var(--color-content-default-medium); font-size: 11px; }
+.markdown-help-search-result { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; width: 100%; padding: 7px 8px; border: 0; border-radius: 4px; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.markdown-help-search-result:hover { background: var(--color-surface-default-high, rgb(128 128 128 / 14%)); }
+.markdown-help-search-result strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: capitalize; }
+.markdown-help-search-result span { color: var(--color-content-default-medium); font-size: 10px; }
+.markdown-help-search-result small { grid-column: 1 / -1; color: var(--color-content-default-medium); font-size: 11px; line-height: 1.4; }
+.markdown-help-search-placeholder { padding: 18px; color: var(--color-content-default-medium); font-size: 12px; }
