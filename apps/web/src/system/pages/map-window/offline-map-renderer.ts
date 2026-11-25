@@ -2247,6 +2247,11 @@ export class OfflineMapRenderer {
     if (scale) scale.style.display = visible ? '' : 'none';
   }
 
+  setScaleOpacity(opacity: number): void {
+    const scale = this.map.getContainer().querySelector<HTMLElement>('.maplibregl-ctrl-scale');
+    if (scale) scale.style.opacity = String(Math.max(0, Math.min(1, opacity)));
+  }
+
   setMapBoundsOverlay(bounds: Array<{ bounds: [number, number, number, number]; name: string }>, visible: boolean): void {
     this.mapBoundsVisible = visible;
     this.mapBoundsFeatures = bounds.flatMap(({ bounds: [west, south, east, north], name }, mapIndex) => {
