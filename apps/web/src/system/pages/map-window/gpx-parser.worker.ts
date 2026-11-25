@@ -14,7 +14,7 @@ type ParsedGpx = {
 type WorkerRequest = { content: string };
 type WorkerResponse =
   | { type: 'progress'; processed: number; total: number }
-  | { type: 'complete'; total: number; result: ParsedGpx }
+  | { type: 'complete'; total: number; result: Pick<ParsedGpx, 'pointData' | 'segmentNames'> }
   | { type: 'error'; error: string };
 
 const workerScope = self as unknown as DedicatedWorkerGlobalScope;
@@ -49,6 +49,8 @@ function readAttribute(tag: string, name: string): string | null {
 }
 
 function countTrackPoints(content: string): number {
+  // Ignore point-like text in comments and CDATA; these are not XML elements.
+  const searchable = content.replace(/<!--[\\s\\S]*?-->|<!\\[CDATA\\[[\\s\\S]*?\\]\\]>/g, '');
   const pointTagPattern = /<(?:[a-z0-9_-]+:)?(?:trkpt|rtept)\b/gi;
   let total = 0;
   while (pointTagPattern.exec(content)) total++;
@@ -75,9 +77,12 @@ function parse(content: string, total: number): ParsedGpx {
   };
 
   const closeElement = (name: string): void => {
-    const node = stack.pop();
+    let matchingIndex = stack.length - 1;
+    while (matchingIndex >= 0 && stack[matchingIndex].name !== name) matchingIndex--;
+    if (matchingIndex < 0) return;
+    const node = stack[matchingIndex];
+    stack.length = matchingIndex;
     const parent = stack[stack.length - 1];
-    if (!node) return;
     if ((name === 'ele' || name === 'time') && currentPoint && (parent?.name === 'trkpt' || parent?.name === 'rtept')) {
       if (name === 'ele') {
         const value = Number(node.text.trim());
@@ -178,7 +183,10 @@ workerScope.onmessage = (event: MessageEvent<WorkerRequest>): void => {
   try {
     const total = countTrackPoints(event.data.content);
     const result = parse(event.data.content, total);
-    workerScope.postMessage({ type: 'complete', total, result } satisfies WorkerResponse);
+    // Coordinates are already represented by pointData. Sending both arrays
+    // doubled the structured-clone payload for large tracks and delayed the
+    // final worker response after the last progress update.
+    workerScope.postMessage({ type: 'complete', total, result: { pointData: result.pointData, segmentNames: result.segmentNames } } satisfies WorkerResponse);
   } catch (error) {
     workerScope.postMessage({
       type: 'error',
