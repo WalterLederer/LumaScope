@@ -1259,3 +1259,8 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   border-radius: 5px;
   background: var(--color-accent, #287fc4);
 }
+
+
+/* Compact row counts beside table header action menus. */
+.table-header-row-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:20px;margin-right:5px;padding:0 4px;box-sizing:border-box;border-radius:4px;background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-high,#fff);font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;vertical-align:middle}
+.offline-actions-header{white-space:nowrap;text-align:center}
