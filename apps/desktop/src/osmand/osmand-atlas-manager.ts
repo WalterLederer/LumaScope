@@ -27,23 +27,34 @@ function getAtlasPixelDiagnostics(pixels: Buffer): {
   flatTopLeftRatio: number;
   transparentPixels: number;
   nonOpaquePixels: number;
+  alphaHistogram: { zero: number; low: number; medium: number; high: number; opaque: number };
+  dominantRgba: Array<{ rgba: [number, number, number, number]; count: number }>;
   rgbMin: [number, number, number];
   rgbMax: [number, number, number];
   topLeft: [number, number, number, number];
+  topRight: [number, number, number, number];
+  bottomLeft: [number, number, number, number];
+  bottomRight: [number, number, number, number];
   center: [number, number, number, number];
 } {
   const unique = new Set<number>();
   const uniqueRgba = new Set<number>();
-  const topLeft: [number, number, number, number] = [pixels[0], pixels[1], pixels[2], pixels[3]];
-  const centerOffset = ((ATLAS_TILE_SIZE >> 1) * ATLAS_TILE_SIZE + (ATLAS_TILE_SIZE >> 1)) * 4;
-  const center: [number, number, number, number] = [
-    pixels[centerOffset], pixels[centerOffset + 1], pixels[centerOffset + 2], pixels[centerOffset + 3]
+  const colorCounts = new Map<number, number>();
+  const readPixel = (offset: number): [number, number, number, number] => [
+    pixels[offset], pixels[offset + 1], pixels[offset + 2], pixels[offset + 3]
   ];
+  const topLeft = readPixel(0);
+  const topRight = readPixel((ATLAS_TILE_SIZE - 1) * 4);
+  const bottomLeft = readPixel((ATLAS_TILE_SIZE - 1) * ATLAS_TILE_SIZE * 4);
+  const bottomRight = readPixel((ATLAS_TILE_SIZE * ATLAS_TILE_SIZE - 1) * 4);
+  const centerOffset = ((ATLAS_TILE_SIZE >> 1) * ATLAS_TILE_SIZE + (ATLAS_TILE_SIZE >> 1)) * 4;
+  const center = readPixel(centerOffset);
   const rgbMin: [number, number, number] = [255, 255, 255];
   const rgbMax: [number, number, number] = [0, 0, 0];
   let flatTopLeftPixels = 0;
   let transparentPixels = 0;
   let nonOpaquePixels = 0;
+  const alphaHistogram = { zero: 0, low: 0, medium: 0, high: 0, opaque: 0 };
   const pixelCount = ATLAS_TILE_SIZE * ATLAS_TILE_SIZE;
 
   for (let offset = 0; offset < pixels.length; offset += 4) {
@@ -54,7 +65,11 @@ function getAtlasPixelDiagnostics(pixels: Buffer): {
     if (red === topLeft[0] && green === topLeft[1] && blue === topLeft[2] && alpha === topLeft[3]) {
       flatTopLeftPixels++;
     }
-    if (alpha === 0) transparentPixels++;
+    if (alpha === 0) { transparentPixels++; alphaHistogram.zero++; }
+    else if (alpha < 64) alphaHistogram.low++;
+    else if (alpha < 128) alphaHistogram.medium++;
+    else if (alpha < 255) alphaHistogram.high++;
+    else alphaHistogram.opaque++;
     if (alpha !== 255) nonOpaquePixels++;
     if (red < rgbMin[0]) rgbMin[0] = red;
     if (green < rgbMin[1]) rgbMin[1] = green;
@@ -63,8 +78,18 @@ function getAtlasPixelDiagnostics(pixels: Buffer): {
     if (green > rgbMax[1]) rgbMax[1] = green;
     if (blue > rgbMax[2]) rgbMax[2] = blue;
     if (unique.size <= 4096) unique.add((red << 16) | (green << 8) | blue);
-    if (uniqueRgba.size <= 4096) uniqueRgba.add((red << 24) | (green << 16) | (blue << 8) | alpha);
+    const rgbaKey = ((red << 24) | (green << 16) | (blue << 8) | alpha) >>> 0;
+    if (uniqueRgba.size <= 4096) uniqueRgba.add(rgbaKey);
+    colorCounts.set(rgbaKey, (colorCounts.get(rgbaKey) ?? 0) + 1);
   }
+
+  const dominantRgba = [...colorCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([key, count]) => ({
+      rgba: [(key >>> 24) & 255, (key >>> 16) & 255, (key >>> 8) & 255, key & 255] as [number, number, number, number],
+      count
+    }));
 
   return {
     uniqueRgbColors: unique.size,
@@ -73,9 +98,14 @@ function getAtlasPixelDiagnostics(pixels: Buffer): {
     flatTopLeftRatio: Number((flatTopLeftPixels / pixelCount).toFixed(4)),
     transparentPixels,
     nonOpaquePixels,
+    alphaHistogram,
+    dominantRgba,
     rgbMin,
     rgbMax,
     topLeft,
+    topRight,
+    bottomLeft,
+    bottomRight,
     center
   };
 }
