@@ -266,7 +266,7 @@ export class MarkdownViewerComponent {
         if (targetLine && targetLine > 0) {
           this.document.defaultView?.setTimeout(() => {
             if (request !== this.documentLoadRequest) return;
-            const anchors = [...this.document.querySelectorAll<HTMLElement>('[id^="help-search-line-"]')];
+            const anchors = Array.from(this.document.querySelectorAll<HTMLElement>('[id^="help-search-line-"]'));
             const target = anchors
               .map(element => ({ element, line: Number(element.id.slice('help-search-line-'.length)) }))
               .filter(item => Number.isFinite(item.line) && item.line <= targetLine)
