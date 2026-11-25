@@ -76,6 +76,7 @@ export interface GpxTrackPreviewData {
   `
 })
 export class GpxTrackPreviewComponent {
+  readonly Math = Math;
   readonly track = input.required<GpxTrackPreviewData>();
   readonly opacity = input(100);
   readonly variant = input<'list' | 'settings'>('list');
