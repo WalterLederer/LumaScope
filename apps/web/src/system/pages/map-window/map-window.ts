@@ -115,6 +115,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly themeService = inject(ThemeService);
   private readonly mapElement = viewChild.required<ElementRef<HTMLElement>>('map');
   private offlineRenderer: OfflineMapRenderer | null = null;
+  private onlineMbtilesLabelMapId: string | null = null;
   private mapLoadingTimer: ReturnType<typeof setTimeout> | null = null;
   private currentLatitude: number | null = null;
   private currentLongitude: number | null = null;
@@ -3732,10 +3733,34 @@ export class MapWindow implements OnInit, OnDestroy {
     window.addEventListener('resize', this.onResize);
   }
 
+  private async updateOnlineMbtilesLabelSource(renderer: OfflineMapRenderer): Promise<void> {
+    if (this.mapSource() !== 'online' || this.offlineRenderer !== renderer) return;
+    if (!this.desktop) {
+      this.onlineMbtilesLabelMapId = null;
+      renderer.setOnlineMbtilesLabelSource(null);
+      return;
+    }
+    const center = renderer.map.getCenter();
+    let selected: Awaited<ReturnType<Desktop['OfflineMap']['selectForCoordinates']>> = null;
+    try {
+      selected = await this.desktop.OfflineMap.selectForCoordinates(center.lat, center.lng);
+    } catch (error) {
+      console.warn('[OnlineMap] Could not select MBTiles label source:', error);
+      return;
+    }
+    if (this.mapSource() !== 'online' || this.offlineRenderer !== renderer) return;
+    const nextId = selected?.id ?? null;
+    if (nextId === this.onlineMbtilesLabelMapId) return;
+    this.onlineMbtilesLabelMapId = nextId;
+    renderer.setOnlineMbtilesLabelSource(selected);
+    renderer.setTextLabelOpacity(this.labelsVisible() ? this.labelOpacity() / 100 : 0);
+  }
+
   private async createMap(latitude: number, longitude: number, generation: number): Promise<void> {
     this.beginMapLoading('online');
     this.offlineRenderer?.remove();
     this.offlineRenderer = null;
+    this.onlineMbtilesLabelMapId = null;
     if (this.desktop) registerOsmAndLabelsTileProtocol(this.desktop, () => this.displayDensityFactor());
 
     const style = this.styles[this.mapStyle()];
@@ -3772,6 +3797,7 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
 
+    await this.updateOnlineMbtilesLabelSource(renderer);
     renderer.map.setMinZoom(1);
     renderer.map.setMaxZoom(20);
     renderer.map.on('contextmenu', event => {
@@ -3786,6 +3812,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.applyDirectoryPhotoMarkers();
       this.updateCrosshairCoordinates();
       this.scheduleGpxDatabaseViewportRefresh();
+      void this.updateOnlineMbtilesLabelSource(renderer);
     });
     renderer.map.on('zoomend', () => {
       this.updateOnlineCenterTileUrl();
