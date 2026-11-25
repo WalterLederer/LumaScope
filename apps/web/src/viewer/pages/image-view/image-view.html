@@ -691,6 +691,7 @@
                 <code>{{ settingsFilePath() || 'Loading path…' }}</code>
               </div>
               <button class="cache-button" type="button" [disabled]="!settingsFilePath()" (click)="openSettingsFile()">Open settings file</button>
+              <button class="cache-button" type="button" [disabled]="!settingsFilePath()" (click)="openSettingsFolder()">Open settings folder</button>
             </div>
             @if (settingsFileError()) {
               <p class="cache-status error" role="alert">Could not open settings file: {{settingsFileError()}}</p>
@@ -781,6 +782,7 @@
                 <code>{{ settingsFilePath() || 'Loading path…' }}</code>
               </div>
               <button class="cache-button" type="button" [disabled]="!settingsFilePath()" (click)="openSettingsFile()">Open settings file</button>
+              <button class="cache-button" type="button" [disabled]="!settingsFilePath()" (click)="openSettingsFolder()">Open settings folder</button>
             </div>
             @if (settingsFileError()) {
               <p class="cache-status error" role="alert">Could not open settings file: {{settingsFileError()}}</p>
