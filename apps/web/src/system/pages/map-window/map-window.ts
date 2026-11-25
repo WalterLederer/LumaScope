@@ -5690,6 +5690,7 @@ export class MapWindow implements OnInit, OnDestroy {
         const coordinates = pointSegments.map(segment => segment.map(point => [point.latitude, point.longitude] as [number, number]));
         this.gpxPointDataByTrack.set(path, pointSegments);
         this.gpxSegmentsByTrack.set(path, coordinates);
+        void this.prepareGpxViewportChunks({ path, name: file.name, sizeBytes: file.sizeBytes, lastModified: file.lastModified }, coordinates);
         return {
           path, databasePath: file.path, name: file.name, sizeBytes: file.sizeBytes,
           lastModified: file.lastModified, active: previous?.active ?? true,
@@ -5806,6 +5807,7 @@ export class MapWindow implements OnInit, OnDestroy {
           lineStyle: 'solid', lineWidth: 4, showDirection: false, directionStyle: 'classic'
         });
         this.gpxSegmentsByTrack.set(trackPath, parsed);
+        await this.prepareGpxViewportChunks(added[added.length - 1], parsed);
         this.gpxPointDataByTrack.set(trackPath, pointData);
         this.gpxSegmentNamesByTrack.set(trackPath, segmentNames);
       } catch (error) {
@@ -6105,6 +6107,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.gpxPointDataByTrack.set(track.path, parsedData.pointData);
         this.gpxSegmentNamesByTrack.set(track.path, parsedData.segmentNames);
         this.gpxSegmentsByTrack.set(track.path, parsedData.coordinates);
+        await this.prepareGpxViewportChunks(track, parsedData.coordinates);
         available.push({ ...track, sizeBytes: metadata?.size ?? track.sizeBytes, lastModified: metadata?.modifiedAt ?? track.lastModified, missing: false, readError: false, active, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? (track.lineStyle ?? 'solid') : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? (track.lineWidth ?? 4) : 4, showDirection: track.showDirection === true, directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? 16, directionArrowOutlineWidthPx: track.directionArrowOutlineWidthPx ?? 2, trackShadowStrength: track.trackShadowStrength ?? 0, arrowShadowStrength: track.arrowShadowStrength ?? 0, trackOutlineStrength: track.trackOutlineStrength ?? 0, directionStyle: ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'].includes(track.directionStyle ?? '') ? (track.directionStyle ?? 'classic') : 'classic' });
       } catch (error) { this.gpxError.set(`${track.name}: ${error instanceof Error ? error.message : String(error)}`); }
     }
@@ -6268,36 +6271,40 @@ export class MapWindow implements OnInit, OnDestroy {
     return visible;
   }
 
+  private async prepareGpxViewportChunks(track: GpxTrackFile, segments: [number, number][][]): Promise<void> {
+    const chunks: Array<{ coordinates: [number, number][]; sourceSegmentIndex: number; south: number; north: number; west: number; east: number }> = [];
+    const chunkPointCount = 256;
+    let processedChunks = 0;
+    for (let sourceSegmentIndex = 0; sourceSegmentIndex < segments.length; sourceSegmentIndex++) {
+      const source = segments[sourceSegmentIndex];
+      if (!source || source.length < 2) continue;
+      for (let start = 0; start < source.length - 1; start += chunkPointCount - 1) {
+        const coordinates = source.slice(start, Math.min(source.length, start + chunkPointCount));
+        if (coordinates.length < 2) continue;
+        let south = Number.POSITIVE_INFINITY, north = Number.NEGATIVE_INFINITY;
+        let west = Number.POSITIVE_INFINITY, east = Number.NEGATIVE_INFINITY;
+        for (const [latitude, longitude] of coordinates) {
+          south = Math.min(south, latitude); north = Math.max(north, latitude);
+          west = Math.min(west, longitude); east = Math.max(east, longitude);
+        }
+        chunks.push({ coordinates, sourceSegmentIndex, south, north, west, east });
+        // Yield regularly so preparing a very long track never monopolizes the UI thread.
+        if (++processedChunks % 128 === 0) await new Promise<void>(resolve => setTimeout(resolve, 0));
+      }
+    }
+    this.gpxViewportChunkCache.set(track.path, { source: segments, chunks });
+  }
+
   private viewportGpxSegments(
     track: GpxTrackFile,
     segments: [number, number][][]
   ): { coordinates: [number, number][]; sourceSegmentIndex: number }[] {
     const bounds = this.map?.getBounds() ?? this.offlineRenderer?.map.getBounds();
-    if (!bounds) return segments.map((coordinates, sourceSegmentIndex) => ({ coordinates, sourceSegmentIndex }));
-
-    let cached = this.gpxViewportChunkCache.get(track.path);
-    if (!cached || cached.source !== segments) {
-      const chunks: Array<{ coordinates: [number, number][]; sourceSegmentIndex: number; south: number; north: number; west: number; east: number }> = [];
-      const chunkPointCount = 256;
-      for (let sourceSegmentIndex = 0; sourceSegmentIndex < segments.length; sourceSegmentIndex++) {
-        const source = segments[sourceSegmentIndex];
-        if (!source || source.length < 2) continue;
-        // Keep one shared endpoint between adjacent chunks so no visual gaps appear.
-        for (let start = 0; start < source.length - 1; start += chunkPointCount - 1) {
-          const coordinates = source.slice(start, Math.min(source.length, start + chunkPointCount));
-          if (coordinates.length < 2) continue;
-          let south = Number.POSITIVE_INFINITY, north = Number.NEGATIVE_INFINITY;
-          let west = Number.POSITIVE_INFINITY, east = Number.NEGATIVE_INFINITY;
-          for (const [latitude, longitude] of coordinates) {
-            south = Math.min(south, latitude); north = Math.max(north, latitude);
-            west = Math.min(west, longitude); east = Math.max(east, longitude);
-          }
-          chunks.push({ coordinates, sourceSegmentIndex, south, north, west, east });
-        }
-      }
-      cached = { source: segments, chunks };
-      this.gpxViewportChunkCache.set(track.path, cached);
-    }
+    const cached = this.gpxViewportChunkCache.get(track.path);
+    // Never build chunk bounds synchronously during rendering. If preparation is
+    // incomplete (or the source changed), skip this pass instead of freezing the map.
+    if (!cached || cached.source !== segments) return [];
+    if (!bounds) return cached.chunks.map(chunk => ({ coordinates: chunk.coordinates, sourceSegmentIndex: chunk.sourceSegmentIndex }));
 
     const south = bounds.getSouth(), north = bounds.getNorth();
     const west = bounds.getWest(), east = bounds.getEast();
@@ -7408,6 +7415,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.gpxTracks.set([...this.gpxTracks(), track]);
       this.lastSavedRouteGpxPath.set(destination);
       this.gpxSegmentsByTrack.set(destination, parsed);
+      await this.prepareGpxViewportChunks(track, parsed);
       this.gpxPointDataByTrack.set(destination, this.parseGpxTrackPointData(content));
       this.gpxSegmentNamesByTrack.set(destination, this.parseGpxTrackSegmentNames(content));
       await this.persistGpxTracks(this.gpxTracks().filter(item => !item.path.startsWith('memory:')));
@@ -7489,6 +7497,7 @@ ${points}
       };
       this.gpxTracks.set([...this.gpxTracks(), track]);
       this.gpxSegmentsByTrack.set(destination, parsed);
+      await this.prepareGpxViewportChunks(track, parsed);
       this.gpxPointDataByTrack.set(destination, this.parseGpxTrackPointData(content));
       this.gpxSegmentNamesByTrack.set(destination, this.parseGpxTrackSegmentNames(content));
       void this.persistGpxTracks(this.gpxTracks().filter(item => !item.path.startsWith('memory:')));
