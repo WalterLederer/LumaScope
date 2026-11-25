@@ -77,12 +77,13 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
     if (!line.trim()) { index++; continue; }
 
     if (line.trim().startsWith('```')) {
+      const codeLineNumber = index + 1;
       const language = line.trim().slice(3).trim();
       index++;
       const code: string[] = [];
       while (index < lines.length && !lines[index].trim().startsWith('```')) code.push(lines[index++]);
       if (index < lines.length) index++;
-      output.push('<span id="help-search-line-' + index + '"></span><pre><code' + (language ? ' class="language-' + escapeHtml(language) + '"' : '') + '>' + escapeHtml(code.join('\n')) + '</code></pre>');
+      output.push('<span id="help-search-line-' + codeLineNumber + '"></span><pre><code' + (language ? ' class="language-' + escapeHtml(language) + '"' : '') + '>' + escapeHtml(code.join('\n')) + '</code></pre>');
       continue;
     }
 
