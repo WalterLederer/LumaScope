@@ -98,6 +98,7 @@ const defaultDetailTablePreferences: DetailTablePreferences = {
     '[style.--detail-thumb-width.px]': 'detailThumbnailWidth()',
     '[style.--detail-thumb-height.px]': 'detailThumbnailHeight()',
     '[style.--detail-row-height.px]': 'detailVirtualRowHeight()',
+    '[style.--detail-row-content-height.px]': 'detailVirtualRowContentHeight()',
     '[style.--detail-row-gap.px]': 'detailPreferenceValues().rowVerticalGap',
     '[style.--detail-date-progress-color]': 'detailPreferenceValues().date',
     '[style.--detail-gps-date-progress-color]': 'detailPreferenceValues().gpsDate',
@@ -447,10 +448,14 @@ export class ImagesComponent {
     return Math.round(24 + ((width - 96) / (512 - 96)) * 296);
   });
   readonly detailThumbnailHeight = computed(() => Math.round(this.detailThumbnailWidth() * 0.75));
-  readonly detailVirtualRowHeight = computed(() => Math.max(
+  readonly detailVirtualRowContentHeight = computed(() => Math.max(
     Math.ceil(this.detailFontSize() * 1.25),
     this.viewMode() === 'details-no-thumbnails' ? 22 : this.detailThumbnailHeight()
-  ) + this.detailPreferenceValues().rowVerticalGap);
+  ));
+  // Includes the CSS table border-spacing so virtual spacers match the actual row pitch.
+  readonly detailVirtualRowHeight = computed(() =>
+    this.detailVirtualRowContentHeight() + this.detailPreferenceValues().rowVerticalGap
+  );
   private readonly detailVirtualOverscan = 12;
   readonly detailVirtualCount = computed(() =>
     Math.max(1, Math.ceil(Math.max(200, this.detailViewportHeight()) / this.detailVirtualRowHeight()) + this.detailVirtualOverscan * 2)
