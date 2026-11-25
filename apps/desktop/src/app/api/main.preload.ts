@@ -232,6 +232,7 @@ const api: Desktop = {
     setRenderingStyle: (fileName: string) => ipcRenderer.invoke('OsmAndAtlas.setRenderingStyle', fileName),
     setResourcesPath: (resourcesPath: string) => ipcRenderer.invoke('OsmAndAtlas.setResourcesPath', resourcesPath),
     renderTile: (z: number, x: number, y: number, displayScale?: number, forceRender?: boolean) => ipcRenderer.invoke('OsmAndAtlas.renderTile', z, x, y, displayScale, forceRender),
+    renderLabelsTile: (z: number, x: number, y: number, displayScale?: number, forceRender?: boolean) => ipcRenderer.invoke('OsmAndAtlas.renderLabelsTile', z, x, y, displayScale, forceRender),
     setActiveObfMaps: (paths: string[]) => ipcRenderer.invoke('OsmAndAtlas.setActiveObfMaps', paths),
     cancelRendering: () => ipcRenderer.invoke('OsmAndAtlas.cancelRendering'),
     shutdown: () => ipcRenderer.invoke('OsmAndAtlas.shutdown')
