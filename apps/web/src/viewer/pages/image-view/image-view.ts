@@ -2029,7 +2029,7 @@ export class ImageView {
         }
       } catch (error) {
         console.warn('[GPX] Could not restore track:', trackPath, error);
-        missingNames.push(track['name']);
+        missingNames.push(trackName);
       }
     }
     if (recoveredTrackPaths || recoveredActiveTrackPath) {
