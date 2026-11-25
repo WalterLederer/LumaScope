@@ -5806,6 +5806,9 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxListMode.set('recent');
     this.gpxDatabaseQueryStatus.set('');
     this.gpxError.set('');
+    const drawingPoints = added.reduce((total, track) => total + (this.gpxPointDataByTrack.get(track.path) ?? []).reduce((sum, segment) => sum + segment.length, 0), 0);
+    this.gpxImportStatus.set(`Drawing ${formatNumber(drawingPoints)} GPX points on the map…`);
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     this.rebuildGpxSegments();
     this.applyGpxTrack();
     this.fitGpxTrack();
@@ -7517,8 +7520,15 @@ ${points}
       const coordinateSegment: [number, number][] = [];
       const metadataSegment: GpxTrackPoint[] = [];
       for (const point of group.elements) {
+        processed++;
         const coordinate = this.parseGpxPoint(point);
-        if (!coordinate) continue;
+        if (!coordinate) {
+          if (processed % 2000 === 0) {
+            onProgress?.(processed, total);
+            await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+          }
+          continue;
+        }
         let elevation: number | null = null;
         let timestamp: string | null = null;
         for (const child of Array.from(point.children)) {
@@ -7531,7 +7541,6 @@ ${points}
         }
         coordinateSegment.push(coordinate);
         metadataSegment.push({ latitude: coordinate[0], longitude: coordinate[1], elevation, timestamp });
-        processed++;
         if (processed % 2000 === 0) {
           onProgress?.(processed, total);
           await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
