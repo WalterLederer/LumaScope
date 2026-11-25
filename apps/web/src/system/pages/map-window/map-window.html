@@ -932,7 +932,7 @@
       </div>
       <div class="range-setting lumascope-surface-box crosshair-opacity-surface-box">
         <label class="visibility-toggle">Crosshair <input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)" aria-label="Show crosshair"></label>
-        <ui-slider id="crosshair-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="crosshairOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeCrosshairOpacity($event)" aria-label="Crosshair opacity" />
+        <ui-slider id="crosshair-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="crosshairOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeCrosshairOpacity($event)" [isDisabled]="!fixLocationEnabled()" aria-label="Crosshair opacity" />
         <span class="range-value">{{ crosshairOpacity() }}%</span>
       </div>
       <div class="range-setting lumascope-surface-box map-scale-opacity-surface-box">
