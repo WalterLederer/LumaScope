@@ -129,7 +129,7 @@
           <th scope="col"><small class="column-summary"><span>Min: {{ detailSummary().date[0] }}</span><span>Max: {{ detailSummary().date[1] }}</span></small></th>
           <th scope="col">
             <small class="column-summary"><span>Min: {{ detailSummary().gpsDate[0] }}</span><span>Max: {{ detailSummary().gpsDate[1] }}</span></small>
-            <small class="column-summary">Different: {{ cacheStatusLoading() ? "…" : gpsDateDifferenceCount() }}</small>
+            <small class="column-summary">Different: {{ cacheStatusLoading() ? "…" : formatNumber(gpsDateDifferenceCount()) }}</small>
           </th>
           <th scope="col"><small class="column-summary"><span>Min: {{ detailSummary().dimensions[0] }}</span><span>Max: {{ detailSummary().dimensions[1] }}</span></small></th>
           <th scope="col"><small class="column-summary"><span>Min: {{ detailSummary().size[0] }}</span><span>Max: {{ detailSummary().size[1] }}</span></small></th>
