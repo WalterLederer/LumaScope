@@ -2843,5 +2843,7 @@ export class OfflineMapRenderer {
       });
     }
     this.map.setLayoutProperty('osmand-labels-layer', 'visibility', this.osmAndLabelsVisible ? 'visible' : 'none');
+    // Keep labels above Hillshade and other raster sources; later photo/track layers can still sit above them.
+    this.map.moveLayer('osmand-labels-layer');
   }
 
