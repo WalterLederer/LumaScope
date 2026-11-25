@@ -932,9 +932,13 @@
       </div>
       <div class="range-setting lumascope-surface-box crosshair-opacity-surface-box">
         <label class="visibility-toggle">Crosshair <input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)" aria-label="Show crosshair"></label>
+        <ui-slider id="crosshair-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="crosshairOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeCrosshairOpacity($event)" aria-label="Crosshair opacity" />
+        <span class="range-value">{{ crosshairOpacity() }}%</span>
       </div>
       <div class="range-setting lumascope-surface-box map-scale-opacity-surface-box">
         <label class="visibility-toggle">Map scale <input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)" aria-label="Show map scale"></label>
+        <ui-slider id="map-scale-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="mapScaleOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeMapScaleOpacity($event)" aria-label="Map scale opacity" [isDisabled]="!scaleVisible()" />
+        <span class="range-value">{{ mapScaleOpacity() }}%</span>
       </div>
       <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
         <label for="overlay-opacity">Window</label>
@@ -1674,7 +1678,7 @@
               }
             </div>
           }
-          @if (fixLocationEnabled()) { <div class="map-fix-crosshair" aria-hidden="true"><span></span></div> }
+          @if (fixLocationEnabled()) { <div class="map-fix-crosshair" [style.opacity]="crosshairOpacity() / 100" aria-hidden="true"><span></span></div> }
         </div>
         @if (renderInitStatus() && (!settingsOpen() || activeSettingsTab() !== 'offlineMaps')) {
           <div class="render-init-notice" role="status"><span class="render-init-spinner"></span>{{ renderInitStatus() }}</div>
