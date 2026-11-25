@@ -2060,10 +2060,18 @@
 }
 .image-controls-sidebar .image-database-record-status {
   margin: 7px 0;
-  color: var(--color-content-default-medium);
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, #4b9fe0 35%, var(--color-border-default, #777));
+  border-radius: 4px;
+  background: color-mix(in srgb, #287fbd 18%, var(--color-surface-default-low));
+  color: #d9e8ff;
   font-size: 11px;
   line-height: 1.4;
   overflow-wrap: anywhere;
+}
+:host-context(html[data-theme='light']) .image-controls-sidebar .image-database-record-status {
+  color: #203b55;
+  background: color-mix(in srgb, #70b7ed 18%, #fff);
 }
 
 .image-controls-sidebar .image-database-record-path {
