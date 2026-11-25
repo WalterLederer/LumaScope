@@ -949,6 +949,9 @@
           title="Force a fresh native render of the visible OsmAnd Labels tiles instead of using cached tile images">
           {{ rerenderVisibleTilesBusy() ? 'Rerendering…' : 'Rerender' }}
         </button>
+        <span class="offline-map-status osmand-label-rerender-status" role="status" aria-live="polite">
+          {{ rerenderOsmAndLabelsStatus() }}
+        </span>
       </div>
       <div class="range-setting" [class.setting-unavailable]="activeHillshadeDatabaseCount() === 0">
         <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="activeHillshadeDatabaseCount() === 0" aria-label="Show Hillshade"></label>
