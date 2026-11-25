@@ -1718,16 +1718,24 @@ export class OfflineMapRenderer {
     if (this.vectorSourceDiagnosticLogged || this.schema !== 'shortbread') return;
     const shortbreadSource = this.map.getStyle().sources?.['shortbread'];
     if (!shortbreadSource || shortbreadSource.type !== 'vector') return;
-    this.vectorSourceDiagnosticLogged = true;
-    const sourceLayers = [
-      'land', 'ocean', 'water_polygons', 'water_lines', 'boundaries',
-      'streets', 'buildings', 'pois', 'place_labels', 'street_labels'
-    ];
+
+    // idle/moveend can fire before the first vector tile has finished loading.
+    // Do not permanently mark the diagnostic as complete until MapLibre says
+    // the source is loaded; otherwise one early empty query masks later data.
+    if (!this.map.isSourceLoaded('shortbread')) return;
+
+    const sourceLayers = this.vectorLayers.length
+      ? this.vectorLayers
+      : [
+          'land', 'ocean', 'water_polygons', 'water_lines', 'boundaries',
+          'streets', 'buildings', 'pois', 'place_labels', 'street_labels'
+        ];
     const counts = sourceLayers.map(sourceLayer => ({
       layer: sourceLayer,
       count: this.map.querySourceFeatures('shortbread', { sourceLayer }).length
     }));
     console.info('[OfflineMap] Vector source feature counts:', counts);
+    this.vectorSourceDiagnosticLogged = true;
     if (counts.every(item => item.count === 0)) {
       const message = 'Offline tiles are being retrieved, but MapLibre exposes no vector features from the Shortbread source. Check the MBTiles tile contents and vector-layer metadata.';
       console.error('[OfflineMap]', message);
