@@ -6088,7 +6088,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!result.success) {
         const replacementPath = await this.findTimestampPrefixedGpxPath(track.path);
         if (replacementPath) {
-          track = { ...track, path: replacementPath, name: replacementPath.split(/[\\\\/]/).pop() ?? track.name };
+          track = { ...track, path: replacementPath, name: replacementPath.split(/[\\/]/).pop() ?? track.name };
           [result, metadata] = await Promise.all([
             this.desktop.FileSystem.readText(track.path),
             this.readGpxFileMetadata(track.path)
