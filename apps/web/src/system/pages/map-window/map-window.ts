@@ -5413,9 +5413,12 @@ export class MapWindow implements OnInit, OnDestroy {
   };
   private applyOsmAndLabelsSettingsIfReady(): void {
     const renderer = this.offlineRenderer;
-    if (!renderer) return;
-    renderer.setOsmAndLabelsOpacity(this.osmAndLabelsOpacity() / 100);
-    renderer.setOsmAndLabelsVisibility(this.osmAndLabelsVisible());
+    if (renderer) {
+      renderer.setOsmAndLabelsOpacity(this.osmAndLabelsOpacity() / 100);
+      renderer.setOsmAndLabelsVisibility(this.osmAndLabelsVisible());
+      return;
+    }
+    if (this.map && this.leaflet) this.applyLeafletOsmAndLabelsSettings(false);
   }
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
     this.hillshadeVisible.set(visible);
