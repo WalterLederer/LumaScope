@@ -792,6 +792,22 @@ app-map-window .track-tab .gpx-settings-content {
   min-height: 0 !important;
   align-self: flex-start;
 }
+/* Keep the Track help control pinned to the far right of its toolbar row. */
+app-map-window .track-tab .gpx-toolbar {
+  position: relative !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-height: 30px;
+  padding-right: 38px !important;
+}
+app-map-window .track-tab .gpx-toolbar > .gpx-toolbar-help {
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  margin: 0 !important;
+  align-self: auto !important;
+  flex: 0 0 30px !important;
+}
 app-map-window .track-tab .gpx-file-list {
   flex: 0 0 auto !important;
   height: auto !important;
