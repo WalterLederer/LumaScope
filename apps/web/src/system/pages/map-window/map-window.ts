@@ -7500,7 +7500,7 @@ ${points}
         type: 'progress' | 'complete' | 'error';
         processed?: number;
         total?: number;
-        result?: { coordinates: [number, number][][]; pointData: GpxTrackPoint[][]; segmentNames: string[] };
+        result?: { pointData: GpxTrackPoint[][]; segmentNames: string[] };
         error?: string;
       }>): void => {
         const message = event.data;
@@ -7518,7 +7518,11 @@ ${points}
           return;
         }
         onProgress?.(message.total ?? 0, message.total ?? 0);
-        resolve(message.result);
+        const pointData = message.result.pointData;
+        // Recreate the coordinate arrays on the renderer side from the single
+        // worker payload instead of cloning a second copy across the worker boundary.
+        const coordinates = pointData.map(segment => segment.map(point => [point.latitude, point.longitude] as [number, number]));
+        resolve({ coordinates, pointData, segmentNames: message.result.segmentNames });
       };
       worker.onerror = (event: ErrorEvent): void => {
         finish();
