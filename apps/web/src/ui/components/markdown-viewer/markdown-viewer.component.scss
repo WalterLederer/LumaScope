@@ -408,79 +408,6 @@
 .markdown-help-sitemap-list button.current { font-weight: 650; }
 
 
-/* Keep Help search controls independent of the application's global button theme. */
-.markdown-help-search-toolbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin:3px 6px 6px; }
-.markdown-help-search-count { margin:0; color:var(--color-content-default-medium); font-size:11px; }
-.markdown-help-search-navigation { display:inline-flex; align-items:center; gap:5px; color:var(--color-content-default-medium); font-size:10px; }
-:host .markdown-help-search-results .markdown-help-search-navigation button,
-:host .markdown-help-search-results button.markdown-help-search-result {
-  color:var(--color-content-default-high);
-  background:var(--color-surface-default-low);
-  border:1px solid var(--color-border-default, rgb(128 128 128 / 35%));
-}
-:host .markdown-help-search-results .markdown-help-search-navigation button { padding:4px 7px; border-radius:4px; font:inherit; cursor:pointer; }
-:host .markdown-help-search-results .markdown-help-search-navigation button:disabled { opacity:.45; cursor:default; }
-:host .markdown-help-search-results button.markdown-help-search-result {
-  display:grid; grid-template-columns:1fr auto; gap:3px 10px; width:100%; margin:2px 0; padding:7px 8px; border-radius:4px; text-align:left; cursor:pointer;
-}
-:host .markdown-help-search-results button.markdown-help-search-result:hover,
-:host .markdown-help-search-results button.markdown-help-search-result.active {
-  color:#fff; background:color-mix(in srgb, #1677c8 78%, #6855c8); border-color:#4b9fe0;
-}
-:host .markdown-help-search-results button.markdown-help-search-result span,
-:host .markdown-help-search-results button.markdown-help-search-result small { color:inherit; opacity:.9; }
-:host ::ng-deep .markdown-body mark.markdown-search-hit { padding:0 1px; border-radius:2px; background:#ffe36a; color:#17202a; font-weight:750; }
-:host ::ng-deep .markdown-body .active-search-line { border-radius:4px; outline:2px solid #2689d8; outline-offset:3px; background:color-mix(in srgb, #2689d8 13%, transparent); }
-
-
-/* Search results are interactive navigation controls. Use deep, high-specificity
-   rules so the application's global action-button theme cannot override them. */
-:host ::ng-deep .markdown-help .markdown-help-search-results button.markdown-help-search-result,
-:host ::ng-deep .markdown-help .markdown-help-search-results .markdown-help-search-navigation button {
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  box-sizing: border-box !important;
-  color: var(--color-content-default-high, #202124) !important;
-  background: var(--color-surface-default, #f4f4f4) !important;
-  background-image: none !important;
-  border: 1px solid var(--color-border-default, #888) !important;
-  border-radius: 4px !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
-  filter: none !important;
-  transform: none !important;
-  font: inherit !important;
-  cursor: pointer !important;
-}
-:host ::ng-deep .markdown-help .markdown-help-search-results button.markdown-help-search-result {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) auto !important;
-  gap: 3px 10px !important;
-  width: 100% !important;
-  margin: 2px 0 !important;
-  padding: 7px 8px !important;
-  text-align: left !important;
-}
-:host ::ng-deep .markdown-help .markdown-help-search-results .markdown-help-search-navigation button {
-  padding: 4px 7px !important;
-  font-size: 10px !important;
-}
-:host ::ng-deep .markdown-help .markdown-help-search-results button.markdown-help-search-result:hover,
-:host ::ng-deep .markdown-help .markdown-help-search-results button.markdown-help-search-result.active {
-  color: #fff !important;
-  background: #286fae !important;
-  border-color: #78b9ed !important;
-}
-:host ::ng-deep .markdown-help .markdown-help-search-results button.markdown-help-search-result span,
-:host ::ng-deep .markdown-help .markdown-help-search-results button.markdown-help-search-result small {
-  color: inherit !important;
-}
-:host ::ng-deep .markdown-help .markdown-help-search-results .markdown-help-search-navigation button:disabled {
-  opacity: .45 !important;
-  cursor: default !important;
-}
-
-
 /* Search results are grouped by source document; each page can be expanded independently. */
 :host ::ng-deep .markdown-help-search-group {
   margin: 3px 0;
@@ -577,6 +504,43 @@
 }
 .markdown-help-search-navigation button {
   white-space: nowrap;
+}
+
+/* Search result rows are not buttons: their appearance is independent of global button CSS. */
+:host ::ng-deep .markdown-help-search-results .markdown-help-search-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  width: 100%;
+  margin: 2px 0;
+  padding: 7px 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border-default, rgb(128 128 128 / 30%));
+  border-radius: 4px;
+  background: var(--color-surface-default-low);
+  color: var(--color-content-default);
+  text-align: left;
+  cursor: pointer;
+}
+:host ::ng-deep .markdown-help-search-results .markdown-help-search-result:hover,
+:host ::ng-deep .markdown-help-search-results .markdown-help-search-result:focus-visible {
+  background: var(--color-surface-default-high, rgb(128 128 128 / 12%));
+  outline: 2px solid var(--color-border-default, rgb(128 128 128 / 45%));
+  outline-offset: -2px;
+}
+:host ::ng-deep .markdown-help-search-results .markdown-help-search-result.active {
+  background: var(--color-surface-default-high, rgb(128 128 128 / 16%));
+  border-color: var(--color-content-accent, #69aee8);
+}
+:host ::ng-deep .markdown-help-search-results .markdown-help-search-result span {
+  color: var(--color-content-default-medium);
+  font-size: 10px;
+}
+:host ::ng-deep .markdown-help-search-results .markdown-help-search-result small {
+  grid-column: 1 / -1;
+  color: var(--color-content-default);
+  font-size: 11px;
+  line-height: 1.4;
 }
 .markdown-body {
   flex: 1 1 0;
