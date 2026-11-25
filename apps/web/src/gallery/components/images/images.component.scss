@@ -1997,3 +1997,66 @@
 /* Number of image rows, aligned immediately before the header hamburger menu. */
 .detail-header-labels .folder-actions-heading{white-space:nowrap;text-align:center}
 .detail-header-labels .table-header-row-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:20px;margin-right:5px;padding:0 4px;box-sizing:border-box;border-radius:4px;background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-high,#fff);font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;vertical-align:middle}
+
+
+/* Final thumb-list header alignment: the actions cell is a normal first-row
+   cell, followed by its own statistics-row cell. Never draw a divider across
+   the hamburger itself; the statistics row owns the lower table separator. */
+.detail-native-table {
+  --detail-actions-width: 88px !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading,
+.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
+  display: flex !important;
+  box-sizing: border-box !important;
+  width: var(--detail-actions-width) !important;
+  min-width: var(--detail-actions-width) !important;
+  max-width: var(--detail-actions-width) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  align-self: stretch !important;
+  padding: 0 !important;
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading::after {
+  content: none !important;
+  display: none !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) {
+  align-items: center !important;
+  justify-content: center !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .folder-actions-menu-trigger {
+  position: relative !important;
+  inset: auto !important;
+  transform: none !important;
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  margin: 0 0 0 5px !important;
+}
+.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .table-header-row-count {
+  flex: 0 0 auto !important;
+  min-width: 18px !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums !important;
+}
+.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics:not([hidden]) {
+  border-right: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
+}
+.detail-native-table > tbody.images.details-list > tr > td.detail-actions,
+.detail-native-table.actions-column-right > tbody.images.details-list > tr > td.detail-actions {
+  width: var(--detail-actions-width) !important;
+  min-width: var(--detail-actions-width) !important;
+  max-width: var(--detail-actions-width) !important;
+}
+.detail-native-table > colgroup > col:first-child:not([hidden]),
+.detail-native-table > colgroup > col:last-child:not([hidden]) {
+  width: var(--detail-actions-width) !important;
+  min-width: var(--detail-actions-width) !important;
+  max-width: var(--detail-actions-width) !important;
+}
