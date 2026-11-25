@@ -7495,7 +7495,20 @@ ${points}
         reject(new Error('Could not start the GPX parsing worker: ' + (error instanceof Error ? error.message : String(error))));
         return;
       }
-      const finish = (): void => worker.terminate();
+      let inactivityTimeout: ReturnType<typeof setTimeout> | null = null;
+      const finish = (): void => {
+        if (inactivityTimeout !== null) clearTimeout(inactivityTimeout);
+        inactivityTimeout = null;
+        worker.terminate();
+      };
+      const resetInactivityTimeout = (): void => {
+        if (inactivityTimeout !== null) clearTimeout(inactivityTimeout);
+        inactivityTimeout = setTimeout(() => {
+          finish();
+          reject(new Error('GPX parsing stopped reporting progress for 45 seconds. The worker was stopped to prevent an endless loading state.'));
+        }, 45000);
+      };
+      resetInactivityTimeout();
       worker.onmessage = (event: MessageEvent<{
         type: 'progress' | 'complete' | 'error';
         processed?: number;
@@ -7505,6 +7518,7 @@ ${points}
       }>): void => {
         const message = event.data;
         if (message.type === 'progress') {
+          resetInactivityTimeout();
           onProgress?.(message.processed ?? 0, message.total ?? 0);
           return;
         }
