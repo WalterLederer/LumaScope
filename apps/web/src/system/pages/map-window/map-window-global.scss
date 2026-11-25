@@ -1318,6 +1318,7 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
 
 /* Visibility controls: keep each percentage beside its slider on the second row. */
 .opacity-settings .opacity-content .range-setting {
+  display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto auto;
 }
