@@ -189,7 +189,7 @@
           <button type="button" class="detail-preferences-close" aria-label="Close preferences" (click)="cancelDetailPreferences()">×</button>
         </header>
         <p class="detail-preferences-description">Customize detail-table row backgrounds, progress-bar colors, visibility and opacity.</p>
-        <details class="detail-preferences-section detail-preferences-disclosure detail-preferences-favorites" open>
+        <details class="detail-preferences-section detail-preferences-disclosure detail-preferences-favorites" [open]="detailPreferenceSections().favorites" (toggle)="onDetailPreferenceSectionToggle('favorites', $event)">
           <summary>Favorites</summary>
           <div class="detail-preferences-favorite-controls">
             <label>Settings favorites
@@ -207,14 +207,14 @@
             </div>
           </div>
         </details>
-        <details class="detail-preferences-section detail-preferences-disclosure" open>
+        <details class="detail-preferences-section detail-preferences-disclosure" [open]="detailPreferenceSections().fontSize" (toggle)="onDetailPreferenceSectionToggle('fontSize', $event)">
           <summary>Table Font Size</summary>
           <label class="detail-preference-range">
             <span>Font size <strong>{{ detailFontSize() }} px</strong></span>
             <input type="range" min="10" max="24" step="1" [value]="detailFontSize()" (input)="detailFontSizeChanged.emit(+$any($event.target).value)" aria-label="Table font size" />
           </label>
         </details>
-        <details class="detail-preferences-section detail-preferences-disclosure" open>
+        <details class="detail-preferences-section detail-preferences-disclosure" [open]="detailPreferenceSections().indicators" (toggle)="onDetailPreferenceSectionToggle('indicators', $event)">
           <summary>Relative Value Indicators</summary>
           <p class="detail-preferences-hint">Enable each column independently and choose its fill color.</p>
           <div class="detail-preferences-colors">
@@ -243,9 +243,13 @@
             <span>Progress bar transparency <strong>{{ detailPreferenceDraft().progressTransparency }}%</strong></span>
             <input type="range" min="0" max="100" step="1" [value]="detailPreferenceDraft().progressTransparency" (input)="updateDetailProgressTransparency(+$any($event.target).value)" />
           </label>
+          <label class="detail-preference-range">
+            <span>Vertical row spacing <strong>{{ detailPreferenceDraft().rowVerticalGap }} px</strong></span>
+            <input type="range" min="0" max="24" step="1" [value]="detailPreferenceDraft().rowVerticalGap" (input)="updateDetailRowVerticalGap(+$any($event.target).value)" aria-label="Vertical spacing between detail rows" />
+          </label>
         </details>
 
-        <details class="detail-preferences-section detail-preferences-disclosure" open>
+        <details class="detail-preferences-section detail-preferences-disclosure" [open]="detailPreferenceSections().backgrounds" (toggle)="onDetailPreferenceSectionToggle('backgrounds', $event)">
           <summary>Row Backgrounds</summary>
           <label class="detail-preference-toggle">
             <input type="checkbox" [checked]="detailPreferenceDraft().alternateRows" (change)="updateDetailPreferenceToggle('alternateRows', $any($event.target).checked)" />
