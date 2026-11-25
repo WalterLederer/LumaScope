@@ -195,6 +195,11 @@ export class MarkdownViewerComponent {
     this.currentFile() === 'README.md' ? 'README.md' : 'docs/' + this.currentFile()
   );
   protected readonly openFileError = signal('');
+  protected readonly sitemapOpen = signal(false);
+  protected readonly sitemapEntries = computed(() => helpDocuments.map(fileName => ({
+    fileName,
+    title: fileName === 'README.md' ? 'Overview' : fileName.replace(/\.md$/i, '').replace(/-/g, ' ')
+  })));
   protected readonly searchQuery = signal('');
   protected readonly searchResults = signal<HelpSearchGroup[]>([]);
   protected readonly searchResultCount = computed(() => this.searchResults().reduce((count, group) => count + group.results.length, 0));
@@ -360,6 +365,17 @@ export class MarkdownViewerComponent {
     } catch (error) {
       this.openFileError.set(error instanceof Error ? error.message : String(error));
     }
+  };
+
+  protected readonly toggleSitemap = (): void => {
+    this.sitemapOpen.update(open => !open);
+  };
+
+  protected readonly openSitemapEntry = (fileName: string): void => {
+    this.sitemapOpen.set(false);
+    this.searchQuery.set('');
+    this.searchResults.set([]);
+    void this.loadDocument(fileName);
   };
 
   protected readonly showReadme = (): void => {
