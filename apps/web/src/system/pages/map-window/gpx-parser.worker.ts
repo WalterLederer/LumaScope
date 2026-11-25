@@ -50,7 +50,7 @@ function readAttribute(tag: string, name: string): string | null {
 
 function countTrackPoints(content: string): number {
   // Ignore point-like text in comments and CDATA; these are not XML elements.
-  const searchable = content.replace(/<!--[\\s\\S]*?-->|<!\\[CDATA\\[[\\s\\S]*?\\]\\]>/g, '');
+  const searchable = content.replace(/<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>/g, '');
   const pointTagPattern = /<(?:[a-z0-9_-]+:)?(?:trkpt|rtept)\b/gi;
   let total = 0;
   while (pointTagPattern.exec(searchable)) total++;
@@ -183,6 +183,9 @@ workerScope.onmessage = (event: MessageEvent<WorkerRequest>): void => {
   try {
     const total = countTrackPoints(event.data.content);
     const result = parse(event.data.content, total);
+    // The last partial batch is usually smaller than 250 points. Report its
+    // completion explicitly before returning the (potentially large) result.
+    workerScope.postMessage({ type: 'progress', processed: total, total } satisfies WorkerResponse);
     // Coordinates are already represented by pointData. Sending both arrays
     // doubled the structured-clone payload for large tracks and delayed the
     // final worker response after the last progress update.
