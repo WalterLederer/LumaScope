@@ -8267,15 +8267,16 @@ ${points}
       }
 
       // Direction arrows retain the original per-segment color and geometry.
-      const arrowSegments = track.colorMode === 'speed' || track.colorMode === 'elevation' ? segments : normalSegments;
+      const arrowSegments = segments;
       if (track.showDirection) {
         for (let segmentIndex = 0; segmentIndex < arrowSegments.length; segmentIndex++) {
           const segment = arrowSegments[segmentIndex];
           if (segment.length < 2) continue;
-          const arrowColor = track.colorMode === 'speed' || track.colorMode === 'elevation'
-            ? (speedSegments[segmentIndex]?.color || track.color || this.gpxColor())
+          const sourceSegmentIndex = viewportSegments[segmentIndex]?.sourceSegmentIndex ?? segmentIndex;
+          const arrowColor = coloredMode
+            ? (speedSegments[sourceSegmentIndex]?.color || track.color || this.gpxColor())
             : track.colorMode === 'track-based'
-              ? this.gpxTrackSegmentColor(track.path, segmentIndex)
+              ? this.gpxTrackSegmentColor(track.path, sourceSegmentIndex)
               : (track.color || this.gpxColor());
           for (const arrow of this.gpxDirectionArrows(segment, renderStyle.arrowInterval)) {
             const arrowSize = renderStyle.arrowSize;
