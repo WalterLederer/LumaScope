@@ -6208,7 +6208,8 @@ export class MapWindow implements OnInit, OnDestroy {
     await new Promise<void>(resolve => setTimeout(resolve, 0));
 
     for (let index = 0; index < activeTracks.length; index++) {
-      visibleSegments.push(...this.visibleGpxSegments(activeTracks[index]));
+      const track = activeTracks[index];
+      if (track) visibleSegments.push(...this.visibleGpxSegments(track));
       if ((index + 1) % 8 === 0 || index === activeTracks.length - 1) {
         const fraction = (index + 1) / Math.max(1, activeTracks.length);
         const percent = 92 + Math.min(3, Math.floor(fraction * 3));
