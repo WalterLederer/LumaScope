@@ -648,6 +648,7 @@ int main(int argc, char* argv[])
     }
 
     qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
+    qputenv("OSMAND_ATLAS_TRANSPARENT_BACKGROUND", labelsOnly ? "1" : "0");
 
     QApplication app(argc, argv);
     app.setQuitOnLastWindowClosed(false);
