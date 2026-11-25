@@ -2,6 +2,8 @@
 #include "file_system_core_resources_provider.h"
 
 #include <QApplication>
+#include <QOpenGLContext>
+#include <QSurfaceFormat>
 #include <QCoreApplication>
 #include <QFile>
 #include <QFileInfo>
@@ -657,7 +659,11 @@ int main(int argc, char* argv[])
     std::cerr << "[atlas-helper] process_started pid=" << GetCurrentProcessId()
               << " obf_count=" << obfPaths.size()
               << " display_scale=" << displayScale
-              << " labels_only=" << (labelsOnly ? 1 : 0) << std::endl;
+              << " labels_only=" << (labelsOnly ? 1 : 0)
+              << " transparent_background="
+              << qEnvironmentVariableIntValue("OSMAND_ATLAS_TRANSPARENT_BACKGROUND")
+              << " default_alpha_bits=" << QSurfaceFormat::defaultFormat().alphaBufferSize()
+              << std::endl;
 #else
     std::cerr << "[atlas-helper] process_started obf_count=" << obfPaths.size()
               << " display_scale=" << displayScale << std::endl;
@@ -702,6 +708,7 @@ int main(int argc, char* argv[])
     std::uint32_t activeRequestId = 0;
     QElapsedTimer requestTimer;
     bool initializationReported = false;
+    bool framebufferDiagnosticsReported = false;
     int activeOutputWidth = 0;
     int activeOutputHeight = 0;
     int activeOverscanX = 0;
@@ -723,6 +730,22 @@ int main(int argc, char* argv[])
 #endif
             const auto stateChecked = widget->isFrameReady(
                 rendererIdle, frameInvalidated, captureError);
+
+            if (stateChecked && !framebufferDiagnosticsReported && widget->context())
+            {
+                const auto widgetFormat = widget->format();
+                const auto contextFormat = widget->context()->format();
+                std::cerr << "[atlas-helper] framebuffer_format"
+                          << " pid=" << QCoreApplication::applicationPid()
+                          << " widget_alpha_bits=" << widgetFormat.alphaBufferSize()
+                          << " context_alpha_bits=" << contextFormat.alphaBufferSize()
+                          << " context_red_bits=" << contextFormat.redBufferSize()
+                          << " context_green_bits=" << contextFormat.greenBufferSize()
+                          << " context_blue_bits=" << contextFormat.blueBufferSize()
+                          << " context_samples=" << contextFormat.samples()
+                          << std::endl;
+                framebufferDiagnosticsReported = true;
+            }
 
             if (stateChecked && !initializationReported)
             {
