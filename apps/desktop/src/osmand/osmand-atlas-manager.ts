@@ -962,6 +962,8 @@ export class OsmAndAtlasManager {
     this.pendingTiles.clear();
     this.workers = this.createWorkers();
     this.nextWorker = 0;
+    this.labelWorkers = this.createWorkers(this.readRenderWorkerCount(), true);
+    this.nextLabelWorker = 0;
     return this.getRuntimeStatus();
   };
 
