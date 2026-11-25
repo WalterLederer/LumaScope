@@ -1977,6 +1977,7 @@ export class ImageView {
     const restoredNames: string[] = [];
     const missingNames: string[] = [];
     let recoveredTrackPaths = false;
+    let recoveredActiveTrackPath = false;
     for (const track of tracksToRestore) {
       if (typeof track['path'] !== 'string' || typeof track['name'] !== 'string') continue;
       let trackPath = track['path'];
@@ -2016,9 +2017,14 @@ export class ImageView {
         restoredSegments.push(...this.gpxTrackSegments());
         restoredNames.push(trackName);
         if (trackPath !== track['path'] || trackName !== track['name']) {
+          const previousPath = track['path'];
           track['path'] = trackPath;
           track['name'] = trackName;
           recoveredTrackPaths = true;
+          if (imageView['activePath'] === previousPath) {
+            imageView['activePath'] = trackPath;
+            recoveredActiveTrackPath = true;
+          }
           console.info('[GPX] Recovered saved track using timestamp-prefixed filename:', track['path']);
         }
       } catch (error) {
@@ -2026,8 +2032,11 @@ export class ImageView {
         missingNames.push(track['name']);
       }
     }
-    if (recoveredTrackPaths) {
-      await this.processManager.setAppSettingsSection('gpx', { tracks });
+    if (recoveredTrackPaths || recoveredActiveTrackPath) {
+      await this.processManager.setAppSettingsSection('gpx', {
+        tracks,
+        ...(recoveredActiveTrackPath ? { imageView } : {})
+      });
     }
     this.gpxTrackSegments.set(restoredSegments);
     this.gpxTrackFileName.set(restoredNames.join(', ') || null);
