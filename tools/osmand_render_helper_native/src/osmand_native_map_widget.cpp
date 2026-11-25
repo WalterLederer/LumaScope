@@ -1014,6 +1014,10 @@ bool OsmAndNativeMapWidget::ensureRenderer()
         // but suppress the sky/background stage and all raster map layers.
         auto debugSettings = _mapRenderer->getDebugSettings();
         debugSettings->disableSkyStage = true;
+        // Labels-only rendering has no raster map-layer provider. Keep the
+        // entire map-layers stage disabled so OsmAndCore does not draw its
+        // processing/unavailable tile stub textures (grid and circled-X).
+        debugSettings->disableMapLayersStage = true;
         _mapRenderer->setDebugSettings(debugSettings);
         // Keep the labels-only framebuffer transparent. paintGL() has already
         // cleared it to alpha=0; an RGB background here makes it opaque.
