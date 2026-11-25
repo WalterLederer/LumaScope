@@ -2574,6 +2574,9 @@ export class OfflineMapRenderer {
       zOrder: this.map.getStyle().layers.map(layer => layer.id)
     });
     this.map.triggerRepaint();
+    // The source is registered before its vector tiles are fetched. Refresh again
+    // once MapLibre has rendered the newly added label-anchor features.
+    this.map.once('idle', () => this.refreshTextLabels());
     this.refreshTextLabels();
   }
 
