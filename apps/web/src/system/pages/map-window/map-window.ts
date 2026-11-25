@@ -3576,8 +3576,10 @@ export class MapWindow implements OnInit, OnDestroy {
       this.applyMapColor();
       this.applyMapOpacity();
       this.applyHillshadeSettings(renderer);
+      void this.updateOnlineMbtilesLabelSource(renderer);
       renderer.map.on('zoomend', () => this.persistZoom(renderer.map.getZoom()));
       renderer.map.on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
+      renderer.map.on('moveend', () => { void this.updateOnlineMbtilesLabelSource(renderer); });
     this.updateCrosshairCoordinates();
       renderer.map.on('movestart', () => this.resetLastRenderCountsForViewport());
       renderer.map.on('contextmenu', event => {
