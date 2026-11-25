@@ -3943,6 +3943,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyScaleVisibility();
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
     const syncZoom = (): void => { this.persistZoom(map.getZoom()); this.applyGpxTrack(); };
+    map.on('movestart', this.suspendGpxViewportRendering);
     map.on('moveend', this.refreshGpxViewport);
     map.on('moveend', () => this.applyDirectoryPhotoMarkers());
     map.on('zoomend', () => this.applyDirectoryPhotoMarkers());
@@ -6131,6 +6132,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxRestoreStatus.set('');
     // Register viewport refresh once the map instance is ready. Both Leaflet and
     // MapLibre expose the same moveend event; zoomend is included for settled zooms.
+    this.offlineRenderer?.map.on('movestart', this.suspendGpxViewportRendering);
     this.offlineRenderer?.map.on('moveend', this.refreshGpxViewport);
     this.offlineRenderer?.map.on('zoomend', this.refreshGpxViewport);
   }
@@ -6349,8 +6351,18 @@ export class MapWindow implements OnInit, OnDestroy {
       .map(chunk => ({ coordinates: chunk.coordinates, sourceSegmentIndex: chunk.sourceSegmentIndex }));
   }
 
+  private readonly suspendGpxViewportRendering = (): void => {
+    if (this.offlineRenderer) {
+      this.offlineRenderer.setTrackRenderingEnabled(false);
+      return;
+    }
+    for (const layer of this.trackLayers) layer.remove();
+    this.trackLayers = [];
+  };
+
   private readonly refreshGpxViewport = (): void => {
     this.applyGpxTrack();
+    this.offlineRenderer?.setTrackRenderingEnabled(true);
   };
 
   private isTimeSliderTimestampVisible(timestamp: number | null | undefined): boolean {
