@@ -8162,7 +8162,7 @@ ${points}
         if (validSegments.length > 0) {
           const outlineLine = this.leaflet.polyline(validSegments, {
             color: renderStyle.outlineColor, weight: renderStyle.outlineWidth,
-            opacity: renderStyle.outlineOpacity, lineCap: 'round', lineJoin: 'round',
+            opacity: renderStyle.outlineOpacity, lineCap: 'round', lineJoin: 'round', smoothFactor: largeTrack ? 4 : 1.5,
             dashArray: renderStyle.lineDashArray, ...rendererOptions
           }).addTo(this.map);
           this.trackLayers.push(outlineLine);
@@ -8173,7 +8173,7 @@ ${points}
         const trackLine = this.leaflet.polyline(groupedSegments, {
           color, weight: renderStyle.lineWidth, opacity: renderStyle.lineOpacity,
           lineCap: 'round', lineJoin: 'round', dashArray: renderStyle.lineDashArray,
-          ...rendererOptions
+          smoothFactor: largeTrack ? 4 : 1.5, ...rendererOptions
         }).addTo(this.map);
         if (renderStyle.shadowOpacity > 0) {
           const element = (trackLine as unknown as { getElement?: () => SVGElement | null }).getElement?.();
@@ -8189,7 +8189,7 @@ ${points}
         const hoverLine = this.leaflet.polyline(hoverSegments, {
           color: track.color || this.gpxColor(),
           weight: Math.max(14, (track.lineWidth || 4) + 10), opacity: .01,
-          lineCap: 'round', lineJoin: 'round', ...rendererOptions
+          lineCap: 'round', lineJoin: 'round', smoothFactor: largeTrack ? 4 : 1.5, ...rendererOptions
         }).addTo(this.map);
         hoverLine.on('mousemove', event => this.updateGpxHover(track.path, event.latlng.lat, event.latlng.lng));
         hoverLine.on('mouseout', () => this.clearGpxHover(track.path));
