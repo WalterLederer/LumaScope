@@ -295,7 +295,7 @@ export class MarkdownViewerComponent {
 
   protected readonly onSearchInput = (query: string): void => {
     this.searchQuery.set(query);
-    this.highlightQuery.set(query.trim());
+    this.highlightQuery.set(query.trim().length >= 2 ? query.trim() : '');
     this.activeSearchResultIndex.set(-1);
     this.searchResults.set([]);
     this.searchError.set('');
@@ -375,7 +375,10 @@ export class MarkdownViewerComponent {
   protected readonly navigateSearchResult = (direction: -1 | 1): void => {
     const results = this.flatSearchResults();
     if (!results.length) return;
-    const nextIndex = (this.activeSearchResultIndex() + direction + results.length) % results.length;
+    const currentIndex = this.activeSearchResultIndex();
+    const nextIndex = currentIndex < 0
+      ? (direction === 1 ? 0 : results.length - 1)
+      : (currentIndex + direction + results.length) % results.length;
     this.activeSearchResultIndex.set(nextIndex);
     const result = results[nextIndex];
     if (this.currentFile() === result.fileName && !this.loading()) this.scrollToSearchResult(result);
