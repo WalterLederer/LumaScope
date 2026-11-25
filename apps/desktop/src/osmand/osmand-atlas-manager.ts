@@ -397,8 +397,7 @@ class OsmAndAtlasWorker {
     if (!existsSync(this.stylePath)) throw new Error('OsmAnd rendering style not found: ' + this.stylePath);
 
 
-    const configurationDirectory = mkdtempSync(join(tmpdir(), 'lumascope-osmand-atlas-'));
-    const configurationPath = join(configurationDirectory, 'obf-paths.json');
+    const configurationDirectory = mkdtempSync(join(tmpdir(), 'lumascope-osmand-atlas-'));    const configurationPath = join(configurationDirectory, 'obf-paths.json');
     try {
       writeFileSync(configurationPath, JSON.stringify(this.obfPaths), 'utf8');
     } catch (error) {
@@ -797,8 +796,7 @@ export class OsmAndAtlasManager {
     const osmand = readAppSettings().osmand as Record<string, unknown> | undefined;
     const fileName = osmand?.renderingStyle;
     return typeof fileName === 'string' && /^[a-zA-Z0-9_(). -]+\.render\.xml$/.test(fileName)
-      ? fileName : 'default.render.xml';
-  }
+      ? fileName : 'default.render.xml';  }
 
   private persistStyleFileName(fileName: string): Promise<void> {
     return updateAppSettingsSection('osmand', { renderingStyle: fileName });
@@ -1197,8 +1195,7 @@ export class OsmAndAtlasManager {
     };
     const diagnosticRecords = (key: string): Array<Record<string, unknown>> =>
       Array.isArray(rawDiagnostics[key])
-        ? rawDiagnostics[key].filter((value): value is Record<string, unknown> =>
-          !!value && typeof value === 'object' && !Array.isArray(value))
+        ? rawDiagnostics[key].filter((value): value is Record<string, unknown> =>          !!value && typeof value === 'object' && !Array.isArray(value))
         : [];
     const boundaryLineCounts = diagnosticRecords('boundary_line_counts').map(value => ({
       admin_level: typeof value['admin_level'] === 'number' ? value['admin_level'] : 0,
@@ -1598,6 +1595,8 @@ export class OsmAndAtlasManager {
         geometryMessages
       }
     };
+  };
+
   @IpcHandler({ name: 'OsmAndAtlas.cancelRendering' })
   readonly cancelRendering = async (): Promise<void> => {
     this.pendingTiles.clear();
