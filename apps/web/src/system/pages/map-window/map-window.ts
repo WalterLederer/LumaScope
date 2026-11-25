@@ -6412,14 +6412,12 @@ export class MapWindow implements OnInit, OnDestroy {
     return percent;
   };
   private readonly suspendGpxViewportRendering = (): void => {
+    // Keep the currently rendered viewport geometry attached while the map
+    // moves. The map renderer can translate its existing track layers together
+    // with the map; replacing/removing them at movestart makes tracks disappear
+    // during the gesture. The new viewport subset is applied only at moveend.
     this.gpxViewportRenderingActive.set(false);
     this.gpxViewportRevision.update(value => value + 1);
-    if (this.offlineRenderer) {
-      this.offlineRenderer.setTrackRenderingEnabled(false);
-      return;
-    }
-    for (const layer of this.trackLayers) layer.remove();
-    this.trackLayers = [];
   };
 
   private readonly refreshGpxViewport = (): void => {
