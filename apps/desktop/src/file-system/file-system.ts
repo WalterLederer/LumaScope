@@ -405,9 +405,12 @@ export class FileSystem {
     try {
       const pendingDirectories = [path];
       const fileEntries: Array<{ name: string; parent: string }> = [];
+      const enumerationStartedAt = performance.now();
+      let directoriesRead = 0;
       while (pendingDirectories.length > 0) {
         const currentDirectory = pendingDirectories.pop()!;
         const entries = await readdir(currentDirectory, { withFileTypes: true });
+        directoriesRead++;
         for (const entry of entries) {
           if (entry.isDirectory()) {
             if (recursive && !['.cache', '.thumbnails'].includes(entry.name.toLowerCase())) {
@@ -423,6 +426,8 @@ export class FileSystem {
         }
       }
 
+      const enumerationDurationMs = performance.now() - enumerationStartedAt;
+      const statStartedAt = performance.now();
       // Do not block Electron's main process with thousands of synchronous statSync calls.
       const files: FileInfo[] = [];
       for (let offset = 0; offset < fileEntries.length; offset += 256) {
@@ -443,9 +448,14 @@ export class FileSystem {
         if (offset + 256 < fileEntries.length) await new Promise<void>(resolveYield => setImmediate(resolveYield));
       }
 
+      const statDurationMs = performance.now() - statStartedAt;
+      const sortStartedAt = performance.now();
       const data = files.sort(this.sortFiles(sortBy, sortDir));
+      const sortDurationMs = performance.now() - sortStartedAt;
       console.log('[FileSystem.readImages] DONE', JSON.stringify({
-        path, count: data.length, durationMs: Date.now() - startedAt
+        path, count: data.length, directoriesRead, fileEntries: fileEntries.length,
+        enumerationMs: Number(enumerationDurationMs.toFixed(1)), statMs: Number(statDurationMs.toFixed(1)),
+        sortMs: Number(sortDurationMs.toFixed(1)), durationMs: Date.now() - startedAt
       }));
       return { success: true, data };
     } catch (error) {
