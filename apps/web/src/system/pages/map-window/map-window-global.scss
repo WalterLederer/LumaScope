@@ -452,6 +452,7 @@ app-map-window {
     .opacity-content .range-setting .visibility-toggle{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;white-space:nowrap;font-weight:500;min-width:0}
     .opacity-content .range-setting>label,.opacity-content .range-setting>.visibility-toggle{grid-column:1;grid-row:1;min-width:0}
     .opacity-content .range-setting>.range-value{grid-column:2;grid-row:1;justify-self:end;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .opacity-content .osmand-label-rerender-button{grid-column:1/-1;grid-row:3;justify-self:start;white-space:nowrap}
     .opacity-content .range-setting .visibility-toggle input{margin-left:1px!important}
     .opacity-content .overlay-opacity-setting{order:90;flex:0 1 125px}
     .opacity-content .range-setting:has(#map-label-opacity){order:80}
