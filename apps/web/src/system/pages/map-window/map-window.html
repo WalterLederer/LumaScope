@@ -937,7 +937,7 @@
       </div>
       <div class="range-setting" [class.setting-unavailable]="!canShowMbtilesLabels()">
         <label class="visibility-toggle">MBTiles Labels <input type="checkbox" [checked]="labelsVisible()" (change)="changeLabelsVisibility($any($event.target).checked)" [disabled]="!canShowMbtilesLabels()" aria-label="Show MBTiles labels"></label>
-        <ui-slider id="map-label-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="labelOpacity()" (valueChange)="changeLabelOpacity($event)" [color]="themeService.sliderColor()" [isDisabled]="!canShowMbtilesLabels() || !labelsVisible()" aria-label="MBTiles label opacity" />
+        <ui-slider id="map-label-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="labelOpacity()" (valueChange)="changeLabelOpacity($event)" [color]="themeService.sliderColor()" [isDisabled]="false" aria-label="MBTiles label opacity" />
         <span class="range-value">{{ labelOpacity() }}%</span>
       </div>
       <div class="range-setting" [class.setting-unavailable]="configuredOsmandMapCount() === 0">
