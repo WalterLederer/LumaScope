@@ -652,6 +652,19 @@ int main(int argc, char* argv[])
     qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
     qputenv("OSMAND_ATLAS_TRANSPARENT_BACKGROUND", labelsOnly ? "1" : "0");
 
+    // QOpenGLWidget must create its backing surface with an alpha channel.
+    // Request it globally before QApplication creates any platform surfaces;
+    // setting only the widget format can be too late for some Qt/Windows setups.
+    auto defaultSurfaceFormat = QSurfaceFormat::defaultFormat();
+    defaultSurfaceFormat.setRenderableType(QSurfaceFormat::OpenGL);
+    if (defaultSurfaceFormat.alphaBufferSize() < 8)
+        defaultSurfaceFormat.setAlphaBufferSize(8);
+    if (defaultSurfaceFormat.depthBufferSize() < 24)
+        defaultSurfaceFormat.setDepthBufferSize(24);
+    if (defaultSurfaceFormat.stencilBufferSize() < 8)
+        defaultSurfaceFormat.setStencilBufferSize(8);
+    QSurfaceFormat::setDefaultFormat(defaultSurfaceFormat);
+
     QApplication app(argc, argv);
     app.setQuitOnLastWindowClosed(false);
 #ifdef _WIN32
