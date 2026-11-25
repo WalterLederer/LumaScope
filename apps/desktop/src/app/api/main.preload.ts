@@ -10,6 +10,9 @@ ipcRenderer.on('App.openFiles', (_event, paths: string[]) => {
 });
 
 const api: Desktop = {
+  Diagnostics: {
+    ping: () => ipcRenderer.invoke('Diagnostics.ping') as Promise<{ receivedAt: number; windowRole: string }>
+  },
   Theme: {
     broadcast: (theme: 'dark' | 'light') => ipcRenderer.send('Theme.changed', theme),
     onChanged: callback => {
