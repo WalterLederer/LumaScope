@@ -290,6 +290,14 @@ export class MarkdownViewerComponent {
   };
 
 
+  protected readonly onSearchKeydown = (event: KeyboardEvent): void => {
+    if (event.key === 'Enter' || event.key === 'F3') {
+      if (!this.flatSearchResults().length || this.searchBusy()) return;
+      event.preventDefault();
+      this.navigateSearchResult(event.shiftKey ? -1 : 1);
+    }
+  };
+
   protected readonly onSearchInput = (query: string): void => {
     this.searchQuery.set(query);
     this.highlightQuery.set(query.trim().length >= 2 ? query.trim() : '');
@@ -359,9 +367,17 @@ export class MarkdownViewerComponent {
       const block = target.matches('li, tr') ? target : target.closest('p, li, tr, blockquote, pre, h1, h2, h3, h4, h5, h6, .markdown-image-row') as HTMLElement | null;
       article.querySelectorAll('.active-search-line').forEach(element => element.classList.remove('active-search-line'));
       block?.classList.add('active-search-line');
-      // Scroll the document pane itself, never the outer Help panel or the result list.
-      const targetTop = target.getBoundingClientRect().top - article.getBoundingClientRect().top + article.scrollTop;
-      article.scrollTo({ top: Math.max(0, targetTop - 12), behavior: 'smooth' });
+      // Scroll the actual hit, not just its containing paragraph/list/table block.
+      // scrollIntoView resolves the nearest scrollable ancestor (the Markdown article),
+      // avoiding fragile manual offsets for inline per-line anchors.
+      target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+      // Keep the Help article as the sole scrolling pane if an outer layout is scrollable.
+      const articleRect = article.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      if (targetRect.top < articleRect.top || targetRect.bottom > articleRect.bottom) {
+        const delta = targetRect.top - articleRect.top - Math.max(12, article.clientHeight * 0.2);
+        article.scrollTo({ top: Math.max(0, article.scrollTop + delta), behavior: 'smooth' });
+      }
     };
     view.requestAnimationFrame(() => view.requestAnimationFrame(findAndScroll));
   };
