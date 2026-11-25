@@ -3694,6 +3694,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.mapDisplayNotice.set('Desktop API is not connected.');
       return;
     }
+    registerOsmAndLabelsTileProtocol(this.desktop, () => this.displayDensityFactor());
     const maps = this.offlineMaps().filter(map => map.type === 'mapsforge' && map.enabled && map.available);
     if (maps.length === 0) {
       this.renderInitStatus.set('');
@@ -3796,6 +3797,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.recordMapError('OsmAnd', 'Desktop API is not connected.');
       return;
     }
+    registerOsmAndLabelsTileProtocol(this.desktop, () => this.displayDensityFactor());
 
     const osmAndInitStartedAt = Date.now();
     let runtime: Awaited<ReturnType<Desktop['OsmAnd']['getRuntimeStatus']>>;
