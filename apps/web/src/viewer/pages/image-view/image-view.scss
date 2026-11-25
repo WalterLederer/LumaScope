@@ -2058,20 +2058,23 @@
   background: color-mix(in srgb, var(--color-content-accent, #398acb) 10%, transparent);
   font-weight: 700;
 }
-.image-controls-sidebar .image-database-record-status {
-  margin: 7px 0;
-  padding: 6px 8px;
-  border: 1px solid color-mix(in srgb, #4b9fe0 35%, var(--color-border-default, #777));
-  border-radius: 4px;
-  background: color-mix(in srgb, #287fbd 18%, var(--color-surface-default-low));
-  color: #d9e8ff;
-  font-size: 11px;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
+:host ::ng-deep .image-controls-sidebar .image-database-record-status {
+  margin: 7px 0 !important;
+  padding: 6px 8px !important;
+  border: 1px solid #6886a3 !important;
+  border-radius: 4px !important;
+  background: #343a42 !important;
+  background-color: #343a42 !important;
+  color: #f1f5fa !important;
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+  overflow-wrap: anywhere !important;
 }
-:host-context(html[data-theme='light']) .image-controls-sidebar .image-database-record-status {
-  color: #203b55;
-  background: color-mix(in srgb, #70b7ed 18%, #fff);
+:host-context(html[data-theme='light']) ::ng-deep .image-controls-sidebar .image-database-record-status {
+  border-color: #7ca5c5 !important;
+  background: #eaf4fc !important;
+  background-color: #eaf4fc !important;
+  color: #203b55 !important;
 }
 
 .image-controls-sidebar .image-database-record-path {
