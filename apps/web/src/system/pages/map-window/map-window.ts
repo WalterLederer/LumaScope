@@ -4780,6 +4780,69 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
 
+    // Online maps use Leaflet and its own labels GridLayer; they do not
+    // have an OfflineMapRenderer. Render the visible XYZ tiles directly and
+    // redraw that layer so its tile canvases are recreated from the fresh cache.
+    if (this.mapSource() === 'online') {
+      const map = this.map;
+      if (!map) {
+        this.rerenderOsmAndLabelsStatus.set('Rerender unavailable: online map is not ready.');
+        return;
+      }
+      const zoom = Math.max(2, Math.min(21, Math.floor(map.getZoom())));
+      const tileCount = 2 ** zoom;
+      const bounds = map.getBounds();
+      const clampLatitude = (latitude: number): number => Math.max(-85.05112878, Math.min(85.05112878, latitude));
+      const xForLongitude = (longitude: number): number =>
+        Math.floor((longitude + 180) / 360 * tileCount);
+      const yForLatitude = (latitude: number): number => Math.max(0, Math.min(tileCount - 1,
+        Math.floor((1 - Math.asinh(Math.tan(clampLatitude(latitude) * Math.PI / 180)) / Math.PI) / 2 * tileCount)));
+      const minX = xForLongitude(bounds.getWest());
+      const maxX = xForLongitude(bounds.getEast() - 1e-10);
+      const minY = yForLatitude(bounds.getNorth());
+      const maxY = yForLatitude(bounds.getSouth());
+      const tiles: Array<{ x: number; y: number }> = [];
+      const seen = new Set<string>();
+      for (let y = Math.min(minY, maxY); y <= Math.max(minY, maxY); y++) {
+        for (let unwrappedX = minX; unwrappedX <= maxX; unwrappedX++) {
+          const x = ((unwrappedX % tileCount) + tileCount) % tileCount;
+          const key = x + '/' + y;
+          if (!seen.has(key)) {
+            seen.add(key);
+            tiles.push({ x, y });
+          }
+        }
+      }
+      this.rerenderVisibleTilesBusy.set(true);
+      this.rerenderingOsmAndLabels.set(true);
+      this.rerenderVisibleTilesProgress.set({ completed: 0, total: tiles.length });
+      this.rerenderOsmAndLabelsStatus.set('Preparing visible OsmAnd Labels tiles…');
+      try {
+        let completed = 0;
+        await Promise.all(tiles.map(({ x, y }) => runOfflineRenderTask(
+          () => this.desktop!.OsmAndAtlas.renderLabelsTile(zoom, x, y, this.displayDensityFactor(), true),
+          'OsmAnd Labels', 'Rerender z' + zoom + '/' + x + '/' + y
+        ).then(() => {
+          completed++;
+          this.rerenderVisibleTilesProgress.set({ completed, total: tiles.length });
+          this.rerenderOsmAndLabelsStatus.set('Rendering OsmAnd Labels: ' + completed + ' / ' + tiles.length + ' tiles…');
+        })));
+        this.leafletOsmAndLabelsLayer?.redraw();
+        this.rerenderOsmAndLabelsStatus.set(tiles.length
+          ? 'Rerendered ' + tiles.length + ' visible OsmAnd Labels tiles.'
+          : 'No visible OsmAnd Labels tiles were found.');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.rerenderOsmAndLabelsStatus.set('Rerender failed: ' + message);
+        console.error('[OsmAnd Labels] Could not rerender visible online labels:', error);
+      } finally {
+        this.rerenderingOsmAndLabels.set(false);
+        this.rerenderVisibleTilesBusy.set(false);
+        this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
+      }
+      return;
+    }
+
     // The map window can become interactive while OsmAnd style/runtime
     // restoration is still in progress. Do not treat a temporarily null
     // renderer as a permanent failure: join the in-flight initialization,
