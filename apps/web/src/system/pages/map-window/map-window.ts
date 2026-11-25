@@ -10,51 +10,11 @@ import { Desktop, formatGpsCoordinates as formatSystemGpsCoordinates, formatOsDa
 import { ThemeService } from '../../services/theme/theme.service';
 import { Configuration } from '../../services/configuration/configuration';
 import { take } from 'rxjs';
-import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { formatNumber } from '../../../ui/utils/format-number';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
 import { OfflineMapRenderer, createOnlineMapStyle, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndLabelsTileProtocol, emitOsmAndLabelsTileStatus, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, setOfflineRenderConcurrency, runOfflineRenderTask, subscribeOfflineRenderStatus, type OfflineRenderTaskStatus, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapPresetOption { id: string; name: string; osmAndRegex: string; mapsForgeRegex?: string; hillshadeRegex?: string; }
-interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; unbindTooltip(): MapMarker; }
-interface MapBounds { isValid(): boolean; }
-interface ObfBoundsPreview { name: string; bounds: string | null; zoom: string; error: string | null; rectangles: Array<{ x: number; y: number; width: number; height: number }>; }
-type BoundsMapKind = 'world' | 'europe';
-interface BoundsMapView { x: number; y: number; width: number; height: number; }
-interface MapMarkerGroup { addTo(map: MapInstance): MapMarkerGroup; addLayer(marker: MapMarker): MapMarkerGroup; clearLayers(): MapMarkerGroup; eachLayer(callback: (layer: MapMarker) => void): MapMarkerGroup; refreshClusters?(): MapMarkerGroup; remove(): void; }
-interface LeafletGridLayer { addTo(map: MapInstance): LeafletGridLayer; setOpacity(opacity: number): LeafletGridLayer; redraw(): LeafletGridLayer; on(event: 'load', callback: () => void): LeafletGridLayer; remove(): void; }
-interface LeafletTileLayer { addTo(map: MapInstance): LeafletTileLayer; setOpacity(opacity: number): LeafletTileLayer; on(event: 'load', callback: () => void): LeafletTileLayer; remove(): void; }
-interface MapMarkerCluster { getChildCount(): number; }
-interface MapInstance {
-  getCenter(): { lat: number; lng: number };
-  getBounds(): { getWest(): number; getSouth(): number; getEast(): number; getNorth(): number };
-  setView(center: [number, number], zoom: number): MapInstance;
-  invalidateSize(): MapInstance;
-  getZoom(): number;
-  setZoom(zoom: number): MapInstance;
-  containerPointToLatLng(point: [number, number]): { lat: number; lng: number };
-  project(latlng: [number, number], zoom?: number): { x: number; y: number };
-  unproject(point: [number, number], zoom?: number): { lat: number; lng: number };
-  on(event: 'zoomend', callback: () => void): MapInstance;
-  on(event: 'movestart', callback: () => void): MapInstance;
-  on(event: 'moveend', callback: () => void): MapInstance;
-  on(event: 'contextmenu', callback: (event: { latlng: { lat: number; lng: number }; originalEvent: MouseEvent }) => void): MapInstance;
-  createPane(name: string): HTMLElement;
-  fitBounds(bounds: [[number, number], [number, number]], options?: { padding?: [number, number]; maxZoom?: number; animate?: boolean }): MapInstance;
-  remove(): void;
-}
-interface LeafletMapApi {
-  map(element: HTMLElement, options?: { zoomControl?: boolean; keyboard?: boolean; minZoom?: number; maxZoom?: number; preferCanvas?: boolean }): MapInstance;
-  control: { scale(options: { metric: boolean; imperial: boolean; position: 'bottomleft'; maxWidth: number }): { addTo(map: MapInstance): unknown } };
-  tileLayer(url: string, options: { attribution: string; maxZoom: number; maxNativeZoom?: number }): LeafletTileLayer;
-  GridLayer: { extend(definition: { createTile(coords: { x: number; y: number; z: number }, done: (error: Error | null, tile: HTMLCanvasElement) => void): HTMLCanvasElement }): new(options?: { pane?: string; opacity?: number; tileSize?: number; minZoom?: number; maxZoom?: number; maxNativeZoom?: number; zIndex?: number }) => LeafletGridLayer };
-  canvas(options?: { padding?: number }): unknown;
-  polyline(points: [number, number][] | [number, number][][], options: { color: string; weight: number; opacity: number; lineCap: string; lineJoin: string; dashArray?: string; smoothFactor?: number; renderer?: unknown }): { addTo(map: MapInstance): { remove(): void; on(event: 'mousemove' | 'mouseout', callback: (event: { latlng: { lat: number; lng: number } }) => void): unknown; getElement?(): SVGElement | null } };
-  polygon(points: [number, number][], options: { color: string; weight: number; opacity: number; fillColor: string; fillOpacity: number }): { addTo(map: MapInstance): { remove(): void } };
-  marker(position: [number, number], options?: { icon?: unknown }): MapMarker & { addTo(map: MapInstance | MapMarkerGroup): MapMarker };
-  divIcon(options: { className: string; html: string; iconSize: [number, number]; iconAnchor: [number, number] }): unknown;
-  markerClusterGroup(options?: { chunkedLoading?: boolean; showCoverageOnHover?: boolean; spiderfyOnMaxZoom?: boolean; iconCreateFunction?: (cluster: MapMarkerCluster) => unknown }): MapMarkerGroup;
-}
 type MapStyle = 'standard' | 'satellite' | 'cycling' | 'topographic' | 'humanitarian' | 'basemap-standard' | 'basemap-gray' | 'basemap-orthofoto';
 type MapColor = 'original' | 'light' | 'extra-light' | 'ultra-light' | 'dark' | 'grayscale' | 'pastel' | 'contrast' | 'night';
 type MarkerShape = 'double-circle' | 'hexagon' | 'circle' | 'square';
@@ -154,27 +114,16 @@ export class MapWindow implements OnInit, OnDestroy {
   private overlayResizeStart: { edge: string; pointerX: number; pointerY: number; bounds: { x: number; y: number; width: number; height: number } } | null = null;
   protected readonly themeService = inject(ThemeService);
   private readonly mapElement = viewChild.required<ElementRef<HTMLElement>>('map');
-  private map: MapInstance | null = null;
   private offlineRenderer: OfflineMapRenderer | null = null;
   private mapLoadingTimer: ReturnType<typeof setTimeout> | null = null;
   private currentLatitude: number | null = null;
   private currentLongitude: number | null = null;
-  private marker: MapMarker | null = null;
-  private walkingMarker: MapMarker | null = null;
-  private walkingMapLibreMarker: MapLibreMarker | null = null;
-  private directoryMarkerGroup: MapMarkerGroup | null = null;
-  private readonly directoryMarkers: MapMarker[] = [];
   protected currentImagePath: string | null = null;
   protected currentFolderPath: string | null = null;
   protected currentFolderRecursive = false;
   get currentImageDatabaseKey(): string | undefined { return (this.currentImagePath ?? this.currentFolderPath)?.slice(0, 2); }
   private currentOfflineMapId: string | null = null;
   private markerScanGeneration = 0;
-  private leaflet: LeafletMapApi | null = null;
-  private leafletHillshadeLayer: LeafletGridLayer | null = null;
-  private leafletHillshadePane: HTMLElement | null = null;
-  private leafletOsmAndLabelsLayer: LeafletGridLayer | null = null;
-  private leafletOsmAndLabelsPane: HTMLElement | null = null;
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private readonly configuration = inject(Configuration);
   private unsubscribeLocation: (() => void) | null = null;
@@ -185,9 +134,6 @@ export class MapWindow implements OnInit, OnDestroy {
   private mapSourceGeneration = 0;
   private osmAndStyleChangeGeneration = 0;
   private osmAndStyleRestore: Promise<void> = Promise.resolve();
-  private tileLayer: LeafletTileLayer | null = null;
-  private mapBoundsLayers: Array<{ remove(): void }> = [];
-  private trackLayers: Array<{ remove(): void }> = [];
   private readonly gpxViewportChunkCache = new Map<string, {
     source: [number, number][][];
     chunks: Array<{ coordinates: [number, number][]; sourceSegmentIndex: number; south: number; north: number; west: number; east: number; totalLength: number }>;
@@ -201,8 +147,6 @@ export class MapWindow implements OnInit, OnDestroy {
     source: [number, number][][];
   }>();
   private readonly gpxViewportChunkPreparing = new Map<string, [number, number][][]>();
-  private gpxCanvasRenderer: unknown = null;
-  private gpxCanvasRendererMap: MapInstance | null = null;
   private gpxSegments: [number, number][][] = [];
   protected readonly hasDirectoryPhotoMarkers = (): boolean => this.directoryPhotoMarkers.length > 0;
   private readonly gpxSegmentsByTrack = new Map<string, [number, number][][]>();
@@ -326,16 +270,6 @@ export class MapWindow implements OnInit, OnDestroy {
   private applyScaleVisibility(): void {
     const visible = this.scaleVisible();
     this.offlineRenderer?.setScaleVisible(visible);
-    const mapElement = this.mapElement().nativeElement;
-    const leafletScale = mapElement.querySelector<HTMLElement>('.leaflet-control-scale');
-    if (leafletScale) leafletScale.style.display = visible ? '' : 'none';
-    const leafletControls = mapElement.querySelector<HTMLElement>('.leaflet-bottom.leaflet-left');
-    if (leafletControls) {
-      leafletControls.style.zIndex = '1000';
-      leafletControls.style.pointerEvents = 'none';
-      const control = leafletControls.querySelector<HTMLElement>('.leaflet-control');
-      if (control) control.style.pointerEvents = 'auto';
-    }
   }
   protected readonly changeMapBoundsVisible = (visible: boolean): void => {
     if (visible && !this.canShowMapBounds()) return;
@@ -1612,10 +1546,6 @@ export class MapWindow implements OnInit, OnDestroy {
       const coordinate = this.offlineRenderer.map.unproject([x, y]);
       latitude = coordinate.lat;
       longitude = coordinate.lng;
-    } else if (this.map) {
-      const coordinate = this.map.containerPointToLatLng([x, y]);
-      latitude = coordinate.lat;
-      longitude = coordinate.lng;
     } else {
       this.mouseCoordinateLabel.set('');
       return;
@@ -2081,9 +2011,8 @@ export class MapWindow implements OnInit, OnDestroy {
         this.photoAddressComments.set([]);
         this.coordinateLabel.set('GPS coordinates unavailable');
         this.locationAddress.set('');
-        this.marker?.setOpacity(0);
         this.offlineRenderer?.setCurrentOpacity(0);
-        if (!this.map && !this.offlineRenderer && !this.mapInitialization) {
+        if (!this.offlineRenderer && !this.mapInitialization) {
           const savedLatitude = Number(this.readSetting('lastLatitude', '48.2082'));
           const savedLongitude = Number(this.readSetting('lastLongitude', '16.3738'));
           const latitude = Number.isFinite(savedLatitude) && savedLatitude >= -90 && savedLatitude <= 90 ? savedLatitude : 48.2082;
@@ -2113,11 +2042,8 @@ export class MapWindow implements OnInit, OnDestroy {
       } else if (this.offlineRenderer) {
         this.offlineRenderer.updateCurrentLocation(nextLatitude!, nextLongitude!);
         this.centerMapAt(nextLatitude!, nextLongitude!);
-      } else if (!this.map) {
+      } else if (!this.offlineRenderer) {
         void this.initialize(nextLatitude!, nextLongitude!);
-      } else {
-        this.marker?.setLatLng([nextLatitude!, nextLongitude!]);
-        this.map.setView([nextLatitude!, nextLongitude!], this.map.getZoom());
       }
     };
     this.unsubscribeLocation = this.desktop?.MapWindow.onLocationChanged(location => {
@@ -2139,8 +2065,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.favoriteLocationsUnsubscribe?.();
     this.favoriteLocationsUnsubscribe = null;
     this.stopTimeSliderAnimation();
-    this.walkingMarker?.remove(); this.walkingMarker = null;
-    this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
     window.removeEventListener('lumascope-osmand-tile-status', this.onOsmAndTileStatus);
     window.removeEventListener('lumascope-mapsforge-tile-error', this.onMapsforgeTileError);
     window.removeEventListener('lumascope-map-display-ready', this.onMapDisplayReady);
@@ -2154,7 +2078,7 @@ export class MapWindow implements OnInit, OnDestroy {
     // Save the live camera value before destroying either map implementation.
     // This also covers closing the separate Location window or the overlay
     // while a zoom animation is still in progress.
-    this.persistZoom(this.offlineRenderer?.map.getZoom() ?? this.map?.getZoom() ?? this.zoomLevel());
+    this.persistZoom(this.offlineRenderer?.map.getZoom() ?? this.zoomLevel());
     this.persistLocationUiState({
       settingsOpen: this.settingsOpen(),
       activeSettingsTab: this.activeSettingsTab(),
@@ -2178,11 +2102,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxDatabaseViewportRefreshTimer = null;
     this.clearDirectoryMarkers();
     window.removeEventListener('resize', this.onResize);
-    this.clearMapBoundsLayers();
-    this.map?.remove();
-    this.map = null;
-    this.leafletHillshadeLayer = null;
-    this.leafletHillshadePane = null;
     this.offlineRenderer?.remove(); this.offlineRenderer = null;
     // Native OsmAnd render helpers are persistent main-process workers. Stop them
     // when their map window goes away so they cannot keep GPU contexts alive.
@@ -2199,7 +2118,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.mapSource() === 'osmand') void this.desktop?.OsmAnd.shutdown().catch(error => console.warn('Could not stop OsmAnd helpers:', error));
   }
 
-  private readonly onResize = (): void => { this.map?.invalidateSize(); this.offlineRenderer?.resize(); };
+  private readonly onResize = (): void => { this.offlineRenderer?.resize(); };
 
   private beginMapLoading(source: 'online' | 'offline'): void {
     if (this.mapLoadingTimer !== null) clearTimeout(this.mapLoadingTimer);
@@ -2242,11 +2161,11 @@ export class MapWindow implements OnInit, OnDestroy {
     this.persistLocationUiState({ fixLocationEnabled: enabled });
     this.gpsSaveStatus.set('');
     if (!enabled) return;
-    if (!this.map && !this.offlineRenderer) void this.initialize(48.2082, 16.3738);
+    if (!this.offlineRenderer) void this.initialize(48.2082, 16.3738);
   };
 
   private async initializeFixLocationMap(): Promise<void> {
-    if (!this.fixLocationEnabled() || this.map || this.offlineRenderer || !this.currentImagePath) return;
+    if (!this.fixLocationEnabled() || this.offlineRenderer || !this.currentImagePath) return;
     this.mapSourceGeneration++;
     this.mapInitialization = null;
     this.renderInitStatus.set('Loading map for location fixing…');
@@ -2255,7 +2174,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (this.fixLocationEnabled()) {
         this.onResize();
         this.renderInitStatus.set('');
-        if (!this.map && !this.offlineRenderer) {
+        if (!this.offlineRenderer) {
           this.gpsSaveStatus.set(this.mapDisplayNotice() || 'The selected map source could not be initialized for location fixing.');
         }
       }
@@ -2379,7 +2298,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
 
   private currentMapCenter(): { lat: number; lng: number } | null {
-    const center = this.offlineRenderer?.map?.getCenter() ?? this.map?.getCenter() ?? null;
+    const center = this.offlineRenderer?.map.getCenter() ?? null;
     return center && Number.isFinite(center.lat) && Number.isFinite(center.lng) ? center : null;
   }
 
@@ -2406,8 +2325,6 @@ export class MapWindow implements OnInit, OnDestroy {
       // fitBounds() can leave MapLibre camera padding active. Clear it so
       // the geographic center matches the fixed crosshair position.
       this.offlineRenderer.map.easeTo({ center: [longitude, latitude], padding: 0 });
-    } else if (this.map) {
-      this.map.setView([latitude, longitude], this.map.getZoom());
     }
   }
 
@@ -2491,10 +2408,10 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
 
-  protected readonly canSaveGpsPosition = (): boolean => !!this.currentImagePath && !!(this.map || this.offlineRenderer) && !!this.desktop;
+  protected readonly canSaveGpsPosition = (): boolean => !!this.currentImagePath && !!this.offlineRenderer && !!this.desktop;
 
   protected readonly saveGpsPosition = async (): Promise<void> => {
-    if (!this.fixLocationEnabled() || !this.currentImagePath || (!this.map && !this.offlineRenderer) || !this.desktop || this.gpsSaveBusy()) return;
+    if (!this.fixLocationEnabled() || !this.currentImagePath || !this.offlineRenderer || !this.desktop || this.gpsSaveBusy()) return;
     const center = this.currentMapCenter();
     if (!center) return;
     this.updateCrosshairCoordinates();
@@ -2556,8 +2473,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   protected readonly copyCoordinates = async (): Promise<void> => {
-    const marker = this.marker?.getLatLng();
-    const latitude = marker?.lat ?? this.currentLatitude, longitude = marker?.lng ?? this.currentLongitude;
+    const latitude = this.currentLatitude, longitude = this.currentLongitude;
     if (latitude === null || longitude === null) return;
     try { await navigator.clipboard.writeText(formatSystemGpsCoordinates(latitude, longitude)); }
     catch (error) { console.error('Failed to copy GPS coordinates', error); }
@@ -2586,13 +2502,9 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!Number.isFinite(result.latitude) || !Number.isFinite(result.longitude)) return;
     if (this.offlineRenderer) {
       this.offlineRenderer.map.jumpTo({ center: [result.longitude, result.latitude], zoom: Math.max(15, this.offlineRenderer.map.getZoom()) });
-    } else if (this.map) {
-      this.map.setView([result.latitude, result.longitude], Math.max(15, this.map.getZoom()));
-    }
   };
   protected readonly centerMarker = (): void => {
-    const marker = this.marker?.getLatLng();
-    const latitude = marker?.lat ?? this.currentLatitude, longitude = marker?.lng ?? this.currentLongitude;
+    const latitude = this.currentLatitude, longitude = this.currentLongitude;
     if (latitude !== null && longitude !== null) {
       if (this.offlineRenderer) {
         // Reassert the fixed geographic coordinate before centering. This also
@@ -2602,7 +2514,6 @@ export class MapWindow implements OnInit, OnDestroy {
           (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape()
         );
         this.offlineRenderer.map.jumpTo({ center: [longitude, latitude] });
-      } else if (this.map) this.map.setView([latitude, longitude], this.map.getZoom());
     }
   };
   protected readonly formatGpsCoordinates = formatSystemGpsCoordinates;
@@ -2858,10 +2769,9 @@ export class MapWindow implements OnInit, OnDestroy {
     this.settingsOpen.set(open);
     this.persistLocationUiState({ settingsOpen: open });
 
-    // Let Angular update the settings section and flex layout before Leaflet measures the map.
+    // Let Angular update the settings section and flex layout before MapLibre resizes.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        this.map?.invalidateSize();
         this.offlineRenderer?.resize();
       });
     });
@@ -2919,7 +2829,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly selectedMarkerTextColor = (): string => this.gpxColors.find(color => color.value === this.markerColor())?.textColor ?? '#102014';
   protected readonly changeMarkerShape = (value: string): void => {
     if (value !== 'double-circle' && value !== 'hexagon' && value !== 'circle' && value !== 'square') return;
-    this.markerShape.set(value); this.saveSetting('markerShape', value); this.directoryMarkerGroup?.refreshClusters?.();
+    this.markerShape.set(value); this.saveSetting('markerShape', value);
     this.offlineRenderer?.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible(), value as MarkerShape);
   };
   protected readonly changeCurrentMarkerShape = (value: string): void => {
@@ -2931,7 +2841,6 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.gpxColors.some(color => color.value === value)) return;
     this.currentMarkerColor.set(value); this.saveSetting('currentMarkerColor', value);
     this.currentMarkerColorMenuOpen.set(false);
-    this.marker?.setIcon(this.createCurrentLocationIcon());
     if (this.offlineRenderer && this.currentLatitude !== null && this.currentLongitude !== null) this.offlineRenderer.setCurrentLocation(this.currentLatitude, this.currentLongitude, this.currentMarkerColor(), (this.locationVisible() ? this.locationOpacity() / 100 : 0), this.currentMarkerShape());
   };
   protected readonly changeMarkerColor = (value: string): void => {
@@ -2943,7 +2852,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.markerColor.set(value); this.markerColorVisible.set(true);
       this.saveSetting('markerColor', value); this.saveSetting('markerColorVisible', true);
     } else return;
-    this.markerColorMenuOpen.set(false); this.directoryMarkerGroup?.refreshClusters?.();
+    this.markerColorMenuOpen.set(false);
     this.offlineRenderer?.setPhotoClusterStyle(this.markerColor(), this.markerColorVisible(), this.markerShape());
   };
   protected readonly selectedGpxTextColor = (): string => this.gpxColors.find(color => color.value === this.gpxColor())?.textColor ?? '#ffffff';
@@ -3048,8 +2957,6 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
   private clearDirectoryMarkers(): void {
-    this.directoryMarkerGroup?.clearLayers();
-    this.directoryMarkers.length = 0;
     this.directoryPhotoMarkers = [];
     this.directoryPhotoTimestampMarkers = [];
     this.offlineRenderer?.setPhotoMarkers([], path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
@@ -3141,7 +3048,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private async scanDirectoryMarkers(validateDatabase = false): Promise<void> {
     const generation = ++this.markerScanGeneration, imagePath = this.currentImagePath, selectedFolderPath = this.currentFolderPath, desktop = this.desktop;
-    if ((!imagePath && !selectedFolderPath) || !desktop || (!this.directoryMarkerGroup && !this.offlineRenderer)) {
+    if ((!imagePath && !selectedFolderPath) || !desktop || !this.offlineRenderer) {
       this.clearDirectoryMarkers();
       this.markerStatus.set('No image folder is available.');
       return;
@@ -3171,7 +3078,7 @@ export class MapWindow implements OnInit, OnDestroy {
             return;
           }
         }
-        const mapBounds = this.offlineRenderer?.map.getBounds() ?? this.map?.getBounds();
+        const mapBounds = this.offlineRenderer?.map.getBounds();
         if (!mapBounds) {
           this.markerStatus.set('The map is not ready yet.');
           return;
@@ -3308,8 +3215,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.mapSourceGeneration++;
         generation = this.mapSourceGeneration;
         this.offlineRenderer?.remove(); this.offlineRenderer = null;
-        this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
-        this.tileLayer?.remove(); this.tileLayer = null; this.clearDirectoryMarkers();
+        this.clearDirectoryMarkers();
         this.currentOfflineMapId = nextId;
         this.mapInitialization = null;
       }
@@ -3322,10 +3228,6 @@ export class MapWindow implements OnInit, OnDestroy {
         // Do not silently substitute the online basemap: that makes switching
         // to MBTiles appear to work while showing exactly the same online map.
         this.offlineRenderer?.remove(); this.offlineRenderer = null;
-        this.map?.remove(); this.map = null;
-        this.leafletHillshadeLayer = null; this.leafletHillshadePane = null;
-        this.marker = null; this.directoryMarkerGroup = null;
-        this.tileLayer?.remove(); this.tileLayer = null;
         this.clearDirectoryMarkers();
         return;
       }
@@ -3999,7 +3901,6 @@ export class MapWindow implements OnInit, OnDestroy {
       this.offlineMapStatus.set(null);
     }
     if (this.currentLatitude !== null && this.currentLongitude !== null) {
-      this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null; this.clearDirectoryMarkers();
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
@@ -4038,7 +3939,6 @@ export class MapWindow implements OnInit, OnDestroy {
         this.mapInitialization = null;
         this.offlineRenderer?.remove();
         this.offlineRenderer = null;
-        this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null;
         void this.initialize(this.currentLatitude, this.currentLongitude);
       }
       void this.refreshOsmAndTileCache();
@@ -4765,7 +4665,7 @@ export class MapWindow implements OnInit, OnDestroy {
         source,
         initializationPending: !!this.mapInitialization,
         initializationStatus: this.renderInitStatus(),
-        hasLeafletMap: !!this.map,
+        hasMapLibreMap: !!this.offlineRenderer,
         hasOfflineRenderer: !!this.offlineRenderer
       });
       return;
@@ -5042,7 +4942,6 @@ export class MapWindow implements OnInit, OnDestroy {
       && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
-      this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
       this.currentOfflineMapId = null;
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
@@ -5159,7 +5058,6 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
-      this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
       this.currentOfflineMapId = null;
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
@@ -5243,7 +5141,6 @@ export class MapWindow implements OnInit, OnDestroy {
         && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge')) {
         this.mapSourceGeneration++; this.mapInitialization = null;
         this.offlineRenderer?.remove(); this.offlineRenderer = null;
-        this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
         this.currentOfflineMapId = null;
         void this.initialize(this.currentLatitude, this.currentLongitude);
       }
@@ -5265,7 +5162,6 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.currentLatitude !== null && this.currentLongitude !== null && (this.mapSource() === 'offline' || this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' || this.mapSource() === 'mapsforge')) {
       this.mapSourceGeneration++; this.mapInitialization = null;
       this.offlineRenderer?.remove(); this.offlineRenderer = null;
-      this.map?.remove(); this.map = null; this.leafletHillshadeLayer = null; this.leafletHillshadePane = null; this.marker = null; this.directoryMarkerGroup = null;
       this.currentOfflineMapId = null;
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
@@ -5376,14 +5272,11 @@ export class MapWindow implements OnInit, OnDestroy {
     this.markersVisible.set(visible); this.saveSetting('markersVisible', visible);
     const opacity = visible ? this.markerOpacity() / 100 : 0;
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String(opacity));
-    for (const folderMarker of this.directoryMarkers) folderMarker.setOpacity(opacity);
-    this.directoryMarkerGroup?.refreshClusters?.();
     this.offlineRenderer?.setPhotoOpacity(opacity);
   };
   protected readonly changeLocationVisibility = (visible: boolean): void => {
     this.locationVisible.set(visible); this.saveSetting('locationVisible', visible);
     const opacity = visible ? this.locationOpacity() / 100 : 0;
-    this.marker?.setOpacity(opacity);
     this.offlineRenderer?.setCurrentOpacity(opacity);
   };
   protected readonly changeOverlayOpacity = (value: string | number): void => {
@@ -5607,10 +5500,6 @@ export class MapWindow implements OnInit, OnDestroy {
       this.mapInitialization = null;
       this.offlineRenderer?.remove();
       this.offlineRenderer = null;
-      this.map?.remove();
-      this.map = null;
-      this.leafletHillshadeLayer = null;
-      this.leafletHillshadePane = null;
       void this.initialize(this.currentLatitude, this.currentLongitude);
     }
   };
@@ -5623,10 +5512,10 @@ export class MapWindow implements OnInit, OnDestroy {
     const next = Math.max(this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas' ? 2 : 1, this.validZoom(zoom));
     // Keep queued Atlas work intact during zoom changes for the same reason
     // as panning: the worker queue is shared by all visible tile requests.
-    this.persistZoom(next); this.map?.setZoom(next); this.offlineRenderer?.map.setZoom(next);
+    this.persistZoom(next); this.offlineRenderer?.map.setZoom(next);
   };
   protected readonly adjustZoom = (direction: -1 | 1): void => {
-    this.changeZoom((this.offlineRenderer?.map.getZoom() ?? this.map?.getZoom() ?? this.zoomLevel()) + direction);
+    this.changeZoom((this.offlineRenderer?.map.getZoom() ?? this.zoomLevel()) + direction);
   };
   protected readonly changeMarkerOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
@@ -5634,8 +5523,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.markerOpacity.set(next); this.saveSetting('markerOpacity', next);
     const markerOpacity = this.markersVisible() ? next / 100 : 0;
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String(markerOpacity));
-    for (const folderMarker of this.directoryMarkers) folderMarker.setOpacity(markerOpacity);
-    this.directoryMarkerGroup?.refreshClusters?.();
     this.offlineRenderer?.setPhotoOpacity(markerOpacity);
   };
   protected readonly changeLocationOpacity = (value: string | number): void => {
@@ -5643,7 +5530,6 @@ export class MapWindow implements OnInit, OnDestroy {
     const next = Math.max(0, Math.min(100, Math.round(opacity)));
     this.locationOpacity.set(next); this.saveSetting('locationOpacity', next);
     const opacityValue = this.locationVisible() ? next / 100 : 0;
-    this.marker?.setOpacity(opacityValue);
     this.offlineRenderer?.setCurrentOpacity(opacityValue);
   };
   protected readonly changeGpxOpacity = (value: string | number): void => {
@@ -5745,7 +5631,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const desktop = this.desktop;
     if (!desktop) { this.gpxDatabaseQueryBusy.set(false); this.gpxDatabaseQueryStatus.set('The desktop GPX database service is unavailable.'); return; }
     await this.ensureGpxDatabaseTrackSettingsLoaded();
-    const mapBounds = this.offlineRenderer?.map.getBounds() ?? this.map?.getBounds();
+    const mapBounds = this.offlineRenderer?.map.getBounds();
     if (!mapBounds) {
       this.gpxDatabaseQueryBusy.set(false);
       this.gpxDatabaseQueryStatus.set('The map is not ready yet.');
@@ -6221,7 +6107,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxProgress.set({ active: false, percent: 100, label: '' });
     this.gpxRestoreBusy.set(false);
     this.gpxRestoreStatus.set('');
-    // Register viewport refresh once the map instance is ready. Both Leaflet and
+    // Register viewport refresh once the MapLibre instance is ready.
     // MapLibre expose the same moveend event; zoomend is included for settled zooms.
     this.offlineRenderer?.map.on('movestart', this.suspendGpxViewportRendering);
     this.offlineRenderer?.map.on('moveend', this.refreshGpxViewport);
@@ -6392,7 +6278,7 @@ export class MapWindow implements OnInit, OnDestroy {
     track: GpxTrackFile,
     segments: [number, number][][]
   ): { coordinates: [number, number][]; sourceSegmentIndex: number }[] {
-    const bounds = this.map?.getBounds() ?? this.offlineRenderer?.map.getBounds();
+    const bounds = this.offlineRenderer?.map.getBounds();
     const cached = this.gpxViewportChunkCache.get(track.path);
     // Never build chunk bounds synchronously during rendering. If preparation is
     // incomplete (or the source changed), prepare it in the background and skip this pass.
@@ -6453,7 +6339,7 @@ export class MapWindow implements OnInit, OnDestroy {
     const revision = this.gpxViewportRevision();
     const previous = this.gpxRenderedPercentCache.get(track.path);
     if (previous?.revision === revision && previous.source === cached) return previous.percent;
-    const bounds = this.map?.getBounds() ?? this.offlineRenderer?.map.getBounds();
+    const bounds = this.offlineRenderer?.map.getBounds();
     if (!bounds) { this.gpxRenderedPercentCache.set(track.path, { revision, source: cached, percent: 0 }); return 0; }
     const south = bounds.getSouth(), north = bounds.getNorth(), west = bounds.getWest(), east = bounds.getEast();
     let visibleLength = 0;
@@ -6773,7 +6659,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   private ensureWalkingFigureAnimationStyles(): void {
-    // The walker SVG is inserted with innerHTML by Leaflet/MapLibre. Angular's
+    // The walker SVG is inserted with innerHTML by MapLibre. Angular's
     // emulated component styles add _ngcontent attributes, so scoped CSS cannot
     // reach these dynamically-created SVG paths. Install the animation rules
     // globally once so the limbs animate in both online and offline renderers.
@@ -6805,9 +6691,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private updateWalkingMarker(): void {
-    if (!this.timeSliderWalkerVisible() || (!this.leaflet || !this.map) && !this.offlineRenderer || !this.timeSliderActive()) {
-      this.walkingMarker?.remove(); this.walkingMarker = null;
-      this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
+    if (!this.timeSliderWalkerVisible() || !this.offlineRenderer || !this.timeSliderActive()) {
       this.offlineRenderer?.clearWalkingFigure();
       return;
     }
@@ -6879,8 +6763,6 @@ export class MapWindow implements OnInit, OnDestroy {
       const track = activeTracks.find(item => (this.gpxPointDataByTrack.get(item.path)?.some(segment => segment.length > 0) ?? false));
       const points = track ? (this.gpxPointDataByTrack.get(track.path) ?? []).flat() : [];
       if (!points.length) {
-        this.walkingMarker?.remove(); this.walkingMarker = null;
-        this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
         return;
       }
       const fraction = Math.max(0, Math.min(1, (currentTime - this.timeSliderMinimum()) / Math.max(1, this.timeSliderMaximum() - this.timeSliderMinimum())));
@@ -7760,14 +7642,6 @@ ${points}
       );
       this.zoomLevel.set(this.offlineRenderer.map.getZoom());
       this.saveSetting('zoom', this.offlineRenderer.map.getZoom());
-    } else if (this.map) {
-      const bounds: [[number, number], [number, number]] = [
-        [Math.min(...points.map(point => point[0])), Math.min(...points.map(point => point[1]))],
-        [Math.max(...points.map(point => point[0])), Math.max(...points.map(point => point[1]))]
-      ];
-      this.map.fitBounds(bounds, { padding: [32, 32], maxZoom: points.length === 1 ? 15 : 16, animate: false });
-      this.zoomLevel.set(this.map.getZoom());
-      this.saveSetting('zoom', this.map.getZoom());
     }
   };
 
@@ -7784,7 +7658,7 @@ ${points}
     this.currentImageHasGps()
     && this.currentLatitude !== null && Number.isFinite(this.currentLatitude)
     && this.currentLongitude !== null && Number.isFinite(this.currentLongitude)
-    && (!!this.offlineRenderer || !!this.map);
+    && !!this.offlineRenderer;
 
   protected readonly centerSelectedImageLocation = (): void => {
     if (!this.currentImageHasGps()) return;
@@ -7794,8 +7668,6 @@ ${points}
       || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
     if (this.offlineRenderer) {
       this.centerMapAt(latitude, longitude);
-    } else if (this.map) {
-      this.map.setView([latitude, longitude], this.map.getZoom());
     }
   };
 
@@ -7819,14 +7691,6 @@ ${points}
       );
       this.zoomLevel.set(this.offlineRenderer.map.getZoom());
       this.saveSetting('zoom', this.offlineRenderer.map.getZoom());
-    } else if (this.map) {
-      const bounds: [[number, number], [number, number]] = [
-        [Math.min(...points.map(point => point[0])), Math.min(...points.map(point => point[1]))],
-        [Math.max(...points.map(point => point[0])), Math.max(...points.map(point => point[1]))]
-      ];
-      this.map.fitBounds(bounds, { padding: [padding, padding], maxZoom: targetZoom, animate: false });
-      this.zoomLevel.set(this.map.getZoom());
-      this.saveSetting('zoom', this.map.getZoom());
     }
   }
 
@@ -7844,9 +7708,6 @@ ${points}
     if (this.offlineRenderer) {
       this.offlineRenderer.map.fitBounds([[minLongitude, minLatitude], [maxLongitude, maxLatitude]], { padding: 24, maxZoom: 16, duration: 0 });
       this.zoomLevel.set(this.offlineRenderer.map.getZoom()); this.saveSetting('zoom', this.offlineRenderer.map.getZoom());
-    } else if (this.map) {
-      this.map.fitBounds([[minLatitude, minLongitude], [maxLatitude, maxLongitude]], { padding: [24, 24], maxZoom: 16, animate: false });
-      this.zoomLevel.set(this.map.getZoom()); this.saveSetting('zoom', this.map.getZoom());
     }
   };
 
@@ -7947,8 +7808,6 @@ ${points}
     this.applyMapOpacity();
     const markerOpacity = this.markersVisible() ? this.markerOpacity() / 100 : 0;
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String(markerOpacity));
-    for (const marker of this.directoryMarkers) marker.setOpacity(markerOpacity);
-    this.directoryMarkerGroup?.refreshClusters?.();
     this.offlineRenderer?.setPhotoOpacity(markerOpacity);
 
     this.applyCurrentPhotoVisibility();
