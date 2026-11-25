@@ -158,6 +158,7 @@ const api: Desktop = {
     selectDatabaseForDirectory: (directory: string) => ipcRenderer.invoke('CacheManager.selectDatabaseForDirectory', directory),
     getDirectoryPhotoLocations: (directory: string, recursive = false) => ipcRenderer.invoke('CacheManager.getDirectoryPhotoLocations', directory, recursive),
     getPhotoLocationsInBounds: (bounds: { west: number; south: number; east: number; north: number }, databaseKey: string) => ipcRenderer.invoke('CacheManager.getPhotoLocationsInBounds', bounds, databaseKey),
+    checkPhotoDatabaseCoverage: (directory: string, recursive = false) => ipcRenderer.invoke('CacheManager.checkPhotoDatabaseCoverage', directory, recursive),
     getPhotoDatabaseRecord: (sourceName: string) => ipcRenderer.invoke('CacheManager.getPhotoDatabaseRecord', sourceName),
     resolvePhotoLocation: (sourceName: string, latitude: number, longitude: number) => ipcRenderer.invoke('CacheManager.resolvePhotoLocation', sourceName, latitude, longitude),
     importGpxFolder: () => ipcRenderer.invoke('CacheManager.importGpxFolder'),
