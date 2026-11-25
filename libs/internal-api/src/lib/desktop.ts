@@ -700,6 +700,9 @@ export interface DesktopTheme {
 }
 
 export interface Desktop {
+  readonly Diagnostics: {
+    readonly ping: () => Promise<{ receivedAt: number; windowRole: string }>;
+  };
   readonly onFilesOpened: (callback: (paths: string[]) => void) => () => void;
   readonly Theme: DesktopTheme;
   readonly ProcessManager: DesktopProcessManager;
