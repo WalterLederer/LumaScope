@@ -63,6 +63,49 @@ export class App {
     } catch (error) {
       console.warn('[Performance] Long-task observation is unavailable:', error);
     }
+    // Periodic IPC roundtrips distinguish renderer stalls from main-process stalls.
+    // Log only delayed responses or delayed renderer timers to keep normal logs quiet.
+    let previousHeartbeatAt = performance.now();
+    let heartbeatPending = false;
+    window.setInterval(() => {
+      const startedAt = performance.now();
+      const timerDelayMs = Math.max(0, startedAt - previousHeartbeatAt - 1000);
+      previousHeartbeatAt = startedAt;
+      if (heartbeatPending) {
+        if (timerDelayMs >= 500) {
+          console.warn('[Performance] Renderer heartbeat timer delayed', {
+            delayMs: Math.round(timerDelayMs),
+            page: window.location.href,
+            visibility: document.visibilityState
+          });
+        }
+        return;
+      }
+
+      heartbeatPending = true;
+      void window.desktop.Diagnostics.ping().then(result => {
+        const roundTripMs = performance.now() - startedAt;
+        if (roundTripMs >= 200 || timerDelayMs >= 500) {
+          console.warn('[Performance] Renderer IPC heartbeat delayed', {
+            roundTripMs: Math.round(roundTripMs),
+            rendererTimerDelayMs: Math.round(timerDelayMs),
+            windowRole: result.windowRole,
+            mainReceivedAt: result.receivedAt,
+            page: window.location.href,
+            visibility: document.visibilityState
+          });
+        }
+      }).catch(error => {
+        console.warn('[Performance] Renderer IPC heartbeat failed', {
+          error: error instanceof Error ? error.message : String(error),
+          rendererTimerDelayMs: Math.round(timerDelayMs),
+          page: window.location.href
+        });
+      }).finally(() => {
+        heartbeatPending = false;
+      });
+    }, 1000);
+
     this.setAppTitle();
     this.keyboard.keydown().pipe(takeUntilDestroyed()).subscribe(event => {
       if (event.repeat || event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
