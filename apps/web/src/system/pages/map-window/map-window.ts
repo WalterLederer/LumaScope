@@ -3944,6 +3944,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.mapElement().nativeElement.style.setProperty('--marker-opacity', String((this.markersVisible() ? this.markerOpacity() / 100 : 0)));
     const syncZoom = (): void => { this.persistZoom(map.getZoom()); this.applyGpxTrack(); };
     map.on('moveend', this.refreshGpxViewport);
+    map.on('moveend', () => this.applyDirectoryPhotoMarkers());
+    map.on('zoomend', () => this.applyDirectoryPhotoMarkers());
     map.on('zoomend', syncZoom);
     (map as unknown as { on: (event: 'moveend', callback: () => void) => unknown })
       .on('moveend', () => { this.updateCrosshairCoordinates(); this.scheduleGpxDatabaseViewportRefresh(); });
@@ -6883,7 +6885,12 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private applyDirectoryPhotoMarkers(): void {
-    const visibleMarkers = this.directoryPhotoMarkers.filter(marker => this.isTimeSliderTimestampVisible(marker.gpsTimestamp));
+    const mapBounds = this.offlineRenderer?.map.getBounds() ?? this.map?.getBounds();
+    const visibleMarkers = this.directoryPhotoMarkers.filter(marker =>
+      this.isTimeSliderTimestampVisible(marker.gpsTimestamp)
+      && (!mapBounds || (marker.latitude >= mapBounds.getSouth() && marker.latitude <= mapBounds.getNorth()
+        && marker.longitude >= mapBounds.getWest() && marker.longitude <= mapBounds.getEast()))
+    );
     if (this.offlineRenderer) {
       this.markerCount.set(visibleMarkers.length);
       this.offlineRenderer.setPhotoMarkers(visibleMarkers, path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
