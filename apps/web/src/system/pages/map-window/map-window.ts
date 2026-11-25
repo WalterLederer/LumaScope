@@ -1413,6 +1413,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private routeWaypointMarkers: Array<{ remove(): void }> = [];
   private routeRequestGeneration = 0;
   protected readonly gpxRestoreBusy = signal(false);
+  protected readonly gpxRestoreStatus = signal('');
   protected readonly gpxError = signal('');
   protected readonly gpxHoveredTrackPath = signal<string | null>(null);
   protected readonly gpxHoverInfo = signal('');
@@ -5775,15 +5776,12 @@ export class MapWindow implements OnInit, OnDestroy {
         this.gpxImportStatus.set(`Reading ${file.name} (${added.length + 1}/${files.length})…`);
         await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
         const content = await file.text();
-        this.gpxImportStatus.set(`Parsing track geometry: ${file.name}…`);
+        this.gpxImportStatus.set(`Parsing GPX: ${file.name}…`);
         await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-        const parsed = this.parseGpxTrackData(content);
-        this.gpxImportStatus.set(`Reading point metadata: ${file.name}…`);
-        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-        const pointData = this.parseGpxTrackPointData(content);
-        this.gpxImportStatus.set(`Reading segment names: ${file.name}…`);
-        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-        const segmentNames = this.parseGpxTrackSegmentNames(content);
+        const parsedData = await this.parseGpxTrackBundle(content, (processed, total) => {
+          this.gpxImportStatus.set(`Parsing ${file.name}: ${formatNumber(processed)} / ${formatNumber(total)} points…`);
+        });
+        const { coordinates: parsed, pointData, segmentNames } = parsedData;
         const pointCount = pointData.reduce((total, segment) => total + segment.length, 0);
         this.gpxImportStatus.set(`Loaded ${formatNumber(pointCount)} points in ${formatNumber(pointData.length)} segments. Updating map…`);
         await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
@@ -5899,10 +5897,12 @@ export class MapWindow implements OnInit, OnDestroy {
       ]);
       if (!result.success) { valid.push({ ...track, missing: metadata === null, readError: metadata !== null }); continue; }
       try {
-        const parsed = this.parseGpxTrackData(result.data);
-        this.gpxPointDataByTrack.set(track.path, this.parseGpxTrackPointData(result.data));
-        this.gpxSegmentNamesByTrack.set(track.path, this.parseGpxTrackSegmentNames(result.data));
-        this.gpxSegmentsByTrack.set(track.path, parsed);
+        const parsedData = await this.parseGpxTrackBundle(result.data, (processed, total) => {
+          this.gpxRestoreStatus.set(`Loading ${track.name}: ${formatNumber(processed)} / ${formatNumber(total)} points…`);
+        });
+        this.gpxPointDataByTrack.set(track.path, parsedData.pointData);
+        this.gpxSegmentNamesByTrack.set(track.path, parsedData.segmentNames);
+        this.gpxSegmentsByTrack.set(track.path, parsedData.coordinates);
         if (track.active !== false) segments.push(...parsed);
         valid.push({ ...track, sizeBytes: metadata?.size ?? track.sizeBytes, lastModified: metadata?.modifiedAt ?? track.lastModified, missing: false, readError: false, active: track.active !== false, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? (track.lineStyle ?? 'solid') : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? (track.lineWidth ?? 4) : 4, showDirection: track.showDirection === true, directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? 16, directionArrowOutlineWidthPx: track.directionArrowOutlineWidthPx ?? 2, trackShadowStrength: track.trackShadowStrength ?? 0, arrowShadowStrength: track.arrowShadowStrength ?? 0, trackOutlineStrength: track.trackOutlineStrength ?? 0, directionStyle: ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'].includes(track.directionStyle ?? '') ? (track.directionStyle ?? 'classic') : 'classic' });
       }
@@ -6014,6 +6014,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private async restoreGpxTrack(): Promise<void> {
     if (!this.desktop) return;
     this.gpxRestoreBusy.set(true);
+    this.gpxRestoreStatus.set('Loading saved GPX tracks…');
     const settings = await this.desktop.ProcessManager.getAppSettings();
     const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
       ? settings['gpx'] as Record<string, unknown> : {};
@@ -6105,12 +6106,15 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       if (!result.success) { available.push({ ...track, missing: metadata === null, readError: metadata !== null }); continue; }
       try {
-        const parsed = this.parseGpxTrackData(result.data);
-        this.gpxPointDataByTrack.set(track.path, this.parseGpxTrackPointData(result.data));
-        this.gpxSegmentNamesByTrack.set(track.path, this.parseGpxTrackSegmentNames(result.data));
+        this.gpxRestoreStatus.set(`Loading ${track.name}…`);
+        const parsedData = await this.parseGpxTrackBundle(result.data, (processed, total) => {
+          this.gpxRestoreStatus.set(`Loading ${track.name}: ${formatNumber(processed)} / ${formatNumber(total)} points…`);
+        });
         const active = track.active !== false;
-        this.gpxSegmentsByTrack.set(track.path, parsed);
-        if (active) segments.push(...parsed);
+        this.gpxPointDataByTrack.set(track.path, parsedData.pointData);
+        this.gpxSegmentNamesByTrack.set(track.path, parsedData.segmentNames);
+        this.gpxSegmentsByTrack.set(track.path, parsedData.coordinates);
+        if (active) segments.push(...parsedData.coordinates);
         available.push({ ...track, sizeBytes: metadata?.size ?? track.sizeBytes, lastModified: metadata?.modifiedAt ?? track.lastModified, missing: false, readError: false, active, color: this.gpxColors.some(item => item.value === track.color) ? track.color : this.gpxColor(), lineStyle: ['solid', 'dashed', 'dotted', 'long-dashed', 'short-dashed', 'dash-dot', 'dash-dot-dot'].includes(track.lineStyle ?? '') ? (track.lineStyle ?? 'solid') : 'solid', lineWidth: [1, 2, 3, 4, 5, 6, 8, 10].includes(track.lineWidth ?? 4) ? (track.lineWidth ?? 4) : 4, showDirection: track.showDirection === true, directionIntervalPx: track.directionIntervalPx ?? 120, directionArrowSizePx: track.directionArrowSizePx ?? 16, directionArrowOutlineWidthPx: track.directionArrowOutlineWidthPx ?? 2, trackShadowStrength: track.trackShadowStrength ?? 0, arrowShadowStrength: track.arrowShadowStrength ?? 0, trackOutlineStrength: track.trackOutlineStrength ?? 0, directionStyle: ['classic', 'chevron', 'triangle', 'thin', 'large-classic', 'large-chevron', 'large-triangle'].includes(track.directionStyle ?? '') ? (track.directionStyle ?? 'classic') : 'classic' });
       } catch (error) { this.gpxError.set(`${track.name}: ${error instanceof Error ? error.message : String(error)}`); }
     }
@@ -6119,6 +6123,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.rebuildGpxSegments();
     this.applyGpxTrack();
     this.gpxRestoreBusy.set(false);
+    this.gpxRestoreStatus.set('');
   }
 
   protected readonly changeGpxTrackColor = (path: string, color: string): void => {
@@ -7476,6 +7481,77 @@ ${points}
     }
   };
 
+  private async parseGpxTrackBundle(
+    content: string,
+    onProgress?: (processed: number, total: number) => void
+  ): Promise<{ coordinates: [number, number][][]; pointData: GpxTrackPoint[][]; segmentNames: string[] }> {
+    const xml = new DOMParser().parseFromString(content, 'application/xml');
+    if (xml.getElementsByTagName('parsererror').length) throw new Error('The selected file is not valid GPX/XML.');
+    const elements = Array.from(xml.getElementsByTagName('*'));
+    const trackElements = elements.filter(element => element.localName === 'trk');
+    const trackIndices = new Map<Element, number>(trackElements.map((element, index) => [element, index]));
+    const segmentElements = elements.filter(element => element.localName === 'trkseg');
+    const groups: Array<{ elements: Element[]; name: string }> = [];
+    if (segmentElements.length) {
+      for (const segment of segmentElements) {
+        let parent = segment.parentElement;
+        while (parent && parent.localName !== 'trk') parent = parent.parentElement;
+        const trackIndex = parent ? (trackIndices.get(parent) ?? groups.length) : groups.length;
+        const name = parent
+          ? Array.from(parent.children).find(child => child.localName === 'name')?.textContent?.trim()
+          : '';
+        const points = Array.from(segment.getElementsByTagName('*')).filter(point => point.localName === 'trkpt');
+        if (points.length) groups.push({ elements: points, name: name || `Track ${trackIndex + 1}` });
+      }
+    } else {
+      const points = elements.filter(point => point.localName === 'trkpt' || point.localName === 'rtept');
+      if (points.length) {
+        const route = elements.find(element => element.localName === 'rte');
+        const name = route ? Array.from(route.children).find(child => child.localName === 'name')?.textContent?.trim() : '';
+        groups.push({ elements: points, name: name || 'Route' });
+      }
+    }
+    const total = groups.reduce((sum, group) => sum + group.elements.length, 0);
+    if (!total) throw new Error('No valid track or route points were found in the GPX file.');
+    const coordinates: [number, number][][] = [];
+    const pointData: GpxTrackPoint[][] = [];
+    const segmentNames: string[] = [];
+    let processed = 0;
+    for (const group of groups) {
+      const coordinateSegment: [number, number][] = [];
+      const metadataSegment: GpxTrackPoint[] = [];
+      for (const point of group.elements) {
+        const coordinate = this.parseGpxPoint(point);
+        if (!coordinate) continue;
+        let elevation: number | null = null;
+        let timestamp: string | null = null;
+        for (const child of Array.from(point.children)) {
+          if (child.localName === 'ele') {
+            const value = Number(child.textContent?.trim());
+            elevation = Number.isFinite(value) ? value : null;
+          } else if (child.localName === 'time') {
+            timestamp = child.textContent?.trim() || null;
+          }
+        }
+        coordinateSegment.push(coordinate);
+        metadataSegment.push({ latitude: coordinate[0], longitude: coordinate[1], elevation, timestamp });
+        processed++;
+        if (processed % 2000 === 0) {
+          onProgress?.(processed, total);
+          await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+        }
+      }
+      if (coordinateSegment.length) {
+        coordinates.push(coordinateSegment);
+        pointData.push(metadataSegment);
+        segmentNames.push(group.name);
+      }
+    }
+    onProgress?.(processed, total);
+    if (!coordinates.length) throw new Error('No valid track or route points were found in the GPX file.');
+    return { coordinates, pointData, segmentNames };
+  }
+
   private parseGpxTrackData(content: string): [number, number][][] {
     const xml = new DOMParser().parseFromString(content, 'application/xml');
     if (xml.getElementsByTagName('parsererror').length) throw new Error('The selected file is not valid GPX/XML.');
@@ -7582,16 +7658,19 @@ ${points}
   protected readonly fitGpxTrack = (path?: string): void => {
     const points = (path ? this.gpxSegmentsByTrack.get(path) ?? [] : this.gpxSegments).flat();
     if (!points.length) return;
+    let minLatitude = Number.POSITIVE_INFINITY, minLongitude = Number.POSITIVE_INFINITY;
+    let maxLatitude = Number.NEGATIVE_INFINITY, maxLongitude = Number.NEGATIVE_INFINITY;
+    for (const [latitude, longitude] of points) {
+      minLatitude = Math.min(minLatitude, latitude);
+      minLongitude = Math.min(minLongitude, longitude);
+      maxLatitude = Math.max(maxLatitude, latitude);
+      maxLongitude = Math.max(maxLongitude, longitude);
+    }
     if (this.offlineRenderer) {
-      const longitudes = points.map(point => point[1]), latitudes = points.map(point => point[0]);
-      this.offlineRenderer.map.fitBounds([[Math.min(...longitudes), Math.min(...latitudes)], [Math.max(...longitudes), Math.max(...latitudes)]], { padding: 24, maxZoom: 16, duration: 0 });
+      this.offlineRenderer.map.fitBounds([[minLongitude, minLatitude], [maxLongitude, maxLatitude]], { padding: 24, maxZoom: 16, duration: 0 });
       this.zoomLevel.set(this.offlineRenderer.map.getZoom()); this.saveSetting('zoom', this.offlineRenderer.map.getZoom());
     } else if (this.map) {
-      const bounds: [[number, number], [number, number]] = [
-        [Math.min(...points.map(point => point[0])), Math.min(...points.map(point => point[1]))],
-        [Math.max(...points.map(point => point[0])), Math.max(...points.map(point => point[1]))]
-      ];
-      this.map.fitBounds(bounds, { padding: [24, 24], maxZoom: 16, animate: false });
+      this.map.fitBounds([[minLatitude, minLongitude], [maxLatitude, maxLongitude]], { padding: [24, 24], maxZoom: 16, animate: false });
       this.zoomLevel.set(this.map.getZoom()); this.saveSetting('zoom', this.map.getZoom());
     }
   };
