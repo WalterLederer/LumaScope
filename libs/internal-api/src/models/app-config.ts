@@ -125,6 +125,8 @@ export interface AppConfigV1Preferences {
   galleryDetailSizeProgressEnabled?: boolean;
   /** Progress-bar background opacity in percent (0-100). */
   galleryDetailProgressTransparency?: number;
+  /** Vertical spacing between rows in the gallery detail table (pixels). */
+  galleryDetailRowVerticalGap?: number;
 }
 
 export interface AppConfigV1System {
@@ -153,6 +155,8 @@ export interface AppConfigV1System {
   gpxTrackSettingsFavorites?: Array<{ name: string; settings: Record<string, unknown> }>;
   /** Reusable gallery detail-table appearance presets shown in the Preferences dialog. */
   galleryDetailPreferencesFavorites?: Array<{ name: string; settings: Record<string, unknown> }>;
+  /** Expanded/collapsed sections in the gallery detail-table Preferences dialog. */
+  galleryDetailPreferenceSections?: Record<string, boolean>;
   bounds?: {
     x: number;
     y: number;
@@ -195,6 +199,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.offlineFilesActionsColumnPosition || 'left' === input.offlineFilesActionsColumnPosition || 'right' === input.offlineFilesActionsColumnPosition)
     && (undefined === input.gpxTrackSettingsFavorites || Array.isArray(input.gpxTrackSettingsFavorites) && input.gpxTrackSettingsFavorites.every((elem: any) => 'object' === typeof elem && null !== elem && 'string' === typeof elem.name && 'object' === typeof elem.settings && null !== elem.settings && !Array.isArray(elem.settings)))
     && (undefined === input.galleryDetailPreferencesFavorites || Array.isArray(input.galleryDetailPreferencesFavorites) && input.galleryDetailPreferencesFavorites.every((elem: any) => 'object' === typeof elem && null !== elem && 'string' === typeof elem.name && 'object' === typeof elem.settings && null !== elem.settings && !Array.isArray(elem.settings)))
+    && (undefined === input.galleryDetailPreferenceSections || 'object' === typeof input.galleryDetailPreferenceSections && null !== input.galleryDetailPreferenceSections && Object.values(input.galleryDetailPreferenceSections).every((elem: any) => 'boolean' === typeof elem))
     && (undefined === input.bounds || 'object' === typeof input.bounds && null !== input.bounds && _io3(input.bounds));
   const _io3 = (input: any): boolean =>
     'number' === typeof input.x && 'number' === typeof input.y && 'number' === typeof input.width
@@ -223,6 +228,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.galleryDetailDimensionsProgressEnabled || typeof input.galleryDetailDimensionsProgressEnabled === 'boolean')
     && (undefined === input.galleryDetailSizeProgressEnabled || typeof input.galleryDetailSizeProgressEnabled === 'boolean')
     && (undefined === input.galleryDetailProgressTransparency || typeof input.galleryDetailProgressTransparency === 'number' && input.galleryDetailProgressTransparency >= 0 && input.galleryDetailProgressTransparency <= 100)
+    && (undefined === input.galleryDetailRowVerticalGap || typeof input.galleryDetailRowVerticalGap === 'number' && input.galleryDetailRowVerticalGap >= 0 && input.galleryDetailRowVerticalGap <= 24)
     && (undefined === input.disclosureStyle || 'classic' === input.disclosureStyle || 'plain-triangle' === input.disclosureStyle || 'chevron' === input.disclosureStyle || 'plus-minus' === input.disclosureStyle || 'square' === input.disclosureStyle || 'circle' === input.disclosureStyle || 'arrow' === input.disclosureStyle || 'caret' === input.disclosureStyle || 'bracket' === input.disclosureStyle || 'none' === input.disclosureStyle)
     && (undefined === input.tabBarStyle || 'classic' === input.tabBarStyle || 'underline' === input.tabBarStyle || 'pills' === input.tabBarStyle || 'segmented' === input.tabBarStyle || 'boxed' === input.tabBarStyle || 'minimal' === input.tabBarStyle || 'flat' === input.tabBarStyle || 'contrast' === input.tabBarStyle || 'soft' === input.tabBarStyle || 'rounded' === input.tabBarStyle);
   return (input: any): input is AppConfigV1 => 'object' === typeof input && null !== input && _io0(input);
