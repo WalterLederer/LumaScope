@@ -190,6 +190,12 @@ export class ImageView {
     this.cacheManager.checkPhotoDatabaseCoverage(directory, recursive);
 
   private readonly openLocationWindowAfterCache = async (directory: string, previousTab: string): Promise<void> => {
+    console.warn('[StartupTiming] Location window open flow started after cache confirmation', {
+      timestamp: new Date().toISOString(),
+      rendererElapsedMs: Math.round(performance.now()),
+      directory,
+      recursive: this.galleryState.includeFilesRecursiveValue()
+    });
     try {
       this.controlsSidebarVisible.set(true);
       this.setActiveImageSidebarTab('cache');
@@ -217,6 +223,12 @@ export class ImageView {
   };
 
   protected readonly openLocationWindow = async (): Promise<void> => {
+    console.warn('[StartupTiming] Location window open requested in renderer', {
+      timestamp: new Date().toISOString(),
+      rendererElapsedMs: Math.round(performance.now()),
+      alreadyOpen: this.detachedMapWindowOpen(),
+      selectedLocation: this.gallerySelectedLocation() || null
+    });
     const api = this.desktopApi?.MapWindow;
     if (!api) return;
     if (this.detachedMapWindowOpen()) {
@@ -256,6 +268,12 @@ export class ImageView {
     const api = this.desktopApi?.MapWindow;
     if (!api) return;
     if (open) {
+      console.warn('[StartupTiming] Location window open dispatched from renderer', {
+        timestamp: new Date().toISOString(),
+        rendererElapsedMs: Math.round(performance.now()),
+        hasCoordinates: Boolean(coordinates),
+        selectedLocation: this.gallerySelectedLocation() || null
+      });
       this.selectedImage$.pipe(take(1)).subscribe(image => {
         void api.open(coordinates?.latitude ?? null, coordinates?.longitude ?? null, coordinates?.direction ?? undefined, image?.path ?? null, this.gallerySelectedLocation() ?? null, this.galleryState.includeFilesRecursiveValue());
       });
