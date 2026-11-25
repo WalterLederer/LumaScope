@@ -588,3 +588,11 @@
   overflow: hidden;
   vertical-align: baseline;
 }
+
+/* Keep the current Help search destination visibly marked while navigating. */
+:host ::ng-deep .markdown-body .active-search-line {
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--color-content-accent, #69aee8) 16%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--color-content-accent, #69aee8) 35%, transparent);
+  outline-offset: 2px;
+}
