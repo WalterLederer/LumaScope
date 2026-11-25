@@ -1,6 +1,6 @@
 import { DOCUMENT } from '@angular/common';
 import { SliderComponent } from '@light-matter/ui';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { FileSystem } from '../../../ipc/file-system';
 import { ProcessManager } from '../../../ipc/process-manager';
 
@@ -278,16 +278,23 @@ export class MarkdownViewerComponent {
         this.currentFile.set(fileName);
         this.imageSources.set(imageSources);
         this.markdown.set(response.data);
-        if (targetLine && targetLine > 0) {
-          this.scrollToSearchResult({ fileName, lineNumber: targetLine, snippet: '' }, request);
-        }
       } else {
         this.error.set(response.errorMessage);
       }
     } catch (error) {
       if (request === this.documentLoadRequest) this.error.set(error instanceof Error ? error.message : String(error));
     } finally {
-      if (request === this.documentLoadRequest) this.loading.set(false);
+      if (request === this.documentLoadRequest) {
+        this.loading.set(false);
+        if (targetLine && targetLine > 0 && request === this.documentLoadRequest) {
+          // The article only exists after loading becomes false and Angular renders
+          // the new Markdown. Start line navigation after that view update.
+          const result = { fileName, lineNumber: targetLine, snippet: '' };
+          this.document.defaultView?.requestAnimationFrame(() =>
+            this.document.defaultView?.requestAnimationFrame(() => this.scrollToSearchResult(result, request))
+          );
+        }
+      }
     }
   };
 
@@ -340,8 +347,19 @@ export class MarkdownViewerComponent {
     if (event.key === 'Enter' || event.key === 'F3') {
       if (!this.flatSearchResults().length || this.searchBusy()) return;
       event.preventDefault();
+      event.stopPropagation();
       this.navigateSearchResult(event.shiftKey ? -1 : 1);
     }
+  };
+
+  @HostListener('document:keydown', ['$event'])
+  protected readonly onGlobalSearchKeydown = (event: KeyboardEvent): void => {
+    // F3 navigation must remain available after focus moves from the search field
+    // to a result row or into the Markdown article.
+    if (event.key !== 'F3' || !this.flatSearchResults().length || this.searchBusy()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.navigateSearchResult(event.shiftKey ? -1 : 1);
   };
 
   protected readonly onSearchPanelKeydown = (event: KeyboardEvent): void => {
