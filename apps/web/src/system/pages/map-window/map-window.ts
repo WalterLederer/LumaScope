@@ -48,7 +48,7 @@ interface LeafletMapApi {
   tileLayer(url: string, options: { attribution: string; maxZoom: number; maxNativeZoom?: number }): LeafletTileLayer;
   GridLayer: { extend(definition: { createTile(coords: { x: number; y: number; z: number }, done: (error: Error | null, tile: HTMLCanvasElement) => void): HTMLCanvasElement }): new(options?: { pane?: string; opacity?: number; tileSize?: number; minZoom?: number; maxZoom?: number; maxNativeZoom?: number; zIndex?: number }) => LeafletGridLayer };
   canvas(options?: { padding?: number }): unknown;
-  polyline(points: [number, number][] | [number, number][][], options: { color: string; weight: number; opacity: number; lineCap: string; lineJoin: string; dashArray?: string; renderer?: unknown }): { addTo(map: MapInstance): { remove(): void; on(event: 'mousemove' | 'mouseout', callback: (event: { latlng: { lat: number; lng: number } }) => void): unknown; getElement?(): SVGElement | null } };
+  polyline(points: [number, number][] | [number, number][][], options: { color: string; weight: number; opacity: number; lineCap: string; lineJoin: string; dashArray?: string; smoothFactor?: number; renderer?: unknown }): { addTo(map: MapInstance): { remove(): void; on(event: 'mousemove' | 'mouseout', callback: (event: { latlng: { lat: number; lng: number } }) => void): unknown; getElement?(): SVGElement | null } };
   polygon(points: [number, number][], options: { color: string; weight: number; opacity: number; fillColor: string; fillOpacity: number }): { addTo(map: MapInstance): { remove(): void } };
   marker(position: [number, number], options?: { icon?: unknown }): MapMarker & { addTo(map: MapInstance | MapMarkerGroup): MapMarker };
   divIcon(options: { className: string; html: string; iconSize: [number, number]; iconAnchor: [number, number] }): unknown;
@@ -5752,6 +5752,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   protected readonly deleteAllGpxTracks = async (): Promise<void> => {
     this.gpxSegmentsByTrack.clear();
+    this.gpxViewportChunkCache.clear();
     this.gpxPointDataByTrack.clear();
     this.gpxSegmentNamesByTrack.clear();
     this.gpxSpeedSegmentsCache.clear();
@@ -5874,6 +5875,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly removeGpxTrack = async (path: string): Promise<void> => {
     const next = this.gpxTracks().filter(track => track.path !== path);
     this.gpxSegmentsByTrack.delete(path);
+    this.gpxViewportChunkCache.delete(path);
     this.gpxPointDataByTrack.delete(path);
     this.gpxSegmentNamesByTrack.delete(path);
     this.gpxSpeedSegmentsCache.delete(path);
@@ -6119,7 +6121,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxRestoreStatus.set('');
     // Register viewport refresh once the map instance is ready. Both Leaflet and
     // MapLibre expose the same moveend event; zoomend is included for settled zooms.
-    this.map?.on('zoomend', this.refreshGpxViewport);
     this.offlineRenderer?.map.on('moveend', this.refreshGpxViewport);
     this.offlineRenderer?.map.on('zoomend', this.refreshGpxViewport);
   }
