@@ -2531,8 +2531,8 @@ export class OfflineMapRenderer {
       return;
     }
 
-    // The online raster basemap remains the visual base. Reuse the selected
-    // MBTiles vector source only for its existing label-anchor layers.
+    // Reuse the selected MBTiles vector source as a label-only overlay.
+    // The base map (online raster or Mapsforge raster) remains underneath it.
     for (const layer of this.map.getStyle().layers.filter(item =>
       item.id.startsWith('label-') || item.id.startsWith('omt-label-'))) {
       this.map.removeLayer(layer.id);
@@ -2557,9 +2557,22 @@ export class OfflineMapRenderer {
 
     this.schema = map.schema ?? 'shortbread';
     this.map.addSource('shortbread', source);
-    for (const layer of labelStyle.layers.filter(item => item.id.endsWith('-anchor'))) {
+    const anchorLayers = labelStyle.layers.filter(item => item.id.endsWith('-anchor'));
+    for (const layer of anchorLayers) {
+      // Append anchors above the raster basemap so their rendered features can
+      // drive the DOM label overlay. Keep their nearly-transparent paint intact.
       this.map.addLayer(layer);
+      this.map.moveLayer(layer.id);
     }
+    console.info('[MBTiles Labels] Overlay layers added above the active basemap:', {
+      source: 'shortbread',
+      schema: this.schema,
+      anchorLayers: anchorLayers.map(layer => layer.id),
+      basemapLayers: this.map.getStyle().layers
+        .filter(layer => layer.id === 'online-basemap-layer' || layer.id.startsWith('mapsforge'))
+        .map(layer => layer.id),
+      zOrder: this.map.getStyle().layers.map(layer => layer.id)
+    });
     this.map.triggerRepaint();
     this.refreshTextLabels();
   }
