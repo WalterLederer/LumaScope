@@ -583,3 +583,13 @@
   min-height: 0;
   overscroll-behavior: contain;
 }
+
+
+/* Per-source-line anchors let Help search navigate within multi-line blocks. */
+:host ::ng-deep .markdown-body .help-search-line-anchor {
+  display: inline-block;
+  width: 0;
+  height: 1em;
+  overflow: hidden;
+  vertical-align: baseline;
+}
