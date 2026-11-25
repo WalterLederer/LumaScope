@@ -193,6 +193,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }>();
   private readonly gpxViewportRevision = signal(0);
   private readonly gpxViewportRenderingActive = signal(true);
+  private readonly gpxRenderedPercentCache = new Map<string, { revision: number; source: object; percent: number }>();
   private readonly gpxColoredViewportSources = new Map<string, {
     input: Array<{ coordinates: [number, number][]; color: string }>;
     source: [number, number][][];
@@ -6395,15 +6396,20 @@ export class MapWindow implements OnInit, OnDestroy {
     if (track.active === false || !this.gpxVisible() || !this.gpxViewportRenderingActive()) return 0;
     const cached = this.gpxViewportChunkCache.get(track.path);
     if (!cached || cached.totalLength <= 0) return 0;
+    const revision = this.gpxViewportRevision();
+    const previous = this.gpxRenderedPercentCache.get(track.path);
+    if (previous?.revision === revision && previous.source === cached) return previous.percent;
     const bounds = this.map?.getBounds() ?? this.offlineRenderer?.map.getBounds();
-    if (!bounds) return 0;
+    if (!bounds) { this.gpxRenderedPercentCache.set(track.path, { revision, source: cached, percent: 0 }); return 0; }
     const south = bounds.getSouth(), north = bounds.getNorth(), west = bounds.getWest(), east = bounds.getEast();
     let visibleLength = 0;
     for (const chunk of cached.chunks) {
       if (chunk.north < south || chunk.south > north || chunk.east < west || chunk.west > east) continue;
       for (let i = 1; i < chunk.coordinates.length; i++) visibleLength += this.clippedGpxSegmentLength(chunk.coordinates[i - 1], chunk.coordinates[i], south, north, west, east);
     }
-    return Math.max(0, Math.min(100, Math.round(visibleLength / cached.totalLength * 100)));
+    const percent = Math.max(0, Math.min(100, Math.round(visibleLength / cached.totalLength * 100)));
+    this.gpxRenderedPercentCache.set(track.path, { revision, source: cached, percent });
+    return percent;
   };
   private readonly suspendGpxViewportRendering = (): void => {
     this.gpxViewportRenderingActive.set(false);
