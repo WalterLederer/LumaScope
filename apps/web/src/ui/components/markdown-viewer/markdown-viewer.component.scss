@@ -511,3 +511,75 @@
 }
 :host ::ng-deep .markdown-help-search-group-results { padding: 3px 5px; }
 :host ::ng-deep .markdown-help-search-navigation button span { margin-right: 3px; font-size: 13px; font-weight: 700; }
+
+
+/* Search mode uses two independent panes: a fixed search toolbar/list above the article. */
+.markdown-help-search {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 25%));
+}
+.markdown-help-search.has-query {
+  flex: 0 1 42%;
+  min-height: 120px;
+  max-height: 55%;
+}
+.markdown-help-search > input {
+  flex: 0 0 auto;
+}
+.markdown-help-search-panel {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.markdown-help-search-panel > .markdown-state {
+  flex: 0 0 auto;
+  margin: 8px 4px;
+}
+.markdown-help-search-panel .markdown-help-search-toolbar {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  margin: 5px 0;
+  padding: 3px 0 5px;
+  border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 25%));
+  background: var(--color-surface-default);
+}
+.markdown-help-search-panel .markdown-help-search-results {
+  position: static;
+  inset: auto;
+  display: block;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+  padding: 2px 3px 6px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overscroll-behavior: contain;
+}
+.markdown-help-search-results .markdown-help-search-group:first-child { margin-top: 0; }
+.markdown-help-search-results .markdown-help-search-group:last-child { margin-bottom: 0; }
+.markdown-help-search-navigation {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.markdown-help-search-navigation button {
+  white-space: nowrap;
+}
+.markdown-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
