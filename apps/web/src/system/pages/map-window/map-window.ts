@@ -3472,6 +3472,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private async createOfflineMap(latitude: number, longitude: number, generation: number, status: import('internal-api').OfflineMapStatus): Promise<void> {
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'offline') return;
     this.offlineMapStatus.set(status ?? null);
+    if (this.desktop) registerOsmAndLabelsTileProtocol(this.desktop, () => this.displayDensityFactor());
     this.beginMapLoading('offline');
     const renderer = new OfflineMapRenderer(
       this.mapElement().nativeElement,
