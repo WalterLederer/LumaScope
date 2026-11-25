@@ -3,7 +3,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { FileSystem } from '../../../ipc/file-system';
 import { ProcessManager } from '../../../ipc/process-manager';
 
-interface HelpSearchResult { fileName: string; title: string; lineNumber: number; snippet: string; }
+interface HelpSearchResult { fileName: string; lineNumber: number; snippet: string; }
+interface HelpSearchGroup { fileName: string; title: string; results: HelpSearchResult[]; }
 
 const helpDocuments = ['README.md', 'build-from-source.md', 'external-programs.md', 'features.md', 'gpx-cache.md', 'image-detail-table.md', 'image-formats.md', 'licensing.md', 'location-fix-automatic.md', 'location-fix-manual.md', 'map-formats.md', 'offline-address-search.md', 'ohsp-format.md', 'photo-markers-tab.md', 'platform-support.md', 'resource-package-format.md', 'routing.md', 'screen-capture-formats.md', 'screen-capture.md', 'shortcuts.md', 'time-slider-animation.md', 'time-slider.md', 'track-tab.md', 'windows-api.md'] as const;
 
@@ -195,7 +196,7 @@ export class MarkdownViewerComponent {
   );
   protected readonly openFileError = signal('');
   protected readonly searchQuery = signal('');
-  protected readonly searchResults = signal<HelpSearchResult[]>([]);
+  protected readonly searchResults = signal<HelpSearchGroup[]>([]);
   protected readonly searchBusy = signal(false);
   protected readonly searchError = signal('');
   private documentLoadRequest = 0;
@@ -292,7 +293,8 @@ export class MarkdownViewerComponent {
   };
 
   private readonly searchDocumentation = async (query: string, request: number): Promise<void> => {
-    const results: HelpSearchResult[] = [];
+    const groups: HelpSearchGroup[] = [];
+    let totalResults = 0;
     const needle = query.toLocaleLowerCase();
     try {
       const documents = await Promise.all(helpDocuments.map(async fileName => {
@@ -304,20 +306,26 @@ export class MarkdownViewerComponent {
         if (!document) continue;
         const lines = document.content.split(/\r?\n/);
         let matchesInDocument = 0;
-        for (let index = 0; index < lines.length && results.length < 100 && matchesInDocument < 5; index++) {
+        const documentResults: HelpSearchResult[] = [];
+        for (let index = 0; index < lines.length && totalResults < 100 && matchesInDocument < 5; index++) {
           const line = lines[index].trim();
           if (!line || !line.toLocaleLowerCase().includes(needle)) continue;
           const snippet = line.replace(/^#{1,6}\s*/, '').replace(/^[-*+]\s*/, '');
-          results.push({
+          documentResults.push({
             fileName: document.fileName,
-            title: document.fileName === 'README.md' ? 'Overview' : document.fileName.replace(/\.md$/i, '').replace(/-/g, ' '),
             lineNumber: index + 1,
             snippet: snippet.length > 220 ? snippet.slice(0, 217) + '…' : snippet
           });
           matchesInDocument++;
+          totalResults++;
         }
+        if (documentResults.length) groups.push({
+          fileName: document.fileName,
+          title: document.fileName === 'README.md' ? 'Overview' : document.fileName.replace(/\.md$/i, '').replace(/-/g, ' '),
+          results: documentResults
+        });
       }
-      if (request === this.searchRequest) this.searchResults.set(results);
+      if (request === this.searchRequest) this.searchResults.set(groups);
     } catch (error) {
       if (request === this.searchRequest) this.searchError.set(error instanceof Error ? error.message : String(error));
     } finally {
