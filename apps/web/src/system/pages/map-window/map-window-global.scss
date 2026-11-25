@@ -1306,11 +1306,15 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   flex: 1 1 220px;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 6px 16px;
   min-width: 0;
 }
 .opacity-content > .crosshair-map-scale-opacity-surface-box > .range-setting {
-  flex: 1 1 105px;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
   min-width: 0;
   white-space: nowrap;
   /* The shared outer surface is the only box around these two toggles. */
