@@ -378,44 +378,11 @@ export class MapWindow implements OnInit, OnDestroy {
       return [{ bounds: [west, south, east, north] as [number, number, number, number], name: map.name || map.fileName || 'Unnamed map' }];
     });
   }
-  private clearMapBoundsLayers(): void {
-    for (const layer of this.mapBoundsLayers) {
-      try { layer.remove(); } catch { /* The previous Leaflet map may already be destroyed. */ }
-    }
-    this.mapBoundsLayers = [];
-  }
   private applyMapBoundsVisibility(): void {
-    // MapLibre layer maxzoom keeps the OBF bounds visible only below zoom 10.
-    const visible = this.mapBoundsVisible() && this.canShowMapBounds();
-    const bounds = this.getActiveOfflineMapBounds();
-    this.offlineRenderer?.setMapBoundsOverlay(bounds, visible);
-    this.clearMapBoundsLayers();
-    if (!visible || !this.map || !this.leaflet) return;
-    for (const { bounds: [west, south, east, north], name } of bounds) {
-      const segments: Array<[number, number]> = east >= west
-        ? [[west, east]]
-        : [[west, 180], [-180, east]];
-      for (const [segmentWest, segmentEast] of segments) {
-        const layer = this.leaflet.polygon([
-          [south, segmentWest], [south, segmentEast],
-          [north, segmentEast], [north, segmentWest]
-        ], {
-          color: '#ff9f1c', weight: 2, opacity: 0.95,
-          fillColor: '#ff9f1c', fillOpacity: 0.22
-        }).addTo(this.map);
-        this.mapBoundsLayers.push(layer);
-        const label = this.leaflet.marker([(south + north) / 2, (segmentWest + segmentEast) / 2], {
-          icon: this.leaflet.divIcon({
-            className: 'map-bounds-label',
-            html: '<span>' + name.replace(/[&<>"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[character] ?? character)) + '</span>',
-            iconSize: [180, 24],
-            iconAnchor: [90, 12]
-          })
-        }).addTo(this.map);
-        this.mapBoundsLayers.push(label);
-      }
-    }  }
-  protected readonly changeRenderWorkerCount = (value: string | number): void => {
+    this.offlineRenderer?.setMapBoundsOverlay(this.getActiveOfflineMapBounds(), this.mapBoundsVisible() && this.canShowMapBounds());
+  }
+
+    protected readonly changeRenderWorkerCount = (value: string | number): void => {
     const count = Number(value);
     if (!Number.isFinite(count)) return;
     const next = Math.max(1, Math.min(4, Math.round(count)));
@@ -3100,73 +3067,12 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateTimeSliderBounds();
     this.applyCurrentPhotoVisibility();
   }
-  private createImageMarkerIcon(selected: boolean): unknown {
-    if (selected) return this.createCurrentLocationIcon();
-    const size = 13, color = '#2688e8';
-    return this.leaflet!.divIcon({ className: 'folder-image-marker', html: `<span style=\"display:block;width:${size}px;height:${size}px;border:2px solid #fff;border-radius:50%;background:${color};box-shadow:0 1px 5px #0009\"></span>`, iconSize: [size + 4, size + 4], iconAnchor: [(size + 4) / 2, (size + 4) / 2] });
-  }
   private updateCurrentMarkerPhotoPreview(): void {
     const path = this.currentImagePath;
-    const fileName = path?.split(/[\\/]/).pop() ?? '';
-    this.offlineRenderer?.setCurrentPhotoPreview(path, fileName);
-    if (!this.marker) return;
-    if (!path) {
-      this.marker.unbindTooltip();
-      return;
-    }
-    this.marker.bindTooltip(buildPhotoMarkerPreviewHtml(path, fileName, this.photoPreviewSize()), {
-      direction: 'top', className: 'folder-marker-tooltip', opacity: 1
-    });
+    this.offlineRenderer?.setCurrentPhotoPreview(path, path?.split(/[\\/]/).pop() ?? '');
   }
 
-  private createCurrentLocationIcon(): unknown {
-    const color = this.currentMarkerColor();
-    const shape = this.currentMarkerShape();
-    let svg: string, size: [number, number], anchor: [number, number];
-    if (shape === 'pin') {
-      svg = `<path d=\"M24 2C12.4 2 4 10.5 4 21c0 14 20 35 20 35s20-21 20-35C44 10.5 35.6 2 24 2Z\" fill=\"${color}\" stroke=\"#fff\" stroke-width=\"3\"/><circle cx=\"24\" cy=\"21\" r=\"7.5\" fill=\"#fff\" stroke=\"#222\" stroke-width=\"1.5\"/>`;
-      size = [36, 42]; anchor = [18, 42];
-    } else {
-      const shapeMarkup = shape === 'circle'
-        ? '<circle cx="20" cy="20" r="16"'
-        : shape === 'square'
-          ? '<rect x="4" y="4" width="32" height="32" rx="3"'
-          : '<polygon points="20,2 38,20 20,38 2,20"';
-      svg = `${shapeMarkup} fill=\"${color}\" stroke=\"#fff\" stroke-width=\"3\"/><circle cx=\"20\" cy=\"20\" r=\"6\" fill=\"#fff\" stroke=\"#222\" stroke-width=\"1.5\"/>`;
-      size = [36, 36]; anchor = [18, 18];
-    }
-    const html = `<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"${size[0]}\" height=\"${size[1]}\" viewBox=\"${shape === 'pin' ? '0 0 48 58' : '0 0 40 40'}\" style=\"display:block;filter:drop-shadow(0 1px 3px #000b)\">${svg}</svg>`;
-    return this.leaflet!.divIcon({ className: 'current-location-marker', html, iconSize: size, iconAnchor: anchor });
-  }
-  private escapeMarkerHtml(value: string): string {
-    return value.replace(/[&<>"']/g, character => ({
-      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    })[character] ?? character);
-  }
-
-  private renderDirectoryMarkers(
-    markers: Array<{ path: string; fileName: string; latitude: number; longitude: number }>,
-    imagePath: string
-  ): void {
-    this.directoryMarkerGroup?.clearLayers();
-    this.directoryMarkers.length = 0;
-    this.markerCount.set(0);
-    for (const item of markers) {
-      if (item.path.toLowerCase() === imagePath.toLowerCase()) continue;
-      const marker = this.leaflet!.marker([item.latitude, item.longitude], {
-        icon: this.createImageMarkerIcon(false)
-      }).setOpacity((this.markersVisible() ? this.markerOpacity() / 100 : 0));
-      marker.bindTooltip(buildPhotoMarkerPreviewHtml(item.path, item.fileName, this.photoPreviewSize()), {
-        direction: 'top', className: 'folder-marker-tooltip', opacity: 1
-      });
-      marker.on('click', () => { void this.desktop?.MapWindow.selectImage(item.path); });
-      this.directoryMarkers.push(marker);
-      this.directoryMarkerGroup?.addLayer(marker);
-      this.markerCount.update(value => value + 1);
-    }
-  }
-
-  protected readonly recheckPhotoDatabase = async (): Promise<void> => {
+    protected readonly recheckPhotoDatabase = async (): Promise<void> => {
     const desktop = this.desktop;
     const directory = this.currentFolderPath ?? (this.currentImagePath ? await desktop?.FileSystem.dirname(this.currentImagePath) : '');
     if (!desktop || !directory) {
@@ -6358,38 +6264,6 @@ export class MapWindow implements OnInit, OnDestroy {
     });
     this.gpxTrackDirectionMenuOpen.set(null);
   };
-  private gpxDirectionArrows(segment: [number, number][], intervalPx = 120): Array<{ position: [number, number]; bearing: number }> {
-    const arrows: Array<{ position: [number, number]; bearing: number }> = [];
-    if (!this.map || segment.length < 2) return arrows;
-    intervalPx = Math.max(20, Math.min(200, intervalPx));
-    const zoom = this.map.getZoom();
-    let distanceSinceArrow = 0;
-    for (let i = 1; i < segment.length; i++) {
-      const [lat1, lon1] = segment[i - 1];
-      const [lat2, lon2] = segment[i];
-      const start = this.map.project([lat1, lon1], zoom);
-      const finish = this.map.project([lat2, lon2], zoom);
-      const dx = finish.x - start.x;
-      const dy = finish.y - start.y;
-      const length = Math.hypot(dx, dy);
-      if (!Number.isFinite(length) || length <= 0) continue;
-      const radians = Math.PI / 180;
-      const dLon = (lon2 - lon1) * radians;
-      const y = Math.sin(dLon) * Math.cos(lat2 * radians);
-      const x = Math.cos(lat1 * radians) * Math.sin(lat2 * radians) -
-        Math.sin(lat1 * radians) * Math.cos(lat2 * radians) * Math.cos(dLon);
-      const bearing = (Math.atan2(y, x) / radians + 360) % 360;
-      let remaining = intervalPx - distanceSinceArrow;
-      while (remaining <= length) {
-        const fraction = remaining / length;
-        const point = this.map.unproject([start.x + dx * fraction, start.y + dy * fraction], zoom);
-        arrows.push({ position: [point.lat, point.lng], bearing });
-        remaining += intervalPx;
-      }
-      distanceSinceArrow = (distanceSinceArrow + length) % intervalPx;
-    }
-    return arrows;
-  }
   private updateGpxTrack(path: string, patch: Partial<Pick<GpxTrackFile, 'color' | 'colorMode' | 'speedPalette' | 'customColor1' | 'customColor2' | 'customColor3' | 'speedMinKmh' | 'speedMaxKmh' | 'elevationMinM' | 'elevationMaxM' | 'lineStyle' | 'lineWidth' | 'showDirection' | 'directionIntervalPx' | 'directionArrowSizePx' | 'directionArrowOutlineWidthPx' | 'trackShadowStrength' | 'arrowShadowStrength' | 'trackOutlineStrength' | 'directionStyle' | 'active'>>): void {
     const next = this.gpxTracks().map(track => track.path === path ? { ...track, ...patch } : track);
     this.gpxTracks.set(next);
@@ -7076,95 +6950,21 @@ export class MapWindow implements OnInit, OnDestroy {
     const html = isWalking
       ? `<div class="lumascope-walker" data-figure-type="walker" style="display:block;width:24px;height:30px;position:relative;filter:drop-shadow(0 1px 1px #000b);transform-origin:50% 50%"><svg width="24" height="30" viewBox="0 0 30 38" style="display:block;width:24px;height:30px;overflow:visible" aria-hidden="true"><circle cx="15" cy="6" r="4.2" fill="#ffd166" stroke="#202020" stroke-width="1.2"/><path d="M15 11 L15 23" stroke="#1769aa" stroke-width="5" stroke-linecap="round"/><path class="walker-limb walker-arm back" d="M14 14 L8 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-arm" d="M16 14 L22 21" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/><path class="walker-limb walker-leg back" d="M14 23 L9 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/><path class="walker-limb walker-leg" d="M16 23 L21 34" stroke="#263238" stroke-width="4" stroke-linecap="round"/></svg></div>`
       : `<div class="lumascope-walker lumascope-vehicle" data-figure-type="${figureType}" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;font-family:'Segoe UI Emoji',sans-serif;font-size:27px;line-height:1;filter:drop-shadow(0 1px 2px #000b);transform-origin:50% 50%">${GPX_VEHICLE_SYMBOLS[figureType]}</div>`;
-    if (this.offlineRenderer) {
-      this.walkingMarker?.remove(); this.walkingMarker = null;
-      this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
-      this.offlineRenderer.setWalkingFigure(latitude, longitude, html, symbolTransform, animationDuration, figureType, isMoving);
-      return;
-    }
-    this.walkingMapLibreMarker?.remove(); this.walkingMapLibreMarker = null;
-    if (!this.leaflet || !this.map) return;
-    const existingElement = this.walkingMarker?.getElement()?.querySelector<HTMLElement>('.lumascope-walker');
-    if (existingElement?.dataset['figureType'] !== figureType) {
-      this.walkingMarker?.remove();
-      this.walkingMarker = null;
-    }
-    if (!this.walkingMarker) {
-      const icon = this.leaflet.divIcon({ className: 'lumascope-walker-icon', html, iconSize: [34, 34], iconAnchor: [17, 17] });
-      this.walkingMarker = this.leaflet.marker([latitude, longitude], { icon }).addTo(this.map);
-    } else {
-      this.walkingMarker.setLatLng([latitude, longitude]);
-    }
-    const walkerElement = this.walkingMarker.getElement()?.querySelector<HTMLElement>('.lumascope-walker');
-    if (walkerElement) {
-      walkerElement.classList.toggle('is-moving', isMoving);
-      walkerElement.style.transform = symbolTransform;
-      walkerElement.style.setProperty('--walker-animation-duration', animationDuration);
-    }
-  }
-
-  private setTimeSliderEnd(next: number): void {
-    this.timeSliderEnd.set(next);
-    this.saveSetting('timeSliderEnd', next);
-    this.rebuildGpxSegments();
-    this.applyGpxTrack();
-    this.applyDirectoryPhotoMarkers();
-    this.applyCurrentPhotoVisibility();
-    this.updateWalkingMarker();
-  }
-
-  protected readonly changeTimeSliderStart = (input: HTMLInputElement): void => {
-    const timestamp = Number(input.value);
-    if (!Number.isFinite(timestamp)) return;
-    const gap = this.timeSliderHandleGap(input.parentElement?.getBoundingClientRect().width ?? 0);
-    const next = Math.min(timestamp, Math.max(this.timeSliderMinimum(), this.timeSliderEnd() - gap));
-    input.value = String(next);
-    this.timeSliderStart.set(next);
-    this.saveSetting('timeSliderStart', next);
-    this.rebuildGpxSegments();
-    this.applyGpxTrack();
-    this.applyDirectoryPhotoMarkers();
-    this.applyCurrentPhotoVisibility();
-    this.updateWalkingMarker();
-  };
-
-  protected readonly changeTimeSliderEnd = (input: HTMLInputElement): void => {
-    this.stopTimeSliderAnimation();
-    const timestamp = Number(input.value);
-    if (!Number.isFinite(timestamp)) return;
-    const gap = this.timeSliderHandleGap(input.parentElement?.getBoundingClientRect().width ?? 0);
-    const next = Math.max(timestamp, Math.min(this.timeSliderMaximum(), this.timeSliderStart() + gap));
-    input.value = String(next);
-    this.setTimeSliderEnd(next);
-  };
-
-  private applyCurrentPhotoVisibility(): void {
-    const currentPhoto = this.timeSliderActive()
-      ? this.directoryPhotoTimestampMarkers.find(marker => marker.path.toLowerCase() === this.currentImagePath?.toLowerCase())
-      : null;
-    const withinTimeRange = !this.timeSliderActive() || currentPhoto == null
-      || this.isTimeSliderTimestampVisible(currentPhoto.gpsTimestamp);
-    const opacity = this.coordinatesAvailable() && this.currentImageHasGps() && this.locationVisible() && withinTimeRange ? this.locationOpacity() / 100 : 0;
-    this.marker?.setOpacity(opacity);
-    this.offlineRenderer?.setCurrentOpacity(opacity);
+    this.offlineRenderer.setWalkingFigure(latitude, longitude, html, symbolTransform, animationDuration, figureType, isMoving);
   }
 
   private applyDirectoryPhotoMarkers(): void {
-    const mapBounds = this.offlineRenderer?.map.getBounds() ?? this.map?.getBounds();
+    const renderer = this.offlineRenderer;
+    if (!renderer) { this.markerCount.set(0); return; }
+    const bounds = renderer.map.getBounds();
     const timeVisibleMarkers = this.directoryPhotoMarkers.filter(marker => this.isTimeSliderTimestampVisible(marker.gpsTimestamp));
     const viewportMarkers = timeVisibleMarkers.filter(marker =>
-      !mapBounds || (marker.latitude >= mapBounds.getSouth() && marker.latitude <= mapBounds.getNorth()
-        && marker.longitude >= mapBounds.getWest() && marker.longitude <= mapBounds.getEast())
+      marker.latitude >= bounds.getSouth() && marker.latitude <= bounds.getNorth()
+      && marker.longitude >= bounds.getWest() && marker.longitude <= bounds.getEast()
     );
-    if (this.offlineRenderer) {
-      this.markerCount.set(viewportMarkers.length);
-      // Keep the full time-filtered set in the renderer; it applies the viewport
-      // filter again after every MapLibre move/zoom without losing off-screen points.
-      this.offlineRenderer.setPhotoMarkers(timeVisibleMarkers, path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
-    } else if (this.leaflet && this.directoryMarkerGroup) {
-      this.markerCount.set(viewportMarkers.length);
-      this.renderDirectoryMarkers(viewportMarkers, this.currentImagePath ?? '');
-    }
+    this.markerCount.set(viewportMarkers.length);
+    renderer.setPhotoMarkers(timeVisibleMarkers, path => { void this.desktop?.MapWindow.selectImage(path); },
+      this.markersVisible() ? this.markerOpacity() / 100 : 0);
   }
 
   private parseMarkerFileNameTimestamp(fileName: string): number | null {
@@ -7546,26 +7346,7 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   private updateRouteWaypointMarkers(): void {
-    for (const marker of this.routeWaypointMarkers) marker.remove();
-    this.routeWaypointMarkers = [];
-    const points = this.routeWaypoints();
-    const visible = this.routeWaypointMarkersVisible();
-    if (this.offlineRenderer) {
-      this.offlineRenderer.setRouteWaypoints(points, visible);
-      return;
-    }
-    if (!this.map || !this.leaflet || !visible) return;
-    points.forEach((point, index) => {
-      const endpoint = points.length >= 2 && index === 0 ? 'start' : points.length >= 2 && index === points.length - 1 ? 'end' : 'point';
-      const label = endpoint === 'start' ? 'S' + (index + 1) : endpoint === 'end' ? 'E' + (index + 1) : String(index + 1);
-      const size = endpoint === 'point' ? 36 : 42;
-      const icon = this.leaflet!.divIcon({
-        className: 'routing-waypoint-icon',
-        html: '<span class="' + endpoint + '">' + label + '</span>',
-        iconSize: [size, size], iconAnchor: [size / 2, size / 2]
-      });
-      this.routeWaypointMarkers.push(this.leaflet!.marker([point.latitude, point.longitude], { icon }).addTo(this.map!) as MapMarker & { remove(): void });
-    });
+    this.offlineRenderer?.setRouteWaypoints(this.routeWaypoints(), this.routeWaypointMarkersVisible());
   }
 
   private async requestRouteGeometry(
@@ -8194,204 +7975,6 @@ ${points}
     if (this.offlineRenderer) this.applyHillshadeSettings(this.offlineRenderer);
   }
 
-  private applyLeafletHillshadeSettings(refreshTiles: boolean): void {
-    const map = this.map;
-    const leaflet = this.leaflet;
-    const desktop = this.desktop;
-    const databases = this.hillshadeDatabases().filter(database => database.enabled && database.available);
-    if (!map || !leaflet || !desktop || !this.hillshadeVisible() || databases.length === 0) {
-      this.leafletHillshadeLayer?.remove();
-      this.leafletHillshadeLayer = null;
-      return;
-    }
-
-    if (refreshTiles && this.leafletHillshadeLayer) {
-      this.leafletHillshadeLayer.remove();
-      this.leafletHillshadeLayer = null;
-    }
-
-    if (!this.leafletHillshadeLayer) {
-      if (!this.leafletHillshadePane) {
-        this.leafletHillshadePane = map.createPane('hillshadePane');
-        this.leafletHillshadePane.style.zIndex = '250';
-      }
-      const HillshadeGridLayer = leaflet.GridLayer.extend({
-        createTile: (coords, done) => {
-          const canvas = document.createElement('canvas');
-          canvas.width = 256;
-          canvas.height = 256;
-          const context = canvas.getContext('2d');
-          if (!context) {
-            done(new Error('Unable to create the Leaflet Hillshade tile canvas.'), canvas);
-            return canvas;
-          }
-          void (async () => {
-            let emitHillshadeStatus: ((status: 'loading' | 'loaded' | 'error' | 'cancelled', error?: string) => void) | null = null;
-            try {
-              const tileCount = 2 ** coords.z;
-              const x = ((coords.x % tileCount) + tileCount) % tileCount;
-              if (coords.y < 0 || coords.y >= tileCount) {
-                done(null, canvas);
-                return;
-              }
-              const hillshadeKey = 'online/' + coords.z + '/' + x + '/' + coords.y;
-              const cacheKey = createHillshadeTileCacheKey(databases, coords.z, x, coords.y);
-              emitHillshadeStatus = (status, error): void => {
-                window.dispatchEvent(new CustomEvent('lumascope-hillshade-tile-status', {
-                  detail: { key: hillshadeKey, status, error, zoom: coords.z, column: x, row: coords.y }
-                }));
-              };
-              emitHillshadeStatus('loading');
-              const cachedPng = getCachedHillshadeTile(cacheKey);
-              if (cachedPng) {
-                const bitmap = await createImageBitmap(new Blob([cachedPng.slice().buffer as ArrayBuffer], { type: 'image/png' }));
-                try {
-                  context.drawImage(bitmap, 0, 0);
-                } finally {
-                  bitmap.close();
-                }
-                emitHillshadeStatus('loaded');
-                done(null, canvas);
-                return;
-              }
-              let hasImage = false;
-              for (const database of databases) {
-                let png: Uint8Array;
-                try {
-                  png = await runOfflineRenderTask(() => desktop.OsmAndAtlas.renderHillshadeTile(database.path, coords.z, x, coords.y, 0), 'Hillshade', `${database.path.split(/[\\\\/]/).pop() ?? database.id} · z${coords.z}/${x}/${coords.y}`);
-                } catch (error) {
-                  const message = error instanceof Error ? error.message : String(error);
-                  if (/Hillshade tile not found/i.test(message)) continue;
-                  throw error;
-                }
-                const buffer = new ArrayBuffer(png.byteLength);
-                new Uint8Array(buffer).set(png);
-                const bitmap = await createImageBitmap(new Blob([buffer], { type: 'image/png' }));
-                try {
-                  if (bitmap.width !== 256 || bitmap.height !== 256) {
-                    throw new Error('Hillshade tile has unexpected dimensions (' + bitmap.width + 'x' + bitmap.height + ').');
-                  }
-                  context.globalCompositeOperation = hasImage ? 'destination-over' : 'source-over';
-                  context.drawImage(bitmap, 0, 0);
-                  hasImage = true;
-                } finally {
-                  bitmap.close();
-                }
-              }
-              context.globalCompositeOperation = 'source-over';
-              const cachedBlob = await new Promise<Blob>((resolve, reject) =>
-                canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Unable to encode Hillshade cache tile.')), 'image/png'));
-              cacheHillshadeTile(cacheKey, new Uint8Array(await cachedBlob.arrayBuffer()));
-              emitHillshadeStatus('loaded');
-              done(null, canvas);
-            } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              const cancelled = /\b(cancelled|canceled|aborted)\b/i.test(message);
-              emitHillshadeStatus?.(cancelled ? 'cancelled' : 'error', message);
-              if (!cancelled) {
-                this.recordMapError('Online Hillshade tile', message + ' [z=' + coords.z + ', x=' + coords.x + ', y=' + coords.y + ']');
-              }
-              done(cancelled ? null : error instanceof Error ? error : new Error(message), canvas);
-            }
-          })();
-          return canvas;
-        }
-      });
-      this.leafletHillshadeLayer = new HillshadeGridLayer({
-        pane: 'hillshadePane', tileSize: 256, minZoom: 1, maxZoom: 20, maxNativeZoom: 12,
-        opacity: this.hillshadeOpacity() / 100, zIndex: 250
-      }).addTo(map);
-      // Wait for the Hillshade GridLayer's complete visible tile batch too;
-      // the base map can finish before the asynchronous native shading calls.
-      this.leafletHillshadeLayer.on('load', () => {
-        window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
-      });
-    } else {
-      this.leafletHillshadeLayer.setOpacity(this.hillshadeOpacity() / 100);
-    }
-  }
-
-  private applyLeafletOsmAndLabelsSettings(refreshTiles: boolean): void {
-    const map = this.map;
-    const leaflet = this.leaflet;
-    const desktop = this.desktop;
-    if (!map || !leaflet || !desktop) {
-      this.leafletOsmAndLabelsLayer?.remove();
-      this.leafletOsmAndLabelsLayer = null;
-      return;
-    }
-
-    // Keep an existing layer attached when unchecked. Opacity zero hides it
-    // without discarding Leaflet's loaded tile objects; re-enabling is instant.
-    if (!this.osmAndLabelsVisible() && !this.leafletOsmAndLabelsLayer) return;
-    if (refreshTiles && this.leafletOsmAndLabelsLayer) {
-      this.leafletOsmAndLabelsLayer.redraw();
-    }
-
-    if (!this.leafletOsmAndLabelsLayer) {
-      if (!this.leafletOsmAndLabelsPane) {
-        this.leafletOsmAndLabelsPane = map.createPane('osmandLabelsPane');
-        this.leafletOsmAndLabelsPane.style.zIndex = '260';
-      }
-      const OsmAndLabelsGridLayer = leaflet.GridLayer.extend({
-        createTile: (coords, done) => {
-          const canvas = document.createElement('canvas');
-          canvas.width = 256;
-          canvas.height = 256;
-          const context = canvas.getContext('2d');
-          if (!context) {
-            done(new Error('Unable to create the OsmAnd Labels tile canvas.'), canvas);
-            return canvas;
-          }
-          void (async () => {
-            try {
-              const tileCount = 2 ** coords.z;
-              const x = ((coords.x % tileCount) + tileCount) % tileCount;
-              if (coords.z < 2 || coords.z > 21 || coords.y < 0 || coords.y >= tileCount) {
-                done(null, canvas);
-                return;
-              }
-              emitOsmAndLabelsTileStatus('loading', coords.z, x, coords.y);
-              const renderStartedAt = performance.now();
-              emitOsmAndLabelsTileStatus('rendering', coords.z, x, coords.y);
-              const tile = await runOfflineRenderTask(
-                () => desktop.OsmAndAtlas.renderLabelsTile(coords.z, x, coords.y, this.displayDensityFactor()),
-                'OsmAnd Labels', `Tile z${coords.z}/${x}/${coords.y}`
-              );
-              if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024
-                || tile.pixels.byteLength !== 256 * 256 * 4) {
-                throw new Error('OsmAnd Labels returned an invalid RGBA8 frame.');
-              }
-              context.putImageData(new ImageData(new Uint8ClampedArray(tile.pixels), 256, 256), 0, 0);
-              if (tile.cacheHit) {
-                emitOsmAndLabelsTileStatus('cache-loading', coords.z, x, coords.y);
-              }
-              emitOsmAndLabelsTileStatus('loaded', coords.z, x, coords.y, undefined,
-                tile.cacheHit ? undefined : performance.now() - renderStartedAt);
-              done(null, canvas);
-            } catch (error) {
-              const message = error instanceof Error ? error.message : String(error);
-              emitOsmAndLabelsTileStatus(/cancelled|canceled/i.test(message) ? 'cancelled' : 'error',
-                coords.z, coords.x, coords.y, message);
-              this.recordMapError('OsmAnd Labels tile', message + ' [z=' + coords.z + ', x=' + coords.x + ', y=' + coords.y + ']');
-              done(error instanceof Error ? error : new Error(message), canvas);
-            }
-          })();
-          return canvas;
-        }
-      });
-      this.leafletOsmAndLabelsLayer = new OsmAndLabelsGridLayer({
-        pane: 'osmandLabelsPane', tileSize: 256, minZoom: 2, maxZoom: 21, maxNativeZoom: 20,
-        opacity: this.osmAndLabelsVisible() ? this.osmAndLabelsOpacity() / 100 : 0, zIndex: 260
-      }).addTo(map);
-      this.leafletOsmAndLabelsLayer.on('load', () => {
-        window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
-      });
-    } else {
-      this.leafletOsmAndLabelsLayer.setOpacity(this.osmAndLabelsVisible() ? this.osmAndLabelsOpacity() / 100 : 0);
-    }
-  }
-
   private applyMapOpacity(): void {
     const opacity = this.mapVisible() ? this.mapOpacity() / 100 : 0;
     this.offlineRenderer?.setBasemapOpacity(opacity);
@@ -8596,132 +8179,5 @@ ${points}
       this.offlineRenderer.setTrackHoverHandler((path, latitude, longitude, segmentIndex) => this.updateGpxHover(path, latitude, longitude, segmentIndex));
       return;
     }
-
-    for (const layer of this.trackLayers) layer.remove();
-    this.trackLayers = [];
-    if (!this.map || !this.leaflet || !this.gpxVisible()) return;
-
-    for (const track of activeTracks) {
-      const speedSegments = track.colorMode === 'speed' ? this.gpxSpeedSegments(track) : track.colorMode === 'elevation' ? this.gpxElevationSegments(track) : [];
-      const normalSegments = this.visibleGpxSegments(track);
-      const coloredMode = track.colorMode === 'speed' || track.colorMode === 'elevation';
-      const sourceSegments = coloredMode ? speedSegments.map(item => item.coordinates) : normalSegments;
-      const viewportSegments = this.viewportGpxSegments(track, sourceSegments);
-      const segments = viewportSegments.map(item => item.coordinates);
-      const trackPointCount = segments.reduce((sum, segment) => sum + segment.length, 0);
-      const largeTrack = trackPointCount >= 10000;
-      let rendererOptions: { renderer?: unknown } = {};
-      if (largeTrack) {
-        if (this.gpxCanvasRendererMap !== this.map) {
-          this.gpxCanvasRenderer = this.leaflet.canvas({ padding: 0.5 });
-          this.gpxCanvasRendererMap = this.map;
-        }
-        rendererOptions = { renderer: this.gpxCanvasRenderer };
-      }
-
-      const renderStyle = createGpxTrackRenderStyle(track, this.gpxOpacity());
-      const colorGroups = new Map<string, [number, number][][]>();
-      for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
-        const segment = segments[segmentIndex];
-        if (segment.length < 2) continue;
-        const sourceSegmentIndex = viewportSegments[segmentIndex]?.sourceSegmentIndex ?? segmentIndex;
-        const color = coloredMode
-          ? (speedSegments[sourceSegmentIndex]?.color || track.color || this.gpxColor())
-          : track.colorMode === 'track-based'
-            ? this.gpxTrackSegmentColor(track.path, sourceSegmentIndex)
-            : (track.color || this.gpxColor());
-        const group = colorGroups.get(color) ?? [];
-        group.push(segment);
-        colorGroups.set(color, group);
-      }
-
-      // Leaflet accepts nested coordinate arrays as a MultiPolyline. Grouping the
-      // disconnected Search Helper geometries avoids creating two layers per
-      // trkseg (visible + hover), which was the dominant cost for highly fragmented GPX.
-      if (renderStyle.outlineOpacity > 0 && segments.length > 0) {
-        const validSegments = [...colorGroups.values()].flat();
-        if (validSegments.length > 0) {
-          const outlineLine = this.leaflet.polyline(validSegments, {
-            color: renderStyle.outlineColor, weight: renderStyle.outlineWidth,
-            opacity: renderStyle.outlineOpacity, lineCap: 'round', lineJoin: 'round', smoothFactor: largeTrack ? 4 : 1.5,
-            dashArray: renderStyle.lineDashArray, ...rendererOptions
-          }).addTo(this.map);
-          this.trackLayers.push(outlineLine);
-        }
-      }
-
-      for (const [color, groupedSegments] of colorGroups) {
-        const trackLine = this.leaflet.polyline(groupedSegments, {
-          color, weight: renderStyle.lineWidth, opacity: renderStyle.lineOpacity,
-          lineCap: 'round', lineJoin: 'round', dashArray: renderStyle.lineDashArray,
-          smoothFactor: largeTrack ? 4 : 1.5, ...rendererOptions
-        }).addTo(this.map);
-        if (renderStyle.shadowOpacity > 0) {
-          const element = (trackLine as unknown as { getElement?: () => SVGElement | null }).getElement?.();
-          if (element) element.style.filter = 'drop-shadow(0 0 ' + renderStyle.shadowBlur + 'px rgba(0,0,0,' + renderStyle.shadowOpacity + '))';
-        }
-        this.trackLayers.push(trackLine);
-      }
-
-      // A single transparent MultiPolyline handles hover for every disconnected
-      // segment. updateGpxHover resolves the nearest source point and its segment.
-      const hoverSegments = [...colorGroups.values()].flat();
-      if (hoverSegments.length > 0) {
-        const hoverLine = this.leaflet.polyline(hoverSegments, {
-          color: track.color || this.gpxColor(),
-          weight: Math.max(14, (track.lineWidth || 4) + 10), opacity: .01,
-          lineCap: 'round', lineJoin: 'round', smoothFactor: largeTrack ? 4 : 1.5, ...rendererOptions
-        }).addTo(this.map);
-        hoverLine.on('mousemove', event => this.updateGpxHover(track.path, event.latlng.lat, event.latlng.lng));
-        hoverLine.on('mouseout', () => this.clearGpxHover(track.path));
-        this.trackLayers.push(hoverLine);
-      }
-
-      // Direction arrows retain the original per-segment color and geometry.
-      const arrowSegments = segments;
-      if (track.showDirection) {
-        for (let segmentIndex = 0; segmentIndex < arrowSegments.length; segmentIndex++) {
-          const segment = arrowSegments[segmentIndex];
-          if (segment.length < 2) continue;
-          const sourceSegmentIndex = viewportSegments[segmentIndex]?.sourceSegmentIndex ?? segmentIndex;
-          const arrowColor = coloredMode
-            ? (speedSegments[sourceSegmentIndex]?.color || track.color || this.gpxColor())
-            : track.colorMode === 'track-based'
-              ? this.gpxTrackSegmentColor(track.path, sourceSegmentIndex)
-              : (track.color || this.gpxColor());
-          for (const arrow of this.gpxDirectionArrows(segment, renderStyle.arrowInterval)) {
-            const arrowSize = renderStyle.arrowSize;
-            const icon = this.leaflet.divIcon({
-              className: 'gpx-direction-arrow-icon',
-              html: '<span class="gpx-direction-arrow" style="font-size:' + arrowSize + 'px;color:' + arrowColor + ';opacity:' + renderStyle.arrowOpacity + ';-webkit-text-stroke-width:' + renderStyle.arrowOutlineWidth + 'px;-webkit-text-stroke-color:' + renderStyle.arrowOutlineColor + ';text-shadow:' + renderStyle.arrowShadowOffset + 'px ' + renderStyle.arrowShadowOffset + 'px ' + renderStyle.arrowShadowBlur + 'px rgba(0,0,0,' + renderStyle.arrowShadowOpacity + ');transform:rotate(' + (arrow.bearing - 90) + 'deg)">' + renderStyle.arrowGlyph + '</span>',
-              iconSize: [arrowSize + 4, arrowSize + 4], iconAnchor: [(arrowSize + 4) / 2, (arrowSize + 4) / 2]
-            });
-            this.trackLayers.push(this.leaflet.marker(arrow.position, { icon }).addTo(this.map) as MapMarker & { remove(): void });
-          }
-        }
-      }
-    }
-  }
-
-  private loadLeaflet(): Promise<LeafletMapApi> {
-    const existing = (window as Window & { L?: LeafletMapApi }).L;
-    if (existing) return Promise.resolve(existing);
-    return new Promise((resolve, reject) => {
-      if (!document.getElementById('light-matter-map-css')) {
-        const link = document.createElement('link'); link.id = 'light-matter-map-css'; link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(link);
-      }
-      const script = document.createElement('script'); script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = () => {
-        const api = (window as Window & { L?: LeafletMapApi }).L;
-        if (!api) { reject(new Error('Leaflet loaded without exposing its API.')); return; }
-        const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css'; document.head.appendChild(css);
-        const theme = document.createElement('link'); theme.rel = 'stylesheet'; theme.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css'; document.head.appendChild(theme);
-        const plugin = document.createElement('script'); plugin.src = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
-        plugin.onload = () => resolve(api); plugin.onerror = () => reject(new Error('Unable to load Leaflet marker clustering.')); document.head.appendChild(plugin);
-      };
-      script.onerror = () => reject(new Error('Unable to load Leaflet.'));
-      document.head.appendChild(script);
-    });
-  }
+  
 }
