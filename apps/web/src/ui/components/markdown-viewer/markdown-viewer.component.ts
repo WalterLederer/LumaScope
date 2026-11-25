@@ -344,6 +344,13 @@ export class MarkdownViewerComponent {
     }
   };
 
+  protected readonly onSearchPanelKeydown = (event: KeyboardEvent): void => {
+    if (event.key !== 'F3' || !this.flatSearchResults().length || this.searchBusy()) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.navigateSearchResult(event.shiftKey ? -1 : 1);
+  };
+
   protected readonly onSearchInput = (query: string): void => {
     this.searchQuery.set(query);
     this.highlightQuery.set(query.trim().length >= 2 ? query.trim() : '');
@@ -413,14 +420,14 @@ export class MarkdownViewerComponent {
       const block = target.matches('li, tr') ? target : target.closest('p, li, tr, blockquote, pre, h1, h2, h3, h4, h5, h6, .markdown-image-row') as HTMLElement | null;
       article.querySelectorAll('.active-search-line').forEach(element => element.classList.remove('active-search-line'));
       block?.classList.add('active-search-line');
-      // Calculate the target position in the article's own scroll coordinate system.
-      // This avoids scrollIntoView selecting an outer pane and works for inline anchors
-      // inside paragraphs, blockquotes and code blocks as well as standalone list/table rows.
+      // Scroll the article itself, not whichever ancestor scrollIntoView might choose.
+      // Use the exact line anchor (not its containing paragraph), so matches on
+      // different lines of the same Markdown page remain independently navigable.
       const articleRect = article.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
       const targetTop = article.scrollTop + targetRect.top - articleRect.top;
-      const desiredTop = Math.max(0, targetTop - Math.max(24, article.clientHeight * 0.3));
-      article.scrollTo({ top: desiredTop, behavior: 'smooth' });
+      const desiredTop = Math.max(0, targetTop - 32);
+      article.scrollTop = desiredTop;
     };
     view.requestAnimationFrame(() => view.requestAnimationFrame(findAndScroll));
   };
