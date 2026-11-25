@@ -3,6 +3,10 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { FileSystem } from '../../../ipc/file-system';
 import { ProcessManager } from '../../../ipc/process-manager';
 
+interface HelpSearchResult { fileName: string; title: string; lineNumber: number; snippet: string; }
+
+const helpDocuments = ['README.md', 'build-from-source.md', 'external-programs.md', 'features.md', 'gpx-cache.md', 'image-detail-table.md', 'image-formats.md', 'licensing.md', 'location-fix-automatic.md', 'location-fix-manual.md', 'map-formats.md', 'offline-address-search.md', 'ohsp-format.md', 'photo-markers-tab.md', 'platform-support.md', 'resource-package-format.md', 'routing.md', 'screen-capture-formats.md', 'screen-capture.md', 'shortcuts.md', 'time-slider-animation.md', 'time-slider.md', 'track-tab.md', 'windows-api.md'] as const;
+
 const isDocumentationFile = (fileName: string): boolean => /^[a-zA-Z0-9_-]+\.md$/i.test(fileName);
 
 const escapeHtml = (value: string): string => value
@@ -78,25 +82,27 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
       const code: string[] = [];
       while (index < lines.length && !lines[index].trim().startsWith('```')) code.push(lines[index++]);
       if (index < lines.length) index++;
-      output.push('<pre><code' + (language ? ' class="language-' + escapeHtml(language) + '"' : '') + '>' + escapeHtml(code.join('\n')) + '</code></pre>');
+      output.push('<span id="help-search-line-' + index + '"></span><pre><code' + (language ? ' class="language-' + escapeHtml(language) + '"' : '') + '>' + escapeHtml(code.join('\n')) + '</code></pre>');
       continue;
     }
 
     const heading = /^(#{1,6})\s+(.*)$/.exec(line.trim());
     if (heading) {
+      const lineNumber = index + 1;
       const level = heading[1].length;
-      output.push('<h' + level + '>' + renderInline(heading[2], imageSources) + '</h' + level + '>');
+      output.push('<span id="help-search-line-' + lineNumber + '"></span><h' + level + '>' + renderInline(heading[2], imageSources) + '</h' + level + '>');
       index++;
       continue;
     }
 
     if (/^\s*([-*_])\1\1+\s*$/.test(line)) {
-      output.push('<hr>');
+      output.push('<span id="help-search-line-' + (index + 1) + '"></span><hr>');
       index++;
       continue;
     }
 
     if (line.trim().startsWith('|') && isTableSeparator(lines[index + 1])) {
+      const tableLineNumber = index + 1;
       const headers = splitTableRow(line);
       index += 2;
       const rows: string[] = [];
@@ -105,37 +111,41 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
         rows.push('<tr>' + headers.map((_header, cellIndex) => '<td>' + renderInline(cells[cellIndex] ?? '', imageSources) + '</td>').join('') + '</tr>');
         index++;
       }
-      output.push('<div class="markdown-table-wrap"><table><thead><tr>' + headers.map(cell => '<th>' + renderInline(cell, imageSources) + '</th>').join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>');
+      output.push('<span id="help-search-line-' + tableLineNumber + '"></span><div class="markdown-table-wrap"><table><thead><tr>' + headers.map(cell => '<th>' + renderInline(cell, imageSources) + '</th>').join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>');
       continue;
     }
 
     if (/^\s*[-*+]\s+/.test(line)) {
+      const listLineNumber = index + 1;
       const items: string[] = [];
       while (index < lines.length && /^\s*[-*+]\s+/.test(lines[index])) {
         items.push('<li>' + renderInline(lines[index].replace(/^\s*[-*+]\s+/, ''), imageSources) + '</li>');
         index++;
       }
-      output.push('<ul>' + items.join('') + '</ul>');
+      output.push('<span id="help-search-line-' + listLineNumber + '"></span><ul>' + items.join('') + '</ul>');
       continue;
     }
 
     if (/^\s*\d+\.\s+/.test(line)) {
+      const listLineNumber = index + 1;
       const items: string[] = [];
       while (index < lines.length && /^\s*\d+\.\s+/.test(lines[index])) {
         items.push('<li>' + renderInline(lines[index].replace(/^\s*\d+\.\s+/, ''), imageSources) + '</li>');
         index++;
       }
-      output.push('<ol>' + items.join('') + '</ol>');
+      output.push('<span id="help-search-line-' + listLineNumber + '"></span><ol>' + items.join('') + '</ol>');
       continue;
     }
 
     if (/^\s*>/.test(line)) {
+      const quoteLineNumber = index + 1;
       const quote: string[] = [];
       while (index < lines.length && /^\s*>/.test(lines[index])) quote.push(renderInline(lines[index++].replace(/^\s*>\s?/, ''), imageSources));
-      output.push('<blockquote>' + quote.join('<br>') + '</blockquote>');
+      output.push('<span id="help-search-line-' + quoteLineNumber + '"></span><blockquote>' + quote.join('<br>') + '</blockquote>');
       continue;
     }
 
+    const paragraphLineNumber = index + 1;
     const paragraph: string[] = [];
     while (index < lines.length && lines[index].trim() && !isBlockStart(lines[index], lines[index + 1])) {
       paragraph.push(lines[index++].trim());
@@ -146,9 +156,9 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
     }
     const paragraphHtml = paragraph.map(line => renderInline(line, imageSources)).join('<br>');
     if (/^(?:\s*<img\b[^>]*>\s*)+$/i.test(paragraphHtml)) {
-      output.push('<div class="markdown-image-row">' + paragraphHtml + '</div>');
+      output.push('<span id="help-search-line-' + paragraphLineNumber + '"></span><div class="markdown-image-row">' + paragraphHtml + '</div>');
     } else {
-      output.push('<p>' + paragraphHtml + '</p>');
+      output.push('<span id="help-search-line-' + paragraphLineNumber + '"></span><p>' + paragraphHtml + '</p>');
     }
   }
 
@@ -183,7 +193,13 @@ export class MarkdownViewerComponent {
     this.currentFile() === 'README.md' ? 'README.md' : 'docs/' + this.currentFile()
   );
   protected readonly openFileError = signal('');
+  protected readonly searchQuery = signal('');
+  protected readonly searchResults = signal<HelpSearchResult[]>([]);
+  protected readonly searchBusy = signal(false);
+  protected readonly searchError = signal('');
   private documentLoadRequest = 0;
+  private searchRequest = 0;
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     void this.loadDocument('README.md');
@@ -208,7 +224,7 @@ export class MarkdownViewerComponent {
     }
   };
 
-  protected readonly loadDocument = async (fileName: string): Promise<void> => {
+  protected readonly loadDocument = async (fileName: string, targetLine?: number): Promise<void> => {
     if (!isDocumentationFile(fileName)) return;
     const request = ++this.documentLoadRequest;
     this.loading.set(true);
@@ -237,6 +253,17 @@ export class MarkdownViewerComponent {
         this.currentFile.set(fileName);
         this.imageSources.set(imageSources);
         this.markdown.set(response.data);
+        if (targetLine && targetLine > 0) {
+          this.document.defaultView?.setTimeout(() => {
+            if (request !== this.documentLoadRequest) return;
+            const anchors = [...this.document.querySelectorAll<HTMLElement>('[id^="help-search-line-"]')];
+            const target = anchors
+              .map(element => ({ element, line: Number(element.id.slice('help-search-line-'.length)) }))
+              .filter(item => Number.isFinite(item.line) && item.line <= targetLine)
+              .sort((a, b) => b.line - a.line)[0]?.element;
+            target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 0);
+        }
       } else {
         this.error.set(response.errorMessage);
       }
@@ -245,6 +272,62 @@ export class MarkdownViewerComponent {
     } finally {
       if (request === this.documentLoadRequest) this.loading.set(false);
     }
+  };
+
+
+  protected readonly onSearchInput = (query: string): void => {
+    this.searchQuery.set(query);
+    this.searchResults.set([]);
+    this.searchError.set('');
+    if (this.searchTimer !== null) clearTimeout(this.searchTimer);
+    const request = ++this.searchRequest;
+    const normalized = query.trim();
+    if (normalized.length < 2) {
+      this.searchBusy.set(false);
+      return;
+    }
+    this.searchBusy.set(true);
+    this.searchTimer = setTimeout(() => { void this.searchDocumentation(normalized, request); }, 250);
+  };
+
+  private readonly searchDocumentation = async (query: string, request: number): Promise<void> => {
+    const results: HelpSearchResult[] = [];
+    const needle = query.toLocaleLowerCase();
+    try {
+      const documents = await Promise.all(helpDocuments.map(async fileName => {
+        const response = await this.fileSystem.readDocumentationFile(fileName);
+        return response.success ? { fileName, content: response.data } : null;
+      }));
+      if (request !== this.searchRequest) return;
+      for (const document of documents) {
+        if (!document) continue;
+        const lines = document.content.split(/\r?\n/);
+        let matchesInDocument = 0;
+        for (let index = 0; index < lines.length && results.length < 100 && matchesInDocument < 5; index++) {
+          const line = lines[index].trim();
+          if (!line || !line.toLocaleLowerCase().includes(needle)) continue;
+          const snippet = line.replace(/^#{1,6}\s*/, '').replace(/^[-*+]\s*/, '');
+          results.push({
+            fileName: document.fileName,
+            title: document.fileName === 'README.md' ? 'Overview' : document.fileName.replace(/\.md$/i, '').replace(/-/g, ' '),
+            lineNumber: index + 1,
+            snippet: snippet.length > 220 ? snippet.slice(0, 217) + '…' : snippet
+          });
+          matchesInDocument++;
+        }
+      }
+      if (request === this.searchRequest) this.searchResults.set(results);
+    } catch (error) {
+      if (request === this.searchRequest) this.searchError.set(error instanceof Error ? error.message : String(error));
+    } finally {
+      if (request === this.searchRequest) this.searchBusy.set(false);
+    }
+  };
+
+  protected readonly openSearchResult = (result: HelpSearchResult): void => {
+    this.searchQuery.set('');
+    this.searchResults.set([]);
+    void this.loadDocument(result.fileName, result.lineNumber);
   };
 
   protected readonly onFontSizeChange = (value: number): void => {
