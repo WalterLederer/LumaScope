@@ -1263,7 +1263,7 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
 
 /* Label opacity controls use a compact two-row layout: title/value above,
    full-width slider below. Crosshair and map scale share a flexible row. */
-.opacity-settings .opacity-content > .label-opacity-surface-box > .range-setting {
+.opacity-settings .opacity-content > .label-opacity-surface-box {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto auto auto;
@@ -1272,13 +1272,13 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   row-gap: 4px;
   min-width: 0;
 }
-.opacity-settings .opacity-content > .label-opacity-surface-box > .range-setting > .opacity-row-label,
-.opacity-settings .opacity-content > .label-opacity-surface-box > .range-setting > .visibility-toggle {
+.opacity-settings .opacity-content > .label-opacity-surface-box > .opacity-row-label,
+.opacity-settings .opacity-content > .label-opacity-surface-box > .visibility-toggle {
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
 }
-.opacity-settings .opacity-content > .label-opacity-surface-box > .range-setting > ui-slider.opacity-slider {
+.opacity-settings .opacity-content > .label-opacity-surface-box > ui-slider.opacity-slider {
   grid-column: 1 / -1;
   grid-row: 2;
   width: 100%;
@@ -1286,7 +1286,7 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   min-width: 0;
   margin: 0;
 }
-.opacity-settings .opacity-content > .label-opacity-surface-box > .range-setting > .range-value {
+.opacity-settings .opacity-content > .label-opacity-surface-box > .range-value {
   grid-column: 2;
   grid-row: 1;
   justify-self: end;
@@ -1294,7 +1294,7 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   min-width: 0;
   white-space: nowrap;
 }
-.opacity-settings .opacity-content > .label-opacity-surface-box > .range-setting > .osmand-label-rerender-status {
+.opacity-settings .opacity-content > .label-opacity-surface-box > .osmand-label-rerender-status {
   grid-column: 1 / -1;
   grid-row: 3;
   min-width: 0;
