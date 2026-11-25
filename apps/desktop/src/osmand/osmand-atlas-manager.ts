@@ -447,8 +447,7 @@ class OsmAndAtlasWorker {
         String(this.displayScale),
         ...(this.labelsOnly ? ['--labels-only'] : [])
       ], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      windowsHide: true,
+      stdio: ['pipe', 'pipe', 'pipe'],      windowsHide: true,
       env: this.environment
       });
     } catch (error) {
@@ -897,8 +896,7 @@ export class OsmAndAtlasManager {
     const previousLabelWorkers = this.labelWorkers;
     // Publish the replacement first. Existing requests retain their worker
     // references and finish before the old helper processes are stopped.
-    this.workers = this.createWorkers();
-    this.nextWorker = 0;
+    this.workers = this.createWorkers();    this.nextWorker = 0;
     this.labelWorkers = this.createWorkers(this.readRenderWorkerCount(), true);
     this.nextLabelWorker = 0;
     this.pendingTiles.clear();
@@ -1347,8 +1345,7 @@ export class OsmAndAtlasManager {
       let stdout = '';
       let stderr = '';
       child.stdout.setEncoding('utf8');
-      child.stderr.setEncoding('utf8');
-      child.stdout.on('data', chunk => { stdout += String(chunk); });
+      child.stderr.setEncoding('utf8');      child.stdout.on('data', chunk => { stdout += String(chunk); });
       child.stderr.on('data', chunk => { stderr += String(chunk); });
       child.once('error', rejectOutput);
       child.once('close', code => {
@@ -1554,11 +1551,11 @@ export class OsmAndAtlasManager {
       .replace(/[^a-zA-Z0-9_-]/g, '_')
       .toLowerCase();
     const cacheFile = join(
-      this.cachePath, labelsOnly ? 'labels-xyz-256-v2' : 'xyz-256', mapCacheKey, densityCacheKey, styleCacheKey,
+      this.cachePath, labelsOnly ? 'labels-xyz-256-v3' : 'xyz-256', mapCacheKey, densityCacheKey, styleCacheKey,
       String(z), String(tileX), tileY + '.png'
     );
 
-    let tilePixels = forceRender ? null : await this.readCachedTile(cacheFile);
+    let tilePixels = forceRender ? null : await this.readCachedTile(cacheFile, labelsOnly);
     let geometryMessages: string[] = [];
     let queueWaitMs: number | undefined;
     const cacheHit = tilePixels !== null;
@@ -1653,7 +1650,7 @@ export class OsmAndAtlasManager {
     const rendered = await worker.render(longitude, latitude, z);
     const pixels = rendered.pixels;
     const pixelDiagnostics = getAtlasPixelDiagnostics(pixels);
-    if (pixelDiagnostics.uniqueRgbaColors === 1) {
+    if (!labelsOnly && pixelDiagnostics.uniqueRgbaColors === 1) {
       console.info('[OsmAnd Atlas] Uniform tile not cached', {
         zoom: z, tileX, tileY,
         uniqueRgbColors: pixelDiagnostics.uniqueRgbColors,
@@ -1691,7 +1688,7 @@ export class OsmAndAtlasManager {
     return rendered;
   }
 
-  private async readCachedTile(path: string): Promise<Buffer | null> {
+  private async readCachedTile(path: string, allowUniform = false): Promise<Buffer | null> {
     if (!existsSync(path)) return null;
     try {
       const image = nativeImage.createFromBuffer(await readFile(path));
@@ -1708,7 +1705,7 @@ export class OsmAndAtlasManager {
         rgba[i + 2] = bgra[i];
         rgba[i + 3] = bgra[i + 3];
       }
-      if (getAtlasPixelDiagnostics(rgba).uniqueRgbaColors === 1) {
+      if (!allowUniform && getAtlasPixelDiagnostics(rgba).uniqueRgbaColors === 1) {
         await unlink(path).catch(() => undefined);
         console.info('[OsmAnd Atlas] Removed uniform tile from disk cache:', path);
         return null;
