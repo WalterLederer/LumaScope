@@ -1555,7 +1555,7 @@ export class OsmAndAtlasManager {
       .replace(/[^a-zA-Z0-9_-]/g, '_')
       .toLowerCase();
     const cacheFile = join(
-      this.cachePath, labelsOnly ? 'labels-xyz-256' : 'xyz-256', mapCacheKey, densityCacheKey, styleCacheKey,
+      this.cachePath, labelsOnly ? 'labels-xyz-256-v2' : 'xyz-256', mapCacheKey, densityCacheKey, styleCacheKey,
       String(z), String(tileX), tileY + '.png'
     );
 
