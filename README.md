@@ -119,6 +119,7 @@ The Help tab in the application displays this README. The detailed reference tab
 - [Key shortcuts](docs/shortcuts.md) — local and global keyboard shortcuts.
 - [External programs](docs/external-programs.md) — helper processes and their responsibilities.
 - [Build from source](docs/build-from-source.md) — prerequisites and compilation steps for the native SDKs, routing engine, renderers and application.
+- [Help search and Markdown rendering](docs/help-and-markdown.md) — search controls, searchable-page registration and how Markdown source is converted into the in-app Help view.
 - [Licensing and third-party notices](docs/licensing.md) — inherited Light Matter MIT license, native components, OsmAnd resources and release obligations.
 - [Windows API calls](docs/windows-api.md) — direct Win32 and Windows Imaging Component calls documented by the Help tab.
 
