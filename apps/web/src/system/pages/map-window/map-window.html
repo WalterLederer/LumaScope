@@ -314,9 +314,9 @@
         <button type="button" class="gpx-list-action-button" (click)="showRecentGpxFiles()">Show recently loaded GPX files</button>
         <span class="offline-map-status">{{ gpxDatabaseVisibleTracks().length }} matching DB file(s)</span>
       } @else {
-        <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span>
+        @if (gpxTracks().length > 0) { <span class="offline-map-status">{{ gpxTracks().length }} GPX file(s) loaded</span> }
       }
-      @if (gpxRestoreBusy() || gpxImportStatus() || (gpxListMode() === 'recent' && gpxTracks().length === 0 && !gpxError())) {
+      @if (gpxRestoreBusy() || gpxImportStatus()) {
         <span class="gpx-hover-info" role="status" aria-live="polite">{{ gpxRestoreBusy() ? gpxRestoreStatus() : (gpxImportStatus() || 'No GPX tracks are currently loaded. Add GPX files to display tracks on the map.') }}</span>
       }
       @if (gpxDatabaseQueryBusy()) { <span class="gpx-hover-info">Searching GPX database…</span> }
