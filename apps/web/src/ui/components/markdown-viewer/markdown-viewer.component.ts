@@ -83,7 +83,6 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
     if (!line.trim()) { index++; continue; }
 
     if (line.trim().startsWith('```')) {
-      const codeLineNumber = index + 1;
       const language = line.trim().slice(3).trim();
       index++;
       const code: string[] = [];
@@ -92,7 +91,7 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
         index++;
       }
       if (index < lines.length) index++;
-      output.push('<span id="help-search-line-' + codeLineNumber + '"></span><pre><code' + (language ? ' class="language-' + escapeHtml(language) + '"' : '') + '>' + code.join('\n') + '</code></pre>');
+      output.push('<pre><code' + (language ? ' class="language-' + escapeHtml(language) + '"' : '') + '>' + code.join('\n') + '</code></pre>');
       continue;
     }
 
@@ -126,13 +125,12 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
     }
 
     if (/^\s*[-*+]\s+/.test(line)) {
-      const listLineNumber = index + 1;
       const items: string[] = [];
       while (index < lines.length && /^\s*[-*+]\s+/.test(lines[index])) {
         items.push('<li id="help-search-line-' + (index + 1) + '">' + renderInline(lines[index].replace(/^\s*[-*+]\s+/, ''), imageSources, searchQuery) + '</li>');
         index++;
       }
-      output.push('<span id="help-search-line-' + listLineNumber + '"></span><ul>' + items.join('') + '</ul>');
+      output.push('<ul>' + items.join('') + '</ul>');
       continue;
     }
 
@@ -143,18 +141,17 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
         items.push('<li id="help-search-line-' + (index + 1) + '">' + renderInline(lines[index].replace(/^\s*\d+\.\s+/, ''), imageSources, searchQuery) + '</li>');
         index++;
       }
-      output.push('<span id="help-search-line-' + listLineNumber + '"></span><ol>' + items.join('') + '</ol>');
+      output.push('<ol>' + items.join('') + '</ol>');
       continue;
     }
 
     if (/^\s*>/.test(line)) {
-      const quoteLineNumber = index + 1;
       const quote: string[] = [];
       while (index < lines.length && /^\s*>/.test(lines[index])) {
         quote.push('<span id="help-search-line-' + (index + 1) + '" class="help-search-line-anchor"></span>' + renderInline(lines[index].replace(/^\s*>\s?/, ''), imageSources, searchQuery));
         index++;
       }
-      output.push('<span id="help-search-line-' + quoteLineNumber + '"></span><blockquote>' + quote.join('<br>') + '</blockquote>');
+      output.push('<blockquote>' + quote.join('<br>') + '</blockquote>');
       continue;
     }
 
