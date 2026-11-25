@@ -247,15 +247,39 @@
 
 
   @if (mode() === 'help') {
+    <section class="help-search info-box" aria-label="Search help">
+      <label for="help-search-input">Search all Help pages</label>
+      <div class="help-search-controls">
+        <input id="help-search-input" type="search" [value]="helpSearchQuery()" (input)="helpSearchQuery.set($any($event.target).value)"
+               placeholder="Search formats, shortcuts, programs, Windows APIs…" autocomplete="off">
+        @if (helpSearchQuery()) {
+          <button class="cache-button" type="button" (click)="helpSearchQuery.set('')">Clear</button>
+        }
+      </div>
+      @if (helpSearchQuery().trim()) {
+        <p class="format-note" role="status">{{ helpSearchResults().length }} results across all Help pages</p>
+        <div class="help-search-results">
+          @for (result of helpSearchResults(); track result.targetId) {
+            <button type="button" class="help-search-result" (click)="openHelpSearchResult(result.targetId)">
+              <strong>{{ result.title }}</strong>
+              <span>{{ result.section }}</span>
+              <span>{{ result.excerpt }}</span>
+            </button>
+          } @empty {
+            <p class="cache-status">No matching entries found.</p>
+          }
+        </div>
+      }
+    </section>
     <section class="format-details info-box">
-      <details class="app-disclosure">
-        <summary>Supported map formats · {{ supportedMapFormats.length }} formats</summary>
+      <details id="help-map-section" class="app-disclosure">
+      <summary>Supported map formats · {{ supportedMapFormats.length }} formats</summary>
         <div class="format-list">
           <table>
             <thead><tr><th scope="col">Format</th><th scope="col">Extension / source</th><th scope="col">Online</th><th scope="col">Renderer</th><th scope="col">Details</th></tr></thead>
             <tbody>
-              @for (format of supportedMapFormats; track format.name) {
-                <tr>
+              @for (format of supportedMapFormats; track format.name; let index = $index) {
+                <tr [id]="'help-map-' + index">
                   <td><strong>{{ format.name }}</strong></td>
                   <td><span class="extensions">{{ format.extensions }}</span></td>
                   <td>{{ format.online ? 'Yes' : 'No' }}</td>
@@ -269,7 +293,7 @@
       </details>
     </section>
     <section class="format-details info-box">
-      <details class="app-disclosure">
+      <details id="help-image-section" class="app-disclosure">
       <summary>Supported image formats · {{ formatSummary.hdr }} HDR formats · {{ formatSummary.sdr }} SDR formats · {{ formatSummary.decoders }} decoders</summary>
       <p class="format-note">Bit depth is per channel unless noted. Support for optional features can vary by file.</p>
       <div class="format-list">
@@ -285,8 +309,8 @@
             </tr>
           </thead>
           <tbody>
-            @for (format of supportedFormats; track format.name) {
-              <tr>
+            @for (format of supportedFormats; track format.name; let index = $index) {
+              <tr [id]="'help-image-' + index">
                 <td>
                   <strong>{{ format.name }}</strong>
                   <span class="extensions">{{ format.extensions.join(', ') }}</span>
@@ -316,8 +340,8 @@
       </details>
     </section>
     <section class="shortcut-details info-box">
-      <details class="app-disclosure">
-        <summary>Key shortcuts · {{ keyShortcuts.length }} shortcuts</summary>
+      <details id="help-shortcuts-section" class="app-disclosure">
+      <summary>Key shortcuts · {{ keyShortcuts.length }} shortcuts</summary>
         <p class="format-note">Global shortcuts are registered by Windows through Electron and remain available when the application is not focused. Local shortcuts work while using the application. When the pointer is over the location map, the arrow keys pan the map instead of changing images.</p>
         @if (globalShortcutError()) {
           <p class="cache-status error" role="alert">Could not read global shortcut status: {{ globalShortcutError() }}</p>
@@ -333,8 +357,8 @@
               </tr>
             </thead>
             <tbody>
-              @for (shortcut of keyShortcuts; track shortcut.keys) {
-                <tr>
+              @for (shortcut of keyShortcuts; track shortcut.keys; let index = $index) {
+                <tr [id]="'help-shortcut-' + index">
                   <td><kbd>{{ shortcut.keys }}</kbd></td>
                   <td>{{ shortcut.action }}</td>
                   <td>{{ shortcut.global ? 'Yes' : 'No' }}</td>
@@ -358,8 +382,8 @@
       </details>
     </section>
     <section class="shortcut-details info-box">
-      <details class="app-disclosure">
-        <summary>External Programs · {{ externalPrograms().length }} programs</summary>
+      <details id="help-external-section" class="app-disclosure">
+      <summary>External Programs · {{ externalPrograms().length }} programs</summary>
         <p class="format-note">Programs are listed when they are launched. Repeated calls to the same program for the same function are grouped together. The list updates during the current application session.</p>
         @if (profilingError()) {
           <p class="cache-status error" role="alert">Could not load external program data: {{ profilingError() }}</p>
@@ -373,8 +397,8 @@
               </tr>
             </thead>
             <tbody>
-              @for (program of externalPrograms(); track program.programName + program.function) {
-                <tr>
+              @for (program of externalPrograms(); track program.programName + program.function; let index = $index) {
+                <tr [id]="'help-external-' + index">
                   <td><kbd>{{ program.programName }}</kbd></td>
                   <td>{{ program.function }}</td>
                 </tr>
@@ -387,8 +411,8 @@
       </details>
     </section>
     <section class="shortcut-details info-box">
-      <details class="app-disclosure">
-        <summary>Windows API calls · {{ windowsApiCalls.length }} calls</summary>
+      <details id="help-api-section" class="app-disclosure">
+      <summary>Windows API calls · {{ windowsApiCalls.length }} calls</summary>
         <p class="format-note">Direct Win32 calls used by LumaScope for HDR display detection, window discovery and geometry, DPI awareness, and the native OsmAnd Atlas helper’s binary output channel. Calls made internally by Electron, Qt, the Java runtime or third-party libraries are not listed here.</p>
         <div class="shortcut-table-scroll">
           <table class="shortcut-table">
@@ -400,8 +424,8 @@
               </tr>
             </thead>
             <tbody>
-              @for (call of windowsApiCalls; track call.dll + call.api) {
-                <tr>
+              @for (call of windowsApiCalls; track call.dll + call.api; let index = $index) {
+                <tr [id]="'help-api-' + index">
                   <td><kbd>{{ call.dll }}</kbd></td>
                   <td><kbd>{{ call.api }}</kbd></td>
                   <td>{{ call.purpose }}</td>
