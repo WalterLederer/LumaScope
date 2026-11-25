@@ -328,6 +328,50 @@ export function registerOsmAndAtlasTileProtocol(desktop: Desktop, getDisplayScal
 }
 
 
+let osmAndLabelsProtocolRegistered = false;
+
+/** Transparent OBF symbol tiles, independent of the active base-map source. */
+export function registerOsmAndLabelsTileProtocol(desktop: Desktop, getDisplayScale: () => number): void {
+  osmAndAtlasDisplayScaleProvider = getDisplayScale;
+  if (osmAndLabelsProtocolRegistered) return;
+  addProtocol('osmand-labels', async (request, abortController) => {
+    const match = /^osmand-labels:\/\/(\d+)\/(\d+)\/(\d+)$/.exec(request.url);
+    if (!match) throw new Error('Invalid OsmAnd Labels XYZ tile URL: ' + request.url);
+    const zoom = Number(match[1]);
+    const requestedColumn = Number(match[2]);
+    const row = Number(match[3]);
+    if (!Number.isInteger(zoom) || zoom < 2 || zoom > 21
+      || !Number.isInteger(requestedColumn) || !Number.isInteger(row)) {
+      throw new Error('Invalid OsmAnd Labels tile coordinates.');
+    }
+    const tileCount = 2 ** zoom;
+    const column = ((requestedColumn % tileCount) + tileCount) % tileCount;
+    if (row < 0 || row >= tileCount) {
+      return { data: await createImageBitmap(new ImageData(new Uint8ClampedArray(256 * 256 * 4), 256, 256)) };
+    }
+    const displayScale = osmAndAtlasDisplayScaleProvider?.() ?? window.devicePixelRatio ?? 1;
+    const tile = await runOfflineRenderTask(
+      () => desktop.OsmAndAtlas.renderLabelsTile(zoom, column, row, displayScale),
+      'OsmAnd Labels', `Tile z${zoom}/${column}/${row}`
+    );
+    if (abortController.signal.aborted) throw new Error('OsmAnd Labels tile request was cancelled.');
+    if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024
+      || tile.pixels.byteLength !== 256 * 256 * 4) {
+      throw new Error('OsmAnd Labels returned an invalid RGBA8 frame.');
+    }
+    const pixels = new Uint8ClampedArray(tile.pixels.byteLength);
+    pixels.set(tile.pixels);
+    const bitmap = await createImageBitmap(new ImageData(pixels, 256, 256));
+    if (abortController.signal.aborted) {
+      bitmap.close();
+      throw new Error('OsmAnd Labels tile request was cancelled.');
+    }
+    return { data: bitmap };
+  });
+  osmAndLabelsProtocolRegistered = true;
+}
+
+
 interface HillshadePngDiagnostics {
   byteLength: number;
   width: number | null;
@@ -907,6 +951,8 @@ export class OfflineMapRenderer {
   private hillshadeSettingsPending = false;
   private hillshadeOpacity = 0.65;
   private hillshadeVisible = false;
+  private osmAndLabelsOpacity = 1;
+  private osmAndLabelsVisible = false;
   private mapBoundsVisible = false;
   private mapBoundsFeatures: Array<{
     type: 'Feature';
@@ -1371,10 +1417,12 @@ export class OfflineMapRenderer {
       // after every load, not only when the opacity controls are interacted with.
       this.setBasemapOpacity(this.basemapOpacity);
       this.setHillshadeOpacity(this.hillshadeOpacity);
+      this.setOsmAndLabelsOpacity(this.osmAndLabelsOpacity);
+      this.setOsmAndLabelsVisibility(this.osmAndLabelsVisible);
       this.setTextLabelOpacity(this.textLabelOpacity);
       this.applyMapBoundsOverlay();
     });
-    this.map.on('load', () => { console.info('[OfflineMap] MapLibre style loaded.'); this.syncHillshadeLayers(); });
+    this.map.on('load', () => { console.info('[OfflineMap] MapLibre style loaded.'); this.syncHillshadeLayers(); this.initializeOsmAndLabelsLayer(); });
     this.ready = new Promise((resolve, reject) => {
       let settled = false;
       const timeout = window.setTimeout(() => {
@@ -2760,3 +2808,40 @@ export class OfflineMapRenderer {
     this.map.remove();
   }
 }
+  setOsmAndLabelsOpacity(opacity: number): void {
+    this.osmAndLabelsOpacity = Number.isFinite(opacity) ? Math.max(0, Math.min(1, opacity)) : 1;
+    if (this.map.getLayer('osmand-labels-layer')) {
+      this.map.setPaintProperty('osmand-labels-layer', 'raster-opacity', this.osmAndLabelsOpacity);
+    }
+  }
+
+  setOsmAndLabelsVisibility(visible: boolean): void {
+    this.osmAndLabelsVisible = visible;
+    this.initializeOsmAndLabelsLayer();
+    if (this.map.getLayer('osmand-labels-layer')) {
+      this.map.setLayoutProperty('osmand-labels-layer', 'visibility', visible ? 'visible' : 'none');
+    }
+  }
+
+  private initializeOsmAndLabelsLayer(): void {
+    if (!this.map.isStyleLoaded()) return;
+    if (!this.map.getSource('osmand-labels-source')) {
+      this.map.addSource('osmand-labels-source', {
+        type: 'raster',
+        tiles: ['osmand-labels://{z}/{x}/{y}'],
+        tileSize: 256,
+        minzoom: 2,
+        maxzoom: 21
+      });
+    }
+    if (!this.map.getLayer('osmand-labels-layer')) {
+      this.map.addLayer({
+        id: 'osmand-labels-layer',
+        type: 'raster',
+        source: 'osmand-labels-source',
+        paint: { 'raster-opacity': this.osmAndLabelsOpacity, 'raster-fade-duration': 0 }
+      });
+    }
+    this.map.setLayoutProperty('osmand-labels-layer', 'visibility', this.osmAndLabelsVisible ? 'visible' : 'none');
+  }
+
