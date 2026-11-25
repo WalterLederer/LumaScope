@@ -173,6 +173,8 @@ export class MapWindow implements OnInit, OnDestroy {
   private leaflet: LeafletMapApi | null = null;
   private leafletHillshadeLayer: LeafletGridLayer | null = null;
   private leafletHillshadePane: HTMLElement | null = null;
+  private leafletOsmAndLabelsLayer: LeafletGridLayer | null = null;
+  private leafletOsmAndLabelsPane: HTMLElement | null = null;
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
   private readonly configuration = inject(Configuration);
   private unsubscribeLocation: (() => void) | null = null;
@@ -8013,7 +8015,10 @@ ${points}
       this.applyHillshadeSettings(this.offlineRenderer);
       return;
     }
-    if (this.map && this.leaflet) this.applyLeafletHillshadeSettings(refreshLeafletTiles);
+    if (this.map && this.leaflet) {
+      this.applyLeafletHillshadeSettings(refreshLeafletTiles);
+      this.applyLeafletOsmAndLabelsSettings(refreshLeafletTiles);
+    }
   }
 
   private applyLeafletHillshadeSettings(refreshTiles: boolean): void {
@@ -8130,6 +8135,75 @@ ${points}
       });
     } else {
       this.leafletHillshadeLayer.setOpacity(this.hillshadeOpacity() / 100);
+    }
+  }
+
+  private applyLeafletOsmAndLabelsSettings(refreshTiles: boolean): void {
+    const map = this.map;
+    const leaflet = this.leaflet;
+    const desktop = this.desktop;
+    if (!map || !leaflet || !desktop || !this.osmAndLabelsVisible() || this.activeOsmandMapCount() === 0) {
+      this.leafletOsmAndLabelsLayer?.remove();
+      this.leafletOsmAndLabelsLayer = null;
+      return;
+    }
+
+    if (refreshTiles && this.leafletOsmAndLabelsLayer) {
+      this.leafletOsmAndLabelsLayer.remove();
+      this.leafletOsmAndLabelsLayer = null;
+    }
+
+    if (!this.leafletOsmAndLabelsLayer) {
+      if (!this.leafletOsmAndLabelsPane) {
+        this.leafletOsmAndLabelsPane = map.createPane('osmandLabelsPane');
+        this.leafletOsmAndLabelsPane.style.zIndex = '260';
+      }
+      const OsmAndLabelsGridLayer = leaflet.GridLayer.extend({
+        createTile: (coords, done) => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 256;
+          canvas.height = 256;
+          const context = canvas.getContext('2d');
+          if (!context) {
+            done(new Error('Unable to create the OsmAnd Labels tile canvas.'), canvas);
+            return canvas;
+          }
+          void (async () => {
+            try {
+              const tileCount = 2 ** coords.z;
+              const x = ((coords.x % tileCount) + tileCount) % tileCount;
+              if (coords.z < 2 || coords.z > 21 || coords.y < 0 || coords.y >= tileCount) {
+                done(null, canvas);
+                return;
+              }
+              const tile = await runOfflineRenderTask(
+                () => desktop.OsmAndAtlas.renderLabelsTile(coords.z, x, coords.y, this.displayDensityFactor()),
+                'OsmAnd Labels', `Tile z${coords.z}/${x}/${coords.y}`
+              );
+              if (tile.width !== 256 || tile.height !== 256 || tile.stride !== 1024
+                || tile.pixels.byteLength !== 256 * 256 * 4) {
+                throw new Error('OsmAnd Labels returned an invalid RGBA8 frame.');
+              }
+              context.putImageData(new ImageData(new Uint8ClampedArray(tile.pixels), 256, 256), 0, 0);
+              done(null, canvas);
+            } catch (error) {
+              const message = error instanceof Error ? error.message : String(error);
+              this.recordMapError('OsmAnd Labels tile', message + ' [z=' + coords.z + ', x=' + coords.x + ', y=' + coords.y + ']');
+              done(error instanceof Error ? error : new Error(message), canvas);
+            }
+          })();
+          return canvas;
+        }
+      });
+      this.leafletOsmAndLabelsLayer = new OsmAndLabelsGridLayer({
+        pane: 'osmandLabelsPane', tileSize: 256, minZoom: 2, maxZoom: 21, maxNativeZoom: 20,
+        opacity: this.osmAndLabelsOpacity() / 100, zIndex: 260
+      }).addTo(map);
+      this.leafletOsmAndLabelsLayer.on('load', () => {
+        window.dispatchEvent(new CustomEvent('lumascope-map-display-ready'));
+      });
+    } else {
+      this.leafletOsmAndLabelsLayer.setOpacity(this.osmAndLabelsOpacity() / 100);
     }
   }
 
