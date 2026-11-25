@@ -1342,9 +1342,10 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
 .opacity-settings .opacity-content .range-setting > input.opacity-slider[type="range"] {
   grid-column: 1 !important;
   grid-row: 2 !important;
-  width: 100%;
+  justify-self: start;
+  width: 80%;
   min-width: 0;
-  max-width: none;
+  max-width: 360px;
   margin: 0;
 }
 .opacity-settings .opacity-content .range-setting > .range-value {
