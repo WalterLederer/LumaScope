@@ -41,7 +41,7 @@ function decodeXmlText(value: string): string {
 }
 
 function readAttribute(tag: string, name: string): string | null {
-  const attributes = tag.matchAll(/([A-Za-z_:][\\w:.-]*)\\s*=\\s*(?:"([^"]*)"|'([^']*)')/g);
+  const attributes = tag.matchAll(/([A-Za-z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g);
   for (const attribute of attributes) {
     if (attribute[1] === name) return attribute[2] ?? attribute[3] ?? null;
   }
