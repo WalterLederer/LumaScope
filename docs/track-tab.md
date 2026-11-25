@@ -6,7 +6,7 @@ The **Track** tab manages GPX tracks displayed on the map. It supports loading G
 
 - Select **Add GPX files...** to choose GPX files for display.
 - In the recent-files view, use **Select all** or **Deselect all** to change the active state of all listed tracks.
-- Track rows provide per-track controls for visibility and appearance, including color, line style, width and direction arrows where available.
+- Track rows provide per-track controls for visibility and appearance, including color, line style, width and direction arrows where available. Direction arrows follow the rendered track-segment color, including the individual colors used by speed-based and elevation-based modes.
 - Use the row actions to fit a track to the map, open or remove a recently loaded track, and copy its full path (the available actions depend on the list mode).
 
 ## Use GPX files from DB
@@ -33,4 +33,5 @@ Use the GPX database import controls in the Location tab's Track/Advanced area t
 - Use the database mode when working with a large GPX collection and want to list tracks relevant to the current map area.
 - Use the recent-files mode for tracks loaded directly during the current session.
 - A track can contain multiple segments. Segment boundaries are meaningful; tools that interpolate positions must not bridge separate segments.
-- If a track is missing or cannot be read, check the file path and file availability.
+- If a saved track path is no longer valid, startup checks the same folder for a GPX filename with a date/time prefix followed by the original filename (for example, `2026_11_24 17_49_52__LumaScope_track_color_hover_test.Gpx`). The timestamp is matched flexibly rather than against a fixed value. When a matching file is found and can be parsed, LumaScope updates the saved path and filename in the app settings so subsequent starts use the recovered name directly.
+- If no matching replacement is found or the file cannot be read, check the saved file path and file availability.
