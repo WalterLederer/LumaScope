@@ -7484,80 +7484,52 @@ ${points}
     content: string,
     onProgress?: (processed: number, total: number) => void
   ): Promise<{ coordinates: [number, number][][]; pointData: GpxTrackPoint[][]; segmentNames: string[] }> {
-    const xml = new DOMParser().parseFromString(content, 'application/xml');
-    if (xml.getElementsByTagName('parsererror').length) throw new Error('The selected file is not valid GPX/XML.');
-    // Traverse the XML tree only once. GPX track points are direct children of
-    // trkseg; scanning every descendant of every segment repeatedly becomes
-    // disproportionately expensive for large files with many extension nodes.
-    const elements = Array.from(xml.getElementsByTagName('*'));
-    const trackElements = elements.filter(element => element.localName === 'trk');
-    const trackIndices = new Map<Element, number>(trackElements.map((element, index) => [element, index]));
-    const segmentElements = elements.filter(element => element.localName === 'trkseg');
-    const groups: Array<{ elements: Element[]; name: string }> = [];
-    if (segmentElements.length) {
-      for (const segment of segmentElements) {
-        let parent = segment.parentElement;
-        while (parent && parent.localName !== 'trk') parent = parent.parentElement;
-        const trackIndex = parent ? (trackIndices.get(parent) ?? groups.length) : groups.length;
-        const name = parent
-          ? Array.from(parent.children).find(child => child.localName === 'name')?.textContent?.trim()
-          : '';
-        const points = Array.from(segment.children).filter(point => point.localName === 'trkpt');
-        if (points.length) groups.push({ elements: points, name: name || `Track ${trackIndex + 1}` });
+    // XML parsing and point extraction run in a dedicated worker. DOMParser and
+    // large XML DOM traversals on the renderer thread were still able to stall
+    // the UI near the end of very large GPX files.
+    return new Promise((resolve, reject) => {
+      let worker: Worker;
+      try {
+        worker = new Worker(new URL('./gpx-parser.worker', import.meta.url), { type: 'module' });
+      } catch (error) {
+        reject(new Error('Could not start the GPX parsing worker: ' + (error instanceof Error ? error.message : String(error))));
+        return;
       }
-    } else {
-      const points = elements.filter(point => point.localName === 'trkpt' || point.localName === 'rtept');
-      if (points.length) {
-        const route = elements.find(element => element.localName === 'rte');
-        const name = route ? Array.from(route.children).find(child => child.localName === 'name')?.textContent?.trim() : '';
-        groups.push({ elements: points, name: name || 'Route' });
-      }
-    }
-    const total = groups.reduce((sum, group) => sum + group.elements.length, 0);
-    if (!total) throw new Error('No valid track or route points were found in the GPX file.');
-    const coordinates: [number, number][][] = [];
-    const pointData: GpxTrackPoint[][] = [];
-    const segmentNames: string[] = [];
-    let processed = 0;
-    for (const group of groups) {
-      const coordinateSegment: [number, number][] = [];
-      const metadataSegment: GpxTrackPoint[] = [];
-      for (const point of group.elements) {
-        processed++;
-        const coordinate = this.parseGpxPoint(point);
-        if (!coordinate) {
-          if (processed % 250 === 0) {
-            onProgress?.(processed, total);
-            await new Promise<void>(resolve => setTimeout(resolve, 0));
-          }
-          continue;
+      const finish = (): void => worker.terminate();
+      worker.onmessage = (event: MessageEvent<{
+        type: 'progress' | 'complete' | 'error';
+        processed?: number;
+        total?: number;
+        result?: { coordinates: [number, number][][]; pointData: GpxTrackPoint[][]; segmentNames: string[] };
+        error?: string;
+      }>): void => {
+        const message = event.data;
+        if (message.type === 'progress') {
+          onProgress?.(message.processed ?? 0, message.total ?? 0);
+          return;
         }
-        let elevation: number | null = null;
-        let timestamp: string | null = null;
-        for (const child of Array.from(point.children)) {
-          if (child.localName === 'ele') {
-            const value = Number(child.textContent?.trim());
-            elevation = Number.isFinite(value) ? value : null;
-          } else if (child.localName === 'time') {
-            timestamp = child.textContent?.trim() || null;
-          }
+        finish();
+        if (message.type === 'error') {
+          reject(new Error(message.error || 'GPX parsing failed.'));
+          return;
         }
-        coordinateSegment.push(coordinate);
-        metadataSegment.push({ latitude: coordinate[0], longitude: coordinate[1], elevation, timestamp });
-        if (processed % 250 === 0) {
-          onProgress?.(processed, total);
-          await new Promise<void>(resolve => setTimeout(resolve, 0));
+        if (!message.result) {
+          reject(new Error('The GPX parsing worker returned no result.'));
+          return;
         }
-      }
-      if (coordinateSegment.length) {
-        coordinates.push(coordinateSegment);
-        pointData.push(metadataSegment);
-        segmentNames.push(group.name);
-      }
-    }
-    onProgress?.(processed, total);
-    if (!coordinates.length) throw new Error('No valid track or route points were found in the GPX file.');
-    return { coordinates, pointData, segmentNames };
+        onProgress?.(message.total ?? 0, message.total ?? 0);
+        resolve(message.result);
+      };
+      worker.onerror = (event: ErrorEvent): void => {
+        finish();
+        reject(new Error(event.message || 'The GPX parsing worker failed.'));
+      };
+      worker.onmessageerror = (): void => {
+        finish();
+        reject(new Error('Could not read the GPX parsing worker response.'));
+      };
+      worker.postMessage({ content });
+    });
   }
 
   private parseGpxTrackData(content: string): [number, number][][] {
