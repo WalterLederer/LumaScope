@@ -440,20 +440,19 @@ export class MarkdownViewerComponent {
         if (++attempts < 12) view.requestAnimationFrame(findAndScroll);
         return;
       }
-      const block = target.matches('li, tr') ? target : target.closest('p, li, tr, blockquote, pre, h1, h2, h3, h4, h5, h6, .markdown-image-row') as HTMLElement | null;
+      // Highlight the containing block. Heading and table-start anchors are
+      // siblings of their rendered block, while paragraph/code anchors are inside it.
+      const block = target.matches('li, tr')
+        ? target
+        : target.closest('p, li, tr, blockquote, pre, h1, h2, h3, h4, h5, h6, .markdown-image-row')
+          ?? target.nextElementSibling as HTMLElement | null;
       article.querySelectorAll('.active-search-line').forEach((element: Element) => element.classList.remove('active-search-line'));
       block?.classList.add('active-search-line');
-      // Scroll the article itself, not whichever ancestor scrollIntoView might choose.
-      // Use the exact line anchor (not its containing paragraph), so matches on
-      // different lines of the same Markdown page remain independently navigable.
-      const articleRect = article.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
-      // Calculate the target position relative to the article's scrollport,
-      // accounting for its border. Scroll by the measured delta so navigation
-      // also works after the article has already been scrolled.
-      const targetOffset = targetRect.top - articleRect.top - article.clientTop;
-      const desiredTop = Math.max(0, article.scrollTop + targetOffset - 32);
-      article.scrollTop = desiredTop;
+
+      // Let the browser calculate the scroll delta for the exact source-line
+      // anchor. This also handles anchors nested in paragraphs, code blocks,
+      // lists and tables without relying on offset-parent geometry.
+      target.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
     };
     view.requestAnimationFrame(() => view.requestAnimationFrame(findAndScroll));
   };
