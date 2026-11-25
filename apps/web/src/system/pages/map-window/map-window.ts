@@ -7598,7 +7598,7 @@ ${points}
   }
   private applyMapStyle(): void {
     if (!this.map || !this.leaflet) return;
-    this.beginOnlineMapLoading();
+    this.beginMapLoading('online');
     this.tileLayer?.remove();
     const style = this.styles[this.mapStyle()];
     const layer = this.leaflet.tileLayer(style.url, style);
