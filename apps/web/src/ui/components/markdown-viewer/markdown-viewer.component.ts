@@ -341,18 +341,23 @@ export class MarkdownViewerComponent {
   private readonly scrollToSearchResult = (result: HelpSearchResult, expectedRequest = this.documentLoadRequest): void => {
     const view = this.document.defaultView;
     if (!view) return;
-    // Wait for Angular to commit the updated innerHTML before resolving the line anchor.
-    view.requestAnimationFrame(() => view.requestAnimationFrame(() => {
+    let attempts = 0;
+    const findAndScroll = (): void => {
       if (expectedRequest !== this.documentLoadRequest || this.currentFile() !== result.fileName) return;
       const article = this.document.querySelector<HTMLElement>('.markdown-body');
-      if (!article) return;
-      const target = article.querySelector<HTMLElement>('#help-search-line-' + result.lineNumber);
-      if (!target) return;
+      const target = article?.querySelector<HTMLElement>('#help-search-line-' + result.lineNumber);
+      if (!article || !target) {
+        if (++attempts < 12) view.requestAnimationFrame(findAndScroll);
+        return;
+      }
       const block = target.nextElementSibling as HTMLElement | null;
       article.querySelectorAll('.active-search-line').forEach(element => element.classList.remove('active-search-line'));
       block?.classList.add('active-search-line');
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }));
+      // Scroll the document pane itself, never the outer Help panel or the result list.
+      const targetTop = target.getBoundingClientRect().top - article.getBoundingClientRect().top + article.scrollTop;
+      article.scrollTo({ top: Math.max(0, targetTop - 12), behavior: 'smooth' });
+    };
+    view.requestAnimationFrame(() => view.requestAnimationFrame(findAndScroll));
   };
 
   protected readonly openSearchResult = (result: HelpSearchResult): void => {
