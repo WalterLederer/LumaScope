@@ -1259,3 +1259,56 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
 /* Compact row counts beside table header action menus. */
 .table-header-row-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:20px;margin-right:5px;padding:0 4px;box-sizing:border-box;border-radius:4px;background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-high,#fff);font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;vertical-align:middle}
 .offline-actions-header{white-space:nowrap;text-align:center}
+
+
+/* Label opacity controls use a compact two-row layout: title/value above,
+   full-width slider below. Crosshair and map scale share a flexible row. */
+.opacity-settings .opacity-content > .label-opacity-surface-box > .range-setting {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  column-gap: 5px;
+  row-gap: 4px;
+  min-width: 0;
+}
+.opacity-settings .opacity-content > .label-opacity-surface-box > .range-setting > .opacity-row-label,
+.opacity-settings .opacity-content > .label-opacity-surface-box > .range-setting > .visibility-toggle {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+.opacity-settings .opacity-content > .label-opacity-surface-box > .range-setting > ui-slider.opacity-slider {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+}
+.opacity-settings .opacity-content > .label-opacity-surface-box > .range-setting > .range-value {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  margin: 0;
+  min-width: 0;
+  white-space: nowrap;
+}
+.opacity-settings .opacity-content > .label-opacity-surface-box > .range-setting > .osmand-label-rerender-status {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  min-width: 0;
+}
+.opacity-content > .crosshair-map-scale-opacity-surface-box {
+  display: flex;
+  flex: 1 1 220px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+  min-width: 0;
+}
+.opacity-content > .crosshair-map-scale-opacity-surface-box > .range-setting {
+  flex: 1 1 105px;
+  min-width: 0;
+  white-space: nowrap;
+}
