@@ -5781,7 +5781,8 @@ export class MapWindow implements OnInit, OnDestroy {
         await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
         const content = await file.text();
         this.gpxImportStatus.set(`Parsing GPX: ${file.name}…`);
-        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+        this.gpxProgress.set({ active: true, percent: 1, label: `Preparing ${file.name}…` });
+        await new Promise<void>(resolve => setTimeout(resolve, 0));
         const parsedData = await this.parseGpxTrackBundle(content, (processed, total) => {
           this.gpxImportStatus.set(`Parsing ${file.name}: ${formatNumber(processed)} / ${formatNumber(total)} points…`);
           this.gpxProgress.set({ active: true, percent: Math.min(88, Math.round(processed / Math.max(1, total) * 88)), label: `Parsing ${file.name}: ${formatNumber(processed)} / ${formatNumber(total)} points` });
@@ -5804,7 +5805,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.gpxError.set(`${file.name}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
-    if (!added.length) { this.gpxImportStatus.set(''); return; }
+    if (!added.length) { this.gpxImportStatus.set(''); this.gpxProgress.set({ active: false, percent: 0, label: '' }); return; }
     const next = [...current, ...added];
     this.gpxTracks.set(next);
     void this.persistGpxTracks(next.filter(track => !track.path.startsWith('memory:')));
@@ -6086,6 +6087,8 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!result.success) { available.push({ ...track, missing: metadata === null, readError: metadata !== null }); continue; }
       try {
         this.gpxRestoreStatus.set(`Loading ${track.name}…`);
+        this.gpxProgress.set({ active: true, percent: 1, label: `Preparing ${track.name}…` });
+        await new Promise<void>(resolve => setTimeout(resolve, 0));
         const parsedData = await this.parseGpxTrackBundle(result.data, (processed, total) => {
           this.gpxRestoreStatus.set(`Loading ${track.name}: ${formatNumber(processed)} / ${formatNumber(total)} points…`);
           this.gpxProgress.set({ active: true, percent: Math.min(88, Math.round(processed / Math.max(1, total) * 88)), label: `Loading ${track.name}: ${formatNumber(processed)} / ${formatNumber(total)} points` });
