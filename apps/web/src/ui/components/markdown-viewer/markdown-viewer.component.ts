@@ -87,7 +87,6 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
       const language = line.trim().slice(3).trim();
       index++;
       const code: string[] = [];
-      let codeIndex = index;
       while (index < lines.length && !lines[index].trim().startsWith('```')) {
         code.push('<span id="help-search-line-' + (index + 1) + '" class="help-search-line-anchor"></span>' + escapeHtml(lines[index]));
         index++;
@@ -168,10 +167,11 @@ const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, stri
       paragraph.push(line.trim());
       index++;
     }
-    const paragraphHtml = paragraph.map((line, lineIndex) =>
-      '<span id="help-search-line-' + (paragraphLineNumber + lineIndex) + '" class="help-search-line-anchor"></span>' + renderInline(line, imageSources, searchQuery)
+    const renderedParagraphLines = paragraph.map(line => renderInline(line, imageSources, searchQuery));
+    const paragraphHtml = renderedParagraphLines.map((renderedLine, lineIndex) =>
+      '<span id="help-search-line-' + (paragraphLineNumber + lineIndex) + '" class="help-search-line-anchor"></span>' + renderedLine
     ).join('<br>');
-    if (/^(?:\s*(?:<span id="help-search-line-\d+" class="help-search-line-anchor"><\/span>)?<img\b[^>]*>\s*)+$/i.test(paragraphHtml)) {
+    if (renderedParagraphLines.every(renderedLine => /^\s*(?:<img\b[^>]*>\s*)+$/i.test(renderedLine))) {
       output.push('<div class="markdown-image-row">' + paragraphHtml + '</div>');
     } else {
       output.push('<p>' + paragraphHtml + '</p>');
