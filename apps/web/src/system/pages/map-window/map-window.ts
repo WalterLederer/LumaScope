@@ -6104,7 +6104,7 @@ export class MapWindow implements OnInit, OnDestroy {
     void this.persistGpxTracks(available);
     this.gpxProgress.set({ active: true, percent: 92, label: 'Preparing GPX tracks for the map…' });
     await new Promise<void>(resolve => setTimeout(resolve, 0));
-    this.rebuildGpxSegments();
+    await this.rebuildGpxSegmentsForRestore();
     this.gpxProgress.set({ active: true, percent: 96, label: 'Drawing GPX tracks on the map…' });
     await new Promise<void>(resolve => setTimeout(resolve, 0));
     this.applyGpxTrack();
@@ -6194,6 +6194,34 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxSegments = sourceTracks
       .filter(track => track.active !== false)
       .flatMap(track => this.visibleGpxSegments(track));
+    this.updateWalkingMarker();
+  }
+
+  private async rebuildGpxSegmentsForRestore(): Promise<void> {
+    // A large Search Helper GPX may contain hundreds of separate OSM tracks.
+    // Yield between tracks so Angular/Electron can keep painting and updating
+    // the restore progress instead of appearing frozen at 92%.
+    this.updateTimeSliderBounds();
+    const sourceTracks = this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks();
+    const activeTracks = sourceTracks.filter(track => track.active !== false);
+    const visibleSegments: [number, number][][] = [];
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
+
+    for (let index = 0; index < activeTracks.length; index++) {
+      visibleSegments.push(...this.visibleGpxSegments(activeTracks[index]));
+      if ((index + 1) % 8 === 0 || index === activeTracks.length - 1) {
+        const fraction = (index + 1) / Math.max(1, activeTracks.length);
+        const percent = 92 + Math.min(3, Math.floor(fraction * 3));
+        this.gpxProgress.set({
+          active: true,
+          percent,
+          label: `Preparing GPX tracks for the map: ${formatNumber(index + 1)} / ${formatNumber(activeTracks.length)} tracks`
+        });
+        await new Promise<void>(resolve => setTimeout(resolve, 0));
+      }
+    }
+
+    this.gpxSegments = visibleSegments;
     this.updateWalkingMarker();
   }
 
@@ -6564,11 +6592,17 @@ export class MapWindow implements OnInit, OnDestroy {
     // put the animated symbol on a straight line that is not part of the GPX.
     const activeTracks = this.gpxTracks().filter(track => track.active !== false && !track.missing);
     const timedSegments = activeTracks.flatMap(track =>
-      (this.gpxPointDataByTrack.get(track.path) ?? []).map(segment =>
-        segment.map(point => ({ point, time: point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN }))
+      (this.gpxPointDataByTrack.get(track.path) ?? []).flatMap(segment => {
+        // Most imported tracks have no timestamps. Avoid allocating and sorting
+        // a temporary object for every coordinate when the segment cannot
+        // contribute to the time-slider walking marker.
+        if (!segment.some(point => !!point.timestamp)) return [];
+        const timedSegment = segment
+          .map(point => ({ point, time: point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN }))
           .filter(item => Number.isFinite(item.time))
-          .sort((a, b) => a.time - b.time)
-      ).filter(segment => segment.length > 0)
+          .sort((a, b) => a.time - b.time);
+        return timedSegment.length ? [timedSegment] : [];
+      })
     );
     const currentTime = this.timeSliderEnd();
     let latitude: number, longitude: number, bearing = this.lastWalkingBearing;
