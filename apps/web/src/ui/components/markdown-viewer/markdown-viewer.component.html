@@ -22,7 +22,7 @@
         @else if (searchError()) { <p class="markdown-state markdown-error" role="alert">{{ searchError() }}</p> }
         @else if (searchResults().length === 0) { <p class="markdown-state">No matching help pages found.</p> }
         @else {
-          <p class="markdown-help-search-count">{{ searchResults().reduce((count, group) => count + group.results.length, 0) }} results in {{ searchResults().length }} pages</p>
+          <p class="markdown-help-search-count">{{ searchResultCount() }} results in {{ searchResults().length }} pages</p>
           @for (group of searchResults(); track group.fileName) {
             <section class="markdown-help-search-group">
               <h3>{{ group.title }}</h3>
