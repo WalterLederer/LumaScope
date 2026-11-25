@@ -42,7 +42,7 @@ interface MapInstance {
   remove(): void;
 }
 interface LeafletMapApi {
-  map(element: HTMLElement, options?: { zoomControl?: boolean; keyboard?: boolean; minZoom?: number; maxZoom?: number }): MapInstance;
+  map(element: HTMLElement, options?: { zoomControl?: boolean; keyboard?: boolean; minZoom?: number; maxZoom?: number; preferCanvas?: boolean }): MapInstance;
   control: { scale(options: { metric: boolean; imperial: boolean; position: 'bottomleft'; maxWidth: number }): { addTo(map: MapInstance): unknown } };
   tileLayer(url: string, options: { attribution: string; maxZoom: number; maxNativeZoom?: number }): LeafletTileLayer;
   GridLayer: { extend(definition: { createTile(coords: { x: number; y: number; z: number }, done: (error: Error | null, tile: HTMLCanvasElement) => void): HTMLCanvasElement }): new(options?: { pane?: string; opacity?: number; tileSize?: number; minZoom?: number; maxZoom?: number; maxNativeZoom?: number; zIndex?: number }) => LeafletGridLayer };
@@ -3904,7 +3904,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (generation !== this.mapSourceGeneration || this.mapSource() !== 'online') return;
     this.leaflet = leaflet;
     const center: [number, number] = [latitude, longitude];
-    const map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20 })
+    const map = this.leaflet.map(this.mapElement().nativeElement, { zoomControl: false, keyboard: false, minZoom: 1, maxZoom: 20, preferCanvas: true })
       .setView(center, this.validZoom(this.zoomLevel()));
     this.map = map;
     this.applyMapBoundsVisibility();
