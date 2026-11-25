@@ -284,6 +284,8 @@ export class GalleryState {
           return this.cacheManager.selectDatabaseForDirectory(path).then(() => {
             console.info('[GalleryDB] DONE open database', { durationMs: Date.now() - startedAt });
             console.info('[GalleryDB] WAIT first page', {
+              rendererPage: typeof window !== 'undefined' ? window.location.href : 'unknown',
+              rendererTimeOrigin: typeof performance !== 'undefined' ? performance.timeOrigin : null,
               recursive: this.includeFilesRecursive$.value,
               includeUnsupported: this.includeUnsupportedFiles$.value,
               sort: `${sortMode.sortBy} ${sortMode.sortDir}`,
@@ -314,6 +316,11 @@ export class GalleryState {
             this.deferredGalleryCountTimer = setTimeout(() => {
               this.deferredGalleryCountTimer = null;
               if (request !== this.navigationRequest || this.selectedLocation$.value !== path) return;
+              console.info('[GalleryDB] START deferred count', {
+                rendererPage: typeof window !== 'undefined' ? window.location.href : 'unknown',
+                rendererTimeOrigin: typeof performance !== 'undefined' ? performance.timeOrigin : null,
+                folder: path
+              });
               void this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, this.sortMode$.value.sortBy, this.sortMode$.value.sortDir, 0, 1, this.nameFilterActive$.value ? this.nameFilter$.value : '', 'GalleryState.deferredCount').then(countPage => {
                 if (request !== this.navigationRequest || this.selectedLocation$.value !== path) return;
                 if (countPage.totalCount >= 0) {
