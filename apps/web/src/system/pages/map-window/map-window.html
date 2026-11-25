@@ -930,13 +930,11 @@
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="locationOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeLocationOpacity($event)" />
         <span class="range-value">{{ locationOpacity() }}%</span>
       </div>
-      <div class="lumascope-surface-box crosshair-map-scale-opacity-surface-box">
-        <div class="range-setting">
-          <label class="visibility-toggle">Crosshair <input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)" aria-label="Show crosshair"></label>
-        </div>
-        <div class="range-setting">
-          <label class="visibility-toggle">Map scale <input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)" aria-label="Show map scale"></label>
-        </div>
+      <div class="range-setting lumascope-surface-box crosshair-opacity-surface-box">
+        <label class="visibility-toggle">Crosshair <input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)" aria-label="Show crosshair"></label>
+      </div>
+      <div class="range-setting lumascope-surface-box map-scale-opacity-surface-box">
+        <label class="visibility-toggle">Map scale <input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)" aria-label="Show map scale"></label>
       </div>
       <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
         <label for="overlay-opacity">Window</label>
