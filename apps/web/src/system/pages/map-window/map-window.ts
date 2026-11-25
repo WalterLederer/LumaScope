@@ -840,7 +840,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly mapPresetOptions = signal<MapPresetOption[]>([]);
   protected readonly offlineMapPreset = signal<string>('custom');
   protected readonly hillshadePreset = signal<string>('custom');
-  protected readonly osmAndTileCache = signal({ path: '%LOCALAPPDATA%\\LumaScope\\cache\\maps\\obf', entries: 0, bytes: 0, available: false });
+  protected readonly osmAndTileCache = signal({ path: '%APPDATA%\\LumaScope\\Cache\\maps\\obf', entries: 0, bytes: 0, available: false });
   protected readonly osmAndTileCacheBusy = signal(false);
   protected readonly osmAndTileCacheStatus = signal('');
   protected readonly gpxDatabaseClearBusy = signal(false);
@@ -4765,6 +4765,34 @@ export class MapWindow implements OnInit, OnDestroy {
     this.rerenderVisibleTilesBusy.set(false);
     this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
     this.rerenderVisibleTilesStatus.set('Rendering cancelled.');
+  };
+
+  protected readonly rerenderVisibleOsmAndLabels = async (): Promise<void> => {
+    const renderer = this.offlineRenderer;
+    if (!this.desktop || !renderer || this.configuredOsmandMapCount() === 0 || this.rerenderVisibleTilesBusy()) return;
+    this.rerenderVisibleTilesBusy.set(true);
+    this.rerenderVisibleTilesStatus.set('Rendering visible OsmAnd Labels without using the disk cache…');
+    this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
+    try {
+      const count = await renderer.rerenderVisibleOsmAndLabels(
+        (z, x, y, displayScale, forceRender) => runOfflineRenderTask(
+          () => this.desktop!.OsmAndAtlas.renderLabelsTile(z, x, y, displayScale, forceRender),
+          'OsmAnd Labels', 'Rerender z' + z + '/' + x + '/' + y
+        ),
+        this.displayDensityFactor(),
+        (completed, total) => this.rerenderVisibleTilesProgress.set({ completed, total })
+      );
+      this.rerenderVisibleTilesStatus.set(count > 0 ? 'Rendered ' + count + ' visible OsmAnd Labels tiles.' : 'No visible OsmAnd Labels tiles to render.');
+      await this.refreshOsmAndTileCache();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.rerenderVisibleTilesStatus.set('OsmAnd Labels rerender failed: ' + message);
+      this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
+      console.error('[OsmAnd Labels] Could not rerender visible labels:', error);
+    } finally {
+      this.rerenderVisibleTilesBusy.set(false);
+      this.rerenderVisibleTilesProgress.set({ completed: 0, total: 0 });
+    }
   };
 
   protected readonly rerenderVisibleTiles = async (): Promise<void> => {
