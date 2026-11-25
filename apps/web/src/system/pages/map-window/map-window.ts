@@ -6886,16 +6886,19 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private applyDirectoryPhotoMarkers(): void {
     const mapBounds = this.offlineRenderer?.map.getBounds() ?? this.map?.getBounds();
-    const visibleMarkers = this.directoryPhotoMarkers.filter(marker =>
-      this.isTimeSliderTimestampVisible(marker.gpsTimestamp)
-      && (!mapBounds || (marker.latitude >= mapBounds.getSouth() && marker.latitude <= mapBounds.getNorth()
-        && marker.longitude >= mapBounds.getWest() && marker.longitude <= mapBounds.getEast()))
+    const timeVisibleMarkers = this.directoryPhotoMarkers.filter(marker => this.isTimeSliderTimestampVisible(marker.gpsTimestamp));
+    const viewportMarkers = timeVisibleMarkers.filter(marker =>
+      !mapBounds || (marker.latitude >= mapBounds.getSouth() && marker.latitude <= mapBounds.getNorth()
+        && marker.longitude >= mapBounds.getWest() && marker.longitude <= mapBounds.getEast())
     );
     if (this.offlineRenderer) {
-      this.markerCount.set(visibleMarkers.length);
-      this.offlineRenderer.setPhotoMarkers(visibleMarkers, path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
+      this.markerCount.set(viewportMarkers.length);
+      // Keep the full time-filtered set in the renderer; it applies the viewport
+      // filter again after every MapLibre move/zoom without losing off-screen points.
+      this.offlineRenderer.setPhotoMarkers(timeVisibleMarkers, path => { void this.desktop?.MapWindow.selectImage(path); }, (this.markersVisible() ? this.markerOpacity() / 100 : 0));
     } else if (this.leaflet && this.directoryMarkerGroup) {
-      this.renderDirectoryMarkers(visibleMarkers, this.currentImagePath ?? '');
+      this.markerCount.set(viewportMarkers.length);
+      this.renderDirectoryMarkers(viewportMarkers, this.currentImagePath ?? '');
     }
   }
 
