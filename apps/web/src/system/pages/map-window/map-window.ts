@@ -5987,15 +5987,15 @@ export class MapWindow implements OnInit, OnDestroy {
     if (!this.desktop || !path) return null;
     try {
       const directory = await this.desktop.FileSystem.dirname(path);
-      const storedName = path.split(/[\\\\/]/).pop() ?? '';
-      if (!storedName || !/\\.gpx$/i.test(storedName)) return null;
+      const storedName = path.split(/[\\/]/).pop() ?? '';
+      if (!storedName || !/\.gpx$/i.test(storedName)) return null;
       const entries = await this.desktop.FileSystem.readDir(directory);
       const matches = entries.filter(entry => {
-        if (entry.isDirectory || !/\\.gpx$/i.test(entry.name)) return false;
+        if (entry.isDirectory || !/\.gpx$/i.test(entry.name)) return false;
         const separator = entry.name.indexOf('__');
         if (separator <= 0) return false;
         const prefix = entry.name.slice(0, separator);
-        const datePrefix = /^\\d{4}[-_.]\\d{2}[-_.]\\d{2}(?:[ T_-]+\\d{2}[-_.]\\d{2}[-_.]\\d{2})?$/;
+        const datePrefix = /^\d{4}[-_.]\d{2}[-_.]\d{2}(?:[ T_-]+\d{2}[-_.]\d{2}[-_.]\d{2})?$/;
         return datePrefix.test(prefix)
           && entry.name.slice(separator + 2).toLowerCase() === storedName.toLowerCase();
       });
