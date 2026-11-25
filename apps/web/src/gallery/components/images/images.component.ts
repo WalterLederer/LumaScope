@@ -1180,8 +1180,11 @@ export class ImagesComponent {
     let removedStaleCacheFiles = 0;
     let removedStaleCacheBytes = 0;
     let enumerationComplete = true;
+    let recursiveBuildStartedAt = 0;
     const resetLog = false;
     try {
+      recursiveBuildStartedAt = performance.now();
+      console.info('[PHOTO-DB-BUILD] start', { folder: rootPath, recursive: true });
       await this.cacheManager.resetBuildLog();
       await this.cacheManager.appendBuildLog('Recursive cache build started: ' + formatOsDateTime(new Date()));
       await this.cacheManager.appendBuildLog('Verify cache files: ' + (verifyCacheFiles ? 'enabled' : 'disabled'));
@@ -1190,7 +1193,12 @@ export class ImagesComponent {
         this.cacheRunCurrentOperation.set(`Scanning folder and updating photo database: ${directoryPath}`);
         let scan: { files: number; directories: string[]; removedStale: number; removedCacheFiles: number; removedCacheBytes: number; complete: boolean };
         try {
+          const scanStartedAt = performance.now();
           scan = await this.cacheManager.scanGalleryDirectory(directoryPath, false, false);
+          console.info('[PHOTO-DB-BUILD] folder scan complete', {
+            folder: directoryPath, files: scan.files, childDirectories: scan.directories.length,
+            complete: scan.complete, durationMs: Number((performance.now() - scanStartedAt).toFixed(1))
+          });
         } catch (error) {
           enumerationComplete = false;
           console.warn('Failed to index gallery folder', directoryPath, error);
@@ -1221,8 +1229,13 @@ export class ImagesComponent {
               resetLog, progressOffset: processedFiles + offset,
               progressTotal: processedFiles + scan.files, suppressRefresh: true, verifyCacheFiles
             });
+            imageBatchDurationMs = performance.now() - imageBatchStartedAt;
             processedImages += images.length;
           }
+          console.info('[PHOTO-DB-BUILD] batch complete', {
+            folder: directoryPath, offset, rows: page.files.length, images: images.length,
+            pageMs: Number(pageDurationMs.toFixed(1)), imageBatchMs: Number(imageBatchDurationMs.toFixed(1))
+          });
           if (importGpx) {
             const gpxFiles = page.files.filter(file => file.ext.toLowerCase() === '.gpx').map(file => file.path);
             if (gpxFiles.length > 0) await this.importGpxFilesFoundDuringCacheBuild(gpxFiles, controller.signal, true);
@@ -1250,11 +1263,20 @@ export class ImagesComponent {
         this.cacheRunCurrentOperation.set('No supported images found to cache.');
       }
       if (!controller.signal.aborted) this.cacheRunProgress.set({ completed: processedFiles, total: processedFiles });
+      console.info('[PHOTO-DB-BUILD] complete', {
+        folder: rootPath, directories: visitedDirectories.size, files: processedFiles, images: processedImages,
+        aborted: controller.signal.aborted,
+        durationMs: Number((performance.now() - recursiveBuildStartedAt).toFixed(1))
+      });
     } catch (error) {
       console.error('Failed to enumerate recursive gallery cache workload', error);
       this.cacheRunCurrentOperation.set(`Cache build failed: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       if (this.cacheAbortController === controller) this.cacheAbortController = null;
+      if (recursiveBuildStartedAt > 0) console.info('[PHOTO-DB-BUILD] finished', {
+        folder: rootPath, aborted: controller.signal.aborted,
+        durationMs: Number((performance.now() - recursiveBuildStartedAt).toFixed(1))
+      });
       if (controller.signal.aborted && !this.cacheRunCurrentOperation().startsWith('Cache build ')) {
         this.cacheRunCurrentOperation.set('Cache build cancelled during folder enumeration.');
       }
