@@ -13,7 +13,7 @@ import { take } from 'rxjs';
 import { Marker as MapLibreMarker } from 'maplibre-gl';
 import { formatNumber } from '../../../ui/utils/format-number';
 import { buildGpxSymbolTransform, GPX_SYMBOLS, GPX_VEHICLE_SYMBOLS, gpxAnimationDuration, normalizeGpxSymbolSettings } from './gpx-animation';
-import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, setOfflineRenderConcurrency, runOfflineRenderTask, subscribeOfflineRenderStatus, type OfflineRenderTaskStatus, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
+import { OfflineMapRenderer, buildPhotoMarkerPreviewHtml, createOsmAndMapStyle, createOsmAndAtlasMapStyle, cacheHillshadeTile, createHillshadeTileCacheKey, getCachedHillshadeTile, registerOsmAndAtlasTileProtocol, registerOsmAndLabelsTileProtocol, registerOsmAndHillshadeTileProtocol, registerOsmAndTileProtocol, registerMapsforgeTileProtocol, setMapsforgeTileProtocolActive, createMapsforgeMapStyle, setOfflineRenderConcurrency, runOfflineRenderTask, subscribeOfflineRenderStatus, type OfflineRenderTaskStatus, type OfflinePhotoMarker, type OfflineMapStyle } from './offline-map-renderer';
 
 interface MapPresetOption { id: string; name: string; osmAndRegex: string; mapsForgeRegex?: string; hillshadeRegex?: string; }
 interface MapMarker { setLatLng(position: [number, number]): MapMarker; setOpacity(opacity: number): MapMarker; setIcon(icon: unknown): MapMarker; getElement(): HTMLElement | null; getLatLng(): { lat: number; lng: number }; on(event: 'click', callback: () => void): MapMarker; remove(): void; bindTooltip(content: string, options?: { direction?: string; className?: string; opacity?: number }): MapMarker; unbindTooltip(): MapMarker; }
@@ -883,6 +883,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly overlayOpacity = signal(this.readNumber('overlayOpacity', 100, 0, 100));
   protected readonly mapVisible = signal(this.readSetting('mapVisible', 'true') === 'true');
   protected readonly hillshadeVisible = signal(this.readSetting('hillshadeVisible', 'false') === 'true');
+  protected readonly osmAndLabelsVisible = signal(this.readSetting('osmAndLabelsVisible', 'false') === 'true');
+  protected readonly osmAndLabelsOpacity = signal(this.readNumber('osmAndLabelsOpacity', 100, 0, 100));
   protected readonly hillshadeOpacity = signal(this.readNumber('hillshadeOpacity', 65, 0, 100));
   protected readonly hillshadeDatabases = signal<OsmAndHillshadeDatabase[]>([]);
   protected readonly filteredHillshadeDatabases = computed(() => {
@@ -3575,6 +3577,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
 
     registerOsmAndAtlasTileProtocol(this.desktop, () => this.displayDensityFactor());
+    registerOsmAndLabelsTileProtocol(this.desktop, () => this.displayDensityFactor());
     const renderer = new OfflineMapRenderer(
       this.mapElement().nativeElement,
       [longitude, latitude],
@@ -5393,6 +5396,25 @@ export class MapWindow implements OnInit, OnDestroy {
     this.updateHillshadePresetFromSelection(this.hillshadeDatabases());
     this.applyHillshadeSettingsIfReady(true);
   };
+  protected readonly changeOsmAndLabelsVisibility = (visible: boolean): void => {
+    this.osmAndLabelsVisible.set(visible);
+    this.saveSetting('osmAndLabelsVisible', visible);
+    this.applyOsmAndLabelsSettingsIfReady();
+  };
+  protected readonly changeOsmAndLabelsOpacity = (value: string | number): void => {
+    const opacity = Number(value);
+    if (!Number.isFinite(opacity)) return;
+    const next = Math.max(0, Math.min(100, Math.round(opacity)));
+    this.osmAndLabelsOpacity.set(next);
+    this.saveSetting('osmAndLabelsOpacity', next);
+    this.applyOsmAndLabelsSettingsIfReady();
+  };
+  private applyOsmAndLabelsSettingsIfReady(): void {
+    const renderer = this.offlineRenderer;
+    if (!renderer) return;
+    renderer.setOsmAndLabelsOpacity(this.osmAndLabelsOpacity() / 100);
+    renderer.setOsmAndLabelsVisibility(this.osmAndLabelsVisible());
+  }
   protected readonly changeHillshadeVisibility = (visible: boolean): void => {
     this.hillshadeVisible.set(visible);
     this.saveSetting('hillshadeVisible', visible);
@@ -5484,6 +5506,8 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
   private applyHillshadeSettings(renderer: OfflineMapRenderer): void {
+    renderer.setOsmAndLabelsOpacity(this.osmAndLabelsOpacity() / 100);
+    renderer.setOsmAndLabelsVisibility(this.osmAndLabelsVisible());
     renderer.setHillshadeDatabases(this.hillshadeDatabases());
     renderer.setHillshadeOpacity(this.hillshadeOpacity() / 100);
     renderer.setHillshadeVisibility(this.hillshadeVisible() && this.activeHillshadeDatabaseCount() > 0);
