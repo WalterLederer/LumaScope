@@ -1422,22 +1422,22 @@
 /* Virtual detail rows keep a deterministic height so only the viewport and a
    small overscan window need Angular components. */
 .detail-native-table > tbody.images.details-list > tr.detail-virtual-row {
-  height: var(--detail-row-height, 44px);
-  min-height: var(--detail-row-height, 44px);
-  max-height: var(--detail-row-height, 44px);
+  height: var(--detail-row-content-height, 44px);
+  min-height: var(--detail-row-content-height, 44px);
+  max-height: var(--detail-row-content-height, 44px);
   overflow: hidden;
 }
 .detail-native-table > tbody.images.details-list > tr.detail-virtual-row > td {
-  height: var(--detail-row-height, 44px);
-  max-height: var(--detail-row-height, 44px);
+  height: var(--detail-row-content-height, 44px);
+  max-height: var(--detail-row-content-height, 44px);
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
 }
 .detail-native-table > tbody.images.details-list > tr.detail-virtual-row app-thumbnail {
-  height: var(--detail-row-height, 44px);
+  height: var(--detail-row-content-height, 44px);
   min-height: 0;
-  max-height: var(--detail-row-height, 44px);
+  max-height: var(--detail-row-content-height, 44px);
   overflow: hidden;
 }
 /* In text-only detail mode remove the thumbnail component from layout entirely.
