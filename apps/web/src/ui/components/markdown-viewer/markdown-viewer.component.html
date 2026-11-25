@@ -6,6 +6,7 @@
     </div>
     <div class="markdown-help-header-actions">
       <button type="button" class="markdown-open-file-button" (click)="openCurrentDocument()" title="Open this Markdown file with the Windows default app" aria-label="Open Markdown file with default app"><span aria-hidden="true">↗</span></button>
+      <button type="button" class="markdown-sitemap-button" [class.active]="sitemapOpen()" (click)="toggleSitemap()" [attr.aria-expanded]="sitemapOpen()" aria-controls="markdown-help-sitemap">Sitemap</button>
       <button type="button" class="markdown-home-button" (click)="showReadme()" title="Home" aria-label="Home"><span aria-hidden="true">⌂</span></button>
       <label class="markdown-font-size">
       <span>Text size</span>
@@ -14,6 +15,19 @@
       </label>
     </div>
   </header>
+  @if (sitemapOpen()) {
+    <nav id="markdown-help-sitemap" class="markdown-help-sitemap" aria-label="Help sitemap">
+      <div class="markdown-help-sitemap-heading">
+        <strong>Help pages</strong>
+        <button type="button" (click)="toggleSitemap()" aria-label="Close sitemap" title="Close">×</button>
+      </div>
+      <div class="markdown-help-sitemap-list">
+        @for (entry of sitemapEntries(); track entry.fileName) {
+          <button type="button" [class.current]="currentFile() === entry.fileName" (click)="openSitemapEntry(entry.fileName)">{{ entry.title }}</button>
+        }
+      </div>
+    </nav>
+  }
   <div class="markdown-help-search">
     <input type="search" [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)" placeholder="Search all help pages…" aria-label="Search all help pages" />
     @if (searchQuery().trim().length >= 2) {
