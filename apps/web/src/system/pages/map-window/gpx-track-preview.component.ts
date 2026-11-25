@@ -81,7 +81,7 @@ export class GpxTrackPreviewComponent {
   readonly variant = input<'list' | 'settings'>('list');
 
   readonly renderStyle = () => createGpxTrackRenderStyle(this.track(), this.opacity());
-  readonly arrowShadowFilter = (): string => { const style = this.renderStyle(); return style.arrowShadowOpacity > 0 ? 'drop-shadow(' + style.arrowShadowOffset + 'px ' + style.arrowShadowOffset + 'px ' + style.arrowShadowBlur + 'px ' + 'rgba(0,0,0,' + style.arrowShadowOpacity + ')': 'none'; };
+  readonly arrowShadowFilter = (): string => { const style = this.renderStyle(); return style.arrowShadowOpacity > 0 ? 'drop-shadow(' + style.arrowShadowOffset + 'px ' + style.arrowShadowOffset + 'px ' + style.arrowShadowBlur + 'px rgba(0,0,0,' + style.arrowShadowOpacity + '))' : 'none'; };
 
   readonly gradientId = () => 'gpx-preview-' + this.variant() + '-' + this.pathId(this.track().path);
 
