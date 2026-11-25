@@ -935,6 +935,11 @@
           <label class="visibility-toggle">Crosshair <input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)" aria-label="Show crosshair"></label>
         </div>
       </div>
+      <div class="lumascope-surface-box map-scale-opacity-surface-box">
+        <div class="range-setting">
+          <label class="visibility-toggle">Map scale <input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)" aria-label="Show map scale"></label>
+        </div>
+      </div>
       <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
         <label for="overlay-opacity">Window</label>
         <input id="overlay-opacity" class="opacity-slider" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" [disabled]="!overlayMode" aria-label="Window opacity">
@@ -1184,7 +1189,7 @@
           <div class="render-statistics-content">
             <label class="visibility-toggle"><input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)"> Show crosshair</label>
             <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay</label>
-            <label class="visibility-toggle scale-visibility-toggle"><input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)"> Show map scale</label>
+            
             <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()" title="Map bounds are drawn only at zoom level 10 or lower (zoom ≤ 10). Zoom in beyond level 10 to hide them."><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
             <div class="lumascope-surface-box photo-preview-size-box">
               <div class="range-setting photo-preview-size-setting">
