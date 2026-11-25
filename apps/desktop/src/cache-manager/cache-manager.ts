@@ -1332,7 +1332,7 @@ export class CacheManager {
   readonly clearOsmAndTileCache = async (): Promise<CacheClearResult> => {
     const summary = await this.getOsmAndTileCacheSummary();
     const cachePath = summary.path;
-    const expectedRoot = resolve(process.env.LOCALAPPDATA || app.getPath('appData'), 'LumaScope', 'cache', 'maps', 'obf');
+    const expectedRoot = resolve(app.getPath('userData'), 'Cache', 'maps', 'obf');
     if (resolve(cachePath) !== expectedRoot) {
       throw new Error('Refusing to clear an unexpected OsmAnd tile cache path.');
     }
@@ -1342,8 +1342,7 @@ export class CacheManager {
 
   @IpcHandler({ name: 'CacheManager.getOsmAndTileCacheSummary' })
   readonly getOsmAndTileCacheSummary = async (): Promise<{ path: string; entries: number; bytes: number; available: boolean }> => {
-    const localAppData = process.env.LOCALAPPDATA || app.getPath('appData');
-    const cachePath = join(localAppData, 'LumaScope', 'cache', 'maps', 'obf');
+    const cachePath = join(this.userData, 'Cache', 'maps', 'obf');
     if (!existsSync(cachePath)) return { path: cachePath, entries: 0, bytes: 0, available: false };
 
     let entries = 0;
