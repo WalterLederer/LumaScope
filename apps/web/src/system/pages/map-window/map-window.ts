@@ -6407,7 +6407,7 @@ export class MapWindow implements OnInit, OnDestroy {
       if (chunk.north < south || chunk.south > north || chunk.east < west || chunk.west > east) continue;
       for (let i = 1; i < chunk.coordinates.length; i++) visibleLength += this.clippedGpxSegmentLength(chunk.coordinates[i - 1], chunk.coordinates[i], south, north, west, east);
     }
-    const percent = Math.max(0, Math.min(100, Math.round(visibleLength / cached.totalLength * 100)));
+    const percent = Math.max(0, Math.min(100, Math.round(visibleLength / cached.totalLength * 1000) / 10));
     this.gpxRenderedPercentCache.set(track.path, { revision, source: cached, percent });
     return percent;
   };
