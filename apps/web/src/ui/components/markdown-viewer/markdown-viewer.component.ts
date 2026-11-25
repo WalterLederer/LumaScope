@@ -25,7 +25,7 @@ const imageWidthClass = (widthText?: string): string => {
     : '';
 };
 
-const renderInline = (source: string, imageSources: ReadonlyMap<string, string>): string => {
+const renderInline = (source: string, imageSources: ReadonlyMap<string, string>, searchQuery = ''): string => {
   const htmlImages: string[] = [];
   const withImagePlaceholders = source.replace(/<img\b([^>]*)>/gi, (_match, attributes: string) => {
     const src = /\bsrc\s*=\s*["']([^"']+)["']/i.exec(attributes)?.[1];
@@ -40,6 +40,10 @@ const renderInline = (source: string, imageSources: ReadonlyMap<string, string>)
     return token;
   });
   let value = escapeHtml(withImagePlaceholders);
+  if (searchQuery.trim()) {
+    const escapedQuery = searchQuery.trim().replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\  let value = escapeHtml(withImagePlaceholders);');
+    value = value.replace(new RegExp(escapedQuery, 'gi'), match => '<mark class="markdown-search-hit">' + match + '</mark>');
+  }
   value = value.replace(/\x60([^\x60]+)\x60/g, '<code>$1</code>');
   value = value.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   value = value.replace(/\*([^*]+)\*/g, '<em>$1</em>');
@@ -64,7 +68,7 @@ const splitTableRow = (line: string): string[] => line.trim().replace(/^\|/, '')
 const isTableSeparator = (line: string | undefined): boolean =>
   !!line && /^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
 
-const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, string>): string => {
+const renderMarkdown = (markdown: string, imageSources: ReadonlyMap<string, string>, searchQuery = ''): string => {
   const lines = markdown.replace(/\r/g, '').split('\n');
   const output: string[] = [];
   let index = 0;
@@ -187,7 +191,8 @@ export class MarkdownViewerComponent {
   protected readonly loading = signal(true);
   protected readonly fontSize = signal(12);
   protected readonly error = signal<string | null>(null);
-  protected readonly renderedHtml = computed(() => renderMarkdown(this.markdown(), this.imageSources()));
+  protected readonly highlightQuery = signal('');
+  protected readonly renderedHtml = computed(() => renderMarkdown(this.markdown(), this.imageSources(), this.highlightQuery()));
   protected readonly documentTitle = computed(() =>
     this.currentFile() === 'README.md'
       ? 'LumaScope documentation'
@@ -205,6 +210,8 @@ export class MarkdownViewerComponent {
   protected readonly searchQuery = signal('');
   protected readonly searchResults = signal<HelpSearchGroup[]>([]);
   protected readonly searchResultCount = computed(() => this.searchResults().reduce((count, group) => count + group.results.length, 0));
+  protected readonly flatSearchResults = computed(() => this.searchResults().flatMap(group => group.results));
+  protected readonly activeSearchResultIndex = signal(-1);
   protected readonly searchBusy = signal(false);
   protected readonly searchError = signal('');
   private documentLoadRequest = 0;
@@ -287,6 +294,8 @@ export class MarkdownViewerComponent {
 
   protected readonly onSearchInput = (query: string): void => {
     this.searchQuery.set(query);
+    this.highlightQuery.set(query.trim());
+    this.activeSearchResultIndex.set(-1);
     this.searchResults.set([]);
     this.searchError.set('');
     if (this.searchTimer !== null) clearTimeout(this.searchTimer);
@@ -341,10 +350,35 @@ export class MarkdownViewerComponent {
     }
   };
 
+  private readonly scrollToSearchResult = (result: HelpSearchResult): void => {
+    const request = this.documentLoadRequest;
+    this.document.defaultView?.setTimeout(() => {
+      if (request !== this.documentLoadRequest) return;
+      const anchors = Array.from(this.document.querySelectorAll<HTMLElement>('[id^="help-search-line-"]'));
+      const target = anchors.find(element => element.id === 'help-search-line-' + result.lineNumber);
+      if (!target) return;
+      const block = target.nextElementSibling as HTMLElement | null;
+      this.document.querySelectorAll('.markdown-body .active-search-line').forEach(element => element.classList.remove('active-search-line'));
+      block?.classList.add('active-search-line');
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 0);
+  };
+
   protected readonly openSearchResult = (result: HelpSearchResult): void => {
-    this.searchQuery.set('');
-    this.searchResults.set([]);
-    void this.loadDocument(result.fileName, result.lineNumber);
+    const index = this.flatSearchResults().findIndex(item => item.fileName === result.fileName && item.lineNumber === result.lineNumber);
+    this.activeSearchResultIndex.set(index);
+    if (this.currentFile() === result.fileName && !this.loading()) this.scrollToSearchResult(result);
+    else void this.loadDocument(result.fileName, result.lineNumber);
+  };
+
+  protected readonly navigateSearchResult = (direction: -1 | 1): void => {
+    const results = this.flatSearchResults();
+    if (!results.length) return;
+    const nextIndex = (this.activeSearchResultIndex() + direction + results.length) % results.length;
+    this.activeSearchResultIndex.set(nextIndex);
+    const result = results[nextIndex];
+    if (this.currentFile() === result.fileName && !this.loading()) this.scrollToSearchResult(result);
+    else void this.loadDocument(result.fileName, result.lineNumber);
   };
 
   protected readonly onFontSizeChange = (value: number): void => {
