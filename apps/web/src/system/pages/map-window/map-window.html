@@ -310,7 +310,6 @@
 <div class="settings-tab-content track-tab">
   <div class="gpx-settings-content">
     <div class="gpx-toolbar">
-      <button type="button" class="offline-map-add-button gpx-add-button" (click)="importGpxTrack()">Add GPX files...</button>
       <label class="gpx-db-mode-toggle" title="Use GPX files stored in the cache database that intersect the current map viewport">
         <input type="checkbox" [checked]="gpxListMode() === 'database'" (change)="$any($event.target).checked ? showGpxFilesVisibleOnMap() : showRecentGpxFiles()" [disabled]="gpxDatabaseQueryBusy()">
         Use GPX files from DB
@@ -383,6 +382,9 @@
                (click)="$event.stopPropagation()">
             <button type="button" role="menuitem" (click)="toggleGpxActionsColumnPosition(); gpxHeaderActionMenuOpen.set(false)">
               <span aria-hidden="true">⇄</span> {{ gpxActionsColumnPosition() === 'left' ? 'Move actions column to right' : 'Move actions column to left' }}
+            </button>
+            <button type="button" role="menuitem" (click)="importGpxTrack(); gpxHeaderActionMenuOpen.set(false)">
+              <span aria-hidden="true">＋</span> Add GPX files...
             </button>
           </div>
         }
