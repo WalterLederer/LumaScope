@@ -143,6 +143,8 @@ QSurfaceFormat nativeWidgetSurfaceFormat()
         format.setDepthBufferSize(24);
     if (format.stencilBufferSize() < 8)
         format.setStencilBufferSize(8);
+    if (format.alphaBufferSize() < 8)
+        format.setAlphaBufferSize(8);
     return format;
 }
 
@@ -226,7 +228,7 @@ OsmAndNativeMapWidget::OsmAndNativeMapWidget(const Configuration& configuration,
 #else
     setUpdateBehavior(QOpenGLWidget::PartialUpdate);
 #endif
-    setAttribute(Qt::WA_OpaquePaintEvent, true);
+    setAttribute(Qt::WA_OpaquePaintEvent, !_configuration.labelsOnly);
     setAutoFillBackground(false);
     setMouseTracking(true);
     setFocusPolicy(Qt::StrongFocus);
@@ -476,7 +478,11 @@ void OsmAndNativeMapWidget::paintGL()
         if (hadScissor)
             functions->glDisable(kGlScissorTest);
 
-        functions->glClearColor(0.53f, 0.65f, 0.76f, 1.0f);
+        functions->glClearColor(
+            _configuration.labelsOnly ? 0.0f : 0.53f,
+            _configuration.labelsOnly ? 0.0f : 0.65f,
+            _configuration.labelsOnly ? 0.0f : 0.76f,
+            _configuration.labelsOnly ? 0.0f : 1.0f);
         functions->glClear(kGlColorBufferBit | kGlDepthBufferBit);
 
         if (hadScissor)
@@ -935,8 +941,18 @@ bool OsmAndNativeMapWidget::ensureRenderer()
     _mapRenderer->setConfiguration(rendererConfiguration);
     _mapRenderer->setFieldOfView(kDefaultFieldOfView);
     _mapRenderer->setElevationAngle(kDefaultElevationAngle);
-    _mapRenderer->setMapLayerProvider(0, _mapRasterLayerProvider);
+    if (!_configuration.labelsOnly)
+        _mapRenderer->setMapLayerProvider(0, _mapRasterLayerProvider);
     _mapRenderer->addSymbolsProvider(_mapSymbolsProvider);
+    if (_configuration.labelsOnly)
+    {
+        // Keep the symbols provider active (including on-path road names and POI symbols),
+        // but suppress the sky/background stage and all raster map layers.
+        auto debugSettings = _mapRenderer->getDebugSettings();
+        debugSettings->disableSkyStage = true;
+        _mapRenderer->setDebugSettings(debugSettings);
+        _mapRenderer->setBackgroundColor(OsmAnd::FColorRGB(0.0f, 0.0f, 0.0f), true);
+    }
     _mapRenderer->setResourceWorkerThreadsLimit(static_cast<unsigned int>(std::clamp(QThread::idealThreadCount(), 4, 8)));
     syncRendererViewport(true);
     syncRendererCamera(true);
