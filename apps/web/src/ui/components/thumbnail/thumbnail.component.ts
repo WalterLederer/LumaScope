@@ -25,7 +25,7 @@ import { ThumbnailLoaderService } from '../../../system/services/thumbnail-loade
 import { thumbUrl } from '../../../viewer/utils/image-url';
 import { imageDynamicRange } from '../../../viewer/utils/image-dynamic-range';
 import { getCachedFileTypeIcon } from '../../utils/file-type-icon-cache';
-import { formatDecimalNumber } from '../../utils/format-number';
+import { formatDecimalNumber, formatNumber } from '../../utils/format-number';
 
 const supportedThumbnailExtensions = new Set([
   'avif', 'bmp', 'gif', 'heic', 'heif', 'jpe', 'jpeg', 'jpg',
@@ -246,7 +246,7 @@ export class ThumbnailComponent implements OnDestroy {
       .split(/[,\s/]+/)
       .map(value => Number.parseInt(value, 10))
       .find(value => Number.isFinite(value) && value > 0);
-    const dimensions = `${Math.trunc(width)} × ${Math.trunc(height)}`;
+    const dimensions = `${formatNumber(Math.trunc(width))} × ${formatNumber(Math.trunc(height))}`;
     return bitsPerSample ? `${dimensions} × ${bitsPerSample}` : dimensions;
   });
 
