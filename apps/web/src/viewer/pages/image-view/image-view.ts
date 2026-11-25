@@ -1976,21 +1976,58 @@ export class ImageView {
     const restoredSegments: [number, number][][] = [];
     const restoredNames: string[] = [];
     const missingNames: string[] = [];
+    let recoveredTrackPaths = false;
     for (const track of tracksToRestore) {
       if (typeof track['path'] !== 'string' || typeof track['name'] !== 'string') continue;
-      const result = await this.desktopApi.FileSystem.readText(track['path']);
+      let trackPath = track['path'];
+      let trackName = track['name'];
+      let result = await this.desktopApi.FileSystem.readText(trackPath);
+      if (!result.success) {
+        // Some external tools prepend a capture timestamp when exporting a GPX.
+        // Search only the original folder and compare the remaining filename,
+        // ignoring extension casing and the actual timestamp value.
+        try {
+          const folder = await this.desktopApi.FileSystem.dirname(trackPath);
+          const expectedName = trackName.split(/[\\/]/).pop() || trackName;
+          const expectedStem = expectedName.replace(/\\.gpx$/i, '').toLowerCase();
+          const entries = await this.desktopApi.FileSystem.readDir(folder);
+          const candidates = entries
+            .filter(file => !file.isDirectory && /\\.gpx$/i.test(file.name))
+            .filter(file => file.name.replace(/^\\d{4}[-_.]\\d{2}[-_.]\\d{2}(?:[ T_-]+\\d{2}[-_.:]\\d{2}[-_.:]\\d{2})?[_ -]{1,2}/, '').replace(/\\.gpx$/i, '').toLowerCase() === expectedStem)
+            .sort((a, b) => b.modifiedAt - a.modifiedAt);
+          for (const candidate of candidates) {
+            const candidateResult = await this.desktopApi.FileSystem.readText(candidate.path);
+            if (!candidateResult.success) continue;
+            trackPath = candidate.path;
+            trackName = candidate.name;
+            result = candidateResult;
+            break;
+          }
+        } catch (error) {
+          console.warn('[GPX] Could not search for a timestamp-prefixed replacement:', track['path'], error);
+        }
+      }
       if (!result.success) {
         missingNames.push(track['name']);
         continue;
       }
       try {
-        this.setGpxTrackData(result.data, track['name'], false);
+        this.setGpxTrackData(result.data, trackName, false);
         restoredSegments.push(...this.gpxTrackSegments());
-        restoredNames.push(track['name']);
+        restoredNames.push(trackName);
+        if (trackPath !== track['path'] || trackName !== track['name']) {
+          track['path'] = trackPath;
+          track['name'] = trackName;
+          recoveredTrackPaths = true;
+          console.info('[GPX] Recovered saved track using timestamp-prefixed filename:', track['path']);
+        }
       } catch (error) {
-        console.warn('[GPX] Could not restore track:', track['path'], error);
+        console.warn('[GPX] Could not restore track:', trackPath, error);
         missingNames.push(track['name']);
       }
+    }
+    if (recoveredTrackPaths) {
+      await this.processManager.setAppSettingsSection('gpx', { tracks });
     }
     this.gpxTrackSegments.set(restoredSegments);
     this.gpxTrackFileName.set(restoredNames.join(', ') || null);
