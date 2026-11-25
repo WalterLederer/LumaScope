@@ -1417,6 +1417,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private routeRequestGeneration = 0;
   protected readonly gpxRestoreBusy = signal(false);
   protected readonly gpxRestoreStatus = signal('');
+  protected readonly gpxProgress = signal<{ active: boolean; percent: number; label: string }>({ active: false, percent: 0, label: '' });
   protected readonly gpxError = signal('');
   protected readonly gpxHoveredTrackPath = signal<string | null>(null);
   protected readonly gpxHoverInfo = signal('');
@@ -5783,6 +5784,7 @@ export class MapWindow implements OnInit, OnDestroy {
         await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
         const parsedData = await this.parseGpxTrackBundle(content, (processed, total) => {
           this.gpxImportStatus.set(`Parsing ${file.name}: ${formatNumber(processed)} / ${formatNumber(total)} points…`);
+          this.gpxProgress.set({ active: true, percent: Math.min(88, Math.round(processed / Math.max(1, total) * 88)), label: `Parsing ${file.name}: ${formatNumber(processed)} / ${formatNumber(total)} points` });
         });
         const { coordinates: parsed, pointData, segmentNames } = parsedData;
         const pointCount = pointData.reduce((total, segment) => total + segment.length, 0);
@@ -5811,10 +5813,14 @@ export class MapWindow implements OnInit, OnDestroy {
     this.gpxError.set('');
     const drawingPoints = added.reduce((total, track) => total + (this.gpxPointDataByTrack.get(track.path) ?? []).reduce((sum, segment) => sum + segment.length, 0), 0);
     this.gpxImportStatus.set(`Drawing ${formatNumber(drawingPoints)} GPX points on the map…`);
+    this.gpxProgress.set({ active: true, percent: 92, label: `Preparing ${formatNumber(drawingPoints)} GPX points for the map` });
     await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    this.gpxProgress.set({ active: true, percent: 96, label: 'Drawing GPX tracks on the map…' });
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
     this.rebuildGpxSegments();
     this.applyGpxTrack();
     this.fitGpxTrack();
+    this.gpxProgress.set({ active: true, percent: 99, label: 'Finishing GPX cache update…' });
 
     // Keep the per-drive GPX cache in sync with tracks added directly from files.
     const cachePaths = added.map(track => track.path).filter(path => !path.startsWith('memory:'));
@@ -5835,6 +5841,7 @@ export class MapWindow implements OnInit, OnDestroy {
       }
     }
     this.gpxImportStatus.set(`Loaded ${formatNumber(added.length)} GPX file(s) · ${formatNumber(importedSegments)} segments · ${formatNumber(importedPoints)} points.`);
+    this.gpxProgress.set({ active: false, percent: 100, label: '' });
   }
 
   protected readonly openGpxTrack = async (track: GpxTrackFile): Promise<void> => {
@@ -6081,6 +6088,7 @@ export class MapWindow implements OnInit, OnDestroy {
         this.gpxRestoreStatus.set(`Loading ${track.name}…`);
         const parsedData = await this.parseGpxTrackBundle(result.data, (processed, total) => {
           this.gpxRestoreStatus.set(`Loading ${track.name}: ${formatNumber(processed)} / ${formatNumber(total)} points…`);
+          this.gpxProgress.set({ active: true, percent: Math.min(88, Math.round(processed / Math.max(1, total) * 88)), label: `Loading ${track.name}: ${formatNumber(processed)} / ${formatNumber(total)} points` });
         });
         const active = track.active !== false;
         this.gpxPointDataByTrack.set(track.path, parsedData.pointData);
@@ -6091,8 +6099,13 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.gpxTracks.set(available);
     void this.persistGpxTracks(available);
+    this.gpxProgress.set({ active: true, percent: 92, label: 'Preparing GPX tracks for the map…' });
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
     this.rebuildGpxSegments();
+    this.gpxProgress.set({ active: true, percent: 96, label: 'Drawing GPX tracks on the map…' });
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
     this.applyGpxTrack();
+    this.gpxProgress.set({ active: false, percent: 100, label: '' });
     this.gpxRestoreBusy.set(false);
     this.gpxRestoreStatus.set('');
   }
@@ -6242,19 +6255,33 @@ export class MapWindow implements OnInit, OnDestroy {
   };
 
   private updateTimeSliderBounds(): void {
-    const timestamps = [
-      // Loaded GPX tracks define the available time range even when their
-      // map visibility is switched off. Track visibility must not hide the
-      // time controls or make photo GPS timestamps a prerequisite.
-      ...(this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks()).filter(track => !track.missing && !track.readError)
-        .flatMap(track => (this.gpxPointDataByTrack.get(track.path) ?? []).flat())
-        .filter(point => point.inViewport !== false)
-        .map(point => point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN),
-      ...(this.directoryMarkersEnabled()
-        ? this.directoryPhotoTimestampMarkers.map(marker => marker.gpsTimestamp ?? Number.NaN)
-        : [])
-    ].filter(value => Number.isFinite(value));
-    if (!timestamps.length) {
+    // Scan timestamps iteratively. Building several flattened/intermediate arrays
+    // for a large GPX file creates substantial memory pressure during track restore.
+    let minimum = Number.POSITIVE_INFINITY;
+    let maximum = Number.NEGATIVE_INFINITY;
+    const sourceTracks = this.gpxListMode() === 'database' ? this.gpxDatabaseTracks() : this.gpxTracks();
+    for (const track of sourceTracks) {
+      if (track.missing || track.readError) continue;
+      const segments = this.gpxPointDataByTrack.get(track.path) ?? [];
+      for (const segment of segments) {
+        for (const point of segment) {
+          if (point.inViewport === false || !point.timestamp) continue;
+          const timestamp = Date.parse(point.timestamp) / 1000;
+          if (!Number.isFinite(timestamp)) continue;
+          minimum = Math.min(minimum, timestamp);
+          maximum = Math.max(maximum, timestamp);
+        }
+      }
+    }
+    if (this.directoryMarkersEnabled()) {
+      for (const marker of this.directoryPhotoTimestampMarkers) {
+        const timestamp = marker.gpsTimestamp;
+        if (timestamp == null || !Number.isFinite(timestamp)) continue;
+        minimum = Math.min(minimum, timestamp);
+        maximum = Math.max(maximum, timestamp);
+      }
+    }
+    if (!Number.isFinite(minimum) || !Number.isFinite(maximum)) {
       this.timeSliderMinimum.set(0);
       this.timeSliderMaximum.set(0);
       this.timeSliderStart.set(0);
@@ -6262,8 +6289,6 @@ export class MapWindow implements OnInit, OnDestroy {
       this.timeSliderRangeInitialized = false;
       return;
     }
-    const minimum = Math.min(...timestamps);
-    const maximum = Math.max(...timestamps);
     const effectiveMaximum = maximum > minimum ? maximum : minimum + 1;
     const previousMinimum = this.timeSliderMinimum();
     const previousMaximum = this.timeSliderMaximum();
@@ -7498,9 +7523,9 @@ ${points}
         processed++;
         const coordinate = this.parseGpxPoint(point);
         if (!coordinate) {
-          if (processed % 1000 === 0) {
+          if (processed % 250 === 0) {
             onProgress?.(processed, total);
-            await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+            await new Promise<void>(resolve => setTimeout(resolve, 0));
           }
           continue;
         }
@@ -7516,9 +7541,9 @@ ${points}
         }
         coordinateSegment.push(coordinate);
         metadataSegment.push({ latitude: coordinate[0], longitude: coordinate[1], elevation, timestamp });
-        if (processed % 1000 === 0) {
+        if (processed % 250 === 0) {
           onProgress?.(processed, total);
-          await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+          await new Promise<void>(resolve => setTimeout(resolve, 0));
         }
       }
       if (coordinateSegment.length) {
