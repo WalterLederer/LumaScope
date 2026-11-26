@@ -277,7 +277,7 @@ app-map-window {
     .view-rerender-section .view-rerender-layout>.render-helper-activity-section{margin-top:12px!important}
     .view-rerender-section .render-statistics-content{display:flex;flex-direction:column;gap:10px;min-width:0;padding-top:8px}
     .view-rerender-section .render-helper-activity-section .render-statistics-content{gap:0}
-    .view-rerender-section .render-helper-activity-section.render-helper-active>summary{background:color-mix(in srgb,var(--color-surface-default-low,#fff) 86%,#dc4141 14%)!important;background-color:color-mix(in srgb,var(--color-surface-default-low,#fff) 86%,#dc4141 14%)!important;background-image:none!important;color:var(--color-content-default-highest,#202020)!important}
+    
     .view-rerender-section .render-helper-activity-section .render-worker-setting{margin-bottom:12px}
     .render-helper-activity{min-width:0;border:1px solid var(--color-content-default-low,#555);border-radius:6px;padding:8px 10px;background:var(--color-surface-default-low,#202124)}
     .render-helper-activity-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;font-size:11px;color:var(--color-content-default-medium,#bbb)}
