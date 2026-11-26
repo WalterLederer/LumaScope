@@ -91,6 +91,7 @@ export class Exif {
         fileChangedSkipped: 0, errors: 0, databaseKeys, roots
       };
 
+      let processedFiles = 0;
       const scanDirectory = async (directory: string): Promise<void> => {
         let entries: Awaited<ReturnType<typeof readdir>>;
         try {
@@ -134,6 +135,7 @@ export class Exif {
         result.missingRecords += missingSet.size;
 
         for (const file of files) {
+          processedFiles++;
           if (!missingSet.has(file.name.toLocaleLowerCase())) continue;
           let gps: Awaited<ReturnType<Exif['readPhotoMetadata']>> | null = null;
           const extension = extname(file.name).slice(1).toLowerCase();
@@ -183,7 +185,7 @@ export class Exif {
             }
           }
 
-          if (result.scannedFiles % 10000 === 0) {
+          if (processedFiles > 0 && processedFiles % 10000 === 0) {
             console.info('[Exif] Missing photo record scan progress:', { directory, ...result });
           }
         }
