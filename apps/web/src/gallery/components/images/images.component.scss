@@ -1,3 +1,16 @@
+.detail-native-table > thead > tr > th.thumb-statistics {
+  text-align: center;
+  vertical-align: middle;
+}
+.detail-native-table > thead > tr > th.thumb-statistics > small {
+  display: block;
+  line-height: 1.2;
+}
+.detail-native-table > thead > tr > th.thumb-statistics > .thumbnail-resolution-percent {
+  opacity: .72;
+  font-size: .9em;
+}
+
 :host {
   display: block;
   outline: none;
