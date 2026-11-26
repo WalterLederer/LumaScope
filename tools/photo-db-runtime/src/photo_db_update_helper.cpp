@@ -62,6 +62,7 @@ struct ScanStats {
     std::uint64_t withoutGps = 0;
     std::uint64_t metadataErrors = 0;
     std::map<std::wstring, std::uint64_t> metadataErrorsByExtension;
+    std::map<std::wstring, std::map<std::string, std::uint64_t>> metadataErrorMessages;
     std::uint64_t cacheDirectoriesSkipped = 0;
     std::uint64_t filesInsideSkippedDirectories = 0;
     std::uint64_t reparseDirectoriesSkipped = 0;
@@ -77,6 +78,17 @@ std::string toUtf8(std::wstring_view value) {
         static_cast<int>(value.size()), result.data(), required, nullptr, nullptr) <= 0) {
         throw std::runtime_error("Could not convert a Windows path to UTF-8.");
     }
+    return result;
+}
+
+std::wstring fromUtf8(std::string_view value) {
+    if (value.empty()) return {};
+    const int required = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, value.data(),
+        static_cast<int>(value.size()), nullptr, 0);
+    if (required <= 0) return L"(message unavailable)";
+    std::wstring result(static_cast<std::size_t>(required), L'\\0');
+    if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, value.data(),
+        static_cast<int>(value.size()), result.data(), required) <= 0) return L"(message unavailable)";
     return result;
 }
 
@@ -423,9 +435,10 @@ void countMissingImageMetadata(const fs::path& file, const std::wstring& extensi
     try {
         if (readGpsCoordinates(file)) ++stats.gpsFound;
         else ++stats.withoutGps;
-    } catch (const std::exception&) {
+    } catch (const std::exception& error) {
         ++stats.metadataErrors;
         ++stats.metadataErrorsByExtension[extension];
+        ++stats.metadataErrorMessages[extension][error.what()];
         // Per-file diagnostics are intentionally suppressed: console I/O for every
         // metadata failure dominates scan time on large photo collections.
         // The aggregate error count is reported in the final summary.
@@ -634,6 +647,7 @@ int wmain(int argc, wchar_t** argv) {
         std::uint64_t totalWithoutGps = 0;
         std::uint64_t totalMetadataErrors = 0;
         std::map<std::wstring, std::uint64_t> metadataErrorsByExtension;
+        std::map<std::wstring, std::map<std::string, std::uint64_t>> metadataErrorMessages;
         for (const auto& stats : perRootStats) {
             excludedFiles += stats.filesInsideSkippedDirectories;
             totalImageFiles += stats.imageFiles;
@@ -642,6 +656,9 @@ int wmain(int argc, wchar_t** argv) {
             totalMetadataErrors += stats.metadataErrors;
             for (const auto& [extension, count] : stats.metadataErrorsByExtension) {
                 metadataErrorsByExtension[extension] += count;
+            }
+            for (const auto& [extension, messages] : stats.metadataErrorMessages) {
+                for (const auto& [message, count] : messages) metadataErrorMessages[extension][message] += count;
             }
         }
         const auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - scanStartedAt).count();
@@ -660,6 +677,17 @@ int wmain(int argc, wchar_t** argv) {
             std::wcout << L"EXIF errors by image extension:\n";
             for (const auto& [extension, count] : metadataErrorsByExtension) {
                 std::wcout << L"  " << extension << L": " << count << L"\n";
+                const auto found = metadataErrorMessages.find(extension);
+                if (found == metadataErrorMessages.end()) continue;
+                std::vector<std::pair<std::string, std::uint64_t>> messages(found->second.begin(), found->second.end());
+                std::sort(messages.begin(), messages.end(), [](const auto& left, const auto& right) {
+                    return left.second > right.second;
+                });
+                const auto messageLimit = std::min<std::size_t>(5, messages.size());
+                for (std::size_t index = 0; index < messageLimit; ++index) {
+                    std::wcout << L"    " << messages[index].second << L"x: "
+                               << fromUtf8(messages[index].first) << L"\n";
+                }
             }
         }
         std::wcout
