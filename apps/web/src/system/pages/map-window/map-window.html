@@ -980,7 +980,7 @@
     [class.is-render-complete]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && !renderInitStatus() && (renderTotalCount() > 0 || hillshadeTotalCount() > 0) && lastRenderTileCounts().failed === 0 && lastHillshadeTileCounts().failed === 0">
     <summary>
       <span>Render</span>
-      <span class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && !renderInitStatus()" [attr.aria-disabled]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending()">
+      <span class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && !renderInitStatus()" [attr.aria-disabled]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && !renderInitStatus()">
         @if (renderActiveCount() > 0 || rerenderVisibleTilesBusy() || renderDisplayPending() || !!renderInitStatus()) {
           <progress [value]="renderProgressValue()" [max]="renderProgressMaximum()" aria-label="Map tile rendering progress"></progress>
         }
