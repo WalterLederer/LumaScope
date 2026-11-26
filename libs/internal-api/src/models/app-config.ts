@@ -66,6 +66,8 @@ export interface AppConfigV1Gallery {
   sortDir?: SortDirection;
   selectedLocation?: string;
   /** Include files from subfolders in the gallery. Defaults to false. */
+  /** Source used to enumerate gallery files. Defaults to filesystem. */
+  dataSource?: 'filesystem' | 'database';
   includeFilesRecursive?: boolean;
   /** Include files without a supported image decoder in the gallery. Defaults to false. */
   includeUnsupportedFiles?: boolean;
@@ -180,6 +182,7 @@ export const isAppConfig: (input: unknown) => input is AppConfigV1 = (() => {
     && (undefined === input.sortBy || allSortTypes.includes(input.sortBy))
     && (undefined === input.sortDir || allSortDirections.includes(input.sortDir))
     && (undefined === input.selectedLocation || 'string' === typeof input.selectedLocation)
+    && (undefined === input.dataSource || 'filesystem' === input.dataSource || 'database' === input.dataSource)
     && (undefined === input.includeFilesRecursive || 'boolean' === typeof input.includeFilesRecursive)
     && (undefined === input.includeUnsupportedFiles || 'boolean' === typeof input.includeUnsupportedFiles);
   const _io2 = (input: any): boolean =>
