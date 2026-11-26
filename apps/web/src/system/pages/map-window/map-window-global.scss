@@ -20,7 +20,7 @@ app-map-window {
     .map-display-notice strong{font-size:15px}.map-display-notice span{overflow-wrap:anywhere}.map-display-notice button{margin-top:2px}.map-display-notice .map-display-notice-close{position:absolute;top:5px;right:6px;margin:0;padding:1px 6px;font-size:17px;line-height:1.2;border:0;background:transparent}
     & ::ng-deep .maplibregl-ctrl-bottom-left{z-index:40!important;pointer-events:none}
     & ::ng-deep .maplibregl-ctrl-bottom-left .maplibregl-ctrl{pointer-events:auto}
-    & ::ng-deep .maplibregl-ctrl-scale{opacity:.9;transition:opacity .15s ease;background:rgba(255,255,255,.94);color:#111;border:0!important;border-left:2px solid #111!important;border-right:2px solid #111!important;border-bottom:3px solid #111!important;border-top:0!important;box-shadow:0 1px 3px rgba(0,0,0,.45);font-size:10px;font-weight:700;line-height:1.1;text-shadow:none;padding:2px 5px 1px}
+    & ::ng-deep .maplibregl-ctrl-scale{opacity:.9;transition:opacity .15s ease;background:rgba(255,255,255,.94);color:#111;border:1px solid #111!important;box-shadow:none;font-size:10px;font-weight:700;line-height:1.1;text-shadow:none;padding:2px 5px 1px}
     & ::ng-deep .maplibregl-ctrl-scale:hover{opacity:1}
     .scale-visibility-toggle{flex-basis:100%;margin-left:0}
     .view-settings-section .render-statistics-content{display:flex;flex-flow:row nowrap;align-items:center;gap:8px 16px;min-width:0;padding-top:8px;overflow-x:auto}
