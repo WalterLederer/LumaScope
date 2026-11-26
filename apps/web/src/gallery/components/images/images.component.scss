@@ -92,7 +92,7 @@
   font-size: 14px;
   font-weight: 700;
 
-  > :not(.detail-actions-heading):not(.column-resizer):not(:last-child) {
+  > :not(.column-resizer):not(:last-child) {
     display: flex;
     align-self: stretch;
     height: 100%;
@@ -530,11 +530,7 @@
    either side; stored resize values must never enlarge it. */
 .detail-native-table > colgroup > col:first-child,
 .detail-native-table > colgroup > col:last-child,
-.detail-native-table > thead > tr > th.detail-actions-heading {
-  width: 44px !important;
-  min-width: 44px !important;
-  max-width: 44px !important;
-}
+
 /* Keep the column title on its own visual line and separate it from
    the statistics row beneath it. */
 .detail-native-table thead tr.detail-header-labels th > button {
@@ -634,18 +630,13 @@
 }
 .detail-native-table .column-resizer:hover { background: color-mix(in srgb, var(--color-accent-default, #2688e8) 35%, transparent); }
 .detail-native-table .sort-indicator { display: inline-block; min-width: 14px; margin-left: 5px; font-size: 17px; font-weight: 900; line-height: 1; vertical-align: -1px; }
-.detail-native-table .detail-actions-heading { width:var(--detail-actions-width,44px); min-width:44px; height:96px !important; min-height:96px !important; max-height:96px !important; position:relative; z-index:46; display:flex; align-items:flex-start; justify-content:center; padding:10px 0 0!important; }
-.detail-native-table .detail-actions-heading::after { content:""; position:absolute; left:0; right:0; top:46px; height:1px; background:var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))); pointer-events:none; }
-.detail-native-table .detail-actions-heading > .column-resizer { position:absolute; top:0; right:-6px; bottom:0; width:12px; margin:0; z-index:60; cursor:col-resize; pointer-events:auto; }
+
+
+
 
 /* Folder-wide actions occupy the first column; no horizontal sticky layer is needed. */
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading,
-.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
-  position: relative;
-  left: auto;
-  z-index: 45;
-  box-shadow: none;
-}
+
 .detail-native-table .without-thumbnails .thumb-column-heading { visibility: hidden; }
 /* Use near-white opaque surfaces on every detail-list cell. The row host
    and cell backgrounds are both set because the thumbnail component is a
@@ -851,43 +842,13 @@
 }
 
 /* Align the folder hamburger to the right edge like the row action controls. */
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading > .folder-actions-menu-trigger {
-  /* Anchor to the cell edge so the inset matches every body-row action button. */
-  position: absolute !important;
-  top: 10px;
-  right: 8px;
-  margin: 0 !important;
-}
+
 
 /* Keep the column switch visible below the folder menu, in either position. */
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading > .detail-actions-column-toggle {
-  position: absolute !important;
-  top: 54px;
-  right: 8px;
-  margin: 0 !important;
-  z-index: 2;
-}
 
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
-  /* The action column spans the same two 46px header tiers as its neighbours. */
-  height: 92px !important;
-  min-height: 92px !important;
-  max-height: 92px !important;
-  align-self: start;
-  padding: 10px 0 0 !important;
-  position: relative;
-  overflow: visible;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 46px;
-  height: 1px;
-  background: var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%)));
-  pointer-events: none;
-}
+
+
+
 
 .detail-native-table > thead > tr.detail-header-statistics {
   display: grid;
@@ -939,12 +900,7 @@
   overflow-wrap: anywhere;
 }
 
-.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
-  position: relative;
-  left: auto;
-  z-index: 45;
-  padding: 0 !important;
-}
+
 
 
 /* Keep sort glyphs visibly legible regardless of the global button/span typography. */
@@ -1413,10 +1369,7 @@
 
 /* Keep the first hamburger column opaque and visually aligned with the table. */
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading,
-.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
-  opacity: 1 !important;
-  isolation: isolate;
-}
+
 
 
 /* Virtual detail rows keep a deterministic height so only the viewport and a
@@ -1480,25 +1433,9 @@
 /* The action header is made of two real header cells, one in each header
    row. Do not let the first cell overflow across the statistics row: that
    hides the second tier and its divider. */
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
-  height: 46px !important;
-  min-height: 46px !important;
-  max-height: 46px !important;
-  align-self: stretch !important;
-  padding: 5px 0 !important;
-  border-bottom: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading::after {
-  content: none !important;
-}
-.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
-  height: 46px !important;
-  min-height: 46px !important;
-  max-height: 46px !important;
-  align-self: stretch !important;
-  padding: 0 !important;
-  border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 45%)) !important;
-}
+
+
+
 
 
 /* Detail view: use one native HTML table layout for header and every data row.
@@ -1580,11 +1517,7 @@
 .detail-native-table > thead > tr.detail-header-statistics.cache-build-active > th {
   color: var(--color-content-default-highest, #202020) !important;
 }
-.detail-native-table > thead > tr.detail-header-labels.cache-build-active > th.detail-actions-heading {
-  background: color-mix(in srgb, var(--color-surface-default-low, #fff) 86%, #dc4141 14%) !important;
-  background-color: color-mix(in srgb, var(--color-surface-default-low, #fff) 86%, #dc4141 14%) !important;
-  background-image: none !important;
-}
+
 /* Header cells must remain native table-cells. Earlier legacy Grid styling
    assigns display:flex !important to each TH; that overrides table-row layout
    and makes the browser stack the header cells in the first column. */
@@ -1595,20 +1528,9 @@
   min-width: 0 !important;
   vertical-align: middle !important;
 }
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
-  height: 92px !important;
-  min-height: 92px !important;
-  max-height: none !important;
-  padding: 8px 2px !important;
-  vertical-align: top !important;
-  border-bottom: 1px solid var(--color-border-default, rgb(128 128 128 / 45%)) !important;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading::after {
-  content: none !important;
-}
-.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
-  display: none !important;
-}
+
+
+
 .detail-native-table > tbody.images.details-list > tr.detail-virtual-row {
   display: table-row !important;
   height: var(--detail-row-height, 44px) !important;
@@ -1645,11 +1567,7 @@
   line-height: 0 !important;
   font-size: 0 !important;
 }
-.detail-native-table .detail-actions-heading {
-  width: var(--detail-actions-width, 44px) !important;
-  min-width: 0 !important;
-  position: relative;
-}
+
 .detail-native-table .detail-thumb,
 .detail-native-table .detail-thumb-empty {
   width: auto !important;
@@ -1659,32 +1577,16 @@
 
 /* The actions column is a single movable column. These high-specificity
    hidden rules override legacy table-cell display declarations above. */
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading[hidden] {
-  display: none !important;
-}
+
 .detail-native-table > tbody.images.details-list > tr.detail-virtual-row > td.detail-actions[hidden] {
   display: none !important;
 }
 /* Give the visible actions header a complete cell outline and center both
    controls on the same horizontal axis. */
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) {
-  border: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
-  padding: 7px 2px !important;
-  text-align: center !important;
-}
+
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .file-row-menu-trigger,
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .detail-actions-column-toggle {
-  position: relative !important;
-  inset: auto !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .detail-actions-column-toggle {
-  margin-top: 3px !important;
-}
+
+
 
 
 /* Detail-table resize handles are real buttons, matching the other data tables.
@@ -1740,11 +1642,7 @@
   max-width: var(--detail-actions-width, 44px) !important;
   box-sizing: border-box !important;
 }
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading > .column-resizer {
-  right: 0 !important;
-  width: 6px !important;
-  min-width: 6px !important;
-}
+
 .detail-native-table > tbody.images.details-list > tr > td.detail-actions .detail-row-menu-trigger {
   position: relative !important;
   inset: auto !important;
@@ -1761,11 +1659,7 @@
 /* Final override: legacy actions-column rules below still reference the
    resizable width variable. Keep both left and right header cells at 44px. */
 .detail-native-table > thead > tr > th.detail-actions-heading,
-.detail-native-table.actions-column-right > thead > tr > th.detail-actions-heading {
-  width: 44px !important;
-  min-width: 44px !important;
-  max-width: 44px !important;
-}
+
 .detail-native-table.actions-column-right > colgroup > col:last-child {
   width: 44px !important;
 }
@@ -1773,20 +1667,9 @@
 /* Center the header hamburger and its column-switch control on the exact
    horizontal midpoint of the compact actions column, on either side. */
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .folder-actions-menu-trigger,
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .detail-actions-column-toggle {
-  position: absolute !important;
-  left: 50% !important;
-  right: auto !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  transform: translateX(-50%) !important;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .folder-actions-menu-trigger {
-  top: 10px !important;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .detail-actions-column-toggle {
-  top: 54px !important;
-}
+
+
+
 
 /* Final header-edge cleanup: the header must end at the last visible column,
    without a second/outer vertical rule beyond it. */
@@ -1795,10 +1678,7 @@
 .detail-native-table > thead > tr > th,
 .detail-native-table > thead > tr > th:last-child,
 .detail-native-table > thead > tr > th.detail-path-heading,
-.detail-native-table > thead > tr > th.detail-actions-heading {
-  outline: 0 !important;
-  box-shadow: none !important;
-}
+
 /* Draw header dividers on the actual cells, not on a row-wide pseudo-element.
    The row-wide ::after lines extended beyond the final column. */
 .detail-native-table > thead > tr.detail-header-labels::after,
@@ -1810,9 +1690,7 @@
 .detail-native-table > thead > tr.detail-header-statistics > th:last-child {
   border-right: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
 }
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) {
-  border-right: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
-}
+
 
 /* The right-hand actions column uses exactly the same 44px track as the
    left-hand actions column. Constrain the column, header and body cells. */
@@ -1854,71 +1732,24 @@
 .detail-native-table > thead > tr.detail-header-statistics > th {
   border-bottom: 3px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
 }
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
-  border-bottom: 3px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
-}
+
 
 /* The hamburger header cell spans both header rows. Its bottom border can be
    suppressed by the table's mixed grid/native-header layout, so draw the
    shared 3px divider as an explicit overlay at the bottom of that spanning
    cell. This covers both the left and right actions-column positions. */
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) {
-  position: relative !important;
-  overflow: visible !important;
-  border-bottom: 0 !important;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden])::after {
-  content: "" !important;
-  display: block !important;
-  position: absolute !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  height: 3px !important;
-  background: var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
-  pointer-events: none !important;
-  z-index: 80 !important;
-}
+
+
 
 
 /* The actions header follows the same two-row structure as every other
    column: a normal label-row cell and a normal statistics-row cell. No
    spanning cell, pseudo-element divider, or per-column thick border. */
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading,
-.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
-  display: table-cell !important;
-  box-sizing: border-box !important;
-  width: 44px !important;
-  min-width: 44px !important;
-  max-width: 44px !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  padding: 0 !important;
-  vertical-align: middle !important;
-  border-top: 0 !important;
-  border-left: 0 !important;
-  border-right: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
-  border-bottom: 0 !important;
-  overflow: visible !important;
-  position: relative !important;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading::after {
-  content: none !important;
-  display: none !important;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .folder-actions-menu-trigger {
-  position: relative !important;
-  top: auto !important;
-  left: auto !important;
-  right: auto !important;
-  transform: none !important;
-  display: flex !important;
-  margin: 0 auto !important;
-}
-.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
-  border-bottom: 3px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
-}
+
+
+
+
 
 /* The explicit table-cell layout above must never resurrect the unused
    actions cells. When actions are on the right, the left header cells are
@@ -1926,9 +1757,7 @@
    Keep this override after every display:table-cell rule so only the chosen
    hamburger column participates in either header grid row. */
 .detail-native-table > thead > tr > th.detail-actions-heading[hidden],
-.detail-native-table > thead > tr > th.detail-actions-statistics[hidden] {
-  display: none !important;
-}
+
 
 
 .gallery-loading-state {
@@ -1996,7 +1825,7 @@
 
 /* Number of image rows, aligned immediately before the header hamburger menu. */
 .detail-header-labels .folder-actions-heading{white-space:nowrap;text-align:center}
-.detail-header-labels .table-header-row-count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:20px;margin-right:5px;padding:0 4px;box-sizing:border-box;border-radius:4px;background:var(--color-surface-default-high,#454b55);color:var(--color-content-default-high,#fff);font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;vertical-align:middle}
+
 
 
 /* Keep the actions column on the same two-row header grid as every
@@ -2006,52 +1835,13 @@
   --detail-actions-width: 44px !important;
 }
 .detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading,
-.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
-  display: flex !important;
-  box-sizing: border-box !important;
-  width: 44px !important;
-  min-width: 44px !important;
-  max-width: 44px !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  align-self: stretch !important;
-  padding: 0 !important;
-  border-top: 0 !important;
-  border-left: 0 !important;
-  border-right: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
-  overflow: visible !important;
-  position: relative !important;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading {
-  border-bottom: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
-}
-.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics {
-  border-bottom: 3px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading::after {
-  content: none !important;
-  display: none !important;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) {
-  align-items: center !important;
-  justify-content: center !important;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .folder-actions-menu-trigger {
-  position: relative !important;
-  inset: auto !important;
-  transform: none !important;
-  display: inline-flex !important;
-  flex: 0 0 auto !important;
-  margin: 0 !important;
-}
-.detail-native-table > thead > tr.detail-header-labels > th.detail-actions-heading:not([hidden]) > .table-header-row-count {
-  flex: 0 0 auto !important;
-  min-width: 18px !important;
-  margin: 0 !important;
-  white-space: nowrap !important;
-  font-variant-numeric: tabular-nums !important;
-}
+
+
+
+
+
+
+
 .detail-native-table > tbody.images.details-list > tr > td.detail-actions,
 .detail-native-table.actions-column-right > tbody.images.details-list > tr > td.detail-actions,
 .detail-native-table > colgroup > col:first-child:not([hidden]),
@@ -2064,29 +1854,18 @@
 
 /* The total image-row count belongs to the second header tier, beneath the
    hamburger menu, for either actions-column position. */
-.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics:not([hidden]) {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 0 !important;
-  border-bottom: 3px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
-}
-.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics .table-header-row-count {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  min-width: 1.5em !important;
-  height: auto !important;
-  margin: 0 !important;
-  padding: 1px 5px !important;
-  border-radius: 3px !important;
-  box-sizing: border-box !important;
-  background: var(--color-surface-default-medium) !important;
-  color: var(--color-content-default-high) !important;
-  font-size: inherit !important;
-  font-weight: 700 !important;
-  line-height: 1.25 !important;
-  white-space: nowrap !important;
-  text-align: center !important;
-  font-variant-numeric: tabular-nums !important;
+
+
+
+
+/* The actions column keeps its compact grid track; its header cells use the same
+   height, typography, padding and borders as every other header cell. */
+.detail-native-table > colgroup > col:first-child,
+.detail-native-table > colgroup > col:last-child,
+.detail-native-table > thead > tr > th.detail-actions-heading,
+.detail-native-table > thead > tr > th.detail-actions-statistics,
+.detail-native-table > tbody.images.details-list > tr > td.detail-actions {
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
 }
