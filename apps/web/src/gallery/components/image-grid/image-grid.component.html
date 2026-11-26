@@ -196,7 +196,7 @@
       <ui-text [inherit]="true">Date</ui-text>
     </button>
 
-    <button type="button" class="gallery-menu-item" cdkMenuItem
+    <button type="button" class="gallery-menu-item" cdkMenuItem [disabled]="dataSource() === 'filesystem'"
                       (click)="$event.stopPropagation(); sortByChanged.emit('gpsDate')">
       <ui-icon [icon]="sortType === 'gpsDate' ? 'circleSmallFilled' : 'EMPTY'" [inherit]="true" />
       <ui-icon icon="calendar" [inherit]="true" />
