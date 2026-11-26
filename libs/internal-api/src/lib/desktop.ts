@@ -141,6 +141,21 @@ export interface FixPhotoLocationsProgress {
   databaseKeys: string[];
 }
 
+export interface MissingPhotoRecordsScanResult {
+  dryRun: boolean;
+  scannedFiles: number;
+  alreadyInDatabase: number;
+  missingRecords: number;
+  imageFiles: number;
+  gpsFound: number;
+  withoutGps: number;
+  createdRecords: number;
+  fileChangedSkipped: number;
+  errors: number;
+  databaseKeys: string[];
+  roots: string[];
+}
+
 export interface MissingGpsScanResult {
   dryRun: boolean;
   scanned: number;
@@ -160,6 +175,7 @@ export interface DesktopExif {
   readonly writeGpsPosition: (path: string, latitude: number, longitude: number) => Promise<ApiResponse<undefined>>;
   readonly refreshGpsMetadata: (path: string) => Promise<ApiResponse<{ latitude: number | null; longitude: number | null }>>;
   readonly scanMissingGps: (databaseKeys: string[], dryRun: boolean) => Promise<ApiResponse<MissingGpsScanResult>>;
+  readonly scanMissingPhotoRecords: (roots: string[], dryRun: boolean) => Promise<ApiResponse<MissingPhotoRecordsScanResult>>;
   readonly removeGpsMetadata: (path: string) => Promise<ApiResponse<undefined>>;
   readonly fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number, operationId: string, databaseKeys?: string[]) => Promise<ApiResponse<FixPhotoLocationsResult>>;
   readonly cancelFixFolderLocations: (operationId: string) => void;
@@ -214,6 +230,8 @@ export interface GpxElevationProfile {
 }
 
 export interface DesktopCacheManager {
+  readonly getMissingPhotoFileNames: (directory: string, fileNames: string[]) => Promise<string[]>;
+  readonly registerMissingPhotoRecord: (sourceName: string, fileSize: number, modifiedAt: number) => Promise<boolean>;
   readonly getMissingGpsPhotoBatch: (databaseKey: string, afterId: number, limit?: number) => Promise<Array<{ id: number; path: string; fileSize: number; modifiedAt: number; manuallyCorrected: boolean }>>;
   readonly updateExistingPhotoGpsFromExif: (sourceName: string, expectedFileSize: number, expectedModifiedAt: number, gps: {
     latitude: number | null;
