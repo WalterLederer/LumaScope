@@ -12,31 +12,27 @@
   </ui-title>
 
   <aside>
-    <div class="gallery-controls">
-      @if (viewMode() !== 'details' && viewMode() !== 'details-no-thumbnails') {
-        <ui-action-button class="action"
-                          [title]="'Sort ' + (sortDir === 'asc' ? 'ascending' : 'descending')"
-                          [cdkMenuTriggerFor]="sortDirectionMenu"
-                          uiStopPropagation>
-          <ui-icon [icon]="sortDir === 'asc' ? 'arrowSortUp' : 'arrowSortDown'" [inherit]="true" />
-          <ui-text [inherit]="true">{{ sortDir === 'asc' ? 'Ascending' : 'Descending' }}</ui-text>
-          <ui-icon icon="chevronDown" [inherit]="true" size="small" />
-        </ui-action-button>
-  
-        <ui-action-button class="action"
-                          [title]="'Sort by ' + (sortType === 'date' ? 'date' : sortType === 'gpsDate' ? 'GPS date' : sortType === 'name' ? 'name' : 'size') + ', ' + (sortDir === 'asc' ? 'ascending' : 'descending')"
-                          [cdkMenuTriggerFor]="sortMenu"
-                          uiStopPropagation>
-          <ui-icon [icon]="sortType === 'date' || sortType === 'gpsDate' ? 'calendar' : sortType === 'name' ? 'text' : 'save'" [inherit]="true" />
-          <ui-text [inherit]="true">{{ sortType === 'date' ? 'Date' : sortType === 'gpsDate' ? 'GPS Date' : sortType === 'name' ? 'Name' : 'Size' }}</ui-text>
-          <ui-icon icon="chevronDown" [inherit]="true" size="small" />
-        </ui-action-button>
-      }
-
-
-    </div>
-
     <div class="thumbnail-size-control" [class.name-filter-active]="nameFilterActive()" title="Thumbnail size">
+      <div class="gallery-controls">
+            @if (viewMode() !== 'details' && viewMode() !== 'details-no-thumbnails') {
+              <ui-action-button class="action"
+                                [title]="'Sort ' + (sortDir === 'asc' ? 'ascending' : 'descending')"
+                                [cdkMenuTriggerFor]="sortDirectionMenu"
+                                uiStopPropagation>
+                <ui-icon [icon]="sortDir === 'asc' ? 'arrowSortUp' : 'arrowSortDown'" [inherit]="true" />
+                <ui-text [inherit]="true">{{ sortDir === 'asc' ? 'Ascending' : 'Descending' }}</ui-text>
+                <ui-icon icon="chevronDown" [inherit]="true" size="small" />
+              </ui-action-button>
+        
+              <ui-action-button class="action"
+                                [title]="'Sort by ' + (sortType === 'date' ? 'date' : sortType === 'gpsDate' ? 'GPS date' : sortType === 'name' ? 'name' : 'size') + ', ' + (sortDir === 'asc' ? 'ascending' : 'descending')"
+                                [cdkMenuTriggerFor]="sortMenu"
+                                uiStopPropagation>
+                <ui-icon [icon]="sortType === 'date' || sortType === 'gpsDate' ? 'calendar' : sortType === 'name' ? 'text' : 'save'" [inherit]="true" />
+                <ui-text [inherit]="true">{{ sortType === 'date' ? 'Date' : sortType === 'gpsDate' ? 'GPS Date' : sortType === 'name' ? 'Name' : 'Size' }}</ui-text>
+                <ui-icon icon="chevronDown" [inherit]="true" size="small" />
+              </ui-action-button>
+            }
       <ui-action-button class="action"
                         [title]="'View: ' + (viewMode() === 'thumbnails' ? 'Thumbnails' : viewMode() === 'tiles' ? 'Tiles with information' : viewMode() === 'details-no-thumbnails' ? 'Details without thumbnails' : 'Details')"
                         [cdkMenuTriggerFor]="viewModeMenu"
