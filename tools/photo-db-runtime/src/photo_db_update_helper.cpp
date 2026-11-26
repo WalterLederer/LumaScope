@@ -324,7 +324,7 @@ int wmain(int argc, wchar_t** argv) {
                 }
             }
 
-            scanDirectory(favorite, favorite, drive, found->second.get(), totalCounts,
+            scanDirectory(favorite, drive, found->second.get(), totalCounts,
                 totalScanned, options.verbose, visitedFiles);
         }
 
