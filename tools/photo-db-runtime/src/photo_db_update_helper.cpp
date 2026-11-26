@@ -275,7 +275,7 @@ std::uint64_t countFilesInTree(const fs::path& directory) {
 
 void scanDirectory(const fs::path& directory, const std::wstring& drive,
                    SqliteDatabase* database, DatabaseCounts& counts, std::map<std::wstring, ExtensionCounts>& extensionCounts,
-                   ScanStats& stats, std::uint64_t& scanned, bool verbose, std::set<std::wstring>& visitedFiles) {
+                   std::map<std::wstring, ExtensionCounts>& rootExtensionCounts, ScanStats& stats, std::uint64_t& scanned, bool verbose, std::set<std::wstring>& visitedFiles) {
     const fs::path pattern = directory / L"*";
     WIN32_FIND_DATAW entry{};
     HANDLE handle = FindFirstFileExW(pattern.c_str(), FindExInfoBasic, &entry,
@@ -303,7 +303,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
                 stats.filesInsideSkippedDirectories += countFilesInTree(child);
                 continue;
             }
-            scanDirectory(child, drive, database, counts, extensionCounts, stats, scanned, verbose, visitedFiles);
+            scanDirectory(child, drive, database, counts, extensionCounts, rootExtensionCounts, stats, scanned, verbose, visitedFiles);
             continue;
         }
 
@@ -316,23 +316,29 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
         ++stats.filesScanned;
 
         const auto extension = lower(child.extension().wstring());
-        auto& extensionCount = extensionCounts[extension.empty() ? L"(no extension)" : extension];
+        const auto extensionKey = extension.empty() ? L"(no extension)" : extension;
+        auto& extensionCount = extensionCounts[extensionKey];
+        auto& rootExtensionCount = rootExtensionCounts[extensionKey];
         if (!database) {
             ++counts.newFiles;
             ++extensionCount.missing;
+            ++rootExtensionCount.missing;
         } else {
             switch (database->compare(relativeFolderForDrive(directory, drive), child.filename().wstring(), size, modifiedAtMs)) {
                 case SqliteDatabase::Match::Missing:
                     ++counts.newFiles;
                     ++extensionCount.missing;
+                    ++rootExtensionCount.missing;
                     break;
                 case SqliteDatabase::Match::Changed:
                     ++counts.changedFiles;
                     ++extensionCount.changed;
+                    ++rootExtensionCount.changed;
                     break;
                 case SqliteDatabase::Match::Unchanged:
                     ++counts.unchangedFiles;
                     ++extensionCount.unchanged;
+                    ++rootExtensionCount.unchanged;
                     break;
             }
         }
@@ -413,6 +419,7 @@ int wmain(int argc, wchar_t** argv) {
         std::uint64_t totalScanned = 0;
         std::set<std::wstring> visitedFiles;
         std::vector<ScanStats> perRootStats(selectedFavorites.size());
+        std::vector<std::map<std::wstring, ExtensionCounts>> perRootExtensionCounts(selectedFavorites.size());
 
         for (std::size_t selectedFavoritesIndex = 0; selectedFavoritesIndex < selectedFavorites.size(); ++selectedFavoritesIndex) {
             const auto& favorite = selectedFavorites[selectedFavoritesIndex];
@@ -431,7 +438,7 @@ int wmain(int argc, wchar_t** argv) {
                 }
             }
 
-            scanDirectory(favorite, drive, found->second.get(), totalCounts, extensionCounts, perRootStats[selectedFavoritesIndex],
+            scanDirectory(favorite, drive, found->second.get(), totalCounts, extensionCounts, perRootExtensionCounts[selectedFavoritesIndex], perRootStats[selectedFavoritesIndex],
                 totalScanned, options.verbose, visitedFiles);
         }
 
@@ -452,6 +459,21 @@ int wmain(int argc, wchar_t** argv) {
                    << L"Missing in DB:   " << totalCounts.newFiles << L"\n"
                    << L"Changed:         " << totalCounts.changedFiles << L"\n"
                    << L"Unchanged:       " << totalCounts.unchangedFiles << L"\n";
+        std::wcout << L"\nMissing files by scan root (top 12 extensions):\n";
+        for (std::size_t index = 0; index < selectedFavorites.size(); ++index) {
+            std::vector<std::pair<std::wstring, std::uint64_t>> missingByExtension;
+            for (const auto& [extension, values] : perRootExtensionCounts[index]) {
+                if (values.missing > 0) missingByExtension.emplace_back(extension, values.missing);
+            }
+            std::sort(missingByExtension.begin(), missingByExtension.end(),
+                [](const auto& left, const auto& right) { return left.second > right.second; });
+            std::wcout << L"  Root " << (index + 1) << L" (" << selectedFavorites[index].wstring() << L"):\n";
+            const auto limit = std::min<std::size_t>(12, missingByExtension.size());
+            for (std::size_t item = 0; item < limit; ++item) {
+                std::wcout << L"    " << missingByExtension[item].first << L": "
+                           << missingByExtension[item].second << L"\n";
+            }
+        }
         std::wcout << L"\nFile extensions (missing / changed / unchanged):\n";
         for (const auto& [extension, values] : extensionCounts) {
             if (values.missing == 0 && values.changed == 0 && values.unchanged == 0) continue;
