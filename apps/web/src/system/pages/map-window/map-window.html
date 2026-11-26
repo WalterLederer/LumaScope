@@ -1175,7 +1175,7 @@
               <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()" title="Map bounds are drawn only at zoom level 10 or lower (zoom ≤ 10). Zoom in beyond level 10 to hide them."><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
             </div>
             <div class="view-visibility-controls slider-settings-grid">
-              <div class="range-setting slider-setting-box lumascope-surface-box photo-preview-size-box photo-preview-size-setting">
+              <div class="range-setting slider-setting-box lumascope-surface-box">
                 <label for="photo-preview-size">Image marker preview size</label>
                 <ui-slider id="photo-preview-size" class="opacity-slider" [min]="60" [max]="240" [step]="10"
                   [value]="photoPreviewSize()" (valueChange)="changePhotoPreviewSize($event)"
