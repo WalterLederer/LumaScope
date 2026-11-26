@@ -306,6 +306,9 @@ export class ProcessManager {
   @IpcHandler({ name: 'ProcessManager.openConfigFolder' })
   readonly openConfigFolder = async (): Promise<string> => shell.openPath(dirname(App.startupConfig.configPath()));
 
+  @IpcHandler({ name: 'ProcessManager.getSystemLocale' })
+  readonly getSystemLocale = async (): Promise<string> => app.getSystemLocale();
+
   @IpcHandler({ name: 'ProcessManager.getPlatform' })
   readonly getPlatform = async (): Promise<string> => process.platform;
 
