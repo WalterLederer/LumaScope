@@ -65,6 +65,8 @@ export class GalleryState {
   readonly galleryWindowStart = signal(0);
   private galleryTotalCount = 0;
   readonly totalFileCount = signal(0);
+  readonly totalFileCountKnown = signal(false);
+  readonly unfilteredFileCount = signal<number | null>(null);
   private galleryPageLoading = false;
   private pendingGalleryWindowOffset: number | null = null;
   private galleryFilesRefreshTimer: ReturnType<typeof setTimeout> | null = null;
@@ -259,6 +261,8 @@ export class GalleryState {
     }
 
     const request = ++this.navigationRequest;
+    const folderChanged = this.selectedLocation$.value !== path;
+    if (folderChanged) this.unfilteredFileCount.set(null);
     if (this.deferredGalleryCountTimer !== null) clearTimeout(this.deferredGalleryCountTimer);
     this.deferredGalleryCountTimer = null;
     this.selectedLocation$.next(path);
@@ -268,6 +272,7 @@ export class GalleryState {
     this.galleryWindowStart.set(0);
     this.galleryTotalCount = 0;
     this.totalFileCount.set(0);
+    this.totalFileCountKnown.set(false);
     this.galleryPageLoading = false;
     this.pendingGalleryWindowOffset = null;
     this.images$.next([]);
@@ -309,6 +314,12 @@ export class GalleryState {
             ? page.totalCount
             : page.files.length < this.galleryWindowSize ? page.files.length : -1;
           this.totalFileCount.set(this.galleryTotalCount >= 0 ? this.galleryTotalCount : page.files.length);
+          this.totalFileCountKnown.set(this.galleryTotalCount >= 0);
+          if (!this.nameFilterActive$.value && this.galleryTotalCount >= 0) {
+            this.unfilteredFileCount.set(this.galleryTotalCount);
+          } else if (this.nameFilterActive$.value && this.unfilteredFileCount() === null) {
+            void this.loadUnfilteredFileCount(path, request);
+          }
           this.images$.next(page.files);
           this.loadedNavigationKey = navigationKey;
           if (page.totalCount < 0 && page.files.length === this.galleryWindowSize) {
@@ -326,6 +337,8 @@ export class GalleryState {
                 if (countPage.totalCount >= 0) {
                   this.galleryTotalCount = countPage.totalCount;
                   this.totalFileCount.set(countPage.totalCount);
+                  this.totalFileCountKnown.set(true);
+                  if (!this.nameFilterActive$.value) this.unfilteredFileCount.set(countPage.totalCount);
                 }
               }).catch(error => console.error('Failed to refresh deferred gallery count', path, error));
             }, 25000);
@@ -340,6 +353,20 @@ export class GalleryState {
       );
     this.navigationInFlight = { key: navigationKey, request, observable: sharedNavigation };
     return sharedNavigation;
+  };
+
+  private readonly loadUnfilteredFileCount = async (directory: string, request: number): Promise<void> => {
+    const sort = this.sortMode$.value;
+    try {
+      const page = await this.cacheManager.getGalleryFilesPage(
+        directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
+        sort.sortBy, sort.sortDir, 0, 1, '', 'GalleryState.unfilteredFileCount', true
+      );
+      if (request !== this.navigationRequest || directory !== this.selectedLocation$.value) return;
+      if (page.totalCount >= 0) this.unfilteredFileCount.set(page.totalCount);
+    } catch (error) {
+      console.error('Failed to determine the unfiltered gallery file count', directory, error);
+    }
   };
 
   readonly loadNextGalleryPage = (): void => {
@@ -360,6 +387,10 @@ export class GalleryState {
       if (page.totalCount >= 0) this.galleryTotalCount = page.totalCount;
       else if (page.files.length < this.galleryPageSize) this.galleryTotalCount = this.galleryLoadedCount;
       this.totalFileCount.set(this.galleryTotalCount >= 0 ? this.galleryTotalCount : this.galleryLoadedCount);
+      this.totalFileCountKnown.set(this.galleryTotalCount >= 0);
+      if (!this.nameFilterActive$.value && this.galleryTotalCount >= 0) {
+        this.unfilteredFileCount.set(this.galleryTotalCount);
+      }
       if (page.files.length > 0) this.images$.next([...this.images$.value, ...page.files]);
     }).catch(error => {
       console.error('Failed to load the next gallery database page', directory, error);
@@ -397,6 +428,10 @@ export class GalleryState {
       this.galleryLoadedCount = page.files.length;
       if (page.totalCount >= 0) this.galleryTotalCount = page.totalCount;
       this.totalFileCount.set(this.galleryTotalCount >= 0 ? this.galleryTotalCount : Math.max(this.galleryWindowStart() + page.files.length, this.totalFileCount()));
+      this.totalFileCountKnown.set(this.galleryTotalCount >= 0);
+      if (!this.nameFilterActive$.value && this.galleryTotalCount >= 0) {
+        this.unfilteredFileCount.set(this.galleryTotalCount);
+      }
       this.images$.next(page.files);
     }).catch(error => {
       console.error('Failed to load a bounded gallery window', { directory, offset, error });
@@ -426,8 +461,12 @@ export class GalleryState {
       );
       if (request !== this.navigationRequest) return;
       this.galleryLoadedCount = page.files.length;
-      this.galleryTotalCount = page.totalCount >= 0 ? page.totalCount : offset + page.files.length;
-      this.totalFileCount.set(this.galleryTotalCount);
+      if (page.totalCount >= 0) this.galleryTotalCount = page.totalCount;
+      this.totalFileCount.set(this.galleryTotalCount >= 0 ? this.galleryTotalCount : offset + page.files.length);
+      this.totalFileCountKnown.set(this.galleryTotalCount >= 0);
+      if (!this.nameFilterActive$.value && this.galleryTotalCount >= 0) {
+        this.unfilteredFileCount.set(this.galleryTotalCount);
+      }
       this.images$.next(page.files);
     } catch (error) {
       console.error('Failed to refresh the current gallery window', directory, error);
@@ -472,6 +511,10 @@ export class GalleryState {
     this.images$.next(this.images$.value.filter(image => image.path !== path));
     if (this.galleryTotalCount >= 0) this.galleryTotalCount = Math.max(0, this.galleryTotalCount - 1);
     this.totalFileCount.set(this.galleryTotalCount >= 0 ? this.galleryTotalCount : Math.max(0, this.totalFileCount() - 1));
+    this.totalFileCountKnown.set(this.galleryTotalCount >= 0);
+    if (this.unfilteredFileCount() !== null) {
+      this.unfilteredFileCount.set(Math.max(0, this.unfilteredFileCount()! - 1));
+    }
     return true;
   };
 
