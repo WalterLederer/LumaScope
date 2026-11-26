@@ -52,7 +52,7 @@ struct ExtensionCounts {
 
 struct FolderMissingCounts {
     std::uint64_t files = 0;
-    std::uint64_t jpgFiles = 0;
+    std::uint64_t gpsCandidateFiles = 0;
 };
 
 struct ScanStats {
@@ -336,14 +336,11 @@ std::uint64_t countFilesInTree(const fs::path& directory) {
 }
 
 
-bool isSupportedImageExtension(const std::wstring& extension) {
-    // Keep this list aligned with supportedFileFormats in
-    // libs/internal-api/src/lib/desktop.ts. Some formats do not carry EXIF GPS,
-    // but they are still supported image files and must be counted as such.
+bool isGpsMetadataCandidate(const std::wstring& extension) {
+    // Only JPEG photographs and DNG RAW files are relevant for GPS extraction.
+    // Other file types still receive database records, but are not sent to Exiv2.
     static const std::set<std::wstring> supported = {
-        L".avif", L".bmp", L".gif", L".heic", L".heif", L".jpg", L".jpeg",
-        L".jxl", L".jxr", L".exr", L".ohsp", L".png", L".dng", L".rw2",
-        L".raw", L".hdr", L".svg", L".tif", L".tiff", L".webp"
+        L".jpg", L".jpeg", L".jpe", L".dng"
     };
     return supported.contains(extension);
 }
@@ -465,7 +462,7 @@ bool readGpsCoordinates(const fs::path& path) {
 
 void countMissingImageMetadata(const fs::path& file, const std::wstring& extension,
                                 ScanStats& stats) {
-    if (!isSupportedImageExtension(extension)) return;
+    if (!isGpsMetadataCandidate(extension)) return;
     ++stats.imageFiles;
     try {
         if (readGpsCoordinates(file)) ++stats.gpsFound;
@@ -535,7 +532,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
             ++rootExtensionCount.missing;
             auto& folderMissing = missingByFolder[absoluteNormalized(directory).wstring()];
             ++folderMissing.files;
-            if (extension == L".jpg") ++folderMissing.jpgFiles;
+            if (isGpsMetadataCandidate(extension)) ++folderMissing.gpsCandidateFiles;
             countMissingImageMetadata(child, extension, stats);
         } else {
             switch (database->compare(relativeFolderForDrive(directory, drive), child.filename().wstring(), size, modifiedAtMs)) {
@@ -546,7 +543,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
                     {
                         auto& folderMissing = missingByFolder[absoluteNormalized(directory).wstring()];
                         ++folderMissing.files;
-                        if (extension == L".jpg") ++folderMissing.jpgFiles;
+                        if (extension == L".jpg") ++folderMissing.gpsCandidateFiles;
                     }
                     countMissingImageMetadata(child, extension, stats);
                     break;
@@ -773,7 +770,7 @@ int wmain(int argc, wchar_t** argv) {
             const auto limit = std::min<std::size_t>(20, folders.size());
             for (std::size_t item = 0; item < limit; ++item) {
                 std::wcout << L"    " << folders[item].first << L": " << folders[item].second.files
-                           << L" missing (JPG: " << folders[item].second.jpgFiles << L")\n";
+                           << L" missing (JPG/DNG GPS candidates: " << folders[item].second.gpsCandidateFiles << L")\n";
             }
         }
         std::wcout << L"\nFile extensions (missing / changed / unchanged):\n";
