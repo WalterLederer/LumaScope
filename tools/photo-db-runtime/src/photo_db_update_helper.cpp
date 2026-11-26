@@ -1,7 +1,6 @@
 #include <windows.h>
 
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/ptree.hpp>
+#include <nlohmann/json.hpp>
 #include <sqlite3.h>
 
 #include <algorithm>
@@ -21,7 +20,6 @@
 #include <vector>
 
 namespace fs = std::filesystem;
-using boost::property_tree::ptree;
 
 namespace {
 constexpr std::uint64_t kWindowsToUnixEpochMilliseconds = 11644473600000ULL;
@@ -155,29 +153,42 @@ private:
 };
 
 std::vector<fs::path> readFavorites(const fs::path& configPath) {
-    ptree config;
     std::ifstream input(configPath, std::ios::binary);
     if (!input) throw std::runtime_error("Cannot open configuration file: " + configPath.string());
-    boost::property_tree::read_json(input, config);
-    const auto gallery = config.get_child_optional("gallery");
-    if (!gallery) throw std::runtime_error("The configuration does not contain gallery.locations.");
-    const auto locations = gallery->get_child_optional("locations");
-    if (!locations) throw std::runtime_error("The configuration does not contain gallery.locations.");
+
+    nlohmann::json config;
+    try {
+        input >> config;
+    } catch (const nlohmann::json::exception& error) {
+        throw std::runtime_error("Cannot parse LumaScope.config.json: " + std::string(error.what()));
+    }
+
+    const auto gallery = config.find("gallery");
+    if (gallery == config.end() || !gallery->is_object()) {
+        throw std::runtime_error("The configuration does not contain gallery.locations.");
+    }
+    const auto locations = gallery->find("locations");
+    if (locations == gallery->end() || !locations->is_array()) {
+        throw std::runtime_error("gallery.locations must be an array.");
+    }
 
     std::vector<fs::path> favorites;
     for (const auto& entry : *locations) {
-        const auto rawPath = entry.second.data();
-        if (!rawPath.empty()) {
-            const int required = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, rawPath.data(),
-                static_cast<int>(rawPath.size()), nullptr, 0);
-            if (required <= 0) throw std::runtime_error("A gallery favorite contains an invalid UTF-8 path.");
-            std::wstring widePath(static_cast<std::size_t>(required), static_cast<wchar_t>(0));
-            if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, rawPath.data(),
-                static_cast<int>(rawPath.size()), widePath.data(), required) <= 0) {
-                throw std::runtime_error("Could not decode a gallery favorite path.");
-            }
-            favorites.emplace_back(widePath);
+        if (!entry.is_string()) {
+            throw std::runtime_error("Every gallery.locations entry must be a folder path string.");
         }
+        const auto rawPath = entry.get<std::string>();
+        if (rawPath.empty()) continue;
+
+        const int required = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, rawPath.data(),
+            static_cast<int>(rawPath.size()), nullptr, 0);
+        if (required <= 0) throw std::runtime_error("A gallery favorite contains an invalid UTF-8 path.");
+        std::wstring widePath(static_cast<std::size_t>(required), static_cast<wchar_t>(0));
+        if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, rawPath.data(),
+            static_cast<int>(rawPath.size()), widePath.data(), required) <= 0) {
+            throw std::runtime_error("Could not decode a gallery favorite path.");
+        }
+        favorites.emplace_back(widePath);
     }
     return favorites;
 }
