@@ -457,6 +457,13 @@ CREATE INDEX IF NOT EXISTS idx_photos_gps_check_status
     query: `
 ALTER TABLE photos DROP COLUMN gps_checked_at;
 `
+  },
+  {
+    name: 'removePhotoGpsCheckStatusV25',
+    query: `
+DROP INDEX IF EXISTS idx_photos_gps_check_status;
+ALTER TABLE photos DROP COLUMN gps_check_status;
+`
   }
 ];
 // @formatter:on
