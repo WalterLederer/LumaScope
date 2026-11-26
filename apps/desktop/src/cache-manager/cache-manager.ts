@@ -1507,8 +1507,8 @@ export class CacheManager {
         thumbnailDirect,
         fullSize,
         fullSizeRequired,
-        latitude: row?.latitude ?? null,
-        longitude: row?.longitude ?? null,
+        latitude: sourceMatches ? row?.latitude ?? null : null,
+        longitude: sourceMatches ? row?.longitude ?? null : null,
         gpsTimestamp: sourceMatches ? row?.gps_timestamp ?? null : null,
         verification
       };
