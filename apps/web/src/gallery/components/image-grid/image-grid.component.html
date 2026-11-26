@@ -61,7 +61,7 @@
         <input type="checkbox" [checked]="includeUnsupportedFiles()" (change)="setIncludeUnsupportedFiles($any($event.target).checked)" />
         <span>+ Unsupported</span>
       </label>
-      <label class="gallery-file-option" title="Include files from all subfolders">
+      <label class="gallery-file-option" title="Include files from all subfolders (database source only)">
         <input type="checkbox" [checked]="includeFilesRecursive()" [disabled]="dataSource() === 'filesystem'" (change)="setIncludeFilesRecursive($any($event.target).checked)" />
         <span>+ Recursive</span>
       </label>
