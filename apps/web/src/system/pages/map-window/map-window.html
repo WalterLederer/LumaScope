@@ -1174,16 +1174,14 @@
               <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay</label>
               <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()" title="Map bounds are drawn only at zoom level 10 or lower (zoom ≤ 10). Zoom in beyond level 10 to hide them."><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
             </div>
-            <div class="lumascope-surface-box photo-preview-size-box">
-              <div class="range-setting photo-preview-size-setting">
+            <div class="view-visibility-controls">
+              <div class="range-setting lumascope-surface-box photo-preview-size-box photo-preview-size-setting">
                 <label for="photo-preview-size">Image marker preview size</label>
                 <ui-slider id="photo-preview-size" class="opacity-slider" [min]="60" [max]="240" [step]="10"
                   [value]="photoPreviewSize()" (valueChange)="changePhotoPreviewSize($event)"
                   [color]="themeService.sliderColor()" aria-label="Image marker preview size" />
                 <span class="range-value">{{ photoPreviewSize() }} px</span>
               </div>
-            </div>
-            <div class="view-visibility-controls">
       <div class="range-setting lumascope-surface-box location-opacity-surface-box">
         <div class="opacity-row-label"><label class="visibility-toggle">Location <input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="centerSelectedImageLocation()" [disabled]="!canCenterSelectedImageLocation()" title="Center map on selected image" aria-label="Center map on selected image"><span aria-hidden="true">◎</span></button></div>
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="locationOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeLocationOpacity($event)" />
