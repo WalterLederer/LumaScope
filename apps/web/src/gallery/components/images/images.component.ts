@@ -225,6 +225,13 @@ export class ImagesComponent {
   readonly detailHeaderHeight = input(0);
   readonly windowStart = input(0);
   readonly totalFileCount = input(0);
+  readonly totalFileCountKnown = input(false);
+  readonly unfilteredFileCount = input<number | null>(null);
+  readonly nameFilterCountLabel = computed(() => {
+    const filteredCount = this.totalFileCountKnown() ? formatNumber(this.totalFileCount()) : '?';
+    const allCount = this.unfilteredFileCount() === null ? '?' : formatNumber(this.unfilteredFileCount()!);
+    return `${filteredCount} / ${allCount}`;
+  });
   readonly thumbnailColumns = input(1);
   readonly thumbnailRowHeight = input(160);
 
