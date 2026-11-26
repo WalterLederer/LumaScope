@@ -770,10 +770,6 @@ export default class App {
 
     App.application = app;
 
-    // Chromium reads its UI locale during startup; set this before the ready event.
-    if (process.platform === 'win32') {
-      app.commandLine.appendSwitch('lang', app.getSystemLocale());
-    }
 
     startAppSettingsCheckpoint();
 
