@@ -1,7 +1,7 @@
-import type { Desktop, OfflinePhotoLocationRecord } from 'internal-api';
+import type { Desktop, PhotoLocation } from 'internal-api';
 
 type PhotoDatabaseBounds = { west: number; south: number; east: number; north: number };
-type PhotoDatabaseRecords = Awaited<ReturnType<Desktop['CacheManager']['getDirectoryPhotoLocations']>>;
+type PhotoDatabaseRecords = PhotoLocation[];
 type PhotoImageListing = Awaited<ReturnType<Desktop['FileSystem']['readImages']>>;
 export type PhotoDatabaseMarker = {
   path: string;
