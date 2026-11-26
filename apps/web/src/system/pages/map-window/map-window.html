@@ -975,27 +975,28 @@
   <details class="view-rerender-section app-disclosure"
     [open]="renderSectionOpen()"
     (toggle)="onLocationDetailsToggle($event)"
-    [class.is-rendering]="renderActiveCount() > 0 || hillshadeActiveCount() > 0 || rerenderVisibleTilesBusy() || renderDisplayPending() || offlineRenderTasks().some(task => task.state === 'Running')"
-    [class.has-render-errors]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && (lastRenderTileCounts().failed > 0 || lastHillshadeTileCounts().failed > 0)"
-    [class.is-render-complete]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && (renderTotalCount() > 0 || hillshadeTotalCount() > 0) && lastRenderTileCounts().failed === 0 && lastHillshadeTileCounts().failed === 0">
+    [class.is-rendering]="renderActiveCount() > 0 || hillshadeActiveCount() > 0 || rerenderVisibleTilesBusy() || renderDisplayPending() || offlineRenderTasks().some(task => task.state === 'Running') || !!renderInitStatus()"
+    [class.has-render-errors]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && !renderInitStatus() && (lastRenderTileCounts().failed > 0 || lastHillshadeTileCounts().failed > 0)"
+    [class.is-render-complete]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && !renderInitStatus() && (renderTotalCount() > 0 || hillshadeTotalCount() > 0) && lastRenderTileCounts().failed === 0 && lastHillshadeTileCounts().failed === 0">
     <summary>
       <span>Render</span>
-      <span class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending()" [attr.aria-disabled]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending()">
-        @if (renderActiveCount() > 0 || rerenderVisibleTilesBusy() || renderDisplayPending()) {
+      <span class="map-cache-progress render-progress-always" [class.is-inactive]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && !renderInitStatus()" [attr.aria-disabled]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending()">
+        @if (renderActiveCount() > 0 || rerenderVisibleTilesBusy() || renderDisplayPending() || !!renderInitStatus()) {
           <progress [value]="renderProgressValue()" [max]="renderProgressMaximum()" aria-label="Map tile rendering progress"></progress>
         }
-        @if (renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending()) {
+        @if (renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && !renderInitStatus()) {
           <span>Rendering inactive</span>
         } @else {
           <span>
-            @if (renderActiveCount() > 0) { Map tiles: {{ renderActiveCount() }} active }
+            @if (renderInitStatus()) { {{ renderInitStatus() }} }
+            @if (renderActiveCount() > 0) { @if (renderInitStatus()) { · } Map tiles: {{ renderActiveCount() }} active }
             @if (hillshadeActiveCount() > 0 || hillshadeDisplayPending()) {
               @if (renderActiveCount() > 0) { · }
               @if (hillshadeActiveCount() > 0) { Hillshade: {{ hillshadeCompletedCount() }}/{{ hillshadeTotalCount() }} tiles · {{ hillshadeActiveCount() }} active }
               @else { Hillshade: Display }
               <progress class="hillshade-active-progress" [value]="hillshadeProgressValue()" [max]="hillshadeProgressMaximum()" aria-label="Hillshade rendering progress"></progress>
             }
-            @if (renderDisplayPending() && renderActiveCount() === 0 && hillshadeActiveCount() === 0) { Display }
+            @if (renderDisplayPending() && renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !renderInitStatus()) { Display }
             @else if (rerenderVisibleTilesBusy()) { · Rerendering visible tiles }
           </span>
         }
