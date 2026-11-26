@@ -422,6 +422,7 @@ app-map-window {
     .mbtiles-remove-button{padding:0 6px;min-width:24px;height:24px;font-size:18px;line-height:1;border:0;background:transparent;color:var(--color-content-default-medium,#aaa);cursor:pointer}
     .offline-map-remove-button{min-width:24px;height:24px;padding:0;font-size:18px;line-height:1}
     .mbtiles-inuse-column{width:48px;text-align:center;white-space:nowrap}
+     .mbtiles-map-table td.mbtiles-inuse-column{text-align:center!important}.mbtiles-map-table td.mbtiles-inuse-column .mbtiles-inuse-symbol{display:inline-block;width:100%;text-align:center}
     .mbtiles-inuse-symbol{display:inline-block;min-width:14px;color:var(--color-content-default-medium,#888);font-size:13px;line-height:1}
     .mbtiles-inuse-symbol.in-use{color:#39b86a}
     .view-settings-content{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
