@@ -87,7 +87,7 @@ export class GalleryState {
       const normalize = (value: string): string => value.replace(/[\\/]+/g, '\\\\').replace(/\\+$/, '').toLocaleLowerCase();
       const root = normalize(selected);
       const changed = normalize(changedDirectory);
-      const inScope = changed === root || (this.includeFilesRecursive$.value && changed.startsWith(root + '\\\\'));
+      const inScope = changed === root || (this.dataSource$.value === 'database' && this.includeFilesRecursive$.value && changed.startsWith(root + '\\\\'));
       if (!inScope) return;
       // Coalesce a burst of folder notifications into one database read.
       if (this.galleryFilesRefreshTimer !== null) clearTimeout(this.galleryFilesRefreshTimer);
@@ -102,8 +102,9 @@ export class GalleryState {
       .pipe(take(1))
       .subscribe(config => {
         const defaultSort = defaultSortMode();
+        const configuredSort = config.gallery.sortBy ?? defaultSort.sortBy;
         this.sortMode$.next({
-          sortBy: config.gallery.sortBy ?? defaultSort.sortBy,
+          sortBy: config.gallery.dataSource !== 'database' && configuredSort === 'gpsDate' ? 'date' : configuredSort,
           sortDir: config.gallery.sortDir ?? defaultSort.sortDir
         });
 
@@ -242,7 +243,10 @@ export class GalleryState {
   readonly setDataSource = (value: 'filesystem' | 'database'): void => {
     if ((value !== 'filesystem' && value !== 'database') || this.dataSource$.value === value) return;
     this.dataSource$.next(value);
-    this.configuration.updateGalleryConfig({ dataSource: value });
+    const currentSort = this.sortMode$.value;
+    const sortBy = value === 'filesystem' && currentSort.sortBy === 'gpsDate' ? 'date' : currentSort.sortBy;
+    if (sortBy !== currentSort.sortBy) this.sortMode$.next({ ...currentSort, sortBy });
+    this.configuration.updateGalleryConfig({ dataSource: value, ...(sortBy !== currentSort.sortBy ? { sortBy } : {}) });
     const path = this.selectedLocation$.value;
     if (path) this.navigateTo(path, false, true).subscribe();
   };
