@@ -705,7 +705,7 @@ int wmain(int argc, wchar_t** argv) {
                    << L"Missing in DB:   " << totalCounts.newFiles << L"\n"
                    << L"Changed:         " << totalCounts.changedFiles << L"\n"
                    << L"Unchanged:       " << totalCounts.unchangedFiles << L"\n"
-                   << L"Image files (missing records): " << totalImageFiles << L"\n"
+                   << L"JPEG/DNG files (missing records): " << totalImageFiles << L"\n"
                    << L"GPS found:       " << totalGpsFound << L"\n"
                    << L"Without GPS:     " << totalWithoutGps << L"\n"
                    << L"EXIF errors:     " << totalMetadataErrors << L"\n";
