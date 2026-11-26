@@ -456,7 +456,7 @@ export class FileSystem {
         // The filesystem remains the sole source of the displayed file list.
         // Use existing per-drive DB metadata only as an optional sort index;
         // do not reconcile/register files as a side effect of browsing.
-        let metadataByPath = new Map<string, { latitude: number | null; longitude: number | null; gpsTimestamp: number | null; displayName: string | null }>();
+        let metadataByPath = new Map<string, { latitude: number | null; longitude: number | null; gpsTimestamp: number | null; displayName: string | null; fileSize?: number; modifiedAt?: number }>();
         try {
           const locations = await Injector.getInstance().inject('CacheManager')
             .getDirectoryPhotoLocations(undefined as never, path, recursive, false);
@@ -469,9 +469,14 @@ export class FileSystem {
         const direction = sortDir === 'desc' ? -1 : 1;
         const pathOrder = (a: FileInfo, b: FileInfo): number =>
           a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' });
+        const getCurrentMetadata = (file: FileInfo) => {
+          const metadata = metadataByPath.get(file.path.toLocaleLowerCase());
+          return metadata && metadata.fileSize === file.size && metadata.modifiedAt === file.modifiedAt
+            ? metadata : undefined;
+        };
         data = files.sort((a, b) => {
-          const left = metadataByPath.get(a.path.toLocaleLowerCase());
-          const right = metadataByPath.get(b.path.toLocaleLowerCase());
+          const left = getCurrentMetadata(a);
+          const right = getCurrentMetadata(b);
           if (sortBy === 'gpsDate') {
             const leftValue = left?.gpsTimestamp ?? null;
             const rightValue = right?.gpsTimestamp ?? null;
