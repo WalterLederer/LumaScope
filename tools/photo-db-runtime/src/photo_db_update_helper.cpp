@@ -61,6 +61,7 @@ struct ScanStats {
     std::uint64_t gpsFound = 0;
     std::uint64_t withoutGps = 0;
     std::uint64_t metadataErrors = 0;
+    std::map<std::wstring, std::uint64_t> metadataErrorsByExtension;
     std::uint64_t cacheDirectoriesSkipped = 0;
     std::uint64_t filesInsideSkippedDirectories = 0;
     std::uint64_t reparseDirectoriesSkipped = 0;
@@ -424,6 +425,7 @@ void countMissingImageMetadata(const fs::path& file, const std::wstring& extensi
         else ++stats.withoutGps;
     } catch (const std::exception&) {
         ++stats.metadataErrors;
+        ++stats.metadataErrorsByExtension[extension];
         // Per-file diagnostics are intentionally suppressed: console I/O for every
         // metadata failure dominates scan time on large photo collections.
         // The aggregate error count is reported in the final summary.
@@ -631,12 +633,16 @@ int wmain(int argc, wchar_t** argv) {
         std::uint64_t totalGpsFound = 0;
         std::uint64_t totalWithoutGps = 0;
         std::uint64_t totalMetadataErrors = 0;
+        std::map<std::wstring, std::uint64_t> metadataErrorsByExtension;
         for (const auto& stats : perRootStats) {
             excludedFiles += stats.filesInsideSkippedDirectories;
             totalImageFiles += stats.imageFiles;
             totalGpsFound += stats.gpsFound;
             totalWithoutGps += stats.withoutGps;
             totalMetadataErrors += stats.metadataErrors;
+            for (const auto& [extension, count] : stats.metadataErrorsByExtension) {
+                metadataErrorsByExtension[extension] += count;
+            }
         }
         const auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - scanStartedAt).count();
         const auto filesPerSecond = elapsed > 0.0 ? static_cast<double>(totalScanned) / elapsed : 0.0;
@@ -649,7 +655,14 @@ int wmain(int argc, wchar_t** argv) {
                    << L"Image files (missing records): " << totalImageFiles << L"\n"
                    << L"GPS found:       " << totalGpsFound << L"\n"
                    << L"Without GPS:     " << totalWithoutGps << L"\n"
-                   << L"EXIF errors:     " << totalMetadataErrors << L"\n"
+                   << L"EXIF errors:     " << totalMetadataErrors << L"\\n";
+        if (!metadataErrorsByExtension.empty()) {
+            std::wcout << L"EXIF errors by image extension:\\n";
+            for (const auto& [extension, count] : metadataErrorsByExtension) {
+                std::wcout << L"  " << extension << L": " << count << L"\\n";
+            }
+        }
+        std::wcout
                    << L"Elapsed seconds: " << elapsed << L"\n"
                    << L"Files/second:    " << filesPerSecond << L"\n";
         std::wcout << L"\nMissing files by scan root (top 12 extensions):\n";
