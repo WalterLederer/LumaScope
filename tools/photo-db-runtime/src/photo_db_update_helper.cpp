@@ -289,9 +289,13 @@ std::uint64_t countFilesInTree(const fs::path& directory) {
 
 
 bool isSupportedImageExtension(const std::wstring& extension) {
+    // Keep this list aligned with supportedFileFormats in
+    // libs/internal-api/src/lib/desktop.ts. Some formats do not carry EXIF GPS,
+    // but they are still supported image files and must be counted as such.
     static const std::set<std::wstring> supported = {
-        L".jpg", L".jpeg", L".tif", L".tiff", L".heic", L".heif", L".png", L".webp",
-        L".dng", L".cr2", L".cr3", L".nef", L".arw", L".orf", L".rw2", L".raf", L".raw"
+        L".avif", L".bmp", L".gif", L".heic", L".heif", L".jpg", L".jpeg",
+        L".jxl", L".jxr", L".exr", L".ohsp", L".png", L".dng", L".rw2",
+        L".raw", L".hdr", L".svg", L".tif", L".tiff", L".webp"
     };
     return supported.contains(extension);
 }
