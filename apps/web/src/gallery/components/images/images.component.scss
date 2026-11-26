@@ -1603,7 +1603,7 @@
 
 /* A hidden COL must be removed from the native table layout as well. The
    generic table-column display rule above otherwise overrides the browser's
-   [hidden] behavior and leaves the unused 44px actions track in the table. */
+   [hidden] behavior and leaves the unused 66px actions track in the table. */
 .detail-native-table > colgroup > col[hidden] {
   display: none !important;
 }
