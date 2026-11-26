@@ -306,6 +306,23 @@ export class ProcessManager {
   @IpcHandler({ name: 'ProcessManager.openConfigFolder' })
   readonly openConfigFolder = async (): Promise<string> => shell.openPath(dirname(App.startupConfig.configPath()));
 
+  @IpcHandler({ name: 'ProcessManager.getNumberLocale' })
+  readonly getNumberLocale = async (): Promise<string | null> => {
+    if (process.platform !== 'win32') return null;
+    try {
+      const { stdout } = await execFileAsync('reg.exe', [
+        'query', 'HKCU\\Control Panel\\International', '/v', 'LocaleName'
+      ], { windowsHide: true, timeout: 5000, maxBuffer: 64 * 1024 });
+      const match = /LocaleName\\s+REG_SZ\\s+([^\\s]+)/i.exec(stdout);
+      if (!match) return null;
+      const locale = match[1].trim();
+      try { new Intl.NumberFormat(locale); return locale; } catch { return null; }
+    } catch (error) {
+      console.warn('[NumberFormat] Could not read the Windows regional locale:', error);
+      return null;
+    }
+  };
+
   @IpcHandler({ name: 'ProcessManager.getPlatform' })
   readonly getPlatform = async (): Promise<string> => process.platform;
 
