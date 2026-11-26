@@ -50,12 +50,19 @@
                    aria-label="Thumbnail size" />
         <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
       </div>
+      <label class="gallery-file-option" title="Choose where gallery file information is read from">
+        <span>File source</span>
+        <select [value]="dataSource()" (change)="setDataSource($any($event.target).value)" aria-label="File source">
+          <option value="filesystem">File system</option>
+          <option value="database">Photo database</option>
+        </select>
+      </label>
       <label class="gallery-file-option" title="Show files with unsupported formats">
         <input type="checkbox" [checked]="includeUnsupportedFiles()" (change)="setIncludeUnsupportedFiles($any($event.target).checked)" />
         <span>+ Unsupported</span>
       </label>
       <label class="gallery-file-option" title="Include files from all subfolders">
-        <input type="checkbox" [checked]="includeFilesRecursive()" (change)="setIncludeFilesRecursive($any($event.target).checked)" />
+        <input type="checkbox" [checked]="includeFilesRecursive()" [disabled]="dataSource() === 'filesystem'" (change)="setIncludeFilesRecursive($any($event.target).checked)" />
         <span>+ Recursive</span>
       </label>
 
@@ -99,6 +106,8 @@
     } @else if (galleryRefreshing()) {
       <span>Updating the file list after background folder indexing…</span>
       <span>{{ images()?.length ?? 0 }} files currently displayed</span>
+    } @else if (dataSource() === 'filesystem') {
+      <span>Reading files from the current folder…</span>
     } @else if (includeFilesRecursive()) {
       <span>Scanning favorite folder and all subfolders…</span>
       <span>Counting files and preparing the thumbnail list. The total appears when the database scan completes.</span>
