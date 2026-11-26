@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -144,7 +145,7 @@ public:
 
         const auto databaseSize = static_cast<std::uint64_t>(sqlite3_column_int64(lookup_, 0));
         const double databaseModifiedAt = sqlite3_column_double(lookup_, 1);
-        return databaseSize != size || databaseModifiedAt != modifiedAtMs
+        return databaseSize != size || std::abs(databaseModifiedAt - modifiedAtMs) > 0.01
             ? Match::Changed : Match::Unchanged;
     }
 
