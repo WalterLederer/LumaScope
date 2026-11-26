@@ -471,7 +471,7 @@ void countMissingImageMetadata(const fs::path& file, const std::wstring& extensi
         ++stats.metadataErrors;
         ++stats.metadataErrorsByExtension[extension];
         ++stats.metadataErrorMessages[extension][error.what()];
-        // Keep exact paths for JPG failures only; other image extensions remain aggregated.
+        // Keep exact paths for JPEG/DNG failures; non-target image types are not inspected.
         if (isGpsMetadataCandidate(extension)) {
             stats.metadataErrorFiles.emplace_back(file.wstring(), error.what());
         }
