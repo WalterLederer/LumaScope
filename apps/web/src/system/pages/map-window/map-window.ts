@@ -1683,6 +1683,9 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    // Native <details> toggle events do not bubble. Capture them at document level
+    // so every disclosure section inside the settings panels is persisted uniformly.
+    document.addEventListener('toggle', this.onDisclosureStateToggle, true);
     this.configuration.config().pipe(take(1)).subscribe(config => {
       this.gpxActionsColumnPosition.set(config.system.gpxTrackActionsColumnPosition === 'right' ? 'right' : 'left');
       this.offlineActionsColumnPosition.set(config.system.offlineFilesActionsColumnPosition === 'right' ? 'right' : 'left');
@@ -2092,6 +2095,7 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    document.removeEventListener('toggle', this.onDisclosureStateToggle, true);
     this.offlineRenderStatusUnsubscribe?.();
     this.offlineRenderStatusUnsubscribe = null;
     this.favoriteLocationsUnsubscribe?.();
