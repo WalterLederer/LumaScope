@@ -16,8 +16,7 @@ add_executable(photo_db_update_helper
   src/photo_db_update_helper.cpp
 )
 
-target_include_directories(photo_db_update_helper PRIVATE \${Boost_INCLUDE_DIRS})
-target_link_libraries(photo_db_update_helper PRIVATE unofficial::sqlite3::sqlite3)
+target_link_libraries(photo_db_update_helper PRIVATE unofficial::sqlite3::sqlite3 Boost::headers)
 target_compile_definitions(photo_db_update_helper PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
 
 if(MSVC)
