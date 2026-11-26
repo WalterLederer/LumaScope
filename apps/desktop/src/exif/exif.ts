@@ -162,7 +162,15 @@ export class Exif {
       }
       if (typeof dryRun !== 'boolean') throw new Error('The dry-run flag must be explicitly true or false.');
 
-      const roots = [...new Set(requestedRoots.map(root => resolve(root)))].sort();
+      const candidates = [...new Set(requestedRoots.map(root => resolve(root)))].sort((a, b) => a.length - b.length);
+      const roots: string[] = [];
+      for (const candidate of candidates) {
+        if (!roots.some(parent => {
+          const childPath = relative(parent, candidate);
+          return childPath === '' || (!childPath.startsWith('..') && !isAbsolute(childPath));
+        })) roots.push(candidate);
+      }
+      roots.sort();
       for (const root of roots) {
         if (!/^[a-z]:\\/i.test(root)) throw new Error(`Only local drive folders are supported: ${root}`);
       }
@@ -247,13 +255,19 @@ export class Exif {
 
           if (!dryRun) {
             try {
+              const currentFile = await stat(file.path);
+              if (!currentFile.isFile() || currentFile.size !== file.size
+                || Math.abs(currentFile.mtimeMs - file.modifiedAt) > 0.01) {
+                result.fileChangedSkipped++;
+                continue;
+              }
               const created = await cacheManager.registerMissingPhotoRecord(
                 undefined as never, file.path, file.size, file.modifiedAt
               );
               if (!created) continue;
               result.createdRecords++;
               if (gps?.gpsMetadataRead) {
-                await cacheManager.updatePhotoMetadata(undefined as never, file.path, false, gps);
+                await cacheManager.updatePhotoMetadata(file.path, false, gps);
               }
             } catch (error) {
               result.errors++;
