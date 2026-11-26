@@ -1714,3 +1714,10 @@
   min-width: 66px !important;
   max-width: 66px !important;
 }
+
+/* Give the count badge enough inner width so the cell divider does not
+   visually touch the final digit in the narrow actions column. */
+.detail-native-table > thead > tr > th.detail-actions-statistics {
+  padding-left: 2px !important;
+  padding-right: 2px !important;
+}
