@@ -39,6 +39,12 @@ struct DatabaseCounts {
     std::uint64_t unchangedFiles = 0;
 };
 
+struct ScanStats {
+    std::uint64_t filesScanned = 0;
+    std::uint64_t cacheDirectoriesSkipped = 0;
+    std::uint64_t reparseDirectoriesSkipped = 0;
+};
+
 std::string toUtf8(std::wstring_view value) {
     if (value.empty()) return {};
     const int required = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, value.data(),
@@ -228,8 +234,8 @@ void printUsage() {
 }
 
 void scanDirectory(const fs::path& directory, const std::wstring& drive,
-                   SqliteDatabase* database, DatabaseCounts& counts, std::uint64_t& scanned,
-                   bool verbose, std::set<std::wstring>& visitedFiles) {
+                   SqliteDatabase* database, DatabaseCounts& counts, ScanStats& stats,
+                   std::uint64_t& scanned, bool verbose, std::set<std::wstring>& visitedFiles) {
     const fs::path pattern = directory / L"*";
     WIN32_FIND_DATAW entry{};
     HANDLE handle = FindFirstFileExW(pattern.c_str(), FindExInfoBasic, &entry,
@@ -247,10 +253,16 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
         const fs::path child = directory / entry.cFileName;
 
         if ((entry.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
-            if ((entry.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0) continue;
+            if ((entry.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
+                ++stats.reparseDirectoriesSkipped;
+                continue;
+            }
             const auto directoryName = lower(std::wstring(name));
-            if (directoryName == L".cache" || directoryName == L".thumbnails") continue;
-            scanDirectory(child, drive, database, counts, scanned, verbose, visitedFiles);
+            if (directoryName == L".cache" || directoryName == L".thumbnails") {
+                ++stats.cacheDirectoriesSkipped;
+                continue;
+            }
+            scanDirectory(child, drive, database, counts, stats, scanned, verbose, visitedFiles);
             continue;
         }
 
@@ -260,6 +272,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
         const auto size = (static_cast<std::uint64_t>(entry.nFileSizeHigh) << 32) | entry.nFileSizeLow;
         const auto modifiedAtMs = fileTimeToUnixMilliseconds(entry.ftLastWriteTime);
         ++scanned;
+        ++stats.filesScanned;
 
         if (!database) {
             ++counts.newFiles;
@@ -282,6 +295,19 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
         throw std::runtime_error("Directory enumeration failed for '" + directory.string()
             + "' (Windows error " + std::to_string(lastError) + ").");
     }
+}
+
+bool isSameOrDescendantPath(const fs::path& candidate, const fs::path& parent) {
+    auto candidateText = lower(candidate.lexically_normal().wstring());
+    auto parentText = lower(parent.lexically_normal().wstring());
+    while (parentText.size() > 3 && (parentText.back() == L'\\' || parentText.back() == L'/')) {
+        parentText.pop_back();
+    }
+    if (candidateText == parentText) return true;
+    if (candidateText.size() <= parentText.size() || candidateText.compare(0, parentText.size(), parentText) != 0) {
+        return false;
+    }
+    return candidateText[parentText.size()] == L'\\' || candidateText[parentText.size()] == L'/';
 }
 
 fs::path defaultDatabasePath(const std::wstring& drive) {
@@ -308,6 +334,20 @@ int wmain(int argc, wchar_t** argv) {
         }
         if (selectedFavorites.empty()) throw std::runtime_error("No matching folders were found in gallery.locations.");
 
+        // A parent favorite already covers every nested favorite. Remove those
+        // descendants so each physical tree is enumerated exactly once.
+        std::sort(selectedFavorites.begin(), selectedFavorites.end(),
+            [](const fs::path& left, const fs::path& right) {
+                return left.native().size() < right.native().size();
+            });
+        std::vector<fs::path> scanRoots;
+        for (const auto& favorite : selectedFavorites) {
+            const bool covered = std::any_of(scanRoots.begin(), scanRoots.end(),
+                [&](const fs::path& root) { return isSameOrDescendantPath(favorite, root); });
+            if (!covered) scanRoots.push_back(favorite);
+        }
+        selectedFavorites = std::move(scanRoots);
+
         std::set<std::wstring> drives;
         for (const auto& favorite : selectedFavorites) drives.insert(lower(driveRoot(favorite)));
         if (options.databasePath && drives.size() != 1) {
@@ -318,6 +358,7 @@ int wmain(int argc, wchar_t** argv) {
         DatabaseCounts totalCounts;
         std::uint64_t totalScanned = 0;
         std::set<std::wstring> visitedFiles;
+        std::vector<ScanStats> perRootStats(selectedFavorites.size());
 
         for (std::size_t selectedFavoritesIndex = 0; selectedFavoritesIndex < selectedFavorites.size(); ++selectedFavoritesIndex) {
             const auto& favorite = selectedFavorites[selectedFavoritesIndex];
@@ -336,7 +377,7 @@ int wmain(int argc, wchar_t** argv) {
                 }
             }
 
-            scanDirectory(favorite, drive, found->second.get(), totalCounts,
+            scanDirectory(favorite, drive, found->second.get(), totalCounts, perRootStats[selectedFavoritesIndex],
                 totalScanned, options.verbose, visitedFiles);
         }
 
