@@ -96,7 +96,9 @@ ui-toolbar {
 }
 .thumbnail-size-control {
   display: flex;
-  flex: 0 0 auto;
+  flex: 1 1 100%;
+  width: 100%;
+  justify-content: flex-start;
   /* The toolbar host can now grow to include this vertical padding. */
   margin: 0 !important;
   padding: 8px 0 4px !important;
@@ -486,44 +488,25 @@ ui-toolbar {
 
 
 
-.gallery-cache-incomplete-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 7px 12px;
-  color: var(--text-color, #202124);
-  background: var(--surface-secondary, #f2f2f2);
-  border-bottom: 1px solid var(--border-color, #c8c8c8);
-  font-size: 12px;
-}
-
-.gallery-build-cache-button {
+.gallery-update-cache-button {
   flex: 0 0 auto;
+  margin-left: auto;
   padding: 5px 12px;
-  border: 1px solid var(--border-color, #999);
+  border: 1px solid var(--color-border-default, #999);
   border-radius: 4px;
-  background: var(--surface-color, #fff);
-  color: inherit;
+  background: var(--color-surface-default-low, #fff);
+  color: var(--color-content-primary-high, inherit);
   font: inherit;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
 }
 
-.gallery-build-cache-button:hover:not(:disabled) {
-  background: var(--surface-hover, #e6e6e6);
+.gallery-update-cache-button:hover:not(:disabled) {
+  background: var(--color-surface-default-medium, #e6e6e6);
 }
 
-.gallery-build-cache-button:disabled {
+.gallery-update-cache-button:disabled {
   opacity: 0.55;
   cursor: default;
-}
-
-@media (max-width: 620px) {
-  .gallery-cache-incomplete-banner {
-    align-items: flex-start;
-    flex-direction: column;
-  }
 }
