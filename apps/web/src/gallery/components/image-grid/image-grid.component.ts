@@ -316,7 +316,8 @@ export class ImageGridComponent {
       return;
     }
     const folder = this.selectedLocation();
-    const scope = [folder ?? '', this.includeUnsupportedFiles(), this.includeFilesRecursive(),
+    const recursive = this.dataSource() === 'database' && this.includeFilesRecursive();
+    const scope = [folder ?? '', this.dataSource(), this.includeUnsupportedFiles(), recursive,
       this.nameFilterActive(), this.nameFilter()].join('|');
     if (this.cacheStatsFolder !== folder || this.cacheStatsScope !== scope) {
       this.resetDirectoryCacheStats();
@@ -335,7 +336,7 @@ export class ImageGridComponent {
       await new Promise<void>(resolve => setTimeout(resolve, 2000));
       if (request !== this.cacheStatsRequest || pathUpdateRevision !== this.cachePathUpdateRevision) return;
       const stats = await this.cacheManager.getGalleryCacheStats(
-        folder, this.includeFilesRecursive(), this.includeUnsupportedFiles(),
+        folder, recursive, this.includeUnsupportedFiles(),
         this.nameFilterActive() ? this.nameFilter() : '', 'ImageGrid.refreshDirectoryCacheStats'
       );
       if (request !== this.cacheStatsRequest) return;
@@ -581,6 +582,7 @@ export class ImageGridComponent {
       this.lastCacheRevision = revision;
       this.images();
       this.selectedLocation();
+      this.dataSource();
       this.viewMode();
       this.totalFileCount();
       this.galleryLoading();
