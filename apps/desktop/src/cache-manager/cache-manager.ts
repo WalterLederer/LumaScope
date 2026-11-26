@@ -2630,13 +2630,10 @@ export class CacheManager {
       ).get({ folder }) as { id: number } | undefined;
       if (!pathRow) return [...fileNames];
 
-      const existing = new Set<string>();
-      const select = readDatabase.prepare(
-        'SELECT file_name FROM photos WHERE path_id = :pathId AND file_name = :file COLLATE NOCASE'
-      );
-      for (const fileName of fileNames) {
-        if (select.get({ pathId: pathRow.id, file: fileName })) existing.add(fileName.toLocaleLowerCase());
-      }
+      const existingRows = readDatabase.prepare(
+        'SELECT file_name FROM photos WHERE path_id = :pathId'
+      ).all({ pathId: pathRow.id }) as Array<{ file_name: string }>;
+      const existing = new Set(existingRows.map(row => row.file_name.toLocaleLowerCase()));
       return fileNames.filter(fileName => !existing.has(fileName.toLocaleLowerCase()));
     } finally {
       readDatabase.close();
