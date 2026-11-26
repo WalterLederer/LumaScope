@@ -510,7 +510,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
 
         // Keep progress output sparse; console writes are expensive on Windows.
         if (verbose && scanned % 10000 == 0) {
-            std::wcout << L"Scanned " << scanned << L" files\\n";
+            std::wcout << L"Scanned " << scanned << L" files\n";
         }
     } while (FindNextFileW(handle, &entry));
 
