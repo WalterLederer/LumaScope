@@ -42,6 +42,7 @@ struct DatabaseCounts {
 struct ScanStats {
     std::uint64_t filesScanned = 0;
     std::uint64_t cacheDirectoriesSkipped = 0;
+    std::uint64_t filesInsideSkippedDirectories = 0;
     std::uint64_t reparseDirectoriesSkipped = 0;
 };
 
@@ -233,6 +234,39 @@ void printUsage() {
         << L"No database changes or EXIF reads are performed yet.\n";
 }
 
+std::uint64_t countFilesInTree(const fs::path& directory) {
+    const fs::path pattern = directory / L"*";
+    WIN32_FIND_DATAW entry{};
+    HANDLE handle = FindFirstFileExW(pattern.c_str(), FindExInfoBasic, &entry,
+        FindExSearchNameMatch, nullptr, FIND_FIRST_EX_LARGE_FETCH);
+    if (handle == INVALID_HANDLE_VALUE) {
+        const DWORD error = GetLastError();
+        if (error == ERROR_FILE_NOT_FOUND) return 0;
+        throw std::runtime_error("Cannot inspect excluded directory (Windows error "
+            + std::to_string(error) + ").");
+    }
+
+    std::uint64_t count = 0;
+    do {
+        const std::wstring_view name(entry.cFileName);
+        if (name == L"." || name == L"..") continue;
+        if ((entry.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
+            if ((entry.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0) continue;
+            count += countFilesInTree(directory / entry.cFileName);
+        } else {
+            ++count;
+        }
+    } while (FindNextFileW(handle, &entry));
+
+    const DWORD lastError = GetLastError();
+    FindClose(handle);
+    if (lastError != ERROR_NO_MORE_FILES) {
+        throw std::runtime_error("Enumeration of excluded directory failed (Windows error "
+            + std::to_string(lastError) + ").");
+    }
+    return count;
+}
+
 void scanDirectory(const fs::path& directory, const std::wstring& drive,
                    SqliteDatabase* database, DatabaseCounts& counts, ScanStats& stats,
                    std::uint64_t& scanned, bool verbose, std::set<std::wstring>& visitedFiles) {
@@ -260,6 +294,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
             const auto directoryName = lower(std::wstring(name));
             if (directoryName == L".cache" || directoryName == L".thumbnails") {
                 ++stats.cacheDirectoriesSkipped;
+                stats.filesInsideSkippedDirectories += countFilesInTree(child);
                 continue;
             }
             scanDirectory(child, drive, database, counts, stats, scanned, verbose, visitedFiles);
@@ -387,9 +422,14 @@ int wmain(int argc, wchar_t** argv) {
             const auto& stats = perRootStats[index];
             std::wcout << L"Root " << (index + 1) << L": files=" << stats.filesScanned
                        << L", cache/thumbnails directories skipped=" << stats.cacheDirectoriesSkipped
+                       << L", files inside those directories=" << stats.filesInsideSkippedDirectories
                        << L", reparse directories skipped=" << stats.reparseDirectoriesSkipped << L"\n";
         }
+        std::uint64_t excludedFiles = 0;
+        for (const auto& stats : perRootStats) excludedFiles += stats.filesInsideSkippedDirectories;
         std::wcout << L"Files scanned:   " << totalScanned << L"\n"
+                   << L"Excluded files:  " << excludedFiles << L"\n"
+                   << L"Files accounted: " << (totalScanned + excludedFiles) << L"\n"
                    << L"Missing in DB:   " << totalCounts.newFiles << L"\n"
                    << L"Changed:         " << totalCounts.changedFiles << L"\n"
                    << L"Unchanged:       " << totalCounts.unchangedFiles << L"\n"
