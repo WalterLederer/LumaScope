@@ -244,9 +244,9 @@ export class GalleryState {
     if ((value !== 'filesystem' && value !== 'database') || this.dataSource$.value === value) return;
     this.dataSource$.next(value);
     const currentSort = this.sortMode$.value;
-    const sortBy = value === 'filesystem' && currentSort.sortBy === 'gpsDate' ? 'date' : currentSort.sortBy;
-    if (sortBy !== currentSort.sortBy) this.sortMode$.next({ ...currentSort, sortBy });
-    this.configuration.updateGalleryConfig({ dataSource: value, ...(sortBy !== currentSort.sortBy ? { sortBy } : {}) });
+    // The selected source controls only which files are listed. Sorting may
+    // still use metadata already available in the drive-local photo database.
+    this.configuration.updateGalleryConfig({ dataSource: value });
     const path = this.selectedLocation$.value;
     if (path) this.navigateTo(path, false, true).subscribe();
   };
