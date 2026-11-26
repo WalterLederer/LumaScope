@@ -451,6 +451,12 @@ WHERE latitude IS NOT NULL AND longitude IS NOT NULL
 CREATE INDEX IF NOT EXISTS idx_photos_gps_check_status
   ON photos(gps_check_status, path_id);
 `
+  },
+  {
+    name: 'removePhotoGpsCheckedAtV24',
+    query: `
+ALTER TABLE photos DROP COLUMN gps_checked_at;
+`
   }
 ];
 // @formatter:on
