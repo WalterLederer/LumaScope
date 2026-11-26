@@ -330,14 +330,14 @@ app-map-window {
     .gpx-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .gpx-settings[open]>summary{margin-bottom:2px}
     .gpx-settings-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
-    .opacity-content .zoom-control{grid-column:1/-1;width:100%}
+    .slider-settings-grid .zoom-control{grid-column:1/-1;width:100%}
     .address-settings{display:flex;align-items:flex-start;flex-wrap:wrap;gap:6px;flex:1 1 100%;min-width:0;padding-top:7px;border-top:1px solid var(--color-content-default-low,#454545)}
 
     .map-source-settings>summary,.opacity-settings>summary{display:list-item;list-style-position:inside;cursor:pointer;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;white-space:nowrap;list-style:disclosure-closed}
     .map-source-settings[open]>summary,.opacity-settings[open]>summary{list-style:disclosure-open;margin-bottom:4px}
     .settings-tab-content .opacity-settings>summary{list-style-position:inside}
     .opacity-settings{box-sizing:border-box;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
-    .map-source-content,.opacity-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
+    .map-source-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
     .map-source-content>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.map-source-content>.online-map-style-control{display:flex;visibility:visible}
     .map-source-picker{position:relative;display:flex;align-items:center;gap:6px;white-space:nowrap;z-index:2147483002}
     .map-source-picker-label{font-weight:600}
@@ -451,9 +451,9 @@ app-map-window {
     .slider-setting-box.setting-unavailable{opacity:.58}
     .slider-setting-box input:disabled{cursor:not-allowed;accent-color:#777}
     .slider-setting-box button:disabled{cursor:not-allowed;opacity:.55}
-    .opacity-content .view-map-color{display:flex;align-items:center;gap:7px;white-space:nowrap}
-    .opacity-content .atlas-density-setting{grid-column:1/-1}
-    .opacity-content .atlas-density-setting ui-slider{flex:1;min-width:100px}
+    .slider-settings-grid .view-map-color{display:flex;align-items:center;gap:7px;white-space:nowrap}
+    .slider-settings-grid .atlas-density-setting{grid-column:1/-1}
+    .slider-settings-grid .atlas-density-setting ui-slider{flex:1;min-width:100px}
     .slider-setting-box>ui-slider{flex:1;width:auto;min-width:45px}
     .slider-setting-box>ui-slider.opacity-slider{accent-color:#c084fc}
     .slider-setting-box>ui-slider.opacity-slider.disabled{accent-color:#8b739d}
@@ -629,7 +629,7 @@ app-map-window {
     html[data-theme='light'] & .map-coordinates,html[data-theme='light'] & .range-setting span,html[data-theme='light'] & .gpx-filename{color:#555}
     html[data-theme='light'] & .time-slider-control-card>strong{color:#000}
     html[data-theme='light'] & .map-toolbar-button{color:#202124;background:#fff;border-color:#c5c8ce}
-    @media(max-width:650px){.map-coordinates{display:none}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting ui-slider{flex:1 1 auto;width:auto}.opacity-content{flex-wrap:wrap}.opacity-content .range-setting{flex:1 1 135px}}
+    @media(max-width:650px){.map-coordinates{display:none}.settings-group{width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px}.settings-group:last-child{border-bottom:0}.range-setting{flex:1}.range-setting ui-slider{flex:1 1 auto;width:auto}.slider-settings-grid{flex-wrap:wrap}.slider-setting-box{flex:1 1 135px}}
     .routing-tab{display:flex;flex-direction:column;gap:10px;align-items:stretch}
     .routing-waypoints-visibility{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:24px;height:30px;cursor:pointer}.routing-waypoints-visibility input{width:15px;height:15px;margin:0;accent-color:var(--theme-button-color,#287fc4);cursor:pointer}
     .routing-toolbar,.routing-key-row,.routing-actions,.routing-calculate-row,.routing-toolbar-actions{display:flex;align-items:center;gap:12px;flex-wrap:nowrap}
@@ -1049,14 +1049,14 @@ app-map-window {
 
     /* Keep the View tab's icon-only map action glyphs geometrically centered
        inside their fixed-size buttons, independent of inherited span styles. */
-    .opacity-content .opacity-fit-button,
-    .opacity-content .routing-help-button.opacity-fit-button {
+    .slider-setting-box .opacity-fit-button,
+    .slider-setting-box .routing-help-button.opacity-fit-button {
       box-sizing: border-box !important;
       padding: 0 !important;
       overflow: hidden;
       text-align: center !important;
     }
-    .opacity-content .opacity-fit-button > span {
+    .slider-setting-box .opacity-fit-button > span {
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
@@ -1270,7 +1270,7 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
 
 .hillshade-opacity-surface-box {
   /* Match the working label surfaces: component-scoped selector with higher specificity
-     than .opacity-content .range-setting, so the grey tint is not overwritten. */
+     than the shared slider-setting-box background, so the grey tint is not overwritten. */
   background: rgb(128 128 128 / 20%);
 }
 .slider-setting-box .text-layer-symbol {
