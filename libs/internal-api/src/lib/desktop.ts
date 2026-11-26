@@ -147,6 +147,7 @@ export interface MissingGpsScanResult {
   withGpsInFile: number;
   withoutGpsInFile: number;
   manuallyCorrectedSkipped: number;
+  fileChangedSkipped: number;
   wouldUpdate: number;
   updated: number;
   skippedDuringUpdate: number;
@@ -213,8 +214,8 @@ export interface GpxElevationProfile {
 }
 
 export interface DesktopCacheManager {
-  readonly getMissingGpsPhotoBatch: (databaseKey: string, afterId: number, limit?: number) => Promise<Array<{ id: number; path: string; manuallyCorrected: boolean }>>;
-  readonly updateExistingPhotoGpsFromExif: (sourceName: string, gps: {
+  readonly getMissingGpsPhotoBatch: (databaseKey: string, afterId: number, limit?: number) => Promise<Array<{ id: number; path: string; fileSize: number; modifiedAt: number; manuallyCorrected: boolean }>>;
+  readonly updateExistingPhotoGpsFromExif: (sourceName: string, expectedFileSize: number, expectedModifiedAt: number, gps: {
     latitude: number | null;
     longitude: number | null;
     altitudeM: number | null;
