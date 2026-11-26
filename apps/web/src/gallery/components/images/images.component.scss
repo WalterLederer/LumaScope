@@ -1635,11 +1635,10 @@
 
 
 
-/* Final, visible separator below the complete two-tier detail-table header.
-   This is intentionally placed last so legacy one-pixel header rules cannot
-   override the three-pixel divider. The actions cell spans both header tiers. */
+/* Keep the separator below the second header row consistent with the
+   normal one-pixel table dividers across every column. */
 .detail-native-table > thead > tr.detail-header-statistics > th {
-  border-bottom: 3px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
+  border-bottom: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
 }
 
 
