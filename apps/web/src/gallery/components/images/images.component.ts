@@ -295,7 +295,9 @@ export class ImagesComponent {
     const requestVersion = (this.cacheStatusPathRequests.get(sourcePath) ?? 0) + 1;
     this.cacheStatusPathRequests.set(sourcePath, requestVersion);
     try {
-      const statuses = await this.cacheManager.getImageCacheStatuses([sourcePath]);
+      const image = (this.images() ?? []).find(item => item.path === sourcePath);
+      const sourceMetadata = image ? [{ path: image.path, size: image.size, modifiedAt: image.modifiedAt ?? image.createdAt }] : [];
+      const statuses = await this.cacheManager.getImageCacheStatuses([sourcePath], false, sourceMetadata);
       if (this.cacheStatusPathRequests.get(sourcePath) !== requestVersion) return;
       this.cacheStatuses.update(current => {
         const next = new Map(current);
@@ -1735,7 +1737,8 @@ export class ImagesComponent {
         for (let offset = 0; offset < missingImages.length; offset += 500) {
           if (request !== this.cacheStatusRequest) return;
           const batch = missingImages.slice(offset, offset + 500);
-          const statuses = await this.cacheManager.getImageCacheStatuses(batch.map(image => image.path));
+          const sourceMetadata = batch.map(image => ({ path: image.path, size: image.size, modifiedAt: image.modifiedAt ?? image.createdAt }));
+          const statuses = await this.cacheManager.getImageCacheStatuses(batch.map(image => image.path), false, sourceMetadata);
           if (request !== this.cacheStatusRequest) return;
           const batchStatuses = new Map(statuses.map(status => [status.sourceName, status]));
           const nextStatuses = new Map(this.cacheStatuses());
