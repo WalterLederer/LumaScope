@@ -1,7 +1,7 @@
 import { IpcMainInvokeEvent } from 'electron';
 import { ExifTool } from 'exiftool-vendored';
 import { open, readdir, stat } from 'node:fs/promises';
-import { basename, dirname, extname, join, relative, resolve } from 'node:path';
+import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
 import { ApiResponse, ExifTags, FixPhotoLocationsResult, MissingGpsScanResult, MissingPhotoRecordsScanResult, formatOsDateTime, supportedFileExtensions } from 'internal-api';
 import { Injector } from '../injector/injector';
 import { IpcHandler } from '../app/decorators/ipc-handler';
