@@ -156,8 +156,8 @@ export class CacheManager implements DesktopCacheManager {
   readonly selectDatabaseForDirectory = (directory: string): Promise<boolean> =>
     window.desktop.CacheManager.selectDatabaseForDirectory(directory);
 
-  readonly getDirectoryPhotoLocations = (directory: string, recursive = false): Promise<PhotoLocation[]> =>
-    window.desktop.CacheManager.getDirectoryPhotoLocations(directory, recursive);
+  readonly getDirectoryPhotoLocations = (directory: string, recursive = false, reconcile = true): Promise<PhotoLocation[]> =>
+    window.desktop.CacheManager.getDirectoryPhotoLocations(directory, recursive, reconcile);
 
   readonly getPhotoLocationsInBounds = (bounds: { west: number; south: number; east: number; north: number }, databaseKey: string): Promise<PhotoLocation[]> =>
     window.desktop.CacheManager.getPhotoLocationsInBounds(bounds, databaseKey);
