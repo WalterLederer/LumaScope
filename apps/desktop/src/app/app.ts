@@ -136,11 +136,6 @@ export default class App {
     // This method will be called when Electron has finished
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
-    if (process.platform === 'win32') {
-      // Use the Windows regional locale for renderer formatting while keeping
-      // the application's visible UI text in English.
-      app.commandLine.appendSwitch('lang', app.getSystemLocale());
-    }
     if (rendererAppName) {
       protocol.handle(appProtocol, protocolHandler);
 
@@ -774,6 +769,11 @@ export default class App {
     ipcMain.handle('Capture.getGlobalShortcutStatus', () => App.getGlobalCaptureShortcutStatus());
 
     App.application = app;
+
+    // Chromium reads its UI locale during startup; set this before the ready event.
+    if (process.platform === 'win32') {
+      app.commandLine.appendSwitch('lang', app.getSystemLocale());
+    }
 
     startAppSettingsCheckpoint();
 
