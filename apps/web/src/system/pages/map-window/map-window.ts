@@ -626,7 +626,7 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly activeOsmandMapCount = computed(() => this.viewportObfMapIds().length);
   protected readonly configuredOsmandMapCount = computed(() => this.offlineMaps().filter(map => map.type === 'obf' && map.enabled && map.available).length);
   protected readonly configuredMbtilesMapCount = computed(() => this.offlineMaps().filter(map => (map.type === 'mbtiles' || !map.type) && map.enabled && map.available).length);
-  protected readonly canShowMbtilesLabels = computed(() => ['offline', 'online', 'mapsforge'].includes(this.mapSource()) && this.configuredMbtilesMapCount() > 0);
+  protected readonly canShowMbtilesLabels = computed(() => ['offline', 'online', 'mapsforge', 'osmand', 'osmand-atlas'].includes(this.mapSource()) && this.configuredMbtilesMapCount() > 0);
   protected readonly inUseOfflineMapCount = computed(() => this.offlineMapStats().inUseIds.size);
   protected readonly filteredOffline = computed(() => {
     const maps = this.offlineMaps();
@@ -3463,6 +3463,8 @@ export class MapWindow implements OnInit, OnDestroy {
       return;
     }
     this.applyMapBoundsVisibility();
+    void this.updateOnlineMbtilesLabelSource(renderer);
+    renderer.map.on('moveend', () => { void this.updateOnlineMbtilesLabelSource(renderer); });
 
     // Atlas tiles are rendered asynchronously through the native tile protocol.
     // Reapply the persisted opacity values once the first complete viewport is
@@ -3728,6 +3730,8 @@ export class MapWindow implements OnInit, OnDestroy {
       if (generation === this.mapSourceGeneration && this.offlineRenderer === renderer) this.applyOpacitySettings();
     });
     this.applyMapBoundsVisibility();
+    void this.updateOnlineMbtilesLabelSource(renderer);
+    renderer.map.on('moveend', () => { void this.updateOnlineMbtilesLabelSource(renderer); });
 
     const latestLatitude = this.currentLatitude ?? latitude;
     const latestLongitude = this.currentLongitude ?? longitude;
@@ -3786,7 +3790,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private async updateOnlineMbtilesLabelSource(renderer: OfflineMapRenderer): Promise<void> {
     const request = ++this.onlineMbtilesLabelRequest;
-    if ((this.mapSource() !== 'online' && this.mapSource() !== 'mapsforge') || this.offlineRenderer !== renderer) return;
+    if (!['online', 'mapsforge', 'osmand', 'osmand-atlas'].includes(this.mapSource()) || this.offlineRenderer !== renderer) return;
     if (!this.desktop) {
       this.onlineMbtilesLabelMapId = null;
       renderer.setOnlineMbtilesLabelSource(null);
@@ -3800,7 +3804,7 @@ export class MapWindow implements OnInit, OnDestroy {
       console.warn('[OnlineMap] Could not select MBTiles label source:', error);
       return;
     }
-    if (request !== this.onlineMbtilesLabelRequest || (this.mapSource() !== 'online' && this.mapSource() !== 'mapsforge') || this.offlineRenderer !== renderer) return;
+    if (request !== this.onlineMbtilesLabelRequest || !['online', 'mapsforge', 'osmand', 'osmand-atlas'].includes(this.mapSource()) || this.offlineRenderer !== renderer) return;
     const nextId = selected?.id ?? null;
     console.info('[MBTiles Labels] Map source selection:', {
       mapSource: this.mapSource(),
@@ -5561,12 +5565,6 @@ export class MapWindow implements OnInit, OnDestroy {
     this.applyMapOpacity();
   };
   protected readonly changeLabelsVisibility = (visible: boolean): void => {
-    if (this.mapSource() === 'osmand' || this.mapSource() === 'osmand-atlas') {
-      // The two OsmAnd renderers differ by label rendering: Atlas includes labels,
-      // while the plain OsmAnd renderer deliberately omits them.
-      this.changeMapSource(visible ? 'osmand-atlas' : 'osmand');
-      return;
-    }
     this.labelsVisible.set(visible);
     this.saveSetting('labelsVisible', visible);
     console.info('[MBTiles Labels] Visibility changed:', {
