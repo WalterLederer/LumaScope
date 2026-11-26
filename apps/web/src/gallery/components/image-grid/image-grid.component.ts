@@ -259,6 +259,8 @@ export class ImageGridComponent {
   private readonly galleryState = inject(GalleryState);
   readonly galleryWindowStart = this.galleryState.galleryWindowStart;
   readonly totalFileCount = this.galleryState.totalFileCount;
+  readonly totalFileCountKnown = this.galleryState.totalFileCountKnown;
+  readonly unfilteredFileCount = this.galleryState.unfilteredFileCount;
   readonly includeUnsupportedFiles = toSignal(this.galleryState.includeUnsupportedFiles(), { initialValue: false });
   readonly galleryLoading = toSignal(this.galleryState.galleryLoading(), { initialValue: false });
   readonly galleryRefreshing = toSignal(this.galleryState.galleryRefreshing(), { initialValue: false });
