@@ -295,16 +295,6 @@ bool isSupportedImageExtension(const std::wstring& extension) {
     return supported.contains(extension);
 }
 
-std::optional<double> exifNumber(const Exiv2::ExifData& data, const char* key) {
-    const auto item = data.findKey(Exiv2::ExifKey(key));
-    if (item == data.end() || item->count() == 0) return std::nullopt;
-    try {
-        const double value = item->toFloat(0);
-        if (std::isfinite(value)) return value;
-    } catch (...) {}
-    return std::nullopt;
-}
-
 std::string exifText(const Exiv2::ExifData& data, const char* key) {
     const auto item = data.findKey(Exiv2::ExifKey(key));
     return item == data.end() ? std::string{} : item->toString();
@@ -332,10 +322,11 @@ std::optional<double> parseXmpCoordinate(const std::string& raw) {
             start = comma + 1;
         }
         if (parts.empty() || parts.size() > 3) return std::nullopt;
-        double result = std::abs(parts[0]);
-        if (parts.size() > 1) result += std::abs(parts[1]) / 60.0;
+        double result = parts[0];
+        if (parts.size() > 1) result = std::abs(parts[0]) + std::abs(parts[1]) / 60.0;
         if (parts.size() > 2) result += std::abs(parts[2]) / 3600.0;
-        if (direction == 'S' || direction == 'W') result = -result;
+        if (direction == 'N' || direction == 'E') result = std::abs(result);
+        else if (direction == 'S' || direction == 'W') result = -std::abs(result);
         return result;
     } catch (...) {
         return std::nullopt;
