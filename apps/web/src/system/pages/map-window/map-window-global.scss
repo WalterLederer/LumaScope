@@ -31,9 +31,6 @@ app-map-window {
     .view-settings-section .render-statistics-content>.scale-visibility-toggle{flex-basis:auto;margin-left:0}
     .view-settings-section .view-visibility-controls{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:stretch;gap:6px;min-width:0;width:100%}
     .view-settings-section .view-visibility-controls>.range-setting{flex:1 1 180px;min-width:150px;max-width:none;box-sizing:border-box}
-    .view-settings-section .view-visibility-controls>.range-setting>label,.view-settings-section .view-visibility-controls>.range-setting>.visibility-toggle,.view-settings-section .view-visibility-controls>.range-setting>.opacity-row-label{grid-column:1;grid-row:1;min-width:0}
-    .view-settings-section .view-visibility-controls>.range-setting>ui-slider.opacity-slider{grid-column:1/-1;grid-row:2;align-self:center;flex:1 1 auto;width:100%;max-width:none;min-width:0;margin:0}
-    .view-settings-section .view-visibility-controls>.range-setting>.range-value{grid-column:2;grid-row:2;justify-self:end;align-self:center;white-space:nowrap;font-variant-numeric:tabular-nums}
     .view-settings-section .photo-preview-size-box{flex:0 1 220px;min-width:180px;min-height:48px}
     .view-settings-section .photo-preview-size-setting>label{grid-column:1/-1;grid-row:1;white-space:nowrap}
     .view-settings-section .photo-preview-size-setting>ui-slider{grid-column:1;grid-row:2;min-width:0}
@@ -442,8 +439,7 @@ app-map-window {
     .opacity-settings{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;padding:5px 0;width:100%}
     .opacity-settings>summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:700;white-space:nowrap;list-style:disclosure-closed}
     .opacity-settings[open]>summary{margin-bottom:2px}
-    /* Shared slider-box layout and surface treatment for Visibility and View settings. */
-    .map-window .opacity-content .range-setting,.map-window .view-visibility-controls>.range-setting{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center;column-gap:5px;row-gap:4px;padding:6px 8px;background:var(--color-surface-secondary,rgba(128,128,128,.085))}
+    /* Shared slider-box layout and surface treatment is defined once at the end of this file. */
     .opacity-summary-controls{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex:1 1 auto;min-width:0}
     .opacity-summary-controls>.range-setting{display:flex;align-items:center;gap:3px;flex:0 1 190px;min-width:135px;max-width:210px;box-sizing:border-box}
     .opacity-summary-controls .visibility-toggle{display:inline-flex;align-items:center;gap:0;flex:0 0 auto;white-space:nowrap;font-weight:400;min-width:0}
@@ -466,11 +462,9 @@ app-map-window {
     .opacity-content .atlas-density-setting{grid-column:1/-1}
     .opacity-content .atlas-density-setting ui-slider{flex:1;min-width:100px}
     .opacity-content .range-setting>ui-slider{flex:1;width:auto;min-width:45px}
-    .opacity-content .range-setting>ui-slider.opacity-slider{grid-column:1/-1;grid-row:2;align-self:center;flex:1 1 auto;width:100%;max-width:none;min-width:0;margin:0;accent-color:#c084fc}
+    .opacity-content .range-setting>ui-slider.opacity-slider{accent-color:#c084fc}
     .opacity-content .range-setting>ui-slider.opacity-slider.disabled{accent-color:#8b739d}
     .opacity-content .range-setting .visibility-toggle{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;white-space:nowrap;font-weight:500;min-width:0}
-    .opacity-content .range-setting>label,.opacity-content .range-setting>.visibility-toggle{grid-column:1;grid-row:1;min-width:0}
-    .opacity-content .range-setting>.range-value{grid-column:2;grid-row:1;justify-self:end;white-space:nowrap;font-variant-numeric:tabular-nums}
     .opacity-content .opacity-row-label .osmand-label-rerender-button{flex:0 0 auto;white-space:nowrap}
     .view-settings-section .view-visibility-controls .opacity-fit-button,.view-settings-section .view-visibility-controls .routing-help-button.opacity-fit-button{appearance:none!important;-webkit-appearance:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border:1px solid #4b9fe0!important;border-radius:8px!important;background:linear-gradient(145deg,#42b8ff 0%,#1677d2 48%,#5948bd 100%)!important;color:#fff!important;font-size:22px!important;font-weight:900!important;line-height:1!important;text-shadow:0 1px 2px rgba(0,0,0,.65)!important;box-shadow:inset 0 2px 2px rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.28),0 2px 0 #174b7d,0 4px 8px rgba(0,0,0,.22)!important;cursor:pointer!important}
     .view-settings-section .view-visibility-controls .opacity-fit-button:hover:not(:disabled){filter:brightness(1.12)}
@@ -1350,40 +1344,12 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
 }
 .opacity-content > .crosshair-opacity-surface-box,
 .opacity-content > .map-scale-opacity-surface-box {
-  display: flex;
   flex: 1 1 180px;
-  align-items: center;
-  justify-content: flex-end;
   min-width: 150px;
   white-space: nowrap;
 }
 
 
-/* Visibility controls: force every percentage into the slider row, at its right edge. */
-.opacity-settings .opacity-content .range-setting {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) auto !important;
-  grid-template-rows: auto auto !important;
-}
-.opacity-settings .opacity-content .range-setting > ui-slider.opacity-slider,
-.opacity-settings .opacity-content .range-setting > input.opacity-slider[type="range"] {
-  grid-column: 1 !important;
-  grid-row: 2 !important;
-  justify-self: start;
-  width: 80%;
-  min-width: 0;
-  max-width: 360px;
-  margin: 0;
-}
-.opacity-settings .opacity-content .range-setting > .range-value {
-  grid-column: 2 !important;
-  grid-row: 2 !important;
-  justify-self: end;
-  align-self: center;
-  margin: 0;
-  min-width: 0;
-  white-space: nowrap;
-}
 .opacity-settings .opacity-content > .label-opacity-surface-box {
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto auto;
@@ -1412,4 +1378,46 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
 .opacity-settings .opacity-content .visibility-toggle > input[type="checkbox"] {
   order: -1;
   margin: 0 4px 0 0 !important;
+}
+
+
+/* One shared layout for every slider setting in Visibility and View settings. */
+.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-template-rows: auto auto !important;
+  align-items: center;
+  column-gap: 5px;
+  row-gap: 4px;
+  padding: 6px 8px;
+  background: var(--color-surface-secondary, rgba(128, 128, 128, .085));
+  box-sizing: border-box;
+}
+.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting > label,
+.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting > .visibility-toggle,
+.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting > .opacity-row-label {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting > ui-slider.opacity-slider,
+.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting > input.opacity-slider[type="range"] {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: stretch;
+  align-self: center;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+}
+.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting > .range-value {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  align-self: center;
+  margin: 0;
+  min-width: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
