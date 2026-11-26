@@ -286,7 +286,7 @@ export class ImageGridComponent {
   readonly updateCurrentFolderCache = async (): Promise<void> => {
     const folder = this.selectedLocation()?.trim();
     if (!folder || this.cacheRunActive()) return;
-    if (this.includeFilesRecursive()) {
+    if (this.dataSource() === 'database' && this.includeFilesRecursive()) {
       await this.galleryCacheBuild.startManualRecursiveCacheBuild(folder, true);
     } else {
       await this.galleryCacheBuild.startManualCacheBuild(folder, true);
