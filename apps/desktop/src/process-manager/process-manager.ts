@@ -313,7 +313,7 @@ export class ProcessManager {
       const { stdout } = await execFileAsync('reg.exe', [
         'query', 'HKCU\\Control Panel\\International', '/v', 'LocaleName'
       ], { windowsHide: true, timeout: 5000, maxBuffer: 64 * 1024 });
-      const match = /LocaleName\\s+REG_SZ\\s+([^\\s]+)/i.exec(stdout);
+      const match = /LocaleName\s+REG_SZ\s+([^\s]+)/i.exec(stdout);
       if (!match) return null;
       const locale = match[1].trim();
       try { new Intl.NumberFormat(locale); return locale; } catch { return null; }
