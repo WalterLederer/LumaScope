@@ -5569,7 +5569,19 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.labelsVisible.set(visible);
     this.saveSetting('labelsVisible', visible);
-    this.offlineRenderer?.setTextLabelOpacity(visible ? this.labelOpacity() / 100 : 0);
+    console.info('[MBTiles Labels] Visibility changed:', {
+      visible,
+      mapSource: this.mapSource(),
+      rendererAvailable: !!this.offlineRenderer,
+      opacity: this.labelOpacity()
+    });
+    const renderer = this.offlineRenderer;
+    if (visible && renderer && (this.mapSource() === 'online' || this.mapSource() === 'mapsforge')) {
+      // Re-evaluate the coverage selection when the user explicitly enables
+      // the overlay; this also reattaches it after a map-source transition.
+      void this.updateOnlineMbtilesLabelSource(renderer);
+    }
+    renderer?.setTextLabelOpacity(visible ? this.labelOpacity() / 100 : 0);
   };
   protected readonly changeLabelOpacity = (value: string | number): void => {
     const opacity = Number(value); if (!Number.isFinite(opacity)) return;
