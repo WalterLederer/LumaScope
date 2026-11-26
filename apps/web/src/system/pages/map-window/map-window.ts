@@ -5571,7 +5571,7 @@ export class MapWindow implements OnInit, OnDestroy {
       opacity: this.labelOpacity()
     });
     const renderer = this.offlineRenderer;
-    if (visible && renderer && (this.mapSource() === 'online' || this.mapSource() === 'mapsforge')) {
+    if (visible && renderer && ['online', 'mapsforge', 'osmand', 'osmand-atlas'].includes(this.mapSource())) {
       // Re-evaluate the coverage selection when the user explicitly enables
       // the overlay; this also reattaches it after a map-source transition.
       void this.updateOnlineMbtilesLabelSource(renderer);
