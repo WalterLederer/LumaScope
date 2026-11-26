@@ -2710,6 +2710,9 @@ export class CacheManager {
     const db = this.databaseForPath(sourceName);
     const sourceStats = await stat(sourceName);
     const row = this.ensurePhoto(sourceName, Number(sourceStats.size), Number(sourceStats.mtimeMs), db);
+    // A failed EXIF read is not evidence that the file has no GPS metadata.
+    // Keep existing metadata and leave the check status unknown after a file change.
+    if (!gps.gpsMetadataRead) return;
     const hasCoordinates = gps.latitude !== null && gps.longitude !== null;
     db.prepare(`UPDATE photos SET is_hdr = :isHdr,
       location_name_id = CASE WHEN :hasCoordinates = 0 OR latitude IS NOT :latitude OR longitude IS NOT :longitude THEN NULL ELSE location_name_id END,
