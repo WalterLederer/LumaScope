@@ -790,7 +790,7 @@ export class CacheManager {
       relativePath = sourcePath;
     }
     if (!/^[A-Z]:$/.test(databaseKey) || !relativePath || relativePath === '..' || relativePath.startsWith('..' + sep) || isAbsolute(relativePath)) throw new Error('The GPX file path is not inside a cache database drive.');
-    const databasePath = join(databaseKey + '\\\\', '.cache', 'LumaScope.cache.sqlite');
+    const databasePath = join(databaseKey + '\\', '.cache', 'LumaScope.cache.sqlite');
     if (!existsSync(databasePath)) return { deleted: false, files: 0, segments: 0, points: 0 };
     const db = this.databases.get(databaseKey) ?? this.databaseForPath(databaseKey + '\\\\');
     const normalizedPath = relativePath.replace(/[\\\\/]+/g, '/');
