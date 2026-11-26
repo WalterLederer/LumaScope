@@ -33,6 +33,10 @@
         </ui-action-button>
       }
 
+
+    </div>
+
+    <div class="thumbnail-size-control" [class.name-filter-active]="nameFilterActive()" title="Thumbnail size">
       <ui-action-button class="action"
                         [title]="'View: ' + (viewMode() === 'thumbnails' ? 'Thumbnails' : viewMode() === 'tiles' ? 'Tiles with information' : viewMode() === 'details-no-thumbnails' ? 'Details without thumbnails' : 'Details')"
                         [cdkMenuTriggerFor]="viewModeMenu"
@@ -41,9 +45,6 @@
         <ui-text [inherit]="true">{{ viewMode() === 'thumbnails' ? 'Thumbnails' : viewMode() === 'tiles' ? 'Tiles' : viewMode() === 'details-no-thumbnails' ? 'Details (no thumbnails)' : 'Details' }}</ui-text>
         <ui-icon icon="chevronDown" [inherit]="true" size="small" />
       </ui-action-button>
-    </div>
-
-    <div class="thumbnail-size-control" [class.name-filter-active]="nameFilterActive()" title="Thumbnail size">
       <div class="thumbnail-zoom-box lumascope-surface-box">
         <span class="zoom-label">Thumb size</span>
         <div class="zoom-step-buttons">
