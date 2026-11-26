@@ -272,7 +272,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
         }
 
         if (verbose && scanned % 1000 == 0) {
-            std::wcout << L"Scanned " << scanned << L" files under " << root.wstring() << L"\n";
+            std::wcout << L"Scanned " << scanned << L" files under " << directory.wstring() << L"\n";
         }
     } while (FindNextFileW(handle, &entry));
 
