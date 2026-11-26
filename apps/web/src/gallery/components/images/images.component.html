@@ -123,9 +123,7 @@
         <tr class="detail-header detail-header-statistics" [class.cache-build-active]="cacheRunActive() || !cacheStatsLoaded()">
           <th class="detail-actions-statistics" scope="col" [hidden]="detailActionsColumnPosition() !== 'left'" aria-label="Folder actions statistics"><span class="table-header-row-count" [attr.aria-label]="totalFileCount() + ' image rows'">{{ formatNumber(totalFileCount()) }}</span></th>
           <th class="thumb-statistics" scope="col"><small>{{ formatNumber(dimensions().width) }} × {{ formatNumber(dimensions().height) }}</small></th>
-          <th scope="col" class="name-filter-header">
-            <small class="column-count" [class.incomplete]="nameFilterActive()">{{ cacheStatsLoaded() ? (nameFilterActive() ? formatNumber(totalFileCount()) + ' / ' + formatNumber(cacheStats().total) : formatNumber(cacheStats().total)) : '?' }}</small>
-          </th>
+          <th scope="col" class="name-filter-header"></th>
           <th scope="col"><small class="column-summary"><span>Min: {{ detailSummary().date[0] }}</span><span>Max: {{ detailSummary().date[1] }}</span></small></th>
           <th scope="col">
             <small class="column-summary"><span>Min: {{ detailSummary().gpsDate[0] }}</span><span>Max: {{ detailSummary().gpsDate[1] }}</span></small>
