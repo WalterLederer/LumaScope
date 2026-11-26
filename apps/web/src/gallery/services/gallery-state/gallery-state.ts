@@ -362,7 +362,7 @@ export class GalleryState {
     try {
       const page = await this.cacheManager.getGalleryFilesPage(
         directory, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
-        sort.sortBy, sort.sortDir, 0, 1, '', 'GalleryState.unfilteredFileCount', true
+        sort.sortBy, sort.sortDir, 0, 1, '', 'GalleryState.unfilteredFileCount'
       );
       if (request !== this.navigationRequest || directory !== this.selectedLocation$.value) return;
       if (page.totalCount >= 0) this.unfilteredFileCount.set(page.totalCount);
