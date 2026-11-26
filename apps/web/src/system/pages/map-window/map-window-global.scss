@@ -1406,3 +1406,16 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
+
+/* Restore the three semantic surface tints after the shared base background.
+   The higher-specificity selectors keep these modifiers visible in every section. */
+.map-window .slider-setting-box.location-opacity-surface-box,
+.map-window .slider-setting-box.crosshair-opacity-surface-box {
+  background: rgb(220 75 75 / 5%);
+}
+.map-window .slider-setting-box.hillshade-opacity-surface-box {
+  background: rgb(128 128 128 / 20%);
+}
+.map-window .slider-setting-box.label-opacity-surface-box {
+  background: rgb(167 139 250 / 5%);
+}
