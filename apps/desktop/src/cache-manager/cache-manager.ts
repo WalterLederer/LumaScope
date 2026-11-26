@@ -2445,7 +2445,7 @@ export class CacheManager {
     this.activeDatabaseKey = databaseKey;
     const folder = this.toRelativeFolderPath(directory, databaseKey) ?? '';
     const folderPrefix = folder ? folder.replace(/[\\/]+$/, '') + String.fromCharCode(92) : '';
-    const rows = db.prepare(`SELECT photos.file_name, photos.latitude, photos.longitude, photos.gps_timestamp,
+    const rows = db.prepare(`SELECT photos.file_name, photos.file_size, photos.modified_at, photos.latitude, photos.longitude, photos.gps_timestamp,
         paths.relative_folder_path,
         location_names.display_name AS location_display_name
       FROM photos JOIN paths ON paths.id = photos.path_id
@@ -2455,10 +2455,12 @@ export class CacheManager {
           AND paths.relative_folder_path >= :folderPrefix COLLATE NOCASE
           AND paths.relative_folder_path < (:folderPrefix || char(1114111)) COLLATE NOCASE)
       ORDER BY paths.relative_folder_path COLLATE NOCASE, photos.file_name COLLATE NOCASE`)
-      .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as unknown as Array<{ file_name: string; relative_folder_path: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null; location_display_name: string | null }>;
+      .all({ folder, recursive: recursive ? 1 : 0, folderPrefix }) as unknown as Array<{ file_name: string; file_size: number; modified_at: number; relative_folder_path: string; latitude: number | null; longitude: number | null; gps_timestamp: number | null; location_display_name: string | null }>;
     return rows.map(row => ({
       path: join(directory, relative(folder, row.relative_folder_path), row.file_name),
       fileName: row.file_name,
+      fileSize: row.file_size,
+      modifiedAt: row.modified_at,
       latitude: row.latitude,
       longitude: row.longitude,
       gpsTimestamp: row.gps_timestamp,
