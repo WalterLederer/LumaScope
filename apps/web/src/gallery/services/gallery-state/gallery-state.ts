@@ -72,6 +72,8 @@ export class GalleryState {
   private galleryFilesRefreshTimer: ReturnType<typeof setTimeout> | null = null;
   private deferredGalleryCountTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly includeUnsupportedFiles$ = new BehaviorSubject(false);
+  private readonly dataSource$ = new BehaviorSubject<'filesystem' | 'database'>('filesystem');
+  private filesystemFiles: FileInfo[] = [];
   private readonly includeFilesRecursive$ = new BehaviorSubject(false);
   private readonly nameFilter$ = new BehaviorSubject('');
   private readonly nameFilterActive$ = new BehaviorSubject(false);
@@ -105,6 +107,7 @@ export class GalleryState {
           sortDir: config.gallery.sortDir ?? defaultSort.sortDir
         });
 
+        this.dataSource$.next(config.gallery.dataSource === 'database' ? 'database' : 'filesystem');
         this.includeFilesRecursive$.next(config.gallery.includeFilesRecursive ?? false);
         this.includeUnsupportedFiles$.next(config.gallery.includeUnsupportedFiles ?? false);
 
@@ -159,12 +162,18 @@ export class GalleryState {
   readonly galleryLoading = () => this.galleryLoading$.asObservable();
   readonly galleryRefreshing = () => this.galleryRefreshing$.asObservable();
   readonly includeUnsupportedFiles = () => this.includeUnsupportedFiles$.asObservable();
+  readonly dataSource = () => this.dataSource$.asObservable();
+  readonly dataSourceValue = (): 'filesystem' | 'database' => this.dataSource$.value;
   readonly includeFilesRecursive = () => this.includeFilesRecursive$.asObservable();
   readonly includeFilesRecursiveValue = (): boolean => this.includeFilesRecursive$.value;
 
   readonly getGalleryFilePosition = async (sourcePath: string): Promise<number> => {
     const directory = this.selectedLocation$.value;
     if (!directory) return 0;
+    if (this.dataSource$.value === 'filesystem') {
+      const index = this.getFilteredFilesystemFiles().findIndex(file => file.path.toLocaleLowerCase() === sourcePath.toLocaleLowerCase());
+      return index < 0 ? 0 : index + 1;
+    }
     const sort = this.sortMode$.value;
     return this.cacheManager.getGalleryFilePosition(
       directory, sourcePath, this.includeFilesRecursive$.value,
@@ -181,8 +190,10 @@ export class GalleryState {
   };
 
   readonly getLoadedGalleryFilePosition = (sourcePath: string): number | null => {
-    const index = this.images$.value.findIndex(image => image.path.toLocaleLowerCase() === sourcePath.toLocaleLowerCase());
-    return index < 0 ? null : this.galleryWindowStart() + index + 1;
+    const index = this.dataSource$.value === 'filesystem'
+      ? this.getFilteredFilesystemFiles().findIndex(image => image.path.toLocaleLowerCase() === sourcePath.toLocaleLowerCase())
+      : this.images$.value.findIndex(image => image.path.toLocaleLowerCase() === sourcePath.toLocaleLowerCase());
+    return index < 0 ? null : (this.dataSource$.value === 'filesystem' ? index + 1 : this.galleryWindowStart() + index + 1);
   };
 
   readonly getGalleryFileAtPosition = async (position: number): Promise<FileInfo | null> => {
@@ -190,6 +201,7 @@ export class GalleryState {
     if (loaded) return loaded;
     const directory = this.selectedLocation$.value;
     if (!directory || !Number.isFinite(position) || position < 1) return null;
+    if (this.dataSource$.value === 'filesystem') return this.getFilteredFilesystemFiles()[Math.trunc(position) - 1] ?? null;
     const sort = this.sortMode$.value;
     return this.cacheManager.getGalleryFileAtPosition(
       directory, this.includeFilesRecursive$.value,
@@ -213,6 +225,14 @@ export class GalleryState {
     this.nameFilterActive$.next(active);
     const path = this.selectedLocation$.value;
     if (path) this.navigateTo(path, false).subscribe();
+  };
+
+  readonly setDataSource = (value: 'filesystem' | 'database'): void => {
+    if ((value !== 'filesystem' && value !== 'database') || this.dataSource$.value === value) return;
+    this.dataSource$.next(value);
+    this.configuration.updateGalleryConfig({ dataSource: value });
+    const path = this.selectedLocation$.value;
+    if (path) this.navigateTo(path, false, true).subscribe();
   };
 
   readonly setIncludeUnsupportedFiles = (value: boolean): void => {
@@ -249,7 +269,7 @@ export class GalleryState {
     }
     const sort = this.sortMode$.value;
     const navigationKey = JSON.stringify([
-      path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
+      path, this.dataSource$.value, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value,
       sort.sortBy, sort.sortDir, this.nameFilterActive$.value ? this.nameFilter$.value : ''
     ]);
     if (!forceReload && this.navigationInFlight?.key === navigationKey) {
@@ -287,26 +307,21 @@ export class GalleryState {
         take(1),
         switchMap(sortMode => defer(() => {
           const startedAt = Date.now();
+          if (this.dataSource$.value === 'filesystem') {
+            console.info('[GalleryFS] START folder enumeration', { directory: path, recursive: false });
+            return this.fileSystem.readImages(path, sortMode.sortBy, sortMode.sortDir, this.includeUnsupportedFiles$.value, false)
+              .then(response => {
+                if (!response.success) throw new Error(response.errorMessage || `Could not read folder: ${path}`);
+                this.filesystemFiles = response.data;
+                const files = this.getFilteredFilesystemFiles();
+                console.info('[GalleryFS] DONE folder enumeration', { directory: path, files: response.data.length, displayed: files.length, durationMs: Date.now() - startedAt });
+                return { files: files.slice(0, this.galleryWindowSize), totalCount: files.length };
+              });
+          }
           console.info('[GalleryDB] WAIT open database', { directory: path });
-          return this.cacheManager.selectDatabaseForDirectory(path).then(() => {
-            console.info('[GalleryDB] DONE open database', { durationMs: Date.now() - startedAt });
-            console.info('[GalleryDB] WAIT first page', {
-              rendererPage: typeof window !== 'undefined' ? window.location.href : 'unknown',
-              rendererTimeOrigin: typeof performance !== 'undefined' ? performance.timeOrigin : null,
-              recursive: this.includeFilesRecursive$.value,
-              includeUnsupported: this.includeUnsupportedFiles$.value,
-              sort: `${sortMode.sortBy} ${sortMode.sortDir}`,
-              limit: this.galleryWindowSize
-            });
-            return this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : ''), 'GalleryState.navigateTo', true);
-          }).then(page => {
-            console.info('[GalleryDB] DONE first page', {
-              rows: page.files.length,
-              durationMs: Date.now() - startedAt,
-              morePagesPossible: page.files.length === this.galleryWindowSize
-            });
-            return page;
-          });
+          return this.cacheManager.selectDatabaseForDirectory(path).then(() =>
+            this.cacheManager.getGalleryFilesPage(path, this.includeFilesRecursive$.value, this.includeUnsupportedFiles$.value, sortMode.sortBy, sortMode.sortDir, 0, this.galleryWindowSize, (this.nameFilterActive$.value ? this.nameFilter$.value : ''), 'GalleryState.navigateTo', true)
+          );
         })),
         tap(page => {
           if (request !== this.navigationRequest) return;
@@ -324,7 +339,7 @@ export class GalleryState {
           }
           this.images$.next(page.files);
           this.loadedNavigationKey = navigationKey;
-          if (page.totalCount < 0 && page.files.length === this.galleryWindowSize) {
+          if (this.dataSource$.value === 'database' && page.totalCount < 0 && page.files.length === this.galleryWindowSize) {
             // Defer the expensive COUNT until the initial Gallery window is visible.
             this.deferredGalleryCountTimer = setTimeout(() => {
               this.deferredGalleryCountTimer = null;
@@ -358,6 +373,10 @@ export class GalleryState {
   };
 
   private readonly loadUnfilteredFileCount = async (directory: string, request: number): Promise<void> => {
+    if (this.dataSource$.value === 'filesystem') {
+      if (request === this.navigationRequest) this.unfilteredFileCount.set(this.filesystemFiles.length);
+      return;
+    }
     const sort = this.sortMode$.value;
     try {
       const page = await this.cacheManager.getGalleryFilesPage(
@@ -421,6 +440,17 @@ export class GalleryState {
     }
     if (offset === this.galleryWindowStart() && this.images$.value.length > 0) return;
     const request = this.navigationRequest;
+    if (this.dataSource$.value === 'filesystem') {
+      const files = this.getFilteredFilesystemFiles();
+      this.galleryWindowStart.set(offset);
+      this.galleryLoadedCount = Math.min(this.galleryWindowSize, Math.max(0, files.length - offset));
+      this.images$.next(files.slice(offset, offset + this.galleryWindowSize));
+      this.galleryTotalCount = files.length;
+      this.totalFileCount.set(files.length);
+      this.totalFileCountKnown.set(true);
+      this.unfilteredFileCount.set(this.filesystemFiles.length);
+      return;
+    }
     const sort = this.sortMode$.value;
     this.galleryPageLoading = true;
     void this.cacheManager.getGalleryFilesPage(
@@ -524,6 +554,11 @@ export class GalleryState {
       this.unfilteredFileCount.set(Math.max(0, this.unfilteredFileCount()! - 1));
     }
     return true;
+  };
+
+  private readonly getFilteredFilesystemFiles = (): FileInfo[] => {
+    const terms = this.nameFilterActive$.value ? this.nameFilter$.value.toLocaleLowerCase().split(' ').filter(Boolean) : [];
+    return terms.length ? this.filesystemFiles.filter(file => terms.every(term => file.name.toLocaleLowerCase().includes(term))) : this.filesystemFiles;
   };
 
   /* Misc */
