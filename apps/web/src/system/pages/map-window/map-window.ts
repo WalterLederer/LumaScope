@@ -590,7 +590,7 @@ export class MapWindow implements OnInit, OnDestroy {
   });
   protected readonly resourcePackageEntryTypeLabel = (type: import('internal-api').ResourcePackageEntry['type']): string =>
     type === 'valhalla' ? 'Valhalla (offline routing)'
-      : type === 'osmand-resources' ? 'OsmAnd resources (rendering)'
+      : type === 'osmand-resources' ? 'OsmAnd resources'
       : 'Mapsforge XML theme';
   protected readonly resourcePackageEntryActive = (entry: import('internal-api').ResourcePackageEntry): boolean =>
     entry.type === 'valhalla' && entry.sourcePath.replace(/\\/g, '/').toLocaleLowerCase() === this.routeValhallaConfigPath().replace(/\\/g, '/').toLocaleLowerCase();
