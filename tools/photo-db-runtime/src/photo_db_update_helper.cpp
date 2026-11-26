@@ -250,8 +250,8 @@ void printUsage() {
         << L"  --db <path>        Override the drive-local database (single drive only).\n"
         << L"  --verbose          Print each favorite and periodic scan details.\n"
         << L"  --help             Show this help.\n\n"
-        << L"Initial diagnostic mode: compares filesystem metadata with SQLite only.\n"
-        << L"No database changes or EXIF reads are performed yet.\n";
+        << L"Read-only diagnostic: compares filesystem metadata with SQLite and reads GPS metadata for missing image records.\n"
+        << L"No database changes are performed.\n";
 }
 
 std::uint64_t countFilesInTree(const fs::path& directory) {
@@ -382,6 +382,9 @@ bool readGpsCoordinates(const fs::path& path) {
         const auto end = input.tellg();
         if (end <= 0) throw std::runtime_error("Image file is empty or unreadable.");
         const auto length = static_cast<std::uint64_t>(end);
+        if (length > static_cast<std::uint64_t>(std::numeric_limits<std::streamsize>::max())) {
+            throw std::runtime_error("Image file is too large to read in one operation.");
+        }
         if (length > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
             throw std::runtime_error("Image file is too large to inspect.");
         }
