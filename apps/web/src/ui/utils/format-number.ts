@@ -9,6 +9,7 @@ const decimalFormatter = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 1
 });
 
-export const formatNumber = (value: number): string => numberFormatter.format(value);
+export const formatNumber = (value: number, options?: Intl.NumberFormatOptions): string =>
+  options ? new Intl.NumberFormat(undefined, options).format(value) : numberFormatter.format(value);
 
 export const formatDecimalNumber = (value: number): string => decimalFormatter.format(value);
