@@ -136,6 +136,9 @@ export class Exif {
 
         for (const file of files) {
           processedFiles++;
+          if (processedFiles % 10000 === 0) {
+            console.info('[Exif] Missing photo record scan progress:', { directory, ...result });
+          }
           if (!missingSet.has(file.name.toLocaleLowerCase())) continue;
           let gps: Awaited<ReturnType<Exif['readPhotoMetadata']>> | null = null;
           const extension = extname(file.name).slice(1).toLowerCase();
@@ -185,9 +188,6 @@ export class Exif {
             }
           }
 
-          if (processedFiles > 0 && processedFiles % 10000 === 0) {
-            console.info('[Exif] Missing photo record scan progress:', { directory, ...result });
-          }
         }
 
         for (const childDirectory of childDirectories) await scanDirectory(childDirectory);
