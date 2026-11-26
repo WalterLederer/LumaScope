@@ -1,0 +1,8 @@
+{
+  "name": "lumascope-photo-db-runtime",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "nlohmann-json",
+    "sqlite3"
+  ]
+}
