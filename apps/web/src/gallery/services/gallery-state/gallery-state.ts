@@ -201,7 +201,11 @@ export class GalleryState {
     const index = this.dataSource$.value === 'filesystem'
       ? this.getFilteredFilesystemFiles().findIndex(image => image.path.toLocaleLowerCase() === sourcePath.toLocaleLowerCase())
       : this.images$.value.findIndex(image => image.path.toLocaleLowerCase() === sourcePath.toLocaleLowerCase());
-    return index < 0 ? null : (this.dataSource$.value === 'filesystem' ? index + 1 : this.galleryWindowStart() + index + 1);
+    if (index < 0) return null;
+    if (this.dataSource$.value === 'filesystem') {
+      return index >= this.galleryWindowStart() && index < this.galleryWindowStart() + this.images$.value.length ? index + 1 : null;
+    }
+    return this.galleryWindowStart() + index + 1;
   };
 
   readonly getGalleryFileAtPosition = async (position: number): Promise<FileInfo | null> => {
