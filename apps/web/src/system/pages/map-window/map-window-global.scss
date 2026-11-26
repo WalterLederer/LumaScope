@@ -28,6 +28,8 @@ app-map-window {
     .view-settings-section .render-statistics-content>.visibility-toggle input[type="checkbox"]{position:static!important;top:auto!important;transform:none!important;align-self:center;flex:0 0 14px;width:14px;height:14px;min-width:14px;min-height:14px;margin:0!important;padding:0;vertical-align:middle}
     .view-settings-section .render-statistics-content>.scale-visibility-toggle{flex-basis:auto;margin-left:0}
     .view-settings-section .photo-preview-size-box{display:flex;flex:0 1 520px;align-items:center;width:100%;max-width:520px;min-width:360px;min-height:38px;box-sizing:border-box}
+    .view-settings-section .view-visibility-controls{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:stretch;gap:6px;min-width:0;width:100%}
+    .view-settings-section .view-visibility-controls>.range-setting{flex:1 1 180px;min-width:150px;max-width:none;box-sizing:border-box}
     .view-settings-section .photo-preview-size-setting{display:flex;flex:0 1 420px;align-self:flex-start;align-items:center;gap:8px;width:auto;max-width:420px;min-width:0;margin:0;white-space:nowrap;box-sizing:border-box}
     .view-settings-section .photo-preview-size-setting>label{flex:0 0 auto;margin:0;white-space:nowrap}
     .view-settings-section .photo-preview-size-setting>ui-slider{flex:1 1 auto;min-width:80px;width:auto}
