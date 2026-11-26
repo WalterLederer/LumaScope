@@ -1,6 +1,7 @@
 import { createGpxTrackRenderStyle } from './gpx-track-render-style';
 import { findTimestampPrefixedGpxPath, readGpxFileMetadata, serializeGpxTracks, type GpxTrackFile } from './gpx-track-manager';
 import { calculateGpsDistanceMeters, formatCoordinateDms, formatManualGpsPosition, ReverseGeocodingManager, type ReverseGeocodingDisplay } from './gps-location-manager';
+import { PhotoDatabaseManager } from './photo-database-manager';
 import { buildGpxViewportChunkCache, calculateGpxRenderedPercent, getVisibleGpxSegments, selectGpxViewportChunks, type GpxViewportChunkCache } from './gpx-track-geometry';
 import { parseGpxPoint, parseGpxTrackData, parseGpxTrackPoint, parseGpxTrackPointData, parseGpxTrackSegmentNames, parseRoutingWaypointsFromGpx, type GpxTrackPoint, type RouteWaypoint } from './gpx-track-parser';
 import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
@@ -131,6 +132,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private currentOfflineMapId: string | null = null;
   private markerScanGeneration = 0;
   private readonly desktop = (window as unknown as { desktop?: Desktop }).desktop;
+  private readonly photoDatabaseManager = this.desktop ? new PhotoDatabaseManager(this.desktop) : null;
   private readonly configuration = inject(Configuration);
   private unsubscribeLocation: (() => void) | null = null;
   private locationUpdateVersion = 0;
@@ -2058,7 +2060,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.saveSetting('lastLongitude', nextLongitude!);
       this.coordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!));
       this.photoCoordinateLabel.set(this.formatCoordinates(nextLatitude!, nextLongitude!).replace(/^Coordinates: /, 'Photo: '));
-      this.photoGpsCoordinates.set(this.formatManualGpsPosition(nextLatitude!, nextLongitude!));
+      this.photoGpsCoordinates.set(formatManualGpsPosition(nextLatitude!, nextLongitude!));
       this.photoAddress.set('');
       this.photoAddressParts.set([]);
       this.photoOnlineAddressParts.set([]);
@@ -2337,7 +2339,7 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private updateCrosshairCoordinates(): void {
     const center = this.currentMapCenter();
-    this.crosshairCoordinates.set(center ? this.formatManualGpsPosition(center.lat, center.lng) : '—');
+    this.crosshairCoordinates.set(center ? formatManualGpsPosition(center.lat, center.lng) : '—');
   }
 
   private centerMapAt(latitude: number, longitude: number): void {
@@ -2371,7 +2373,7 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.coordinateLabel.set(this.formatCoordinates(latitude!, longitude!));
     this.photoCoordinateLabel.set(this.formatCoordinates(latitude!, longitude!).replace(/^Coordinates: /, 'Photo: '));
-    this.photoGpsCoordinates.set(this.formatManualGpsPosition(latitude!, longitude!));
+    this.photoGpsCoordinates.set(formatManualGpsPosition(latitude!, longitude!));
     const markerOpacity = this.locationVisible() ? this.locationOpacity() / 100 : 0;
     if (this.offlineRenderer) {
       // updateCurrentLocation only moves an existing overlay; setCurrentLocation
@@ -2439,9 +2441,9 @@ export class MapWindow implements OnInit, OnDestroy {
       const hasExistingPosition = this.currentLatitude !== null && this.currentLongitude !== null
         && Number.isFinite(this.currentLatitude) && Number.isFinite(this.currentLongitude);
       const oldPosition = hasExistingPosition
-        ? this.formatManualGpsPosition(this.currentLatitude!, this.currentLongitude!)
+        ? formatManualGpsPosition(this.currentLatitude!, this.currentLongitude!)
         : 'Existing photo location unavailable';
-      const newPosition = this.formatManualGpsPosition(center.lat, center.lng);
+      const newPosition = formatManualGpsPosition(center.lat, center.lng);
       let positionComparison = 'POSITION COMPARISON: Could not determine the difference.';
       if (hasExistingPosition) {
         const distanceMeters = calculateGpsDistanceMeters(this.currentLatitude!, this.currentLongitude!, center.lat, center.lng);
@@ -2469,8 +2471,8 @@ export class MapWindow implements OnInit, OnDestroy {
         throw new Error('The image was written, but its GPS position could not be verified from the file.');
       }
       const deviationMeters = calculateGpsDistanceMeters(center.lat, center.lng, refreshed.latitude, refreshed.longitude);
-      const selectedText = this.formatManualGpsPosition(center.lat, center.lng);
-      const storedText = this.formatManualGpsPosition(refreshed.latitude, refreshed.longitude);
+      const selectedText = formatManualGpsPosition(center.lat, center.lng);
+      const storedText = formatManualGpsPosition(refreshed.latitude, refreshed.longitude);
       this.gpsSaveStatus.set(deviationMeters <= 0.01
         ? 'GPS position saved and verified. File position matches the crosshair (' + deviationMeters.toFixed(3) + ' m deviation).'
         : 'GPS position saved, but differs from the crosshair by ' + deviationMeters.toFixed(2) + ' m. Selected: ' + selectedText + ' | File: ' + storedText);
@@ -2927,25 +2929,8 @@ export class MapWindow implements OnInit, OnDestroy {
   }
 
   private async checkPhotoDatabaseCompleteness(directory: string, recursive = this.currentFolderRecursive): Promise<{ total: number; missing: string[] }> {
-    const desktop = this.desktop;
-    if (!desktop) throw new Error('The desktop file system is unavailable.');
-    const result = await desktop.FileSystem.readImages(directory, 'name', 'asc', false, recursive);
-    if (!result.success) throw new Error(result.errorMessage || `Could not read images in ${directory}`);
-    const images = result.data.filter(image => !image.isDirectory);
-    const missing: string[] = [];
-    for (let offset = 0; offset < images.length; offset += 100) {
-      const batch = images.slice(offset, offset + 100);
-      const records = await Promise.all(batch.map(image => desktop.CacheManager.getPhotoDatabaseRecord(image.path)));
-      records.forEach((record, index) => {
-        const image = batch[index];
-        const modifiedAt = image.modifiedAt ?? image.createdAt;
-        if (!record || Number(record['file_size']) !== image.size
-          || (Number.isFinite(modifiedAt) && Number(record['modified_at']) !== modifiedAt)) {
-          missing.push(image.name);
-        }
-      });
-    }
-    return { total: images.length, missing };
+    if (!this.photoDatabaseManager) throw new Error('The desktop file system is unavailable.');
+    return this.photoDatabaseManager.checkCompleteness(directory, recursive);
   }
 
   private async scanDirectoryMarkers(validateDatabase = false): Promise<void> {
@@ -3003,33 +2988,17 @@ export class MapWindow implements OnInit, OnDestroy {
           return;
         }
         this.markerSourceFolder.set('All photos in DB · ' + databaseKey + ' · current map viewport');
-        records = await desktop.CacheManager.getPhotoLocationsInBounds(bounds, databaseKey);
+        records = await this.photoDatabaseManager!.getPhotoLocationsInBounds(bounds, databaseKey);
       } else {
         const directory = selectedFolderPath ?? await desktop.FileSystem.dirname(imagePath!);
         if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
         this.markerSourceFolder.set(directory);
-        [records, imageFiles] = await Promise.all([
-          desktop.CacheManager.getDirectoryPhotoLocations(directory, this.currentFolderRecursive),
-          desktop.FileSystem.readImages(directory, 'name', 'asc', false, this.currentFolderRecursive)
-        ]);
+        const directoryData = await this.photoDatabaseManager!.getDirectoryPhotoLocations(directory, this.currentFolderRecursive);
+        records = directoryData.records;
+        imageFiles = directoryData.imageFiles;
       }
       if (generation !== this.markerScanGeneration || !this.directoryMarkersEnabled()) return;
-      const modifiedAtByName = new Map(
-        (imageFiles?.success ? imageFiles.data : [])
-          .filter(file => !file.isDirectory && Number.isFinite(file.modifiedAt) && file.modifiedAt! > 0)
-          .map(file => [file.name.toLowerCase(), Math.floor(file.modifiedAt! / 1000)])
-      );
-      const markers = records
-        .filter(record => record.latitude !== null && record.longitude !== null
-          && Number.isFinite(record.latitude) && Number.isFinite(record.longitude)
-          && Math.abs(record.latitude) <= 90 && Math.abs(record.longitude) <= 180)
-        .map(record => ({
-          path: record.path,
-          fileName: record.fileName,
-          latitude: record.latitude!,
-          longitude: record.longitude!,
-          gpsTimestamp: record.gpsTimestamp ?? modifiedAtByName.get(record.fileName.toLowerCase()) ?? null
-        }));
+      const markers = this.photoDatabaseManager!.createPhotoMarkers(records, imageFiles);
 
       this.markerFilesTotal.set(records.length);
       this.markerFilesChecked.set(records.length);
