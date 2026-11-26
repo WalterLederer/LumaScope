@@ -2431,9 +2431,9 @@ export class CacheManager {
   };
 
   @IpcHandler({ name: 'CacheManager.getDirectoryPhotoLocations' })
-  readonly getDirectoryPhotoLocations = async (_event: IpcMainInvokeEvent, directory: string, recursive = false): Promise<PhotoLocation[]> => {
+  readonly getDirectoryPhotoLocations = async (_event: IpcMainInvokeEvent, directory: string, recursive = false, reconcile = true): Promise<PhotoLocation[]> => {
     if (typeof directory !== 'string' || !directory.trim()) throw new Error('A valid image folder path is required.');
-    if (!recursive) {
+    if (!recursive && reconcile) {
       const entries = await readdir(directory, { withFileTypes: true });
       const sourceNames = entries
         .filter(entry => entry.isFile() || entry.isSymbolicLink())
