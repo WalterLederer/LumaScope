@@ -724,10 +724,11 @@ app-map-window {
     .gpx-file-row>.gpx-row-actions::before{content:counter(track-row);display:inline-block;flex:0 0 16px;min-width:16px;color:var(--color-content-default-medium,#aaa);font-size:11px;font-variant-numeric:tabular-nums;text-align:right}
     .gpx-file-row>.gpx-row-actions{gap:4px}
         .offline-row-actions{position:relative;min-width:38px;text-align:center;overflow:visible}
-    .offline-row-actions-column{width:42px;min-width:42px}
+    .offline-row-actions-column{width:66px;min-width:66px}
     
     .offline-row-action-menu{right:0;left:auto;min-width:280px}
     .mbtiles-map-table td.offline-row-actions{overflow:visible}
+     .mbtiles-map-table:not(.hillshade-map-table) th.offline-row-actions,.mbtiles-map-table:not(.hillshade-map-table) td.offline-row-actions{width:66px;min-width:66px;max-width:66px;box-sizing:border-box}
 
 
 
