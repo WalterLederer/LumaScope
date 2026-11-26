@@ -1352,12 +1352,9 @@ export class OfflineMapRenderer {
       scaleControl.style.fontWeight = '800';
       scaleControl.style.lineHeight = '1.2';
       scaleControl.style.textShadow = 'none';
-      scaleControl.style.border = '0';
-      scaleControl.style.borderLeft = '3px solid #000';
-      scaleControl.style.borderRight = '3px solid #000';
-      scaleControl.style.borderBottom = '4px solid #000';
-      scaleControl.style.outline = '1px solid #000';
-      scaleControl.style.boxShadow = '0 2px 5px rgba(0,0,0,.75)';
+      scaleControl.style.border = '1px solid #111';
+      scaleControl.style.outline = 'none';
+      scaleControl.style.boxShadow = 'none';
       this.map.getContainer().appendChild(scaleControl);
     }
     this.tileProtocol = styleOverride?.name === 'LumaScope OsmAnd Atlas'
