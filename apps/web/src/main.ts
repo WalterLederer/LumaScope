@@ -1,6 +1,5 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { setPackagedMode } from 'internal-api';
-import { setNumberLocale } from './ui/utils/format-number';
 import { App } from './app/app';
 import { appConfig } from './app/app.config';
 
@@ -52,8 +51,7 @@ window.desktop
       })
       .catch(error => console.warn('[Startup] Could not read saved startup theme; using Light Mode.', error));
 
-    return Promise.all([window.desktop.ProcessManager.getAppSettings(), startupTheme, window.desktop.ProcessManager.getNumberLocale()]).then(async ([settings, , numberLocale]) => {
-      setNumberLocale(numberLocale);
+    return Promise.all([window.desktop.ProcessManager.getAppSettings(), startupTheme]).then(async ([settings]) => {
       logStartupTiming('Startup theme and application settings loaded');
       const mapWindow = settings['mapWindow'] && typeof settings['mapWindow'] === 'object'
         ? { ...(settings['mapWindow'] as Record<string, unknown>) } : {};
