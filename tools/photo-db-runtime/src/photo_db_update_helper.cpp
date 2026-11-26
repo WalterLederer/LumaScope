@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cmath>
 #include <chrono>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -309,16 +310,41 @@ std::string exifText(const Exiv2::ExifData& data, const char* key) {
     return item == data.end() ? std::string{} : item->toString();
 }
 
+std::optional<double> parseXmpCoordinate(const std::string& raw) {
+    try {
+        std::string text = raw;
+        text.erase(std::remove_if(text.begin(), text.end(),
+            [](unsigned char ch) { return std::isspace(ch) != 0; }), text.end());
+        if (text.empty()) return std::nullopt;
+        const char direction = static_cast<char>(std::toupper(static_cast<unsigned char>(text.back())));
+        if (direction == 'N' || direction == 'S' || direction == 'E' || direction == 'W') text.pop_back();
+
+        std::vector<double> parts;
+        std::size_t start = 0;
+        while (start <= text.size()) {
+            const auto comma = text.find(',', start);
+            const auto token = text.substr(start, comma == std::string::npos ? std::string::npos : comma - start);
+            std::size_t consumed = 0;
+            const double value = std::stod(token, &consumed);
+            if (consumed != token.size() || !std::isfinite(value)) return std::nullopt;
+            parts.push_back(value);
+            if (comma == std::string::npos) break;
+            start = comma + 1;
+        }
+        if (parts.empty() || parts.size() > 3) return std::nullopt;
+        double result = std::abs(parts[0]);
+        if (parts.size() > 1) result += std::abs(parts[1]) / 60.0;
+        if (parts.size() > 2) result += std::abs(parts[2]) / 3600.0;
+        if (direction == 'S' || direction == 'W') result = -result;
+        return result;
+    } catch (...) {
+        return std::nullopt;
+    }
+}
+
 std::optional<double> xmpNumber(const Exiv2::XmpData& data, const char* key) {
     const auto item = data.findKey(Exiv2::XmpKey(key));
-    if (item == data.end()) return std::nullopt;
-    const auto text = item->toString();
-    try {
-        std::size_t consumed = 0;
-        const double value = std::stod(text, &consumed);
-        if (consumed == text.size() && std::isfinite(value)) return value;
-    } catch (...) {}
-    return std::nullopt;
+    return item == data.end() ? std::nullopt : parseXmpCoordinate(item->toString());
 }
 
 std::string xmpText(const Exiv2::XmpData& data, const char* key) {
@@ -363,23 +389,29 @@ bool readGpsCoordinates(const fs::path& path) {
         const auto& exif = image->exifData();
         const auto& xmp = image->xmpData();
 
-        const auto exifLatitude = exifNumber(exif, "Exif.GPSInfo.GPSLatitude");
-        const auto exifLongitude = exifNumber(exif, "Exif.GPSInfo.GPSLongitude");
-        const auto xmpLatitude = xmpNumber(xmp, "Xmp.exif.GPSLatitude");
-        const auto xmpLongitude = xmpNumber(xmp, "Xmp.exif.GPSLongitude");
         const auto latitude = gpsCoordinate(exif, xmp,
             "Exif.GPSInfo.GPSLatitude", "Xmp.exif.GPSLatitude",
             "Exif.GPSInfo.GPSLatitudeRef", "Xmp.exif.GPSLatitudeRef", true);
         const auto longitude = gpsCoordinate(exif, xmp,
             "Exif.GPSInfo.GPSLongitude", "Xmp.exif.GPSLongitude",
             "Exif.GPSInfo.GPSLongitudeRef", "Xmp.exif.GPSLongitudeRef", false);
-        (void)exifLatitude;
-        (void)exifLongitude;
-        (void)xmpLatitude;
-        (void)xmpLongitude;
         return latitude.has_value() && longitude.has_value();
     } catch (const Exiv2::Error& error) {
         throw std::runtime_error("Exiv2: " + std::string(error.what()));
+    }
+}
+
+void countMissingImageMetadata(const fs::path& file, const std::wstring& extension,
+                                ScanStats& stats, bool verbose) {
+    if (!isSupportedImageExtension(extension)) return;
+    ++stats.imageFiles;
+    try {
+        if (readGpsCoordinates(file)) ++stats.gpsFound;
+        else ++stats.withoutGps;
+    } catch (const std::exception& error) {
+        ++stats.metadataErrors;
+        if (verbose) std::wcerr << L"EXIF read failed: " << file.wstring()
+            << L" (" << error.what() << L")\n";
     }
 }
 
@@ -438,6 +470,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
             auto& folderMissing = missingByFolder[absoluteNormalized(directory).wstring()];
             ++folderMissing.files;
             if (extension == L".jpg") ++folderMissing.jpgFiles;
+            countMissingImageMetadata(child, extension, stats, verbose);
         } else {
             switch (database->compare(relativeFolderForDrive(directory, drive), child.filename().wstring(), size, modifiedAtMs)) {
                 case SqliteDatabase::Match::Missing:
@@ -449,17 +482,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
                         ++folderMissing.files;
                         if (extension == L".jpg") ++folderMissing.jpgFiles;
                     }
-                    if (isSupportedImageExtension(extension)) {
-                        ++stats.imageFiles;
-                        try {
-                            if (readGpsCoordinates(child)) ++stats.gpsFound;
-                            else ++stats.withoutGps;
-                        } catch (const std::exception& error) {
-                            ++stats.metadataErrors;
-                            if (verbose) std::wcerr << L"EXIF read failed: " << child.wstring()
-                                << L" (" << error.what() << L")\n";
-                        }
-                    }
+                    countMissingImageMetadata(child, extension, stats, verbose);
                     break;
                 case SqliteDatabase::Match::Changed:
                     ++counts.changedFiles;
