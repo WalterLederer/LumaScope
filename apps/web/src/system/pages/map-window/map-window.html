@@ -975,7 +975,7 @@
   <details class="view-rerender-section app-disclosure"
     [open]="renderSectionOpen()"
     (toggle)="onLocationDetailsToggle($event)"
-    [class.is-rendering]="renderActiveCount() > 0 || hillshadeActiveCount() > 0 || rerenderVisibleTilesBusy() || renderDisplayPending()"
+    [class.is-rendering]="renderActiveCount() > 0 || hillshadeActiveCount() > 0 || rerenderVisibleTilesBusy() || renderDisplayPending() || offlineRenderTasks().some(task => task.state === 'Running')"
     [class.has-render-errors]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && (lastRenderTileCounts().failed > 0 || lastHillshadeTileCounts().failed > 0)"
     [class.is-render-complete]="renderActiveCount() === 0 && hillshadeActiveCount() === 0 && !rerenderVisibleTilesBusy() && !renderDisplayPending() && (renderTotalCount() > 0 || hillshadeTotalCount() > 0) && lastRenderTileCounts().failed === 0 && lastHillshadeTileCounts().failed === 0">
     <summary>
@@ -1018,7 +1018,7 @@
           <span class="offline-map-status" role="status">{{ rerenderVisibleTilesStatus() }}</span>
         }
       </div>
-      <details class="render-helper-activity-section app-disclosure" [class.render-helper-active]="offlineRenderTasks().some(task => task.state === 'Running')">
+      <details class="render-helper-activity-section app-disclosure">
         <summary>Render helper</summary>
         <div class="render-statistics-content">
           <div class="range-setting render-worker-setting">
