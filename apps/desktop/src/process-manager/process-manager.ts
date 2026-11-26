@@ -306,34 +306,6 @@ export class ProcessManager {
   @IpcHandler({ name: 'ProcessManager.openConfigFolder' })
   readonly openConfigFolder = async (): Promise<string> => shell.openPath(dirname(App.startupConfig.configPath()));
 
-  @IpcHandler({ name: 'ProcessManager.getNumberLocale' })
-  readonly getNumberLocale = async (): Promise<{ locale: string; decimalSeparator: string; groupSeparator: string } | null> => {
-    if (process.platform !== 'win32') return null;
-    try {
-      const { stdout } = await execFileAsync('reg.exe', [
-        'query', 'HKCU\\Control Panel\\International'
-      ], { windowsHide: true, timeout: 5000, maxBuffer: 64 * 1024 });
-      const values = new Map<string, string>();
-      for (const line of stdout.split(/\r?\n/)) {
-        const match = /^\s*(LocaleName|sDecimal|sThousand)\s+REG_SZ\s+(.*?)\s*$/i.exec(line);
-        if (match) values.set(match[1].toLowerCase(), match[2]);
-      }
-      const locale = values.get('localename');
-      const decimalSeparator = values.get('sdecimal');
-      const groupSeparator = values.get('sthousand');
-      if (!locale || decimalSeparator === undefined || groupSeparator === undefined) return null;
-      try {
-        new Intl.NumberFormat(locale);
-        return { locale, decimalSeparator, groupSeparator };
-      } catch {
-        return null;
-      }
-    } catch (error) {
-      console.warn('[NumberFormat] Could not read the Windows regional number settings:', error);
-      return null;
-    }
-  };
-
   @IpcHandler({ name: 'ProcessManager.getPlatform' })
   readonly getPlatform = async (): Promise<string> => process.platform;
 
