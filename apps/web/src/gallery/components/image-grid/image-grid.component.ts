@@ -278,35 +278,9 @@ export class ImageGridComponent {
   readonly cacheStats = signal<CacheDirectoryStats>({ total: 0, thumbnails: 0, fullSizeConversions: 0, fullSizeConversionTotal: 0, gps: 0, hdr: 0, location: 0, thumbnailPaths: [], fullSizePaths: [] });
   readonly cacheStatsLoaded = signal(false);
 
-  readonly cacheCompleteness = signal<{ total: number; thumbnails: number } | null>(null);
-  private cacheCompletenessScope = '';
-  private cacheCompletenessRequest = 0;
-
-  private readonly refreshCacheCompleteness = async (folder: string, recursive: boolean): Promise<void> => {
-    const request = ++this.cacheCompletenessRequest;
-    try {
-      // This is a database-only aggregate; it does not stat or inspect physical
-      // thumbnail/full-size cache files.
-      const stats = await this.cacheManager.getGalleryCacheStats(
-        folder, recursive, false, '', 'ImageGrid.refreshCacheCompleteness'
-      );
-      if (request !== this.cacheCompletenessRequest || folder !== this.selectedLocation()) return;
-      this.cacheCompleteness.set(stats.total > 0
-        ? { total: stats.total, thumbnails: stats.thumbnails }
-        : null);
-    } catch (error) {
-      if (request === this.cacheCompletenessRequest) {
-        this.cacheCompleteness.set(null);
-        console.error('Failed to retrieve gallery cache completeness', folder, error);
-      }
-    }
-  };
-
-  readonly buildCurrentFolderCache = async (): Promise<void> => {
+  readonly updateCurrentFolderCache = async (): Promise<void> => {
     const folder = this.selectedLocation()?.trim();
     if (!folder || this.cacheRunActive()) return;
-    this.cacheCompleteness.set(null);
-    this.cacheCompletenessScope = '';
     try {
       if (this.includeFilesRecursive()) {
         await this.galleryCacheBuild.startManualRecursiveCacheBuild(folder, true);
@@ -314,10 +288,10 @@ export class ImageGridComponent {
         await this.galleryCacheBuild.startManualCacheBuild(folder, true);
       }
     } finally {
-      this.cacheCompletenessScope = `${folder.toLocaleLowerCase()}|${this.includeFilesRecursive()}`;
-      await this.refreshCacheCompleteness(folder, this.includeFilesRecursive());
+      // The gallery refresh is emitted by the cache scan itself.
     }
   };
+
 
   private cacheStatsRequest = 0;
   private cachePathUpdateRevision = 0;
@@ -673,13 +647,8 @@ export class ImageGridComponent {
     });
 
     effect(() => {
-      const folder = this.selectedLocation();
-      const recursive = this.includeFilesRecursive();
-      const scope = folder ? `${folder.toLocaleLowerCase()}|${recursive}` : '';
-      if (this.cacheCompletenessScope !== scope) {
-        this.cacheCompletenessScope = scope;
-        this.cacheCompleteness.set(null);
-      }
+      this.selectedLocation();
+      this.includeFilesRecursive();
       const scrollBox = this.scrollBox();
 
       if (scrollBox === undefined) {
