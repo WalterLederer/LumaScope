@@ -2508,8 +2508,8 @@ export class ImageView {
       ? data.minimumLogNits * Math.pow(data.maximumNits / data.minimumLogNits, (bin + 0.5) / 128)
       : data.maximumNits * (bin + 0.5) / 128;
     const curves = isLogarithmic ? data.logarithmic : data.linear;
-    const formatCount = (value: number) => new Intl.NumberFormat().format(value);
-    const formatNits = (value: number) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value);
+    const formatCount = formatNumber;
+    const formatNits = (value: number) => formatNumber(value, { maximumFractionDigits: 1 });
     const scaleName = isLogarithmic ? 'Log' : 'Linear';
 
     this.histogramHoverStatus.set(
