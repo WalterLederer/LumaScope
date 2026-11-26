@@ -34,8 +34,10 @@ The first stage is intentionally read-only. It reads favorite paths from
 `gallery.locations`, recursively enumerates files with
 `FindFirstFileExW` / `FindNextFileW`, and compares file size and last-write
 timestamp with `photos` and `paths.relative_folder_path` in the existing
-drive-local SQLite database.
+drive-local SQLite database. For files missing from the database, it reads EXIF
+and XMP metadata in-process through Exiv2 and counts images with valid GPS
+latitude/longitude coordinates. The diagnostic remains strictly read-only.
 
 It skips `.cache`, `.thumbnails`, and directory reparse points. Overlapping
 favorite folders are de-duplicated. No database rows are inserted, updated,
-or deleted in this diagnostic stage, and EXIF/GPS metadata is not read yet.
+or deleted in this diagnostic stage, and no database changes are made. GPS metadata is read only for missing image records.
