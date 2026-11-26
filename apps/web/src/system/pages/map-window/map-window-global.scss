@@ -1304,7 +1304,7 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   align-items: center;
   column-gap: 5px;
   row-gap: 4px;
-  min-width: 0;
+  min-width: 150px;
   /* Keep the subtle violet tint visible over the generic opacity-card background. */
   background: rgb(167 139 250 / 5%);
 }
