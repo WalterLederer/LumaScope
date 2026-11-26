@@ -167,6 +167,14 @@ export class GalleryState {
   readonly includeFilesRecursive = () => this.includeFilesRecursive$.asObservable();
   readonly includeFilesRecursiveValue = (): boolean => this.includeFilesRecursive$.value;
 
+  readonly getGalleryFileByPath = async (sourcePath: string): Promise<FileInfo | null> => {
+    if (this.dataSource$.value === 'filesystem') {
+      return this.filesystemFiles.find(file => file.path.toLocaleLowerCase() === sourcePath.toLocaleLowerCase()) ?? null;
+    }
+    const directory = this.selectedLocation$.value;
+    return directory ? this.cacheManager.getGalleryFileByPath(directory, sourcePath, this.includeFilesRecursive$.value) : null;
+  };
+
   readonly getGalleryFilePosition = async (sourcePath: string): Promise<number> => {
     const directory = this.selectedLocation$.value;
     if (!directory) return 0;
@@ -549,10 +557,12 @@ export class GalleryState {
       return false;
     }
 
-    try {
-      await this.cacheManager.removeGalleryFile(path);
-    } catch (error) {
-      console.error('Failed to remove deleted gallery file from the cache database', path, error);
+    if (this.dataSource$.value === 'database') {
+      try {
+        await this.cacheManager.removeGalleryFile(path);
+      } catch (error) {
+        console.error('Failed to remove deleted gallery file from the cache database', path, error);
+      }
     }
     this.filesystemFiles = this.filesystemFiles.filter(image => image.path !== path);
     this.images$.next(this.images$.value.filter(image => image.path !== path));
