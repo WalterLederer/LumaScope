@@ -3802,6 +3802,22 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     if (request !== this.onlineMbtilesLabelRequest || (this.mapSource() !== 'online' && this.mapSource() !== 'mapsforge') || this.offlineRenderer !== renderer) return;
     const nextId = selected?.id ?? null;
+    console.info('[MBTiles Labels] Map source selection:', {
+      mapSource: this.mapSource(),
+      center: { latitude: center.lat, longitude: center.lng },
+      selected: selected ? {
+        id: selected.id,
+        name: selected.name,
+        schema: selected.schema,
+        bounds: selected.bounds,
+        minZoom: selected.minZoom,
+        maxZoom: selected.maxZoom,
+        vectorLayers: selected.vectorLayers
+      } : null,
+      existingVectorSource: !!renderer.map.getSource('shortbread'),
+      labelsVisible: this.labelsVisible(),
+      opacity: this.labelOpacity()
+    });
     // The selected map ID may survive a basemap switch, while the new
     // renderer has no MBTiles vector source yet. Check the actual renderer too.
     if (nextId === this.onlineMbtilesLabelMapId
