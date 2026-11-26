@@ -27,7 +27,7 @@
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'download'" [attr.aria-selected]="activeSettingsTab() === 'download'" (click)="selectSettingsTab('download')">Download@if (downloadSources().length === 0) { <span class="settings-tab-error-count">EMPTY</span> }</button>
   <button type="button" role="tab" class="settings-tab settings-tab-map-group" [class.active]="activeSettingsTab() === 'errors'" [class.has-errors]="mapErrors().length > 0" [attr.aria-selected]="activeSettingsTab() === 'errors'" (click)="selectSettingsTab('errors')">Error @if (mapErrors().length > 0) { <span class="settings-tab-error-count">{{ mapErrors().length }}</span> }</button>
 </nav>
-<div class="settings-tab-panels" (toggle)="onDisclosureStateToggle($event)">
+<div class="settings-tab-panels">
 <div class="settings-tab-panel" data-settings-tab="location" role="tabpanel" [hidden]="activeSettingsTab() !== 'location'">
 <div class="settings-tab-content location-tab">
             
@@ -1166,7 +1166,7 @@
       </details>
       </div>
   </details>
-  <details class="render-statistics-section app-disclosure view-settings-section" (toggle)="onDisclosureStateToggle($event)">
+  <details class="render-statistics-section app-disclosure view-settings-section">
           <summary>View settings</summary>
           <div class="render-statistics-content">
             
