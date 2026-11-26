@@ -44,18 +44,6 @@
       </ui-action-button>
       <div class="thumbnail-zoom-box lumascope-surface-box">
         <span class="zoom-label">Thumb size</span>
-        <div class="zoom-step-buttons">
-          <button class="zoom-step-button"
-                  type="button"
-                  title="Smaller thumbnails (-)"
-                  aria-label="Smaller thumbnails"
-                  (click)="adjustThumbnailSize(-1)">−</button>
-          <button class="zoom-step-button"
-                  type="button"
-                  title="Larger thumbnails (+)"
-                  aria-label="Larger thumbnails"
-                  (click)="adjustThumbnailSize(1)">+</button>
-        </div>
         <ui-slider class="zoom-purpose-slider" [formControl]="thumbSizeSlider"
                    [min]="0"
                    [max]="thumbnailSliderMax"
