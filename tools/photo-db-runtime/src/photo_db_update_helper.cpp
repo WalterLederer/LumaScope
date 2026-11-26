@@ -171,7 +171,7 @@ std::vector<fs::path> readFavorites(const fs::path& configPath) {
             const int required = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, rawPath.data(),
                 static_cast<int>(rawPath.size()), nullptr, 0);
             if (required <= 0) throw std::runtime_error("A gallery favorite contains an invalid UTF-8 path.");
-            std::wstring widePath(static_cast<std::size_t>(required), L'\\0');
+            std::wstring widePath(static_cast<std::size_t>(required), static_cast<wchar_t>(0));
             if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, rawPath.data(),
                 static_cast<int>(rawPath.size()), widePath.data(), required) <= 0) {
                 throw std::runtime_error("Could not decode a gallery favorite path.");
