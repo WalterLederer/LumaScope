@@ -420,21 +420,9 @@ void countMissingImageMetadata(const fs::path& file, const std::wstring& extensi
         else ++stats.withoutGps;
     } catch (const std::exception& error) {
         ++stats.metadataErrors;
-        if (verbose) {
-            const std::string message = error.what();
-            const int wideLength = MultiByteToWideChar(CP_UTF8, 0, message.data(),
-                static_cast<int>(message.size()), nullptr, 0);
-            std::wstring wideMessage;
-            if (wideLength > 0) {
-                wideMessage.resize(static_cast<std::size_t>(wideLength));
-                MultiByteToWideChar(CP_UTF8, 0, message.data(), static_cast<int>(message.size()),
-                    wideMessage.data(), wideLength);
-            } else {
-                wideMessage = L"Metadata read failed.";
-            }
-            std::wcerr << L"Metadata read failed: " << file.wstring()
-                       << L" (" << wideMessage << L")\\n";
-        }
+        // Per-file diagnostics are intentionally suppressed: console I/O for every
+        // metadata failure dominates scan time on large photo collections.
+        // The aggregate error count is reported in the final summary.
     }
 }
 
@@ -520,8 +508,9 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
             }
         }
 
-        if (verbose && scanned % 1000 == 0) {
-            std::wcout << L"Scanned " << scanned << L" files\n";
+        // Keep progress output sparse; console writes are expensive on Windows.
+        if (verbose && scanned % 10000 == 0) {
+            std::wcout << L"Scanned " << scanned << L" files\\n";
         }
     } while (FindNextFileW(handle, &entry));
 
