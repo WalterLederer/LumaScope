@@ -218,6 +218,7 @@ export class GalleryState {
   readonly setIncludeUnsupportedFiles = (value: boolean): void => {
     if (this.includeUnsupportedFiles$.value === value) return;
     this.includeUnsupportedFiles$.next(value);
+    this.unfilteredFileCount.set(null);
     this.configuration.updateGalleryConfig({ includeUnsupportedFiles: value });
     const path = this.selectedLocation$.value;
     if (path) this.navigateTo(path).subscribe();
@@ -226,6 +227,7 @@ export class GalleryState {
   readonly setIncludeFilesRecursive = (value: boolean): void => {
     if (this.includeFilesRecursive$.value === value) return;
     this.includeFilesRecursive$.next(value);
+    this.unfilteredFileCount.set(null);
     this.configuration.updateGalleryConfig({ includeFilesRecursive: value });
     const path = this.selectedLocation$.value;
     if (path) this.navigateTo(path).subscribe();
@@ -431,6 +433,8 @@ export class GalleryState {
       this.totalFileCountKnown.set(this.galleryTotalCount >= 0);
       if (!this.nameFilterActive$.value && this.galleryTotalCount >= 0) {
         this.unfilteredFileCount.set(this.galleryTotalCount);
+      } else if (this.nameFilterActive$.value) {
+        void this.loadUnfilteredFileCount(directory, request);
       }
       this.images$.next(page.files);
     }).catch(error => {
