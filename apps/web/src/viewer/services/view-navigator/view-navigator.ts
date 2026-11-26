@@ -19,7 +19,7 @@ export class ViewNavigator {
   private readonly totalFileCount$ = toObservable(this.galleryState.totalFileCount);
   private readonly cacheRevision$ = toObservable(this.cacheManager.cacheRevision);
 
-  // Resolve the selected path against the database's complete, sorted result set.
+  // Resolve the selected path against the active source's complete, sorted result set.
   // This keeps navigation independent of how many thumbnail pages are resident.
   private readonly selectedIndex$: Observable<number> = combineLatest([
     this.selectedPath$,
@@ -42,23 +42,27 @@ export class ViewNavigator {
       );
     }),
     // imagePosition, hasPrevious and hasNext all consume this same index.
-    // Share the database lookup instead of running one per subscriber.
+    // Share the source lookup instead of running one per subscriber.
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
-  // Resolve the selected file only when the selection changes. Cache revisions
-  // only invalidate the image URL; they must not repeat the database position
-  // lookup and page query for the same selected file.
-  private readonly selectedFile$ = this.selectedPath$.pipe(
-    distinctUntilChanged(),
-    switchMap(path => {
+  // Re-resolve the selected file when its path, folder, or source changes.
+  // Cache revisions only invalidate the image URL.
+  private readonly selectedFile$ = combineLatest([
+    this.selectedPath$,
+    this.galleryState.dataSource(),
+    this.galleryState.selectedLocation()
+  ]).pipe(
+    distinctUntilChanged(([pathA, sourceA, folderA], [pathB, sourceB, folderB]) =>
+      pathA === pathB && sourceA === sourceB && folderA === folderB
+    ),
+    switchMap(([path]) => {
       if (path === null) return of(null);
       const loadedPosition = this.galleryState.getLoadedGalleryFilePosition(path);
       if (loadedPosition !== null) {
         return of(this.galleryState.getLoadedGalleryFileAtPosition(loadedPosition));
       }
-      return from(firstValueFrom(this.galleryState.selectedLocation().pipe(take(1)))).pipe(
-        switchMap(() => from(this.galleryState.getGalleryFileByPath(path))),
+      return from(this.galleryState.getGalleryFileByPath(path)).pipe(
         catchError(error => {
           console.error('Failed to load selected gallery file', path, error);
           return of(null);
