@@ -460,7 +460,8 @@ export class FileSystem {
         try {
           const locations = await Injector.getInstance().inject('CacheManager')
             .getDirectoryPhotoLocations(undefined as never, path, recursive, false);
-          metadataByPath = new Map(locations.map(item => [item.path.toLocaleLowerCase(), item]));
+          metadataByPath.clear();
+          for (const item of locations) metadataByPath.set(item.path.toLocaleLowerCase(), item);
         } catch (error) {
           // Photo DB metadata is optional. A missing/unavailable DB must never
           // prevent the filesystem file list from being displayed.
