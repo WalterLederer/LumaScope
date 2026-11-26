@@ -104,7 +104,7 @@ export class GalleryState {
         const defaultSort = defaultSortMode();
         const configuredSort = config.gallery.sortBy ?? defaultSort.sortBy;
         this.sortMode$.next({
-          sortBy: config.gallery.dataSource !== 'database' && configuredSort === 'gpsDate' ? 'date' : configuredSort,
+          sortBy: configuredSort,
           sortDir: config.gallery.sortDir ?? defaultSort.sortDir
         });
 
