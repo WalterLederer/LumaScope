@@ -433,6 +433,24 @@ ALTER TABLE photos ADD COLUMN thumbnail_failure_size INTEGER;
 ALTER TABLE photos ADD COLUMN thumbnail_failure_modified_at REAL;
 ALTER TABLE photos ADD COLUMN thumbnail_failure_version INTEGER;
 `
+  },
+  {
+    name: 'persistPhotoGpsFileCheckStatusV23',
+    query: `
+ALTER TABLE photos ADD COLUMN gps_check_status INTEGER NOT NULL DEFAULT 0
+  CHECK (gps_check_status IN (0, 1, 2));
+ALTER TABLE photos ADD COLUMN gps_checked_at INTEGER;
+
+-- Existing EXIF/XMP coordinate records are already known positives.
+-- Missing coordinates remain unverified until the source file is read.
+UPDATE photos
+SET gps_check_status = 1,
+    gps_checked_at = CAST(strftime('%s', 'now') AS INTEGER)
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+  AND coordinate_source_id IN (1, 2);
+CREATE INDEX IF NOT EXISTS idx_photos_gps_check_status
+  ON photos(gps_check_status, path_id);
+`
   }
 ];
 // @formatter:on
