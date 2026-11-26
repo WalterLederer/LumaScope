@@ -272,7 +272,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
         }
 
         if (verbose && scanned % 1000 == 0) {
-            std::wcout << L"Scanned " << scanned << L" files under " << directory.wstring() << L"\n";
+            std::wcout << L"Scanned " << scanned << L" files\n";
         }
     } while (FindNextFileW(handle, &entry));
 
@@ -319,10 +319,11 @@ int wmain(int argc, wchar_t** argv) {
         std::uint64_t totalScanned = 0;
         std::set<std::wstring> visitedFiles;
 
-        for (const auto& favorite : selectedFavorites) {
+        for (std::size_t selectedFavoritesIndex = 0; selectedFavoritesIndex < selectedFavorites.size(); ++selectedFavoritesIndex) {
+            const auto& favorite = selectedFavorites[selectedFavoritesIndex];
             const auto drive = driveRoot(favorite);
             const auto key = lower(drive);
-            if (options.verbose) std::wcout << L"Scanning favorite: " << favorite.wstring() << L"\n";
+            if (options.verbose) std::wcout << L"Scanning favorite " << (selectedFavoritesIndex + 1) << L" of " << selectedFavorites.size() << L"\n";
 
             auto found = databases.find(key);
             if (found == databases.end()) {
