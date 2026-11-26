@@ -93,6 +93,40 @@ std::wstring fromUtf8(std::string_view value) {
     return result;
 }
 
+void writeWideOutput(std::wstring_view value) {
+    const HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (output == INVALID_HANDLE_VALUE || output == nullptr) {
+        throw std::runtime_error("Could not access standard output.");
+    }
+
+    DWORD consoleMode = 0;
+    if (GetConsoleMode(output, &consoleMode)) {
+        std::size_t offset = 0;
+        while (offset < value.size()) {
+            const DWORD chunk = static_cast<DWORD>(std::min<std::size_t>(
+                value.size() - offset, 32760));
+            DWORD written = 0;
+            if (!WriteConsoleW(output, value.data() + offset, chunk, &written, nullptr) || written == 0) {
+                throw std::runtime_error("Could not write Unicode text to the console.");
+            }
+            offset += written;
+        }
+        return;
+    }
+
+    const std::string utf8 = toUtf8(value);
+    std::size_t offset = 0;
+    while (offset < utf8.size()) {
+        const DWORD chunk = static_cast<DWORD>(std::min<std::size_t>(
+            utf8.size() - offset, static_cast<std::size_t>(0x7fffffff)));
+        DWORD written = 0;
+        if (!WriteFile(output, utf8.data() + offset, chunk, &written, nullptr) || written == 0) {
+            throw std::runtime_error("Could not write UTF-8 text to redirected standard output.");
+        }
+        offset += written;
+    }
+}
+
 std::wstring lower(std::wstring value) {
     std::transform(value.begin(), value.end(), value.begin(),
         [](wchar_t ch) { return static_cast<wchar_t>(std::towlower(ch)); });
@@ -698,11 +732,17 @@ int wmain(int argc, wchar_t** argv) {
         if (!jpgMetadataErrorFiles.empty()) {
             std::sort(jpgMetadataErrorFiles.begin(), jpgMetadataErrorFiles.end(),
                 [](const auto& left, const auto& right) { return left.first < right.first; });
-            std::wcout << L"\nJPG files with EXIF/XMP read errors (" << jpgMetadataErrorFiles.size() << L"):\n";
+            std::wstring jpgErrorOutput = L"\nJPG files with EXIF/XMP read errors ("
+                + std::to_wstring(jpgMetadataErrorFiles.size()) + L"):\n";
             for (const auto& [filePath, errorMessage] : jpgMetadataErrorFiles) {
-                std::wcout << L"  " << filePath << L"\n"
-                           << L"    " << fromUtf8(errorMessage) << L"\n";
+                jpgErrorOutput += L"  " + filePath + L"\n"
+                    + L"    " + fromUtf8(errorMessage) + L"\n";
             }
+            // Bypass the locale-dependent wide iostream conversion. A single path
+            // containing an unrepresentable character can otherwise stop all output.
+            std::wcout.flush();
+            writeWideOutput(jpgErrorOutput);
+            std::wcout.flush();
         }
         std::wcout
                    << L"Elapsed seconds: " << elapsed << L"\n"
