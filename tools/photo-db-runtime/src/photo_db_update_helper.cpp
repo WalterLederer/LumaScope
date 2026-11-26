@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -84,13 +85,12 @@ std::wstring relativeFolderForDrive(const fs::path& folder, const std::wstring& 
     return value;
 }
 
-std::int64_t fileTimeToUnixMilliseconds(const FILETIME& value) {
+double fileTimeToUnixMilliseconds(const FILETIME& value) {
     ULARGE_INTEGER ticks{};
     ticks.LowPart = value.dwLowDateTime;
     ticks.HighPart = value.dwHighDateTime;
-    const auto milliseconds = ticks.QuadPart / 10000ULL;
-    if (milliseconds < kWindowsToUnixEpochMilliseconds) return 0;
-    return static_cast<std::int64_t>(milliseconds - kWindowsToUnixEpochMilliseconds);
+    const double milliseconds = static_cast<double>(ticks.QuadPart) / 10000.0;
+    return milliseconds - static_cast<double>(kWindowsToUnixEpochMilliseconds);
 }
 
 class SqliteDatabase {
@@ -155,7 +155,9 @@ private:
 
 std::vector<fs::path> readFavorites(const fs::path& configPath) {
     ptree config;
-    boost::property_tree::read_json(configPath.wstring(), config);
+    std::ifstream input(configPath, std::ios::binary);
+    if (!input) throw std::runtime_error("Cannot open configuration file: " + configPath.string());
+    boost::property_tree::read_json(input, config);
     const auto gallery = config.get_child_optional("gallery");
     if (!gallery) throw std::runtime_error("The configuration does not contain gallery.locations.");
     const auto locations = gallery->get_child_optional("locations");
@@ -164,7 +166,17 @@ std::vector<fs::path> readFavorites(const fs::path& configPath) {
     std::vector<fs::path> favorites;
     for (const auto& entry : *locations) {
         const auto rawPath = entry.second.data();
-        if (!rawPath.empty()) favorites.emplace_back(rawPath);
+        if (!rawPath.empty()) {
+            const int required = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, rawPath.data(),
+                static_cast<int>(rawPath.size()), nullptr, 0);
+            if (required <= 0) throw std::runtime_error("A gallery favorite contains an invalid UTF-8 path.");
+            std::wstring widePath(static_cast<std::size_t>(required), L'\\0');
+            if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, rawPath.data(),
+                static_cast<int>(rawPath.size()), widePath.data(), required) <= 0) {
+                throw std::runtime_error("Could not decode a gallery favorite path.");
+            }
+            favorites.emplace_back(widePath);
+        }
     }
     return favorites;
 }
@@ -173,14 +185,14 @@ Options parseArguments(int argc, wchar_t** argv) {
     Options options;
     for (int index = 1; index < argc; ++index) {
         const std::wstring argument = argv[index];
-        auto nextValue = [&](const wchar_t* name) -> std::wstring {
+        auto nextValue = [&]() -> std::wstring {
             if (index + 1 >= argc) throw std::runtime_error("Missing command-line option value.");
             return argv[++index];
         };
-        if (argument == L"--config") options.configPath = nextValue(L"--config");
-        else if (argument == L"--drive") options.drive = nextValue(L"--drive");
-        else if (argument == L"--favorite") options.favorite = fs::path(nextValue(L"--favorite"));
-        else if (argument == L"--db") options.databasePath = fs::path(nextValue(L"--db"));
+        if (argument == L"--config") options.configPath = nextValue();
+        else if (argument == L"--drive") options.drive = nextValue();
+        else if (argument == L"--favorite") options.favorite = fs::path(nextValue());
+        else if (argument == L"--db") options.databasePath = fs::path(nextValue());
         else if (argument == L"--verbose") options.verbose = true;
         else if (argument == L"--help" || argument == L"-h" || argument == L"/?") options.help = true;
         else throw std::runtime_error("Unknown command-line option: " + fs::path(argument).string());
@@ -203,7 +215,7 @@ void printUsage() {
         << L"No database changes or EXIF reads are performed yet.\n";
 }
 
-void scanDirectory(const fs::path& root, const fs::path& directory, const std::wstring& drive,
+void scanDirectory(const fs::path& directory, const std::wstring& drive,
                    SqliteDatabase* database, DatabaseCounts& counts, std::uint64_t& scanned,
                    bool verbose, std::set<std::wstring>& visitedFiles) {
     const fs::path pattern = directory / L"*";
@@ -222,11 +234,11 @@ void scanDirectory(const fs::path& root, const fs::path& directory, const std::w
         if (name == L"." || name == L"..") continue;
         const fs::path child = directory / entry.cFileName;
 
-        if ((entry.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0) continue;
         if ((entry.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
+            if ((entry.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0) continue;
             const auto directoryName = lower(std::wstring(name));
             if (directoryName == L".cache" || directoryName == L".thumbnails") continue;
-            scanDirectory(root, child, drive, database, counts, scanned, verbose, visitedFiles);
+            scanDirectory(child, drive, database, counts, scanned, verbose, visitedFiles);
             continue;
         }
 
