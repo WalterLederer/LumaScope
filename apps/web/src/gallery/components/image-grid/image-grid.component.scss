@@ -108,6 +108,11 @@ ui-toolbar {
   gap: var(--dim-small);
   white-space: nowrap;
 
+  > ui-action-button.action {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
   .thumbnail-zoom-box {
     display: inline-flex;
     margin: 0;
