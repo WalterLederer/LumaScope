@@ -262,9 +262,14 @@ export class ImageGridComponent {
   readonly totalFileCountKnown = this.galleryState.totalFileCountKnown;
   readonly unfilteredFileCount = this.galleryState.unfilteredFileCount;
   readonly includeUnsupportedFiles = toSignal(this.galleryState.includeUnsupportedFiles(), { initialValue: false });
+  readonly dataSource = toSignal(this.galleryState.dataSource(), { initialValue: 'filesystem' as 'filesystem' | 'database' });
   readonly galleryLoading = toSignal(this.galleryState.galleryLoading(), { initialValue: false });
   readonly galleryRefreshing = toSignal(this.galleryState.galleryRefreshing(), { initialValue: false });
   readonly includeFilesRecursive = toSignal(this.galleryState.includeFilesRecursive(), { initialValue: false });
+
+  protected readonly setDataSource = (value: string): void => {
+    if (value === 'filesystem' || value === 'database') this.galleryState.setDataSource(value);
+  };
 
   protected readonly setIncludeUnsupportedFiles = (value: boolean): void => {
     this.galleryState.setIncludeUnsupportedFiles(value);
