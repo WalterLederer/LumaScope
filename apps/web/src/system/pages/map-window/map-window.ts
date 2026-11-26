@@ -6113,7 +6113,7 @@ export class MapWindow implements OnInit, OnDestroy {
           track = { ...track, path: replacementPath, name: replacementPath.split(/[\\/]/).pop() ?? track.name };
           [result, metadata] = await Promise.all([
             this.desktop.FileSystem.readText(track.path),
-            this.readGpxFileMetadata(track.path)
+            readGpxFileMetadata(this.desktop?.FileSystem, track.path)
           ]);
           if (result.success) {
             console.info('[GPX] Restored renamed track from date-prefixed file:', { previousPath: storedTrack.path, resolvedPath: track.path });
