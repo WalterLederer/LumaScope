@@ -456,7 +456,7 @@ export class FileSystem {
         // The filesystem remains the sole source of the displayed file list.
         // Use existing per-drive DB metadata only as an optional sort index;
         // do not reconcile/register files as a side effect of browsing.
-        let metadataByPath = new Map<string, Awaited<ReturnType<ReturnType<typeof Injector.getInstance>['inject']>['getDirectoryPhotoLocations']>[number]>();
+        let metadataByPath = new Map<string, { latitude: number | null; longitude: number | null; gpsTimestamp: number | null; displayName: string | null }>();
         try {
           const locations = await Injector.getInstance().inject('CacheManager')
             .getDirectoryPhotoLocations(undefined as never, path, recursive, false);
