@@ -25,7 +25,9 @@ export interface ProcessMemorySnapshot {
   error: string | null;
 }
 
-export interface WindowsNumberFormatSettings { locale: string; decimalSeparator: string; groupSeparator: string; }\n\nexport interface DesktopProcessManager {
+export interface WindowsNumberFormatSettings { locale: string; decimalSeparator: string; groupSeparator: string; }
+
+export interface DesktopProcessManager {
   readonly getProcessMemoryUsage: () => Promise<ProcessMemorySnapshot>;
   readonly getAppVersion: () => Promise<string>;
   readonly getFileTypeIcon: (filePath: string) => Promise<string | null>;
