@@ -63,6 +63,7 @@ struct ScanStats {
     std::uint64_t metadataErrors = 0;
     std::map<std::wstring, std::uint64_t> metadataErrorsByExtension;
     std::map<std::wstring, std::map<std::string, std::uint64_t>> metadataErrorMessages;
+    std::vector<std::pair<std::wstring, std::string>> jpgMetadataErrorFiles;
     std::uint64_t cacheDirectoriesSkipped = 0;
     std::uint64_t filesInsideSkippedDirectories = 0;
     std::uint64_t reparseDirectoriesSkipped = 0;
@@ -439,9 +440,10 @@ void countMissingImageMetadata(const fs::path& file, const std::wstring& extensi
         ++stats.metadataErrors;
         ++stats.metadataErrorsByExtension[extension];
         ++stats.metadataErrorMessages[extension][error.what()];
-        // Per-file diagnostics are intentionally suppressed: console I/O for every
-        // metadata failure dominates scan time on large photo collections.
-        // The aggregate error count is reported in the final summary.
+        // Keep exact paths for JPG failures only; other image extensions remain aggregated.
+        if (extension == L".jpg") {
+            stats.jpgMetadataErrorFiles.emplace_back(file.wstring(), error.what());
+        }
     }
 }
 
@@ -648,6 +650,7 @@ int wmain(int argc, wchar_t** argv) {
         std::uint64_t totalMetadataErrors = 0;
         std::map<std::wstring, std::uint64_t> metadataErrorsByExtension;
         std::map<std::wstring, std::map<std::string, std::uint64_t>> metadataErrorMessages;
+        std::vector<std::pair<std::wstring, std::string>> jpgMetadataErrorFiles;
         for (const auto& stats : perRootStats) {
             excludedFiles += stats.filesInsideSkippedDirectories;
             totalImageFiles += stats.imageFiles;
@@ -660,6 +663,8 @@ int wmain(int argc, wchar_t** argv) {
             for (const auto& [extension, messages] : stats.metadataErrorMessages) {
                 for (const auto& [message, count] : messages) metadataErrorMessages[extension][message] += count;
             }
+            jpgMetadataErrorFiles.insert(jpgMetadataErrorFiles.end(),
+                stats.jpgMetadataErrorFiles.begin(), stats.jpgMetadataErrorFiles.end());
         }
         const auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - scanStartedAt).count();
         const auto filesPerSecond = elapsed > 0.0 ? static_cast<double>(totalScanned) / elapsed : 0.0;
@@ -688,6 +693,15 @@ int wmain(int argc, wchar_t** argv) {
                     std::wcout << L"    " << messages[index].second << L"x: "
                                << fromUtf8(messages[index].first) << L"\n";
                 }
+            }
+        }
+        if (!jpgMetadataErrorFiles.empty()) {
+            std::sort(jpgMetadataErrorFiles.begin(), jpgMetadataErrorFiles.end(),
+                [](const auto& left, const auto& right) { return left.first < right.first; });
+            std::wcout << L"\nJPG files with EXIF/XMP read errors (" << jpgMetadataErrorFiles.size() << L"):\n";
+            for (const auto& [filePath, errorMessage] : jpgMetadataErrorFiles) {
+                std::wcout << L"  " << filePath << L"\n"
+                           << L"    " << fromUtf8(errorMessage) << L"\n";
             }
         }
         std::wcout
