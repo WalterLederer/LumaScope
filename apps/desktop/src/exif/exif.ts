@@ -9,6 +9,7 @@ import { IpcHandler } from '../app/decorators/ipc-handler';
 
 export class Exif {
   private readonly cancelledLocationFixes = new Set<string>();
+  private missingPhotoRecordsScanInProgress = false;
   private readonly exifTool = new ExifTool();
 
   @IpcHandler({ name: 'Exif.read' })
@@ -63,6 +64,10 @@ export class Exif {
   readonly scanMissingPhotoRecords = async (
     _: IpcMainInvokeEvent, requestedRoots: string[], dryRun: boolean
   ): Promise<ApiResponse<MissingPhotoRecordsScanResult>> => {
+    if (this.missingPhotoRecordsScanInProgress) {
+      return { success: false, errorMessage: 'A missing photo record scan is already running.' };
+    }
+    this.missingPhotoRecordsScanInProgress = true;
     try {
       if (!Array.isArray(requestedRoots) || requestedRoots.length === 0
         || requestedRoots.some(root => typeof root !== 'string' || !root.trim())) {
@@ -198,6 +203,8 @@ export class Exif {
       return { success: true, data: result };
     } catch (error) {
       return { success: false, errorMessage: error instanceof Error ? error.message : String(error) };
+    } finally {
+      this.missingPhotoRecordsScanInProgress = false;
     }
   };
 
