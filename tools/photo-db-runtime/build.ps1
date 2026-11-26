@@ -23,8 +23,22 @@ if ([string]::IsNullOrWhiteSpace($VcpkgRoot) -or
 
 $VcpkgRoot = (Resolve-Path -LiteralPath $VcpkgRoot).Path
 $toolchain = Join-Path $VcpkgRoot 'scripts\buildsystems\vcpkg.cmake'
+$vcpkgExe = Join-Path $VcpkgRoot 'vcpkg.exe'
+if (-not (Test-Path -LiteralPath $vcpkgExe -PathType Leaf)) {
+    throw "vcpkg executable was not found: $vcpkgExe"
+}
 
-& cmake -S $PSScriptRoot -B $BuildDirectory "-DCMAKE_TOOLCHAIN_FILE=$toolchain" "-DVCPKG_MANIFEST_DIR=$PSScriptRoot" '-DVCPKG_TARGET_TRIPLET=x64-windows-release' '-DVCPKG_APPLOCAL_DEPS=ON'
+$BuildDirectory = [System.IO.Path]::GetFullPath($BuildDirectory)
+$installedDirectory = Join-Path $BuildDirectory 'vcpkg_installed'
+$triplet = 'x64-windows-release'
+
+# Install the manifest dependencies explicitly so missing packages are reported
+# here rather than later as an opaque CMake find_package failure.
+Write-Host "Installing photo DB helper dependencies ($triplet)..." -ForegroundColor Cyan
+& $vcpkgExe install "--triplet=$triplet" "--x-manifest-root=$PSScriptRoot" "--x-install-root=$installedDirectory"
+if ($LASTEXITCODE -ne 0) { throw "vcpkg dependency installation failed (exit code $LASTEXITCODE)." }
+
+& cmake -S $PSScriptRoot -B $BuildDirectory "-DCMAKE_TOOLCHAIN_FILE=$toolchain" "-DVCPKG_MANIFEST_DIR=$PSScriptRoot" "-DVCPKG_INSTALLED_DIR=$installedDirectory" "-DVCPKG_TARGET_TRIPLET=$triplet" '-DVCPKG_APPLOCAL_DEPS=ON'
 if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed (exit code $LASTEXITCODE)." }
 
 & cmake --build $BuildDirectory --config $Configuration --parallel 8
