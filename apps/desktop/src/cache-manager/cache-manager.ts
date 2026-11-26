@@ -2607,6 +2607,69 @@ export class CacheManager {
     return { total, missingCount };
   };
 
+  @IpcHandler({ name: 'CacheManager.getMissingPhotoFileNames' })
+  readonly getMissingPhotoFileNames = async (
+    _event: IpcMainInvokeEvent, directory: string, fileNames: string[]
+  ): Promise<string[]> => {
+    if (typeof directory !== 'string' || !directory.trim() || !Array.isArray(fileNames)
+      || fileNames.some(name => typeof name !== 'string' || !name || name.includes('\\') || name.includes('/'))) {
+      throw new Error('A valid directory and file-name list are required.');
+    }
+    if (fileNames.length === 0) return [];
+    const databaseKey = this.databaseKeyForPath(directory);
+    const databasePath = join(databaseKey + '\\', '.cache', 'LumaScope.cache.sqlite');
+    if (!existsSync(databasePath)) return [...fileNames];
+
+    const folder = this.toRelativeFolderPath(directory, databaseKey);
+    if (folder === null) throw new Error(`Directory is outside its photo database drive: ${directory}`);
+    const readDatabase = new DatabaseSync(databasePath, { readOnly: true });
+    try {
+      readDatabase.exec('PRAGMA busy_timeout = 10000;');
+      const pathRow = readDatabase.prepare(
+        'SELECT id FROM paths WHERE relative_folder_path = :folder COLLATE NOCASE'
+      ).get({ folder }) as { id: number } | undefined;
+      if (!pathRow) return [...fileNames];
+
+      const existing = new Set<string>();
+      const select = readDatabase.prepare(
+        'SELECT file_name FROM photos WHERE path_id = :pathId AND file_name = :file COLLATE NOCASE'
+      );
+      for (const fileName of fileNames) {
+        if (select.get({ pathId: pathRow.id, file: fileName })) existing.add(fileName.toLocaleLowerCase());
+      }
+      return fileNames.filter(fileName => !existing.has(fileName.toLocaleLowerCase()));
+    } finally {
+      readDatabase.close();
+    }
+  };
+
+  @IpcHandler({ name: 'CacheManager.registerMissingPhotoRecord' })
+  readonly registerMissingPhotoRecord = async (
+    _event: IpcMainInvokeEvent, sourceName: string, fileSize: number, modifiedAt: number
+  ): Promise<boolean> => {
+    if (typeof sourceName !== 'string' || !sourceName.trim()
+      || !Number.isSafeInteger(fileSize) || fileSize < 0
+      || !Number.isFinite(modifiedAt) || modifiedAt < 0) {
+      throw new Error('A valid photo path and file fingerprint are required.');
+    }
+    const db = this.databaseForPath(sourceName);
+    const folder = this.toRelativeFolderPath(dirname(sourceName), this.databaseKeyForPath(sourceName));
+    if (folder === null) throw new Error(`Photo path is outside its cache database drive: ${sourceName}`);
+    db.prepare('INSERT OR IGNORE INTO paths (relative_folder_path) VALUES (:folder)').run({ folder });
+    const pathRow = db.prepare('SELECT id FROM paths WHERE relative_folder_path = :folder COLLATE NOCASE')
+      .get({ folder }) as { id: number };
+    const result = db.prepare(`
+      INSERT OR IGNORE INTO photos (path_id, file_name, file_size, modified_at, is_hdr)
+      VALUES (:pathId, :fileName, :fileSize, :modifiedAt, 0)
+    `).run({
+      pathId: pathRow.id,
+      fileName: basename(sourceName),
+      fileSize,
+      modifiedAt
+    });
+    return result.changes > 0;
+  };
+
   @IpcHandler({ name: 'CacheManager.getPhotoDatabaseRecord' })
   readonly getPhotoDatabaseRecord = async (_event: IpcMainInvokeEvent, sourceName: string): Promise<Record<string, string | number | null> | null> => {
     if (typeof sourceName !== 'string' || !sourceName.trim()) throw new Error('A valid image path is required.');
