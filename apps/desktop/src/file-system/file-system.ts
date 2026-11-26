@@ -499,6 +499,14 @@ export class FileSystem {
         return sortDir === 'asc'
           ? (a, b) => a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' })
           : (a, b) => b.path.localeCompare(a.path, undefined, { numeric: true, sensitivity: 'base' });
+      case 'suffix':
+        return sortDir === 'asc'
+          ? (a, b) => extname(a.name).localeCompare(extname(b.name)) || this.sortByNameAsc(a, b)
+          : (a, b) => extname(b.name).localeCompare(extname(a.name)) || this.sortByNameDesc(a, b);
+      case 'gpsDate':
+      case 'gps':
+      case 'location':
+        return sortDir === 'asc' ? this.sortByModifiedDateAsc : this.sortByModifiedDateDesc;
     }
   };
 
