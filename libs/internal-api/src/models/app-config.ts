@@ -65,7 +65,6 @@ export interface AppConfigV1Gallery {
   sortBy?: SortType;
   sortDir?: SortDirection;
   selectedLocation?: string;
-  /** Include files from subfolders in the gallery. Defaults to false. */
   /** Source used to enumerate gallery files. Defaults to filesystem. */
   dataSource?: 'filesystem' | 'database';
   includeFilesRecursive?: boolean;
