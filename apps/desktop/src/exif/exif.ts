@@ -79,6 +79,7 @@ export class Exif {
         withGpsInFile: 0,
         withoutGpsInFile: 0,
         manuallyCorrectedSkipped: 0,
+        fileChangedSkipped: 0,
         wouldUpdate: 0,
         updated: 0,
         skippedDuringUpdate: 0,
@@ -101,7 +102,20 @@ export class Exif {
             }
 
             try {
+              const beforeRead = await stat(candidate.path);
+              if (!beforeRead.isFile() || beforeRead.size !== candidate.fileSize
+                || Math.abs(beforeRead.mtimeMs - candidate.modifiedAt) > 0.01) {
+                result.fileChangedSkipped++;
+                continue;
+              }
+
               const gps = await this.readPhotoMetadata(candidate.path, true);
+              const afterRead = await stat(candidate.path);
+              if (afterRead.size !== candidate.fileSize
+                || Math.abs(afterRead.mtimeMs - candidate.modifiedAt) > 0.01) {
+                result.fileChangedSkipped++;
+                continue;
+              }
               if (gps.latitude === null || gps.longitude === null) {
                 result.withoutGpsInFile++;
                 continue;
@@ -111,7 +125,7 @@ export class Exif {
               result.wouldUpdate++;
               if (!dryRun) {
                 const updated = await cacheManager.updateExistingPhotoGpsFromExif(
-                  undefined as never, candidate.path, gps
+                  undefined as never, candidate.path, candidate.fileSize, candidate.modifiedAt, gps
                 );
                 if (updated) result.updated++;
                 else result.skippedDuringUpdate++;
