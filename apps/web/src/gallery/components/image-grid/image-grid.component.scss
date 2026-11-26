@@ -74,6 +74,18 @@ ui-toolbar {
 }
 
 
+.gallery-data-source-box {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 6px 8px;
+  background: var(--color-surface-default-low);
+}
+
+.gallery-data-source-box .gallery-file-option {
+  margin: 0;
+}
+
 .gallery-file-option {
   display: inline-flex;
   align-items: center;
