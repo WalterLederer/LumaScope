@@ -243,7 +243,6 @@ export class GalleryState {
   readonly setDataSource = (value: 'filesystem' | 'database'): void => {
     if ((value !== 'filesystem' && value !== 'database') || this.dataSource$.value === value) return;
     this.dataSource$.next(value);
-    const currentSort = this.sortMode$.value;
     // The selected source controls only which files are listed. Sorting may
     // still use metadata already available in the drive-local photo database.
     this.configuration.updateGalleryConfig({ dataSource: value });
