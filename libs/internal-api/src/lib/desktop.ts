@@ -156,25 +156,10 @@ export interface MissingPhotoRecordsScanResult {
   roots: string[];
 }
 
-export interface MissingGpsScanResult {
-  dryRun: boolean;
-  scanned: number;
-  withGpsInFile: number;
-  withoutGpsInFile: number;
-  manuallyCorrectedSkipped: number;
-  fileChangedSkipped: number;
-  wouldUpdate: number;
-  updated: number;
-  skippedDuringUpdate: number;
-  errors: number;
-  databaseKeys: string[];
-}
-
 export interface DesktopExif {
   readonly read: (path: string) => Promise<ApiResponse<ExifTags>>;
   readonly writeGpsPosition: (path: string, latitude: number, longitude: number) => Promise<ApiResponse<undefined>>;
   readonly refreshGpsMetadata: (path: string) => Promise<ApiResponse<{ latitude: number | null; longitude: number | null }>>;
-  readonly scanMissingGps: (databaseKeys: string[], dryRun: boolean) => Promise<ApiResponse<MissingGpsScanResult>>;
   readonly scanMissingPhotoRecords: (roots: string[], dryRun: boolean) => Promise<ApiResponse<MissingPhotoRecordsScanResult>>;
   readonly removeGpsMetadata: (path: string) => Promise<ApiResponse<undefined>>;
   readonly fixFolderLocations: (folder: string, checkOnly: boolean, maxDifferenceSeconds: number, operationId: string, databaseKeys?: string[]) => Promise<ApiResponse<FixPhotoLocationsResult>>;
@@ -242,17 +227,6 @@ export interface DesktopCacheManager {
     gpsManuallyCorrected: boolean;
     gpsMetadataRead: boolean;
   }) => Promise<void>;
-  readonly getMissingGpsPhotoBatch: (databaseKey: string, afterId: number, limit?: number) => Promise<Array<{ id: number; path: string; fileSize: number; modifiedAt: number; manuallyCorrected: boolean }>>;
-  readonly updateExistingPhotoGpsFromExif: (sourceName: string, expectedFileSize: number, expectedModifiedAt: number, gps: {
-    latitude: number | null;
-    longitude: number | null;
-    altitudeM: number | null;
-    gpsTimestamp: number | null;
-    directionDeg: number | null;
-    coordinateSourceId: number | null;
-    gpsManuallyCorrected: boolean;
-    gpsMetadataRead: boolean;
-  }) => Promise<boolean>;
   readonly getOsmAndTileCacheSummary: () => Promise<{ path: string; entries: number; bytes: number; available: boolean }>;
   readonly importGpxFolder: () => Promise<{ folder: string | null; files: number; segments: number; points: number; imported: number; unchanged: number; duplicates: number; errors: number; cancelled: boolean }>;
   readonly importGpxFiles: (filePaths: string[]) => Promise<{ files: number; imported: number; unchanged: number; duplicates: number; errors: number }>;
