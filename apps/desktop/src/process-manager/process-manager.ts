@@ -307,18 +307,29 @@ export class ProcessManager {
   readonly openConfigFolder = async (): Promise<string> => shell.openPath(dirname(App.startupConfig.configPath()));
 
   @IpcHandler({ name: 'ProcessManager.getNumberLocale' })
-  readonly getNumberLocale = async (): Promise<string | null> => {
+  readonly getNumberLocale = async (): Promise<{ locale: string; decimalSeparator: string; groupSeparator: string } | null> => {
     if (process.platform !== 'win32') return null;
     try {
       const { stdout } = await execFileAsync('reg.exe', [
-        'query', 'HKCU\\Control Panel\\International', '/v', 'LocaleName'
+        'query', 'HKCU\\Control Panel\\International'
       ], { windowsHide: true, timeout: 5000, maxBuffer: 64 * 1024 });
-      const match = /LocaleName\s+REG_SZ\s+([^\s]+)/i.exec(stdout);
-      if (!match) return null;
-      const locale = match[1].trim();
-      try { new Intl.NumberFormat(locale); return locale; } catch { return null; }
+      const values = new Map<string, string>();
+      for (const line of stdout.split(/\\r?\\n/)) {
+        const match = /^\\s*(LocaleName|sDecimal|sThousand)\\s+REG_SZ\\s+(.*?)\\s*$/i.exec(line);
+        if (match) values.set(match[1].toLowerCase(), match[2]);
+      }
+      const locale = values.get('localename');
+      const decimalSeparator = values.get('sdecimal');
+      const groupSeparator = values.get('sthousand');
+      if (!locale || decimalSeparator === undefined || groupSeparator === undefined) return null;
+      try {
+        new Intl.NumberFormat(locale);
+        return { locale, decimalSeparator, groupSeparator };
+      } catch {
+        return null;
+      }
     } catch (error) {
-      console.warn('[NumberFormat] Could not read the Windows regional locale:', error);
+      console.warn('[NumberFormat] Could not read the Windows regional number settings:', error);
       return null;
     }
   };
