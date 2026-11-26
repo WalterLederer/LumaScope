@@ -33,6 +33,7 @@
                 <ui-icon icon="chevronDown" [inherit]="true" size="small" />
               </ui-action-button>
             }
+      </div>
       <ui-action-button class="action"
                         [title]="'View: ' + (viewMode() === 'thumbnails' ? 'Thumbnails' : viewMode() === 'tiles' ? 'Tiles with information' : viewMode() === 'details-no-thumbnails' ? 'Details without thumbnails' : 'Details')"
                         [cdkMenuTriggerFor]="viewModeMenu"
