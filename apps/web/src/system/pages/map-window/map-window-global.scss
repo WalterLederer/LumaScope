@@ -29,13 +29,10 @@ app-map-window {
     .view-settings-section .view-overlay-toggles>.visibility-toggle{display:inline-flex;align-items:center;gap:6px;min-height:22px;margin:0;line-height:18px;white-space:nowrap}
     .view-settings-section .render-statistics-content>.visibility-toggle input[type="checkbox"]{position:static!important;top:auto!important;transform:none!important;align-self:center;flex:0 0 14px;width:14px;height:14px;min-width:14px;min-height:14px;margin:0!important;padding:0;vertical-align:middle}
     .view-settings-section .render-statistics-content>.scale-visibility-toggle{flex-basis:auto;margin-left:0}
-    .view-settings-section .view-visibility-controls{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:stretch;gap:6px;min-width:0;width:100%}
-    .view-settings-section .view-visibility-controls>.range-setting{flex:1 1 180px;min-width:150px;max-width:none;box-sizing:border-box}
-    .view-settings-section .photo-preview-size-box{flex:0 1 220px;min-width:180px;min-height:48px}
-    .view-settings-section .photo-preview-size-setting>label{grid-column:1/-1;grid-row:1;white-space:nowrap}
-    .view-settings-section .photo-preview-size-setting>ui-slider{grid-column:1;grid-row:2;min-width:0}
-    .view-settings-section .photo-preview-size-setting>.range-value{grid-column:2;grid-row:2;justify-self:end;align-self:center}
-    .view-settings-section .view-visibility-controls>.location-opacity-surface-box,.view-settings-section .view-visibility-controls>.crosshair-opacity-surface-box{background:rgb(220 75 75 / 5%)}
+    .slider-settings-grid{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:stretch;gap:6px;min-width:0;width:100%}
+    .slider-setting-box{flex:1 1 180px;min-width:150px;max-width:none;box-sizing:border-box}
+    .photo-preview-size-box{flex:0 1 220px;min-width:180px;min-height:48px}
+    .location-opacity-surface-box,.crosshair-opacity-surface-box{background:rgb(220 75 75 / 5%)}
 
     .map-titlebar{position:relative;z-index:1100;-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .titlebar-mouse-coordinate{display:block;flex:1 1 360px;min-width:220px;max-width:min(520px,48vw);margin-left:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:20px;color:var(--color-content-default-high,#ddd);font-variant-numeric:tabular-nums;-webkit-app-region:no-drag}
@@ -446,38 +443,34 @@ app-map-window {
     .opacity-summary-controls .visibility-toggle input{width:13px;height:13px;flex:0 0 13px;margin:0!important;padding:0}
     .opacity-summary-controls>.range-setting>ui-slider.opacity-slider{flex:1 1 auto;width:auto;max-width:none;min-width:30px}
     .opacity-summary-controls .range-value{min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
-    .opacity-content{display:flex;align-items:stretch;flex-wrap:wrap;width:100%;gap:6px;min-width:0;overflow-x:visible;padding:3px 1px 5px;box-sizing:border-box}
-    .opacity-content>.range-setting,.opacity-content>.lumascope-surface-box{flex:1 1 180px;min-width:150px;max-width:none;box-sizing:border-box}
-    .opacity-content>.lumascope-surface-box>.range-setting{width:100%;min-width:0}
-    .opacity-content .range-setting{flex:1 1 0;min-width:0;max-width:none;box-sizing:border-box}
-    .opacity-content .range-setting:has(.visibility-toggle){gap:4px}
-    .opacity-content .range-setting:has(.visibility-toggle)::before{content:none}
-    .opacity-content .visibility-toggle{display:inline-flex;align-items:center;gap:0;white-space:nowrap}
-    .opacity-content .visibility-toggle input[type="checkbox"]{width:13px;height:13px;flex:0 0 13px;margin:0!important;padding:0}
+    .slider-settings-grid{display:flex;align-items:stretch;flex-wrap:wrap;width:100%;gap:6px;min-width:0;overflow-x:visible;padding:3px 1px 5px;box-sizing:border-box}
+    .slider-setting-box{flex:1 1 180px;min-width:150px;max-width:none;box-sizing:border-box}
+    .slider-setting-box .visibility-toggle{display:inline-flex;align-items:center;gap:0;white-space:nowrap}
+    .slider-setting-box .visibility-toggle input[type="checkbox"]{width:13px;height:13px;flex:0 0 13px;margin:0!important;padding:0}
     
-    .opacity-content .range-setting.setting-unavailable{opacity:.58}
-    .opacity-content .range-setting input:disabled{cursor:not-allowed;accent-color:#777}
-    .opacity-content .range-setting button:disabled{cursor:not-allowed;opacity:.55}
+    .slider-setting-box.setting-unavailable{opacity:.58}
+    .slider-setting-box input:disabled{cursor:not-allowed;accent-color:#777}
+    .slider-setting-box button:disabled{cursor:not-allowed;opacity:.55}
     .opacity-content .view-map-color{display:flex;align-items:center;gap:7px;white-space:nowrap}
     .opacity-content .atlas-density-setting{grid-column:1/-1}
     .opacity-content .atlas-density-setting ui-slider{flex:1;min-width:100px}
-    .opacity-content .range-setting>ui-slider{flex:1;width:auto;min-width:45px}
-    .opacity-content .range-setting>ui-slider.opacity-slider{accent-color:#c084fc}
-    .opacity-content .range-setting>ui-slider.opacity-slider.disabled{accent-color:#8b739d}
-    .opacity-content .range-setting .visibility-toggle{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;white-space:nowrap;font-weight:500;min-width:0}
-    .opacity-content .opacity-row-label .osmand-label-rerender-button{flex:0 0 auto;white-space:nowrap}
-    .view-settings-section .view-visibility-controls .opacity-fit-button,.view-settings-section .view-visibility-controls .routing-help-button.opacity-fit-button{appearance:none!important;-webkit-appearance:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border:1px solid #4b9fe0!important;border-radius:8px!important;background:linear-gradient(145deg,#42b8ff 0%,#1677d2 48%,#5948bd 100%)!important;color:#fff!important;font-size:22px!important;font-weight:900!important;line-height:1!important;text-shadow:0 1px 2px rgba(0,0,0,.65)!important;box-shadow:inset 0 2px 2px rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.28),0 2px 0 #174b7d,0 4px 8px rgba(0,0,0,.22)!important;cursor:pointer!important}
-    .view-settings-section .view-visibility-controls .opacity-fit-button:hover:not(:disabled){filter:brightness(1.12)}
-    .view-settings-section .view-visibility-controls .opacity-fit-button:disabled{opacity:.4!important;cursor:not-allowed!important}
-    .view-settings-section .view-visibility-controls .opacity-fit-button>span{display:block;color:#fff!important;font-weight:900!important;line-height:1;text-shadow:0 1px 2px #000}
-    .opacity-content .range-setting .visibility-toggle input{margin-left:1px!important}
-    .opacity-content .overlay-opacity-setting{order:90;flex:0 1 125px}
-    .opacity-content .range-setting:has(#map-label-opacity){order:80}
-    .opacity-content .mbtiles-label-opacity-setting{order:80}
-    .opacity-content .osmand-label-opacity-setting{order:81}
-    .opacity-content .visibility-toggle input{margin:0!important;accent-color:var(--theme-button-color,#287fc4)}
-    .opacity-content .visibility-toggle input:disabled{accent-color:var(--theme-button-color,#287fc4)}
-    .opacity-content .opacity-row-label{grid-column:1;grid-row:1;display:inline-flex;align-items:center;gap:4px;min-width:0;white-space:nowrap}.opacity-content .opacity-fit-button,.opacity-content .routing-help-button.opacity-fit-button{appearance:none!important;-webkit-appearance:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border:1px solid #4b9fe0!important;border-radius:8px!important;background:linear-gradient(145deg,#42b8ff 0%,#1677d2 48%,#5948bd 100%)!important;color:#fff!important;font-size:22px!important;font-weight:900!important;line-height:1!important;text-shadow:0 1px 2px rgba(0,0,0,.65)!important;box-shadow:inset 0 2px 2px rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.28),0 2px 0 #174b7d,0 4px 8px rgba(0,0,0,.22)!important;cursor:pointer!important}.opacity-content .opacity-fit-button:hover:not(:disabled){filter:brightness(1.12)}.opacity-content .opacity-fit-button:disabled{opacity:.4!important;cursor:not-allowed!important}.opacity-content .opacity-fit-button>span{display:block;color:#fff!important;font-weight:900!important;line-height:1;text-shadow:0 1px 2px #000}
+    .slider-setting-box>ui-slider{flex:1;width:auto;min-width:45px}
+    .slider-setting-box>ui-slider.opacity-slider{accent-color:#c084fc}
+    .slider-setting-box>ui-slider.opacity-slider.disabled{accent-color:#8b739d}
+    .slider-setting-box .visibility-toggle{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;white-space:nowrap;font-weight:500;min-width:0}
+    .slider-setting-box .opacity-row-label .osmand-label-rerender-button{flex:0 0 auto;white-space:nowrap}
+    .slider-setting-box .opacity-fit-button,.slider-setting-box .routing-help-button.opacity-fit-button{appearance:none!important;-webkit-appearance:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border:1px solid #4b9fe0!important;border-radius:8px!important;background:linear-gradient(145deg,#42b8ff 0%,#1677d2 48%,#5948bd 100%)!important;color:#fff!important;font-size:22px!important;font-weight:900!important;line-height:1!important;text-shadow:0 1px 2px rgba(0,0,0,.65)!important;box-shadow:inset 0 2px 2px rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.28),0 2px 0 #174b7d,0 4px 8px rgba(0,0,0,.22)!important;cursor:pointer!important}
+    .slider-setting-box .opacity-fit-button:hover:not(:disabled){filter:brightness(1.12)}
+    .slider-setting-box .opacity-fit-button:disabled{opacity:.4!important;cursor:not-allowed!important}
+    .slider-setting-box .opacity-fit-button>span{display:block;color:#fff!important;font-weight:900!important;line-height:1;text-shadow:0 1px 2px #000}
+    .slider-setting-box .visibility-toggle input{margin-left:1px!important}
+    .overlay-opacity-setting{order:90;flex:0 1 125px}
+    .slider-setting-box:has(#map-label-opacity){order:80}
+    .mbtiles-label-opacity-setting{order:80}
+    .osmand-label-opacity-setting{order:81}
+    .slider-setting-box .visibility-toggle input{margin:0!important;accent-color:var(--theme-button-color,#287fc4)}
+    .slider-setting-box .visibility-toggle input:disabled{accent-color:var(--theme-button-color,#287fc4)}
+    .slider-setting-box .opacity-row-label{grid-column:1;grid-row:1;display:inline-flex;align-items:center;gap:4px;min-width:0;white-space:nowrap}.slider-setting-box .opacity-fit-button,.slider-setting-box .routing-help-button.opacity-fit-button{appearance:none!important;-webkit-appearance:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border:1px solid #4b9fe0!important;border-radius:8px!important;background:linear-gradient(145deg,#42b8ff 0%,#1677d2 48%,#5948bd 100%)!important;color:#fff!important;font-size:22px!important;font-weight:900!important;line-height:1!important;text-shadow:0 1px 2px rgba(0,0,0,.65)!important;box-shadow:inset 0 2px 2px rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.28),0 2px 0 #174b7d,0 4px 8px rgba(0,0,0,.22)!important;cursor:pointer!important}.slider-setting-box .opacity-fit-button:hover:not(:disabled){filter:brightness(1.12)}.slider-setting-box .opacity-fit-button:disabled{opacity:.4!important;cursor:not-allowed!important}.slider-setting-box .opacity-fit-button>span{display:block;color:#fff!important;font-weight:900!important;line-height:1;text-shadow:0 1px 2px #000}
 
     .settings-group:last-child{border-right:0;padding-right:0}.map-style-settings{flex:0 0 100%;width:100%;border-right:0}.offline-map-status{max-width:340px;overflow-wrap:anywhere;color:var(--color-content-default-medium,#aaa);font-size:11px}.settings-group>label{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .location-settings{flex:0 0 100%;width:100%;border-right:0;border-bottom:1px solid var(--color-content-default-low,#454545);padding:0 0 7px;gap:8px}.location-settings>summary{cursor:pointer;font-weight:700;white-space:nowrap}.location-settings[open]>summary{margin-bottom:2px}.location-settings-content{display:flex;flex:1 1 100%;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:0;min-width:0}.location-coordinate-display{display:flex;flex:1 1 100%;align-items:baseline;gap:8px;min-width:0}.location-coordinate-display span{min-width:0;overflow-wrap:anywhere}.location-tab .address-settings{flex:1 1 100%;width:100%;padding:0;border:0}.location-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px;flex:1 1 100%}.location-actions>label{display:flex;align-items:center;gap:6px;white-space:nowrap}.offline-address-search{display:flex;flex:1 1 100%;flex-direction:column;align-items:stretch;gap:6px;min-width:0;padding:7px 0;border-bottom:1px solid var(--color-content-default-low,#454545)}.offline-address-search .location-actions{flex-wrap:nowrap}.offline-address-search input{flex:1 1 auto;width:100%;min-width:120px;max-width:560px;height:30px;box-sizing:border-box;padding:4px 8px;color:var(--color-content-default-high,#eee);background:var(--color-surface-default-high,#303238);border:1px solid var(--color-content-default-low,#626a75);border-radius:4px}.offline-address-results{display:flex;flex-direction:column;gap:4px;max-width:760px;max-height:min(50vh,420px);min-width:0;overflow-y:auto;overflow-x:hidden;padding-right:4px}.offline-address-result{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;width:100%;height:auto;min-height:34px;white-space:normal;text-align:left;gap:1px}.offline-address-result strong{font-weight:700}.offline-address-result span{color:var(--color-content-default-medium,#aaa);font-size:11px;white-space:normal}
@@ -622,16 +615,6 @@ app-map-window {
     .map-toolbar-button{width:auto;min-width:92px;height:30px;padding:4px 12px;font-size:13px;white-space:nowrap}.location-actions>.map-toolbar-button:first-child{min-width:158px}
     .opacity-settings{order:2;width:100%;flex:0 0 100%;gap:12px}
     .opacity-settings .settings-row-title{flex:0 0 auto}
-    .opacity-settings .range-setting{display:flex;align-items:center;gap:7px;flex:1;min-width:125px}
-    .opacity-settings .range-setting ui-slider{flex:1 1 auto;width:auto;min-width:45px}
-    .opacity-settings .range-value{flex:0 0 38px;min-width:38px;text-align:right;color:var(--color-content-default-medium,#aaa);font-variant-numeric:tabular-nums}
-    .opacity-settings .range-setting>ui-slider.opacity-slider + .range-value{margin-left:-4px}
-    /* Override the generic flex layout above: each opacity card has a header row and a full-width slider row. */
-    .opacity-settings .opacity-content>.range-setting{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center;column-gap:5px;row-gap:4px;gap:4px}
-    .opacity-settings .opacity-content>.range-setting>label,
-    .opacity-settings .opacity-content>.range-setting>.visibility-toggle{grid-column:1;grid-row:1;min-width:0}
-    .opacity-settings .opacity-content>.range-setting>.range-value{grid-column:2;grid-row:1;justify-self:end;white-space:nowrap;margin:0;min-width:0}
-    .opacity-settings .opacity-content>.range-setting>ui-slider.opacity-slider{grid-column:1/-1;grid-row:2;align-self:center;width:100%;max-width:none;min-width:0;margin:0}
     .opacity-divider{align-self:stretch;width:1px;min-height:24px;background:var(--color-content-default-low,#555);margin:0 3px}
     & ::ng-deep .folder-marker-tooltip{background:var(--color-surface-default-high,#303238);border:1px solid #777;border-radius:6px;color:var(--color-content-default-high,#fff);box-shadow:0 3px 12px #0008;padding:5px 7px}
     & ::ng-deep .folder-marker-preview{display:flex;flex-direction:column;align-items:stretch;gap:4px;max-width:240px}
@@ -1280,17 +1263,17 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
 /* Label opacity controls use a compact two-row layout: title/value above,
    full-width slider below. Crosshair and map scale share a flexible row. */
 /* Very subtle red tint for the Location and Crosshair visibility surfaces. */
-.opacity-settings .opacity-content > .location-opacity-surface-box,
-.opacity-settings .opacity-content > .crosshair-opacity-surface-box {
+.location-opacity-surface-box,
+.crosshair-opacity-surface-box {
   background: rgb(220 75 75 / 5%);
 }
 
-.opacity-settings .opacity-content > .hillshade-opacity-surface-box {
+.hillshade-opacity-surface-box {
   /* Match the working label surfaces: component-scoped selector with higher specificity
      than .opacity-content .range-setting, so the grey tint is not overwritten. */
   background: rgb(128 128 128 / 20%);
 }
-.opacity-settings .opacity-content .text-layer-symbol {
+.slider-setting-box .text-layer-symbol {
   display: inline-block;
   width: 14px;
   height: 14px;
@@ -1304,7 +1287,7 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   opacity: .9;
 }
 
-.opacity-settings .opacity-content > .label-opacity-surface-box {
+.label-opacity-surface-box {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto auto auto;
@@ -1315,74 +1298,74 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   /* Keep the subtle violet tint visible over the generic opacity-card background. */
   background: rgb(167 139 250 / 5%);
 }
-.opacity-settings .opacity-content > .label-opacity-surface-box > .opacity-row-label,
-.opacity-settings .opacity-content > .label-opacity-surface-box > .visibility-toggle {
+.label-opacity-surface-box > .opacity-row-label,
+.label-opacity-surface-box > .visibility-toggle {
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
 }
-.opacity-settings .opacity-content > .label-opacity-surface-box > ui-slider.opacity-slider {
-  grid-column: 1 / -1;
+.label-opacity-surface-box > ui-slider.opacity-slider {
+  grid-column: 1;
   grid-row: 2;
   width: 100%;
   max-width: none;
   min-width: 0;
   margin: 0;
 }
-.opacity-settings .opacity-content > .label-opacity-surface-box > .range-value {
+.label-opacity-surface-box > .range-value {
   grid-column: 2;
-  grid-row: 1;
+  grid-row: 2;
   justify-self: end;
   margin: 0;
   min-width: 0;
   white-space: nowrap;
 }
-.opacity-settings .opacity-content > .label-opacity-surface-box > .osmand-label-rerender-status {
+.label-opacity-surface-box > .osmand-label-rerender-status {
   grid-column: 1 / -1;
   grid-row: 3;
   min-width: 0;
 }
-.opacity-content > .crosshair-opacity-surface-box,
-.opacity-content > .map-scale-opacity-surface-box {
+.crosshair-opacity-surface-box,
+.map-scale-opacity-surface-box {
   flex: 1 1 180px;
   min-width: 150px;
   white-space: nowrap;
 }
 
 
-.opacity-settings .opacity-content > .label-opacity-surface-box {
+.label-opacity-surface-box {
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: auto auto;
 }
-.opacity-settings .opacity-content > .label-opacity-surface-box > ui-slider.opacity-slider {
+.label-opacity-surface-box > ui-slider.opacity-slider {
   grid-column: 1;
   grid-row: 2;
   width: 100%;
 }
-.opacity-settings .opacity-content > .label-opacity-surface-box > .range-value {
+.label-opacity-surface-box > .range-value {
   grid-column: 2;
   grid-row: 2;
   justify-self: end;
 }
-.opacity-settings .opacity-content > .label-opacity-surface-box > .osmand-label-rerender-status {
+.label-opacity-surface-box > .osmand-label-rerender-status {
   grid-column: 1 / -1;
   grid-row: 3;
 }
 
 
 /* Place visibility checkboxes consistently before their labels. */
-.opacity-settings .opacity-content .visibility-toggle {
+.slider-setting-box .visibility-toggle {
   display: inline-flex;
   align-items: center;
 }
-.opacity-settings .opacity-content .visibility-toggle > input[type="checkbox"] {
+.slider-setting-box .visibility-toggle > input[type="checkbox"] {
   order: -1;
   margin: 0 4px 0 0 !important;
 }
 
 
-/* One shared layout for every slider setting in Visibility and View settings. */
-.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting {
+/* One shared layout and surface treatment for every slider setting, regardless of section. */
+.map-window .slider-setting-box {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) auto !important;
   grid-template-rows: auto auto !important;
@@ -1393,15 +1376,15 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   background: var(--color-surface-secondary, rgba(128, 128, 128, .085));
   box-sizing: border-box;
 }
-.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting > label,
-.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting > .visibility-toggle,
-.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting > .opacity-row-label {
+.map-window .slider-setting-box > label,
+.map-window .slider-setting-box > .visibility-toggle,
+.map-window .slider-setting-box > .opacity-row-label {
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
 }
-.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting > ui-slider.opacity-slider,
-.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting > input.opacity-slider[type="range"] {
+.map-window .slider-setting-box > ui-slider.opacity-slider,
+.map-window .slider-setting-box > input.opacity-slider[type="range"] {
   grid-column: 1;
   grid-row: 2;
   justify-self: stretch;
@@ -1411,7 +1394,7 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   min-width: 0;
   margin: 0;
 }
-.map-window :is(.opacity-content, .view-visibility-controls) > .range-setting > .range-value {
+.map-window .slider-setting-box > .range-value {
   grid-column: 2;
   grid-row: 2;
   justify-self: end;
