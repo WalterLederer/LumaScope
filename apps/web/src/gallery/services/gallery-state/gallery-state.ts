@@ -435,7 +435,7 @@ export class GalleryState {
       this.totalFileCountKnown.set(this.galleryTotalCount >= 0);
       if (!this.nameFilterActive$.value && this.galleryTotalCount >= 0) {
         this.unfilteredFileCount.set(this.galleryTotalCount);
-      } else if (this.nameFilterActive$.value) {
+      } else if (this.nameFilterActive$.value && this.unfilteredFileCount() === null) {
         void this.loadUnfilteredFileCount(directory, request);
       }
       this.images$.next(page.files);
