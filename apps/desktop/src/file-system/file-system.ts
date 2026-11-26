@@ -4,7 +4,6 @@ import { Dirent, statSync } from 'node:fs';
 import { copyFile, mkdir, open, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
-import { Injector } from '../injector/injector';
 import { writeJsonAtomically } from './json-file';
 
 export class FileSystem {
@@ -458,6 +457,7 @@ export class FileSystem {
         // do not reconcile/register files as a side effect of browsing.
         let metadataByPath = new Map<string, { latitude: number | null; longitude: number | null; gpsTimestamp: number | null; displayName: string | null; fileSize?: number; modifiedAt?: number }>();
         try {
+          const { Injector } = await import('../injector/injector');
           const locations = await Injector.getInstance().inject('CacheManager')
             .getDirectoryPhotoLocations(undefined as never, path, recursive, false);
           metadataByPath.clear();
