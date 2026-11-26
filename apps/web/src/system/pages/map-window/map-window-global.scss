@@ -33,11 +33,11 @@ app-map-window {
     .view-settings-section .view-visibility-controls>.range-setting{flex:1 1 180px;min-width:150px;max-width:none;box-sizing:border-box}
     .view-settings-section .view-visibility-controls>.range-setting>label,.view-settings-section .view-visibility-controls>.range-setting>.visibility-toggle,.view-settings-section .view-visibility-controls>.range-setting>.opacity-row-label{grid-column:1;grid-row:1;min-width:0}
     .view-settings-section .view-visibility-controls>.range-setting>ui-slider.opacity-slider{grid-column:1/-1;grid-row:2;align-self:center;flex:1 1 auto;width:100%;max-width:none;min-width:0;margin:0}
-    .view-settings-section .view-visibility-controls>.range-setting>.range-value{grid-column:2;grid-row:1;justify-self:end;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .view-settings-section .view-visibility-controls>.range-setting>.range-value{grid-column:2;grid-row:2;justify-self:end;align-self:center;white-space:nowrap;font-variant-numeric:tabular-nums}
     .view-settings-section .photo-preview-size-box{flex:0 1 220px;min-width:180px;min-height:48px}
     .view-settings-section .photo-preview-size-setting>label{grid-column:1/-1;grid-row:1;white-space:nowrap}
     .view-settings-section .photo-preview-size-setting>ui-slider{grid-column:1;grid-row:2;min-width:0}
-    .view-settings-section .photo-preview-size-setting>.range-value{grid-column:2;grid-row:2;align-self:center}
+    .view-settings-section .photo-preview-size-setting>.range-value{grid-column:2;grid-row:2;justify-self:end;align-self:center}
     .view-settings-section .view-visibility-controls>.location-opacity-surface-box,.view-settings-section .view-visibility-controls>.crosshair-opacity-surface-box{background:rgb(220 75 75 / 5%)}
 
     .map-titlebar{position:relative;z-index:1100;-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
