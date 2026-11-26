@@ -393,6 +393,10 @@ export class GalleryState {
   readonly loadNextGalleryPage = (): void => {
     const directory = this.selectedLocation$.value;
     if (!directory || this.galleryPageLoading || (this.galleryTotalCount >= 0 && this.galleryLoadedCount >= this.galleryTotalCount)) return;
+    if (this.dataSource$.value === 'filesystem') {
+      this.loadGalleryWindow(this.galleryWindowStart() + this.galleryWindowSize);
+      return;
+    }
     const request = this.navigationRequest;
     const offset = this.galleryLoadedCount;
     const sort = this.sortMode$.value;
@@ -484,6 +488,10 @@ export class GalleryState {
   };
 
   private readonly refreshLoadedGalleryPages = async (directory: string): Promise<void> => {
+    if (this.dataSource$.value === 'filesystem') {
+      this.navigateTo(directory, false, true).subscribe();
+      return;
+    }
     const request = ++this.navigationRequest;
     this.galleryRefreshing$.next(true);
     this.galleryPageLoading = false;
@@ -546,6 +554,7 @@ export class GalleryState {
     } catch (error) {
       console.error('Failed to remove deleted gallery file from the cache database', path, error);
     }
+    this.filesystemFiles = this.filesystemFiles.filter(image => image.path !== path);
     this.images$.next(this.images$.value.filter(image => image.path !== path));
     if (this.galleryTotalCount >= 0) this.galleryTotalCount = Math.max(0, this.galleryTotalCount - 1);
     this.totalFileCount.set(this.galleryTotalCount >= 0 ? this.galleryTotalCount : Math.max(0, this.totalFileCount() - 1));
