@@ -107,7 +107,8 @@ ui-toolbar {
   gap: var(--dim-small);
   white-space: normal;
 
-  > ui-action-button.action {
+  > ui-action-button.action,
+  .gallery-controls > ui-action-button.action {
     flex: 0 0 auto;
     white-space: nowrap;
   }
