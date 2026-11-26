@@ -46,6 +46,7 @@ export interface AppConfigV1Gallery {
   thumbHeight?: number;
   sortBy?: 'date' | 'gpsDate' | 'gps' | 'location' | 'name' | 'path' | 'size' | 'suffix';
   sortDir?: 'asc' | 'desc';
+  dataSource?: 'filesystem' | 'database';
   includeFilesRecursive?: boolean;
   includeUnsupportedFiles?: boolean;
 }
