@@ -31,7 +31,7 @@ app-map-window {
     .view-settings-section .render-statistics-content>.scale-visibility-toggle{flex-basis:auto;margin-left:0}
     .slider-settings-grid{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:stretch;gap:6px;min-width:0;width:100%}
     .slider-setting-box{flex:1 1 180px;min-width:150px;max-width:none;box-sizing:border-box}
-    .photo-preview-size-box{flex:0 1 220px;min-width:180px;min-height:48px}
+    .view-visibility-controls > .slider-setting-box{flex:1 1 180px;min-width:150px;max-width:260px}
     .location-opacity-surface-box,.crosshair-opacity-surface-box{background:rgb(220 75 75 / 5%)}
 
     .map-titlebar{position:relative;z-index:1100;-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
@@ -103,7 +103,8 @@ app-map-window {
     .view-tab .view-primary-controls + .zoom-settings-section{margin-top:10px}
     .atlas-density-zoom-row{display:flex;align-items:center;flex:1 1 100%;gap:18px;min-width:0}.atlas-density-zoom-row>.atlas-density-setting{flex:1 1 0;min-width:220px}
     .zoom-settings-section{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:100%;min-width:0;padding:6px 10px;margin:0 0 6px;border:1px solid #555;border-radius:6px;background:#292a2d;color:#e8eaed}
-    .zoom-summary-control{display:flex;align-items:center;gap:8px;flex:0 1 420px;width:100%;max-width:420px;min-width:0;margin-left:auto}
+    .zoom-settings-section>summary{display:flex;align-items:center;justify-content:flex-start;gap:12px}
+    .zoom-summary-control{display:flex;align-items:center;gap:8px;flex:0 1 420px;width:100%;max-width:420px;min-width:0;margin-left:0}
     .zoom-summary-control ui-slider{flex:1 1 auto;min-width:70px;accent-color:#8ab4f8}
     .view-source-controls,.view-style-controls{display:contents}
     .view-primary-controls .map-source-content{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-width:0}
@@ -1389,9 +1390,10 @@ app-map-window .location-reverse-geocoding .fix-location-position-table tr.fix-l
   grid-row: 2;
   justify-self: stretch;
   align-self: center;
+  display: block;
   width: 100%;
-  max-width: none;
-  min-width: 0;
+  max-width: 100% !important;
+  min-width: 0 !important;
   margin: 0;
 }
 .map-window .slider-setting-box > .range-value {
