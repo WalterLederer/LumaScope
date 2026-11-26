@@ -171,4 +171,13 @@ export class CacheManager implements DesktopCacheManager {
   readonly resolvePhotoLocation = (sourceName: string, latitude: number, longitude: number): Promise<string | null> =>
     window.desktop.CacheManager.resolvePhotoLocation(sourceName, latitude, longitude);
 
+  readonly getMissingPhotoFileNames = (directory: string, fileNames: string[]): Promise<string[]> =>
+    window.desktop.CacheManager.getMissingPhotoFileNames(directory, fileNames);
+
+  readonly registerMissingPhotoRecord = (sourceName: string, fileSize: number, modifiedAt: number): Promise<boolean> =>
+    window.desktop.CacheManager.registerMissingPhotoRecord(sourceName, fileSize, modifiedAt);
+
+  readonly updatePhotoMetadata: DesktopCacheManager['updatePhotoMetadata'] = (sourceName, isHdr, gps) =>
+    window.desktop.CacheManager.updatePhotoMetadata(sourceName, isHdr, gps);
+
 }
