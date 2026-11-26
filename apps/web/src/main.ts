@@ -29,7 +29,10 @@ window.addEventListener('unhandledrejection', event => {
 
 Promise.all([
   window.desktop.ProcessManager.isPackaged(),
-  window.desktop.ProcessManager.getSystemLocale()
+  window.desktop.ProcessManager.getSystemLocale().catch(error => {
+    console.warn('[NumberFormat] Could not read system locale; using renderer language.', error);
+    return navigator.language || 'en-US';
+  })
 ]).then(([isPackaged, systemLocale]) => {
     console.warn('[Startup] ProcessManager.isPackaged resolved', isPackaged);
     setNumberLocale(systemLocale);
