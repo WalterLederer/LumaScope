@@ -335,7 +335,7 @@
      Avoid native table auto-layout, which previously reassigned resize deltas
      to the Name column and ignored the thumbnail zoom width. */
   --detail-grid-columns:
-    var(--detail-actions-width, 44px)
+    var(--detail-actions-width, 66px)
     max(28px, calc(var(--detail-thumb-width, 36px) + 4px + var(--detail-col-0-delta, 0px)))
     var(--detail-col-1-width, 210px)
     var(--detail-col-2-width, 150px)
@@ -363,7 +363,7 @@
     var(--detail-col-10-width, 150px)
     var(--detail-col-11-width, 240px)
     var(--detail-col-12-width, 220px)
-    var(--detail-actions-width, 44px);
+    var(--detail-actions-width, 66px);
 }
   display: block;
   width: max-content;
@@ -694,7 +694,7 @@
 .detail-native-table tbody tr.selected-image td:first-child { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--detail-selected-row-color, #d18b24) 75%, transparent); }
 .detail-native-table .detail-dynamic-range.hdr { color: var(--color-content-default-high); font-weight: 700; }
 .detail-native-table .cache-valid { color: #2e9d50; font-weight: 600; }
-.detail-native-table .detail-actions { width:var(--detail-actions-width,44px); min-width:44px; padding:2px; overflow:visible; text-align:center; background:var(--detail-odd-row-color,#fff) !important; }
+.detail-native-table .detail-actions { width:var(--detail-actions-width,66px); min-width:66px; padding:2px; overflow:visible; text-align:center; background:var(--detail-odd-row-color,#fff) !important; }
 .detail-native-table .detail-actions .detail-row-menu-trigger {
   position: absolute !important;
   top: 50%;
@@ -982,9 +982,9 @@
 }
 
 .folder-actions-heading {
-  width: var(--detail-actions-width, 44px) !important;
-  min-width: var(--detail-actions-width, 44px) !important;
-  max-width: var(--detail-actions-width, 44px) !important;
+  width: var(--detail-actions-width, 66px) !important;
+  min-width: var(--detail-actions-width, 66px) !important;
+  max-width: var(--detail-actions-width, 66px) !important;
   padding: 2px !important;
 }
 
@@ -1564,7 +1564,7 @@
     var(--detail-col-10-width, 150px)
     var(--detail-col-11-width, 240px)
     var(--detail-col-12-width, 220px)
-    var(--detail-actions-width, 44px);
+    var(--detail-actions-width, 66px);
 }
 .detail-native-table > tbody.images.details-list > tr > td.detail-actions .detail-row-menu-trigger {
   position: relative !important;
@@ -1579,7 +1579,7 @@
   position: static !important;
 }
 .detail-native-table.actions-column-right > colgroup > col:last-child {
-  width: 44px !important;
+  width: 66px !important;
 }
 /* Draw header dividers on the actual cells, not on a row-wide pseudo-element.
    The row-wide ::after lines extended beyond the final column. */
@@ -1593,12 +1593,12 @@
   border-right: 1px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
 }
 
-/* The right-hand actions column uses exactly the same 44px track as the
+/* The right-hand actions column uses exactly the same 66px track as the
    left-hand actions column. Constrain the column, header and body cells. */
 .detail-native-table.actions-column-right > colgroup > col:last-child {
-  width: 44px !important;
-  min-width: 44px !important;
-  max-width: 44px !important;
+  width: 66px !important;
+  min-width: 66px !important;
+  max-width: 66px !important;
 }
 
 /* A hidden COL must be removed from the native table layout as well. The
@@ -1608,12 +1608,12 @@
   display: none !important;
 }
 
-/* Keep whichever actions track is visible at exactly 44px. */
+/* Keep whichever actions track is visible at exactly 66px. */
 .detail-native-table > colgroup > col:first-child:not([hidden]),
 .detail-native-table > colgroup > col:last-child:not([hidden]) {
-  width: 44px !important;
-  min-width: 44px !important;
-  max-width: 44px !important;
+  width: 66px !important;
+  min-width: 66px !important;
+  max-width: 66px !important;
 }
 
 
@@ -1691,15 +1691,15 @@
    other column. The label and statistics cells are separate grid cells;
    each owns only the divider belonging to its own header row. */
 .detail-native-table {
-  --detail-actions-width: 44px !important;
+  --detail-actions-width: 66px !important;
 }
 .detail-native-table > tbody.images.details-list > tr > td.detail-actions,
 .detail-native-table.actions-column-right > tbody.images.details-list > tr > td.detail-actions,
 .detail-native-table > colgroup > col:first-child:not([hidden]),
 .detail-native-table > colgroup > col:last-child:not([hidden]) {
-  width: 44px !important;
-  min-width: 44px !important;
-  max-width: 44px !important;
+  width: 66px !important;
+  min-width: 66px !important;
+  max-width: 66px !important;
 }
 
 
@@ -1710,7 +1710,7 @@
 .detail-native-table > thead > tr > th.detail-actions-heading,
 .detail-native-table > thead > tr > th.detail-actions-statistics,
 .detail-native-table > tbody.images.details-list > tr > td.detail-actions {
-  width: 44px !important;
-  min-width: 44px !important;
-  max-width: 44px !important;
+  width: 66px !important;
+  min-width: 66px !important;
+  max-width: 66px !important;
 }
