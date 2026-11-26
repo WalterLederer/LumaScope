@@ -1,4 +1,5 @@
 import { createGpxTrackRenderStyle } from './gpx-track-render-style';
+import { buildGpxViewportChunkCache, calculateGpxRenderedPercent, getVisibleGpxSegments, selectGpxViewportChunks, type GpxViewportChunkCache } from './gpx-track-geometry';
 import { parseGpxPoint, parseGpxTrackData, parseGpxTrackPoint, parseGpxTrackPointData, parseGpxTrackSegmentNames, parseRoutingWaypointsFromGpx, type GpxTrackPoint, type RouteWaypoint } from './gpx-track-parser';
 import { ChangeDetectionStrategy, Component, ElementRef, computed, HostListener, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
@@ -144,11 +145,7 @@ export class MapWindow implements OnInit, OnDestroy {
   private mapSourceGeneration = 0;
   private osmAndStyleChangeGeneration = 0;
   private osmAndStyleRestore: Promise<void> = Promise.resolve();
-  private readonly gpxViewportChunkCache = new Map<string, {
-    source: [number, number][][];
-    chunks: Array<{ coordinates: [number, number][]; sourceSegmentIndex: number; south: number; north: number; west: number; east: number; totalLength: number }>;
-    totalLength: number;
-  }>();
+  private readonly gpxViewportChunkCache = new Map<string, GpxViewportChunkCache>();
   private readonly gpxViewportRevision = signal(0);
   private readonly gpxViewportRenderingActive = signal(true);
   private readonly gpxRenderedPercentCache = new Map<string, { revision: number; source: object; percent: number }>();
@@ -6302,70 +6299,16 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private visibleGpxSegments(track: GpxTrackFile): [number, number][][] {
     const source = this.gpxSegmentsByTrack.get(track.path) ?? [];
-    if (!this.timeSliderActive()) return source;
     const pointSegments = this.gpxPointDataByTrack.get(track.path) ?? [];
-    const visible: [number, number][][] = [];
-    source.forEach((sourceSegment, index) => {
-      const segment = pointSegments[index];
-      if (track.databasePath && this.timeSliderActive() && !segment?.some(point => {
-        const timestamp = point.timestamp ? Date.parse(point.timestamp) / 1000 : null;
-        return point.inViewport !== false && this.isTimeSliderTimestampVisible(Number.isFinite(timestamp) ? timestamp : null);
-      })) return;
-      // Routes without timestamps (e.g. routes returned by openrouteservice)
-      // are independent of the GPX time slider and must remain visible.
-      if (!segment?.some(point => point.timestamp && Number.isFinite(Date.parse(point.timestamp)))) {
-        if (sourceSegment.length >= 2) visible.push(sourceSegment);
-        return;
-      }
-      let run: [number, number][] = [];
-      const flush = (): void => { if (run.length >= 2) visible.push(run); run = []; };
-      for (const point of segment) {
-        const timestamp = point.timestamp ? Date.parse(point.timestamp) / 1000 : Number.NaN;
-        if (!Number.isFinite(timestamp) || (timestamp >= this.timeSliderStart() && timestamp <= this.timeSliderEnd())) {
-          run.push([point.latitude, point.longitude]);
-        } else flush();
-      }
-      flush();
-    });
-    return visible;
+    const timeRange = this.timeSliderActive()
+      ? { start: this.timeSliderStart(), end: this.timeSliderEnd() }
+      : null;
+    return getVisibleGpxSegments(source, pointSegments, !!track.databasePath, timeRange);
   }
 
   private async prepareGpxViewportChunks(track: GpxTrackFile, segments: [number, number][][]): Promise<void> {
-    const chunks: Array<{ coordinates: [number, number][]; sourceSegmentIndex: number; south: number; north: number; west: number; east: number; totalLength: number }> = [];
-    let totalLength = 0;
-    const chunkPointCount = 256;
-    let processedChunks = 0;
-    for (let sourceSegmentIndex = 0; sourceSegmentIndex < segments.length; sourceSegmentIndex++) {
-      const source = segments[sourceSegmentIndex];
-      if (!source || source.length < 2) continue;
-      for (let start = 0; start < source.length - 1; start += chunkPointCount - 1) {
-        const coordinates = source.slice(start, Math.min(source.length, start + chunkPointCount));
-        if (coordinates.length < 2) continue;
-        let south = Number.POSITIVE_INFINITY, north = Number.NEGATIVE_INFINITY;
-        let west = Number.POSITIVE_INFINITY, east = Number.NEGATIVE_INFINITY;
-        let chunkLength = 0;
-        for (let i = 0; i < coordinates.length; i++) {
-          const [latitude, longitude] = coordinates[i];
-          south = Math.min(south, latitude); north = Math.max(north, latitude);
-          west = Math.min(west, longitude); east = Math.max(east, longitude);
-          if (i > 0) {
-            const [previousLatitude, previousLongitude] = coordinates[i - 1];
-            const radians = Math.PI / 180;
-            const dLat = (latitude - previousLatitude) * radians;
-            const dLon = (longitude - previousLongitude) * radians;
-            const meanLat = (latitude + previousLatitude) * 0.5 * radians;
-            const a = Math.sin(dLat * 0.5) ** 2 + Math.cos(meanLat) ** 2 * Math.sin(dLon * 0.5) ** 2;
-            const distance = 6371008.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)));
-            chunkLength += distance;
-          }
-        }
-        totalLength += chunkLength;
-        chunks.push({ coordinates, sourceSegmentIndex, south, north, west, east, totalLength: chunkLength });
-        // Yield regularly so preparing a very long track never monopolizes the UI thread.
-        if (++processedChunks % 128 === 0) await new Promise<void>(resolve => setTimeout(resolve, 0));
-      }
-    }
-    this.gpxViewportChunkCache.set(track.path, { source: segments, chunks, totalLength });
+    const cache = await buildGpxViewportChunkCache(segments);
+    this.gpxViewportChunkCache.set(track.path, cache);
   }
 
   private coloredGpxViewportSource(
@@ -6399,41 +6342,11 @@ export class MapWindow implements OnInit, OnDestroy {
       }
       return [];
     }
-    if (!bounds) return cached.chunks.map(chunk => ({ coordinates: chunk.coordinates, sourceSegmentIndex: chunk.sourceSegmentIndex }));
-
-    const south = bounds.getSouth(), north = bounds.getNorth();
-    const west = bounds.getWest(), east = bounds.getEast();
-    // A small margin avoids visible gaps while panning and lets the renderer
-    // retain nearby geometry just outside the viewport.
-    const latitudePadding = Math.max(0.0005, (north - south) * 0.05);
-    const longitudePadding = Math.max(0.0005, (east - west) * 0.05);
-    const minLatitude = south - latitudePadding, maxLatitude = north + latitudePadding;
-    const minLongitude = west - longitudePadding, maxLongitude = east + longitudePadding;
-    return cached.chunks
-      .filter(chunk => chunk.north >= minLatitude && chunk.south <= maxLatitude
-        && chunk.east >= minLongitude && chunk.west <= maxLongitude)
-      .map(chunk => ({ coordinates: chunk.coordinates, sourceSegmentIndex: chunk.sourceSegmentIndex }));
-  }
-
-  private clippedGpxSegmentLength(a: [number, number], b: [number, number], south: number, north: number, west: number, east: number): number {
-    const dLat = b[0] - a[0], dLon = b[1] - a[1];
-    let t0 = 0, t1 = 1;
-    const clip = (p: number, q: number): boolean => {
-      if (p === 0) return q >= 0;
-      const ratio = q / p;
-      if (p < 0) { if (ratio > t1) return false; if (ratio > t0) t0 = ratio; }
-      else { if (ratio < t0) return false; if (ratio < t1) t1 = ratio; }
-      return true;
-    };
-    if (!clip(-dLon, a[1] - west) || !clip(dLon, east - a[1]) || !clip(-dLat, a[0] - south) || !clip(dLat, north - a[0]) || t1 <= t0) return 0;
-    const latitude1 = a[0] + dLat * t0, latitude2 = a[0] + dLat * t1;
-    const longitude1 = a[1] + dLon * t0, longitude2 = a[1] + dLon * t1;
-    const radians = Math.PI / 180;
-    const deltaLatitude = (latitude2 - latitude1) * radians;
-    const deltaLongitude = (longitude2 - longitude1) * radians;
-    const meanLatitude = (latitude1 + latitude2) * 0.5 * radians;
-    const haversine = Math.sin(deltaLatitude * 0.5) ** 2 + Math.cos(meanLatitude) ** 2 * Math.sin(deltaLongitude * 0.5) ** 2;
-    return 6371008.8 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(Math.max(0, 1 - haversine)));
+    const viewportBounds = bounds ? {
+      south: bounds.getSouth(), north: bounds.getNorth(),
+      west: bounds.getWest(), east: bounds.getEast()
+    } : null;
+    return selectGpxViewportChunks(cached, viewportBounds);
   }
 
   protected readonly gpxRenderedPercent = (track: GpxTrackFile): number => {
@@ -6445,17 +6358,18 @@ export class MapWindow implements OnInit, OnDestroy {
     const previous = this.gpxRenderedPercentCache.get(track.path);
     if (previous?.revision === revision && previous.source === cached) return previous.percent;
     const bounds = this.offlineRenderer?.map.getBounds();
-    if (!bounds) { this.gpxRenderedPercentCache.set(track.path, { revision, source: cached, percent: 0 }); return 0; }
-    const south = bounds.getSouth(), north = bounds.getNorth(), west = bounds.getWest(), east = bounds.getEast();
-    let visibleLength = 0;
-    for (const chunk of cached.chunks) {
-      if (chunk.north < south || chunk.south > north || chunk.east < west || chunk.west > east) continue;
-      for (let i = 1; i < chunk.coordinates.length; i++) visibleLength += this.clippedGpxSegmentLength(chunk.coordinates[i - 1], chunk.coordinates[i], south, north, west, east);
+    if (!bounds) {
+      this.gpxRenderedPercentCache.set(track.path, { revision, source: cached, percent: 0 });
+      return 0;
     }
-    const percent = Math.max(0, Math.min(100, Math.round(visibleLength / cached.totalLength * 1000) / 10));
+    const percent = calculateGpxRenderedPercent(cached, {
+      south: bounds.getSouth(), north: bounds.getNorth(),
+      west: bounds.getWest(), east: bounds.getEast()
+    });
     this.gpxRenderedPercentCache.set(track.path, { revision, source: cached, percent });
     return percent;
   };
+
   private readonly suspendGpxViewportRendering = (): void => {
     // Keep the currently rendered viewport geometry attached while the map
     // moves. The map renderer can translate its existing track layers together
