@@ -1,11 +1,14 @@
 #include <windows.h>
 
+#include <exiv2/exiv2.hpp>
+
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
 
 #include <algorithm>
 #include <cstdint>
 #include <cmath>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -52,6 +55,10 @@ struct FolderMissingCounts {
 
 struct ScanStats {
     std::uint64_t filesScanned = 0;
+    std::uint64_t imageFiles = 0;
+    std::uint64_t gpsFound = 0;
+    std::uint64_t withoutGps = 0;
+    std::uint64_t metadataErrors = 0;
     std::uint64_t cacheDirectoriesSkipped = 0;
     std::uint64_t filesInsideSkippedDirectories = 0;
     std::uint64_t reparseDirectoriesSkipped = 0;
@@ -278,6 +285,104 @@ std::uint64_t countFilesInTree(const fs::path& directory) {
     return count;
 }
 
+
+bool isSupportedImageExtension(const std::wstring& extension) {
+    static const std::set<std::wstring> supported = {
+        L".jpg", L".jpeg", L".tif", L".tiff", L".heic", L".heif", L".png", L".webp",
+        L".dng", L".cr2", L".cr3", L".nef", L".arw", L".orf", L".rw2", L".raf", L".raw"
+    };
+    return supported.contains(extension);
+}
+
+std::optional<double> exifNumber(const Exiv2::ExifData& data, const char* key) {
+    const auto item = data.findKey(Exiv2::ExifKey(key));
+    if (item == data.end() || item->count() == 0) return std::nullopt;
+    try {
+        const double value = item->toFloat(0);
+        if (std::isfinite(value)) return value;
+    } catch (...) {}
+    return std::nullopt;
+}
+
+std::string exifText(const Exiv2::ExifData& data, const char* key) {
+    const auto item = data.findKey(Exiv2::ExifKey(key));
+    return item == data.end() ? std::string{} : item->toString();
+}
+
+std::optional<double> xmpNumber(const Exiv2::XmpData& data, const char* key) {
+    const auto item = data.findKey(Exiv2::XmpKey(key));
+    if (item == data.end()) return std::nullopt;
+    const auto text = item->toString();
+    try {
+        std::size_t consumed = 0;
+        const double value = std::stod(text, &consumed);
+        if (consumed == text.size() && std::isfinite(value)) return value;
+    } catch (...) {}
+    return std::nullopt;
+}
+
+std::string xmpText(const Exiv2::XmpData& data, const char* key) {
+    const auto item = data.findKey(Exiv2::XmpKey(key));
+    return item == data.end() ? std::string{} : item->toString();
+}
+
+std::optional<double> gpsCoordinate(const Exiv2::ExifData& exif, const Exiv2::XmpData& xmp,
+                                    const char* exifKey, const char* xmpKey,
+                                    const char* refKey, const char* xmpRefKey,
+                                    bool latitude) {
+    std::optional<double> coordinate;
+    const auto item = exif.findKey(Exiv2::ExifKey(exifKey));
+    if (item != exif.end() && item->count() >= 3) {
+        try {
+            coordinate = std::abs(item->toFloat(0))
+                + std::abs(item->toFloat(1)) / 60.0
+                + std::abs(item->toFloat(2)) / 3600.0;
+        } catch (...) {}
+    }
+    if (!coordinate) coordinate = xmpNumber(xmp, xmpKey);
+    if (!coordinate) return std::nullopt;
+
+    std::string reference = exifText(exif, refKey);
+    if (reference.empty()) reference = xmpText(xmp, xmpRefKey);
+    std::transform(reference.begin(), reference.end(), reference.begin(),
+        [](unsigned char ch) { return static_cast<char>(std::toupper(ch)); });
+    if ((latitude && reference == "S") || (!latitude && reference == "W")) *coordinate = -std::abs(*coordinate);
+    else if ((latitude && reference == "N") || (!latitude && reference == "E")) *coordinate = std::abs(*coordinate);
+
+    const double limit = latitude ? 90.0 : 180.0;
+    if (!std::isfinite(*coordinate) || *coordinate < -limit || *coordinate > limit) return std::nullopt;
+    return coordinate;
+}
+
+bool readGpsCoordinates(const fs::path& path) {
+    try {
+        const auto utf8Path = toUtf8(path.wstring());
+        auto image = Exiv2::ImageFactory::open(utf8Path);
+        if (!image.get()) throw std::runtime_error("Exiv2 could not open the image.");
+        image->readMetadata();
+        const auto& exif = image->exifData();
+        const auto& xmp = image->xmpData();
+
+        const auto exifLatitude = exifNumber(exif, "Exif.GPSInfo.GPSLatitude");
+        const auto exifLongitude = exifNumber(exif, "Exif.GPSInfo.GPSLongitude");
+        const auto xmpLatitude = xmpNumber(xmp, "Xmp.exif.GPSLatitude");
+        const auto xmpLongitude = xmpNumber(xmp, "Xmp.exif.GPSLongitude");
+        const auto latitude = gpsCoordinate(exif, xmp,
+            "Exif.GPSInfo.GPSLatitude", "Xmp.exif.GPSLatitude",
+            "Exif.GPSInfo.GPSLatitudeRef", "Xmp.exif.GPSLatitudeRef", true);
+        const auto longitude = gpsCoordinate(exif, xmp,
+            "Exif.GPSInfo.GPSLongitude", "Xmp.exif.GPSLongitude",
+            "Exif.GPSInfo.GPSLongitudeRef", "Xmp.exif.GPSLongitudeRef", false);
+        (void)exifLatitude;
+        (void)exifLongitude;
+        (void)xmpLatitude;
+        (void)xmpLongitude;
+        return latitude.has_value() && longitude.has_value();
+    } catch (const Exiv2::Error& error) {
+        throw std::runtime_error("Exiv2: " + std::string(error.what()));
+    }
+}
+
 void scanDirectory(const fs::path& directory, const std::wstring& drive,
                    SqliteDatabase* database, DatabaseCounts& counts, std::map<std::wstring, ExtensionCounts>& extensionCounts,
                    std::map<std::wstring, ExtensionCounts>& rootExtensionCounts,
@@ -343,6 +448,17 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
                         auto& folderMissing = missingByFolder[absoluteNormalized(directory).wstring()];
                         ++folderMissing.files;
                         if (extension == L".jpg") ++folderMissing.jpgFiles;
+                    }
+                    if (isSupportedImageExtension(extension)) {
+                        ++stats.imageFiles;
+                        try {
+                            if (readGpsCoordinates(child)) ++stats.gpsFound;
+                            else ++stats.withoutGps;
+                        } catch (const std::exception& error) {
+                            ++stats.metadataErrors;
+                            if (verbose) std::wcerr << L"EXIF read failed: " << child.wstring()
+                                << L" (" << error.what() << L")\n";
+                        }
                     }
                     break;
                 case SqliteDatabase::Match::Changed:
@@ -428,6 +544,7 @@ int wmain(int argc, wchar_t** argv) {
             throw std::runtime_error("--db requires the selected favorites to be on exactly one drive.");
         }
 
+        const auto scanStartedAt = std::chrono::steady_clock::now();
         std::map<std::wstring, std::unique_ptr<SqliteDatabase>> databases;
         DatabaseCounts totalCounts;
         std::map<std::wstring, ExtensionCounts> extensionCounts;
@@ -468,13 +585,31 @@ int wmain(int argc, wchar_t** argv) {
                        << L", reparse directories skipped=" << stats.reparseDirectoriesSkipped << L"\n";
         }
         std::uint64_t excludedFiles = 0;
-        for (const auto& stats : perRootStats) excludedFiles += stats.filesInsideSkippedDirectories;
+        std::uint64_t totalImageFiles = 0;
+        std::uint64_t totalGpsFound = 0;
+        std::uint64_t totalWithoutGps = 0;
+        std::uint64_t totalMetadataErrors = 0;
+        for (const auto& stats : perRootStats) {
+            excludedFiles += stats.filesInsideSkippedDirectories;
+            totalImageFiles += stats.imageFiles;
+            totalGpsFound += stats.gpsFound;
+            totalWithoutGps += stats.withoutGps;
+            totalMetadataErrors += stats.metadataErrors;
+        }
+        const auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - scanStartedAt).count();
+        const auto filesPerSecond = elapsed > 0.0 ? static_cast<double>(totalScanned) / elapsed : 0.0;
         std::wcout << L"Files scanned:   " << totalScanned << L"\n"
                    << L"Excluded files:  " << excludedFiles << L"\n"
                    << L"Files accounted: " << (totalScanned + excludedFiles) << L"\n"
                    << L"Missing in DB:   " << totalCounts.newFiles << L"\n"
                    << L"Changed:         " << totalCounts.changedFiles << L"\n"
-                   << L"Unchanged:       " << totalCounts.unchangedFiles << L"\n";
+                   << L"Unchanged:       " << totalCounts.unchangedFiles << L"\n"
+                   << L"Image files (missing records): " << totalImageFiles << L"\n"
+                   << L"GPS found:       " << totalGpsFound << L"\n"
+                   << L"Without GPS:     " << totalWithoutGps << L"\n"
+                   << L"EXIF errors:     " << totalMetadataErrors << L"\n"
+                   << L"Elapsed seconds: " << elapsed << L"\n"
+                   << L"Files/second:    " << filesPerSecond << L"\n";
         std::wcout << L"\nMissing files by scan root (top 12 extensions):\n";
         for (std::size_t index = 0; index < selectedFavorites.size(); ++index) {
             std::vector<std::pair<std::wstring, std::uint64_t>> missingByExtension;
