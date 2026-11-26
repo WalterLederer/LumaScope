@@ -51,7 +51,7 @@ export class ProcessManager {
           timeout: 5000,
           maxBuffer: 4 * 1024 * 1024
         });
-        for (const line of stdout.split(/\r?\n/)) {
+      for (const line of stdout.split(/\r?\n/)) {
           const fields = [...line.matchAll(/"((?:[^"]|"")*)"/g)].map(match => match[1].replace(/""/g, '"'));
           if (fields.length < 5) continue;
           const imageName = fields[0];
@@ -122,7 +122,7 @@ export class ProcessManager {
           timeout: 5000,
           maxBuffer: 4 * 1024 * 1024
         });
-        for (const line of stdout.split(/\r?\n/)) {
+      for (const line of stdout.split(/\r?\n/)) {
           const match = /^\s*(\d+)\s+(\d+)\s+(.+?)\s*$/.exec(line);
           if (!match) continue;
           const pid = Number(match[1]);
@@ -314,8 +314,8 @@ export class ProcessManager {
         'query', 'HKCU\\Control Panel\\International'
       ], { windowsHide: true, timeout: 5000, maxBuffer: 64 * 1024 });
       const values = new Map<string, string>();
-      for (const line of stdout.split(/\\r?\\n/)) {
-        const match = /^\\s*(LocaleName|sDecimal|sThousand)\\s+REG_SZ\\s+(.*?)\\s*$/i.exec(line);
+      for (const line of stdout.split(/\r?\n/)) {
+        const match = /^\s*(LocaleName|sDecimal|sThousand)\s+REG_SZ\s+(.*?)\s*$/i.exec(line);
         if (match) values.set(match[1].toLowerCase(), match[2]);
       }
       const locale = values.get('localename');
