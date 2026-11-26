@@ -2705,7 +2705,7 @@ export class CacheManager {
   @IpcHandler({ name: 'CacheManager.getMissingGpsPhotoBatch' })
   readonly getMissingGpsPhotoBatch = async (
     _event: IpcMainInvokeEvent, requestedDatabaseKey: string, afterId = 0, limit = 256
-  ): Promise<Array<{ id: number; path: string; manuallyCorrected: boolean }>> => {
+  ): Promise<Array<{ id: number; path: string; fileSize: number; modifiedAt: number; manuallyCorrected: boolean }>> => {
     if (!/^[a-z]:$/i.test(requestedDatabaseKey)) throw new Error('A valid local database drive is required.');
     if (!Number.isSafeInteger(afterId) || afterId < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 1000) {
       throw new Error('Invalid missing-GPS batch range.');
@@ -2720,8 +2720,8 @@ export class CacheManager {
     try {
       readDatabase.exec('PRAGMA busy_timeout = 10000;');
       const rows = readDatabase.prepare(`
-        SELECT photos.id, photos.file_name, photos.gps_manually_corrected,
-               paths.relative_folder_path
+        SELECT photos.id, photos.file_name, photos.file_size, photos.modified_at,
+               photos.gps_manually_corrected, paths.relative_folder_path
         FROM photos
         JOIN paths ON paths.id = photos.path_id
         WHERE photos.id > :afterId
@@ -2729,11 +2729,14 @@ export class CacheManager {
         ORDER BY photos.id
         LIMIT :limit
       `).all({ afterId, limit }) as Array<{
-        id: number; file_name: string; gps_manually_corrected: number; relative_folder_path: string
+        id: number; file_name: string; file_size: number; modified_at: number;
+        gps_manually_corrected: number; relative_folder_path: string
       }>;
       return rows.map(row => ({
         id: row.id,
         path: join(this.resolveStoredFolderPath(row.relative_folder_path, databaseKey), row.file_name),
+        fileSize: row.file_size,
+        modifiedAt: row.modified_at,
         manuallyCorrected: row.gps_manually_corrected === 1
       }));
     } finally {
@@ -2745,6 +2748,8 @@ export class CacheManager {
   readonly updateExistingPhotoGpsFromExif = async (
     _event: IpcMainInvokeEvent,
     sourceName: string,
+    expectedFileSize: number,
+    expectedModifiedAt: number,
     gps: Pick<Awaited<ReturnType<Exif['readPhotoMetadata']>>,
       'latitude' | 'longitude' | 'altitudeM' | 'gpsTimestamp' | 'directionDeg' |
       'coordinateSourceId' | 'gpsManuallyCorrected' | 'gpsMetadataRead'>
@@ -2779,6 +2784,8 @@ export class CacheManager {
       WHERE id = :id
         AND gps_manually_corrected = 0
         AND (latitude IS NULL OR longitude IS NULL)
+        AND file_size = :fileSize
+        AND ABS(modified_at - :modifiedAt) <= 0.01
     `).run({
       latitude: gps.latitude,
       longitude: gps.longitude,
@@ -2788,6 +2795,8 @@ export class CacheManager {
       sourceId: gps.coordinateSourceId,
       manuallyCorrected,
       correctedAt: Math.floor(Date.now() / 1000),
+      fileSize: expectedFileSize,
+      modifiedAt: expectedModifiedAt,
       id: row.id
     });
     return result.changes > 0;
