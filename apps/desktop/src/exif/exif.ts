@@ -2,7 +2,7 @@ import { IpcMainInvokeEvent } from 'electron';
 import { ExifTool } from 'exiftool-vendored';
 import { open, readdir, stat } from 'node:fs/promises';
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
-import { ApiResponse, ExifTags, FixPhotoLocationsResult, formatOsDateTime } from 'internal-api';
+import { ApiResponse, ExifTags, FixPhotoLocationsResult, MissingGpsScanResult, formatOsDateTime } from 'internal-api';
 import { Injector } from '../injector/injector';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 
@@ -54,6 +54,84 @@ export class Exif {
         await cacheManager.updatePhotoMetadata(path, Number(existingRecord?.is_hdr) === 1, gps);
       }
       return { success: true, data: { latitude: gps.latitude, longitude: gps.longitude } };
+    } catch (error) {
+      return { success: false, errorMessage: error instanceof Error ? error.message : String(error) };
+    }
+  };
+
+  @IpcHandler({ name: 'Exif.scanMissingGps' })
+  readonly scanMissingGps = async (
+    _: IpcMainInvokeEvent, requestedDatabaseKeys: string[], dryRun: boolean
+  ): Promise<ApiResponse<MissingGpsScanResult>> => {
+    try {
+      if (!Array.isArray(requestedDatabaseKeys) || requestedDatabaseKeys.length === 0
+        || requestedDatabaseKeys.some(key => typeof key !== 'string' || !/^[a-z]:$/i.test(key))) {
+        throw new Error('Provide one or more valid local photo database drive keys, for example D:.');
+      }
+      if (typeof dryRun !== 'boolean') throw new Error('The dry-run flag must be explicitly true or false.');
+
+      const databaseKeys = [...new Set(requestedDatabaseKeys.map(key => key.toUpperCase()))].sort();
+      const injector = Injector.getInstance();
+      const cacheManager = injector.inject('CacheManager');
+      const result: MissingGpsScanResult = {
+        dryRun,
+        scanned: 0,
+        withGpsInFile: 0,
+        withoutGpsInFile: 0,
+        manuallyCorrectedSkipped: 0,
+        wouldUpdate: 0,
+        updated: 0,
+        skippedDuringUpdate: 0,
+        errors: 0,
+        databaseKeys
+      };
+
+      for (const databaseKey of databaseKeys) {
+        let afterId = 0;
+        while (true) {
+          const batch = await cacheManager.getMissingGpsPhotoBatch(undefined as never, databaseKey, afterId, 128);
+          if (batch.length === 0) break;
+
+          for (const candidate of batch) {
+            afterId = candidate.id;
+            result.scanned++;
+            if (candidate.manuallyCorrected) {
+              result.manuallyCorrectedSkipped++;
+              continue;
+            }
+
+            try {
+              const gps = await this.readPhotoMetadata(candidate.path, true);
+              if (gps.latitude === null || gps.longitude === null) {
+                result.withoutGpsInFile++;
+                continue;
+              }
+
+              result.withGpsInFile++;
+              result.wouldUpdate++;
+              if (!dryRun) {
+                const updated = await cacheManager.updateExistingPhotoGpsFromExif(
+                  undefined as never, candidate.path, gps
+                );
+                if (updated) result.updated++;
+                else result.skippedDuringUpdate++;
+              }
+            } catch (error) {
+              result.errors++;
+              console.warn('[Exif] Missing-GPS database scan failed for:', candidate.path, error);
+            }
+
+            if (result.scanned % 500 === 0) {
+              console.info('[Exif] Missing-GPS scan progress:', {
+                databaseKey, ...result
+              });
+            }
+          }
+        }
+      }
+
+      console.info('[Exif] Missing-GPS scan complete:', result);
+      return { success: true, data: result };
     } catch (error) {
       return { success: false, errorMessage: error instanceof Error ? error.message : String(error) };
     }
