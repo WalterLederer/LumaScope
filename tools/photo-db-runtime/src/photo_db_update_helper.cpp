@@ -412,13 +412,13 @@ bool readGpsCoordinates(const fs::path& path) {
 }
 
 void countMissingImageMetadata(const fs::path& file, const std::wstring& extension,
-                                ScanStats& stats, bool verbose) {
+                                ScanStats& stats) {
     if (!isSupportedImageExtension(extension)) return;
     ++stats.imageFiles;
     try {
         if (readGpsCoordinates(file)) ++stats.gpsFound;
         else ++stats.withoutGps;
-    } catch (const std::exception& error) {
+    } catch (const std::exception&) {
         ++stats.metadataErrors;
         // Per-file diagnostics are intentionally suppressed: console I/O for every
         // metadata failure dominates scan time on large photo collections.
@@ -481,7 +481,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
             auto& folderMissing = missingByFolder[absoluteNormalized(directory).wstring()];
             ++folderMissing.files;
             if (extension == L".jpg") ++folderMissing.jpgFiles;
-            countMissingImageMetadata(child, extension, stats, verbose);
+            countMissingImageMetadata(child, extension, stats);
         } else {
             switch (database->compare(relativeFolderForDrive(directory, drive), child.filename().wstring(), size, modifiedAtMs)) {
                 case SqliteDatabase::Match::Missing:
@@ -493,7 +493,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
                         ++folderMissing.files;
                         if (extension == L".jpg") ++folderMissing.jpgFiles;
                     }
-                    countMissingImageMetadata(child, extension, stats, verbose);
+                    countMissingImageMetadata(child, extension, stats);
                     break;
                 case SqliteDatabase::Match::Changed:
                     ++counts.changedFiles;
