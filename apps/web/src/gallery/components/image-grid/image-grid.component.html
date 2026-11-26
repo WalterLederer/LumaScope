@@ -63,10 +63,12 @@
         <input type="checkbox" [checked]="includeUnsupportedFiles()" (change)="setIncludeUnsupportedFiles($any($event.target).checked)" />
         <span>+ Unsupported</span>
       </label>
-      <label class="gallery-file-option" title="Include files from all subfolders (database source only)">
-        <input type="checkbox" [checked]="includeFilesRecursive()" [disabled]="dataSource() === 'filesystem'" (change)="setIncludeFilesRecursive($any($event.target).checked)" />
-        <span>+ Recursive</span>
-      </label>
+      @if (dataSource() !== 'filesystem') {
+        <label class="gallery-file-option" title="Include files from all subfolders">
+          <input type="checkbox" [checked]="includeFilesRecursive()" (change)="setIncludeFilesRecursive($any($event.target).checked)" />
+          <span>+ Recursive</span>
+        </label>
+      }
 
       <label class="thumbnail-name-filter lumascope-surface-box" [class.filter-active]="nameFilterActive()" [style.--detail-filtered-row-color]="filteredRowColor()" title="Filter by filename: separate terms with spaces; every term must match">
         <span class="thumbnail-name-filter-label">Filter</span>
