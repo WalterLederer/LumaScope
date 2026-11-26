@@ -300,6 +300,8 @@ export interface PhotoLocation {
   longitude: number | null;
   gpsTimestamp: number | null;
   displayName: string | null;
+  fileSize?: number;
+  modifiedAt?: number;
 }
 
 export interface CacheClearResult {
