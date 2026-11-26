@@ -121,9 +121,9 @@
           </th>
         </tr>
         <tr class="detail-header detail-header-statistics" [class.cache-build-active]="cacheRunActive() || !cacheStatsLoaded()">
-          <th class="detail-actions-statistics" scope="col" [hidden]="detailActionsColumnPosition() !== 'left'" aria-label="Folder actions statistics"><span class="column-count" [attr.aria-label]="totalFileCount() + ' image rows'">{{ formatNumber(totalFileCount()) }}</span></th>
+          <th class="detail-actions-statistics" scope="col" [hidden]="detailActionsColumnPosition() !== 'left'" aria-label="Folder actions statistics"><span class="column-count" [attr.aria-label]="totalFileCountKnown() ? totalFileCount() + ' image rows' : 'Image row count is being calculated'">{{ totalFileCountKnown() ? formatNumber(totalFileCount()) : '?' }}</span></th>
           <th class="thumb-statistics" scope="col"><small>{{ formatNumber(dimensions().width) }} × {{ formatNumber(dimensions().height) }}</small></th>
-          <th scope="col" class="name-filter-header"></th>
+          <th scope="col" class="name-filter-header">@if (nameFilterActive()) {<small class="column-count" [class.incomplete]="!totalFileCountKnown() || unfilteredFileCount() === null">{{ nameFilterCountLabel() }}</small>}</th>
           <th scope="col"><small class="column-summary"><span>Min: {{ detailSummary().date[0] }}</span><span>Max: {{ detailSummary().date[1] }}</span></small></th>
           <th scope="col">
             <small class="column-summary"><span>Min: {{ detailSummary().gpsDate[0] }}</span><span>Max: {{ detailSummary().gpsDate[1] }}</span></small>
@@ -145,7 +145,7 @@
             }
           </th>
           <th scope="col"></th>
-          <th class="detail-actions-statistics" scope="col" [hidden]="detailActionsColumnPosition() !== 'right'" aria-label="Folder actions statistics"><span class="column-count" [attr.aria-label]="totalFileCount() + ' image rows'">{{ formatNumber(totalFileCount()) }}</span></th>
+          <th class="detail-actions-statistics" scope="col" [hidden]="detailActionsColumnPosition() !== 'right'" aria-label="Folder actions statistics"><span class="column-count" [attr.aria-label]="totalFileCountKnown() ? totalFileCount() + ' image rows' : 'Image row count is being calculated'">{{ totalFileCountKnown() ? formatNumber(totalFileCount()) : '?' }}</span></th>
         </tr>
       </thead>
       <tbody class="images details-list" [class.without-thumbnails]="viewMode() === 'details-no-thumbnails'">
