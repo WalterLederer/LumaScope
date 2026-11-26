@@ -408,9 +408,13 @@ const thumb = async (params: URLSearchParams, signal?: AbortSignal): Promise<Glo
           return false;
         }
         cacheManager.clearThumbnailFailure(fileName);
-        if (generated.isHdr !== null && extname(fileName).toLowerCase() !== '.ohsp') {
+        if (extname(fileName).toLowerCase() !== '.ohsp') {
+          // GPS persistence is independent of HDR detection. Even if a worker
+          // cannot classify the dynamic range, a successful thumbnail decode
+          // must still enrich the drive-local photo database with EXIF/XMP GPS.
           const gps = await injector.inject('Exif').readPhotoMetadata(fileName);
-          await cacheManager.updatePhotoMetadata(fileName, generated.isHdr, gps);
+          const isHdr = generated.isHdr ?? Number((await cacheManager.getPhotoDatabaseRecord(undefined as never, fileName))?.is_hdr) === 1;
+          await cacheManager.updatePhotoMetadata(fileName, isHdr, gps);
         }
         return true;
       },
