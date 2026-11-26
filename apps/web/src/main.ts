@@ -1,5 +1,6 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { setPackagedMode } from 'internal-api';
+import { setNumberLocale } from './ui/utils/format-number';
 import { App } from './app/app';
 import { appConfig } from './app/app.config';
 
@@ -26,11 +27,19 @@ window.addEventListener('unhandledrejection', event => {
 });
 
 
-window.desktop
-  .ProcessManager
-  .isPackaged()
-  .then(isPackaged => {
+Promise.all([
+  window.desktop.ProcessManager.isPackaged(),
+  window.desktop.ProcessManager.getSystemLocale()
+]).then(([isPackaged, systemLocale]) => {
     console.warn('[Startup] ProcessManager.isPackaged resolved', isPackaged);
+    setNumberLocale(systemLocale);
+    const numberParts = new Intl.NumberFormat(systemLocale).formatToParts(1234567.89);
+    console.info('[NumberFormat] Renderer locale initialized:', {
+      systemLocale,
+      decimal: numberParts.find(part => part.type === 'decimal')?.value ?? null,
+      group: numberParts.find(part => part.type === 'group')?.value ?? null,
+      sample: new Intl.NumberFormat(systemLocale).format(357434)
+    });
     logStartupTiming('ProcessManager.isPackaged resolved');
     setPackagedMode(isPackaged);
     console.warn('[Startup] Loading startup theme and application settings');
@@ -175,4 +184,4 @@ window.desktop
       })
       .catch(err => console.error('[Startup] Angular bootstrap failed', err));
   })
-  .catch(err => console.error('[Startup] ProcessManager.isPackaged failed', err));
+  .catch(err => console.error('[Startup] ProcessManager startup initialization failed', err));
