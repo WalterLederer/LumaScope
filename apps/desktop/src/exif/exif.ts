@@ -35,7 +35,10 @@ export class Exif {
       const existingRecord = await cacheManager.getPhotoDatabaseRecord(undefined as never, path);
       const gps = await this.readPhotoMetadata(path, true);
       const hasCoordinates = gps.latitude !== null && gps.longitude !== null;
+      const expectedGpsCheckStatus = hasCoordinates ? 1 : 2;
       const databaseMatchesFile = !!existingRecord
+        && Number(existingRecord.gps_check_status ?? 0) === expectedGpsCheckStatus
+        && existingRecord.gps_checked_at != null
         && (existingRecord.latitude ?? null) === gps.latitude
         && (existingRecord.longitude ?? null) === gps.longitude
         && (existingRecord.altitude_m ?? null) === (hasCoordinates ? gps.altitudeM : null)
@@ -438,8 +441,9 @@ export class Exif {
     directionDeg: number | null;
     coordinateSourceId: number | null;
     gpsManuallyCorrected: boolean;
+    gpsMetadataRead: boolean;
   }> => {
-    const empty = { latitude: null, longitude: null, altitudeM: null, gpsTimestamp: null, gpsTimestampSource: null, gpsTimestampRaw: null, gpsTimestampCandidates: [], directionDeg: null, coordinateSourceId: null, gpsManuallyCorrected: false };
+    const empty = { latitude: null, longitude: null, altitudeM: null, gpsTimestamp: null, gpsTimestampSource: null, gpsTimestampRaw: null, gpsTimestampCandidates: [], directionDeg: null, coordinateSourceId: null, gpsManuallyCorrected: false, gpsMetadataRead: false };
     try {
       const tags = await this.exifTool.read(path) as unknown as Record<string, unknown>;
       const first = (...values: unknown[]) => values.find(value => value !== undefined && value !== null);
@@ -559,7 +563,8 @@ export class Exif {
         gpsTimestampCandidates,
         directionDeg: directionDeg !== null && directionDeg >= 0 && directionDeg < 360 ? directionDeg : null,
         gpsManuallyCorrected,
-        coordinateSourceId
+        coordinateSourceId,
+        gpsMetadataRead: true
       };
     } catch (error) {
       console.warn('[Exif] Could not read photo GPS metadata:', path, error);
