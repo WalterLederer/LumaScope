@@ -25,7 +25,7 @@ export async function readGpxFileMetadata(
     if (!fileName) return null;
     const entries = await fileSystem.readDir(directory);
     const file = entries.find(entry => !entry.isDirectory && entry.name.toLowerCase() === fileName);
-    return file ? { size: file.size, modifiedAt: file.modifiedAt ?? file.createdAt } : null;
+    return file ? { size: file.size, modifiedAt: file.modifiedAt ?? file.createdAt ?? 0 } : null;
   } catch {
     return null;
   }
