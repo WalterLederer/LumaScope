@@ -29,13 +29,16 @@ app-map-window {
     .view-settings-section .view-overlay-toggles>.visibility-toggle{display:inline-flex;align-items:center;gap:6px;min-height:22px;margin:0;line-height:18px;white-space:nowrap}
     .view-settings-section .render-statistics-content>.visibility-toggle input[type="checkbox"]{position:static!important;top:auto!important;transform:none!important;align-self:center;flex:0 0 14px;width:14px;height:14px;min-width:14px;min-height:14px;margin:0!important;padding:0;vertical-align:middle}
     .view-settings-section .render-statistics-content>.scale-visibility-toggle{flex-basis:auto;margin-left:0}
-    .view-settings-section .photo-preview-size-box{display:flex;flex:0 1 220px;align-items:center;width:100%;max-width:220px;min-width:180px;min-height:48px;box-sizing:border-box}
     .view-settings-section .view-visibility-controls{display:flex;flex:1 1 100%;flex-wrap:wrap;align-items:stretch;gap:6px;min-width:0;width:100%}
-    .view-settings-section .view-visibility-controls>.range-setting{flex:1 1 180px;min-width:150px;max-width:none;box-sizing:border-box}
-    .view-settings-section .photo-preview-size-setting{display:grid;flex:1 1 auto;grid-template-columns:auto auto;grid-template-rows:auto auto;justify-content:start;align-self:stretch;align-items:center;column-gap:5px;row-gap:4px;width:100%;max-width:none;min-width:0;margin:0;white-space:nowrap;box-sizing:border-box}
-    .view-settings-section .photo-preview-size-setting>label{grid-column:1;grid-row:1;min-width:0;margin:0;white-space:nowrap}
-    .view-settings-section .photo-preview-size-setting>ui-slider{grid-column:1/-1;grid-row:2;align-self:center;flex:1 1 auto;width:100%;max-width:none;min-width:0;margin:0}
-    .view-settings-section .photo-preview-size-setting>.range-value{grid-column:2;grid-row:1;justify-self:end;flex:0 0 auto;white-space:nowrap}
+    .view-settings-section .view-visibility-controls>.range-setting{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center;column-gap:5px;row-gap:4px;flex:1 1 180px;min-width:150px;max-width:none;box-sizing:border-box;padding:6px 8px;border:1px solid var(--color-border-subtle,rgba(128,128,128,.22));border-radius:8px;background:var(--color-surface-secondary,rgba(128,128,128,.085));box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}
+    .view-settings-section .view-visibility-controls>.range-setting>label,.view-settings-section .view-visibility-controls>.range-setting>.visibility-toggle,.view-settings-section .view-visibility-controls>.range-setting>.opacity-row-label{grid-column:1;grid-row:1;min-width:0}
+    .view-settings-section .view-visibility-controls>.range-setting>ui-slider.opacity-slider{grid-column:1/-1;grid-row:2;align-self:center;flex:1 1 auto;width:100%;max-width:none;min-width:0;margin:0}
+    .view-settings-section .view-visibility-controls>.range-setting>.range-value{grid-column:2;grid-row:1;justify-self:end;white-space:nowrap;font-variant-numeric:tabular-nums}
+    .view-settings-section .photo-preview-size-box{flex:0 1 220px;min-width:180px;min-height:48px}
+    .view-settings-section .photo-preview-size-setting>label{grid-column:1/-1;grid-row:1;white-space:nowrap}
+    .view-settings-section .photo-preview-size-setting>ui-slider{grid-column:1;grid-row:2;min-width:0}
+    .view-settings-section .photo-preview-size-setting>.range-value{grid-column:2;grid-row:2;align-self:center}
+    .view-settings-section .view-visibility-controls>.location-opacity-surface-box,.view-settings-section .view-visibility-controls>.crosshair-opacity-surface-box{background:rgb(220 75 75 / 5%)}
 
     .map-titlebar{position:relative;z-index:1100;-webkit-app-region:drag;height:38px;min-height:38px;display:flex;align-items:center;justify-content:flex-start;gap:12px;padding:0 10px;background:var(--color-surface-default-low,#292a2d);border-bottom:1px solid var(--color-content-default-low,#444);box-sizing:border-box}
     .titlebar-mouse-coordinate{display:block;flex:1 1 360px;min-width:220px;max-width:min(520px,48vw);margin-left:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;line-height:20px;color:var(--color-content-default-high,#ddd);font-variant-numeric:tabular-nums;-webkit-app-region:no-drag}
@@ -467,6 +470,10 @@ app-map-window {
     .opacity-content .range-setting>label,.opacity-content .range-setting>.visibility-toggle{grid-column:1;grid-row:1;min-width:0}
     .opacity-content .range-setting>.range-value{grid-column:2;grid-row:1;justify-self:end;white-space:nowrap;font-variant-numeric:tabular-nums}
     .opacity-content .opacity-row-label .osmand-label-rerender-button{flex:0 0 auto;white-space:nowrap}
+    .view-settings-section .view-visibility-controls .opacity-fit-button,.view-settings-section .view-visibility-controls .routing-help-button.opacity-fit-button{appearance:none!important;-webkit-appearance:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;padding:0!important;border:1px solid #4b9fe0!important;border-radius:8px!important;background:linear-gradient(145deg,#42b8ff 0%,#1677d2 48%,#5948bd 100%)!important;color:#fff!important;font-size:22px!important;font-weight:900!important;line-height:1!important;text-shadow:0 1px 2px rgba(0,0,0,.65)!important;box-shadow:inset 0 2px 2px rgba(255,255,255,.55),inset 0 -2px 3px rgba(0,0,0,.28),0 2px 0 #174b7d,0 4px 8px rgba(0,0,0,.22)!important;cursor:pointer!important}
+    .view-settings-section .view-visibility-controls .opacity-fit-button:hover:not(:disabled){filter:brightness(1.12)}
+    .view-settings-section .view-visibility-controls .opacity-fit-button:disabled{opacity:.4!important;cursor:not-allowed!important}
+    .view-settings-section .view-visibility-controls .opacity-fit-button>span{display:block;color:#fff!important;font-weight:900!important;line-height:1;text-shadow:0 1px 2px #000}
     .opacity-content .range-setting .visibility-toggle input{margin-left:1px!important}
     .opacity-content .overlay-opacity-setting{order:90;flex:0 1 125px}
     .opacity-content .range-setting:has(#map-label-opacity){order:80}
