@@ -392,6 +392,8 @@ export class GalleryState {
       this.totalFileCountKnown.set(this.galleryTotalCount >= 0);
       if (!this.nameFilterActive$.value && this.galleryTotalCount >= 0) {
         this.unfilteredFileCount.set(this.galleryTotalCount);
+      } else if (this.nameFilterActive$.value && this.unfilteredFileCount() === null) {
+        void this.loadUnfilteredFileCount(directory, request);
       }
       if (page.files.length > 0) this.images$.next([...this.images$.value, ...page.files]);
     }).catch(error => {
@@ -470,6 +472,8 @@ export class GalleryState {
       this.totalFileCountKnown.set(this.galleryTotalCount >= 0);
       if (!this.nameFilterActive$.value && this.galleryTotalCount >= 0) {
         this.unfilteredFileCount.set(this.galleryTotalCount);
+      } else if (this.nameFilterActive$.value && this.unfilteredFileCount() === null) {
+        void this.loadUnfilteredFileCount(directory, request);
       }
       this.images$.next(page.files);
     } catch (error) {
