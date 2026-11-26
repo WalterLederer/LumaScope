@@ -23,6 +23,7 @@ export default class App {
   private static pendingCaptureHotkey: string | null = null;
   private static shutdownStartedAt: number | null = null;
   private static startupStartedAt: number | null = null;
+  private static systemNumberLocaleLogged = false;
 
   private static logStartup(event: string, details: Record<string, unknown> = {}): void {
     console.warn(`[Startup] ${event}`, {
@@ -136,6 +137,30 @@ export default class App {
     // This method will be called when Electron has finished
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
+    if (!App.systemNumberLocaleLogged) {
+      App.systemNumberLocaleLogged = true;
+
+      const systemLocale = app.getSystemLocale();
+      const systemFormatter = new Intl.NumberFormat(systemLocale);
+      const systemParts = systemFormatter.formatToParts(1234567.89);
+      const systemDecimal = systemParts.find(part => part.type === 'decimal')?.value ?? null;
+      const systemGroup = systemParts.find(part => part.type === 'group')?.value ?? null;
+
+      const runtimeFormatter = new Intl.NumberFormat();
+      const runtimeParts = runtimeFormatter.formatToParts(1234567.89);
+
+      console.info('[NumberFormat] Startup locale diagnostics:', {
+        systemLocale,
+        systemDecimal,
+        systemGroup,
+        systemSample: systemFormatter.format(1234567.89),
+        runtimeLocale: runtimeFormatter.resolvedOptions().locale,
+        runtimeDecimal: runtimeParts.find(part => part.type === 'decimal')?.value ?? null,
+        runtimeGroup: runtimeParts.find(part => part.type === 'group')?.value ?? null,
+        runtimeSample: runtimeFormatter.format(1234567.89)
+      });
+    }
+
     if (rendererAppName) {
       protocol.handle(appProtocol, protocolHandler);
 
