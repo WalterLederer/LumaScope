@@ -1,24 +1,32 @@
+import type { WindowsNumberFormatSettings } from 'internal-api';
+
 /**
- * Formats numeric values using the user's regional number-format settings.
- * On Windows the locale is read from HKCU\\Control Panel\\International
- * during renderer startup; other platforms retain the runtime default.
+ * Uses the user's Windows regional number settings, including custom
+ * decimal/group separators. Other platforms use the runtime locale.
  */
-let numberLocale: string | undefined;
+let numberSettings: WindowsNumberFormatSettings | null = null;
 let numberFormatter = new Intl.NumberFormat(undefined);
 let decimalFormatter = new Intl.NumberFormat(undefined, {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1
 });
 
-export const setNumberLocale = (locale: string | null): void => {
-  const nextLocale = typeof locale === 'string' && locale.trim() ? locale.trim() : undefined;
+const applyWindowsSeparators = (parts: Intl.NumberFormatPart[]): string => parts.map(part => {
+  if (!numberSettings) return part.value;
+  if (part.type === 'group') return numberSettings.groupSeparator;
+  if (part.type === 'decimal') return numberSettings.decimalSeparator;
+  return part.value;
+}).join('');
+
+export const setNumberLocale = (settings: WindowsNumberFormatSettings | null): void => {
   try {
-    const nextNumberFormatter = new Intl.NumberFormat(nextLocale);
-    const nextDecimalFormatter = new Intl.NumberFormat(nextLocale, {
+    const locale = settings?.locale || undefined;
+    const nextNumberFormatter = new Intl.NumberFormat(locale);
+    const nextDecimalFormatter = new Intl.NumberFormat(locale, {
       minimumFractionDigits: 1,
       maximumFractionDigits: 1
     });
-    numberLocale = nextLocale;
+    numberSettings = settings;
     numberFormatter = nextNumberFormatter;
     decimalFormatter = nextDecimalFormatter;
   } catch (error) {
@@ -26,7 +34,10 @@ export const setNumberLocale = (locale: string | null): void => {
   }
 };
 
-export const formatNumber = (value: number, options?: Intl.NumberFormatOptions): string =>
-  options ? new Intl.NumberFormat(numberLocale, options).format(value) : numberFormatter.format(value);
+export const formatNumber = (value: number, options?: Intl.NumberFormatOptions): string => {
+  const formatter = options ? new Intl.NumberFormat(numberSettings?.locale, options) : numberFormatter;
+  return applyWindowsSeparators(formatter.formatToParts(value));
+};
 
-export const formatDecimalNumber = (value: number): string => decimalFormatter.format(value);
+export const formatDecimalNumber = (value: number): string =>
+  applyWindowsSeparators(decimalFormatter.formatToParts(value));
