@@ -1,6 +1,6 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { setPackagedMode } from 'internal-api';
-import { setNumberLocale } from './ui/utils/format-number';
+import { formatNumber, setNumberLocale } from './ui/utils/format-number';
 import { App } from './app/app';
 import { appConfig } from './app/app.config';
 
@@ -38,7 +38,9 @@ Promise.all([
       systemLocale,
       decimal: numberParts.find(part => part.type === 'decimal')?.value ?? null,
       group: numberParts.find(part => part.type === 'group')?.value ?? null,
-      sample: new Intl.NumberFormat(systemLocale).format(357434)
+      rendererDefaultLocale: new Intl.NumberFormat().resolvedOptions().locale,
+      systemLocaleSample: new Intl.NumberFormat(systemLocale).format(357434),
+      sharedFormatterSample: formatNumber(357434)
     });
     logStartupTiming('ProcessManager.isPackaged resolved');
     setPackagedMode(isPackaged);
