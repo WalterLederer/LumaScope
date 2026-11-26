@@ -2060,3 +2060,26 @@
   min-width: 44px !important;
   max-width: 44px !important;
 }
+
+
+/* The total image-row count belongs to the second header tier, beneath the
+   hamburger menu, for either actions-column position. */
+.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics:not([hidden]) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  border-bottom: 3px solid var(--lumascope-table-line-color, var(--color-border-default, rgb(128 128 128 / 65%))) !important;
+}
+.detail-native-table > thead > tr.detail-header-statistics > th.detail-actions-statistics .table-header-row-count {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 18px !important;
+  height: 20px !important;
+  margin: 0 !important;
+  padding: 0 4px !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums !important;
+}
