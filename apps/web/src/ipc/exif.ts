@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ApiResponse, DesktopExif, ExifTags, FixPhotoLocationsProgress, FixPhotoLocationsResult } from 'internal-api';
+import { ApiResponse, DesktopExif, ExifTags, FixPhotoLocationsProgress, FixPhotoLocationsResult, MissingPhotoRecordsScanResult } from 'internal-api';
 
 @Injectable({ providedIn: 'root' })
 export class ExifService implements DesktopExif {
@@ -51,6 +51,9 @@ export class ExifService implements DesktopExif {
     if (result.success && !checkOnly) this.metadataCache.clear();
     return result;
   };
+  readonly scanMissingPhotoRecords = (roots: string[], dryRun: boolean): Promise<ApiResponse<MissingPhotoRecordsScanResult>> =>
+    window.desktop.Exif.scanMissingPhotoRecords(roots, dryRun);
+
   readonly cancelFixFolderLocations = (operationId: string): void => window.desktop.Exif.cancelFixFolderLocations(operationId);
   readonly onFixFolderLocationsProgress = (callback: (progress: FixPhotoLocationsProgress) => void): (() => void) => window.desktop.Exif.onFixFolderLocationsProgress(callback);
 }
