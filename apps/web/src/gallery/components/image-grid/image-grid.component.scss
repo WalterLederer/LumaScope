@@ -114,12 +114,37 @@ ui-toolbar {
 
   .thumbnail-zoom-box {
     display: inline-flex;
+    min-height: 36px;
+    box-sizing: border-box;
     margin: 0;
     flex: 0 0 auto;
     align-items: center;
     gap: var(--dim-small);
-    padding: 4px 8px;
+    padding: 6px 8px;
     background: var(--color-surface-default-low);
+  }
+
+  /* These toolbar dropdowns should be visually neutral, like the gallery
+     filter controls, rather than inheriting the global raised action-button frame. */
+  > ui-action-button.action {
+    border: 0 !important;
+    border-radius: var(--border-radius-small, 6px) !important;
+    background: transparent !important;
+    color: var(--color-content-primary-high) !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    transform: none !important;
+
+    &::before {
+      display: none !important;
+    }
+
+    &:hover:not(:disabled) {
+      background: var(--color-surface-default-medium) !important;
+      filter: none !important;
+      transform: none !important;
+    }
   }
 
   .zoom-step-buttons {
