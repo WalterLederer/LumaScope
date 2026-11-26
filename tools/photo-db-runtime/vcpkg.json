@@ -4,6 +4,12 @@
   "dependencies": [
     "nlohmann-json",
     "sqlite3",
-    "exiv2"
+    {
+      "name": "exiv2",
+      "features": [
+        "xmp",
+        "bmff"
+      ]
+    }
   ]
 }
