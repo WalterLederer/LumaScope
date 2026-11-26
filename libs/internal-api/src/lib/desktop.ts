@@ -35,6 +35,7 @@ export interface DesktopProcessManager {
   readonly isPackaged: () => Promise<boolean>;
   readonly getDevToolsOpen: () => Promise<boolean>;
   readonly setDevToolsOpen: (open: boolean) => Promise<void>;
+  readonly getSystemLocale: () => Promise<string>;
   readonly getPlatform: () => Promise<string>;
   readonly argv: () => Promise<Arguments>;
   readonly getSystemPaths: () => Promise<SystemPathMapping>;
