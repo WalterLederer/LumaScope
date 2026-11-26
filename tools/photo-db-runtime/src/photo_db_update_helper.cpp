@@ -15,6 +15,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <limits>
 #include <optional>
 #include <set>
 #include <stdexcept>
@@ -373,9 +374,24 @@ std::optional<double> gpsCoordinate(const Exiv2::ExifData& exif, const Exiv2::Xm
 
 bool readGpsCoordinates(const fs::path& path) {
     try {
-        const auto utf8Path = toUtf8(path.wstring());
-        auto image = Exiv2::ImageFactory::open(utf8Path);
-        if (!image.get()) throw std::runtime_error("Exiv2 could not open the image.");
+        // Exiv2 0.28's narrow-path API uses the Windows ANSI code page on
+        // Windows. Read via std::filesystem's wide-path support, then inspect
+        // the bytes in memory so non-ASCII filenames work reliably.
+        std::ifstream input(path, std::ios::binary | std::ios::ate);
+        if (!input) throw std::runtime_error("Could not open image file.");
+        const auto end = input.tellg();
+        if (end <= 0) throw std::runtime_error("Image file is empty or unreadable.");
+        const auto length = static_cast<std::uint64_t>(end);
+        if (length > static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max())) {
+            throw std::runtime_error("Image file is too large to inspect.");
+        }
+        std::vector<Exiv2::byte> bytes(static_cast<std::size_t>(length));
+        input.seekg(0, std::ios::beg);
+        if (!input.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()))) {
+            throw std::runtime_error("Could not read complete image file.");
+        }
+        auto image = Exiv2::ImageFactory::open(bytes.data(), bytes.size());
+        if (!image.get()) throw std::runtime_error("Exiv2 does not recognize this image format.");
         image->readMetadata();
         const auto& exif = image->exifData();
         const auto& xmp = image->xmpData();
@@ -401,8 +417,21 @@ void countMissingImageMetadata(const fs::path& file, const std::wstring& extensi
         else ++stats.withoutGps;
     } catch (const std::exception& error) {
         ++stats.metadataErrors;
-        if (verbose) std::wcerr << L"EXIF read failed: " << file.wstring()
-            << L" (" << error.what() << L")\n";
+        if (verbose) {
+            const std::string message = error.what();
+            const int wideLength = MultiByteToWideChar(CP_UTF8, 0, message.data(),
+                static_cast<int>(message.size()), nullptr, 0);
+            std::wstring wideMessage;
+            if (wideLength > 0) {
+                wideMessage.resize(static_cast<std::size_t>(wideLength));
+                MultiByteToWideChar(CP_UTF8, 0, message.data(), static_cast<int>(message.size()),
+                    wideMessage.data(), wideLength);
+            } else {
+                wideMessage = L"Metadata read failed.";
+            }
+            std::wcerr << L"Metadata read failed: " << file.wstring()
+                       << L" (" << wideMessage << L")\\n";
+        }
     }
 }
 
@@ -522,6 +551,9 @@ fs::path defaultDatabasePath(const std::wstring& drive) {
 
 int wmain(int argc, wchar_t** argv) {
     try {
+        // Suppress low-level vendor MakerNote parser diagnostics; explicit
+        // metadata read failures are counted and reported separately.
+        Exiv2::LogMsg::setLevel(Exiv2::LogMsg::mute);
         const auto options = parseArguments(argc, argv);
         if (options.help) {
             printUsage();
