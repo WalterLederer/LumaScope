@@ -451,6 +451,10 @@ export class ImagesComponent {
     };
   });
   readonly dimensions = computed(() => thumbnailDimensions[this.thumbSize()]);
+  // The full-resolution thumbnail resource is generated with a 512 px long edge.
+  readonly thumbnailResolutionPercent = computed(() =>
+    Math.round((Math.max(this.dimensions().width, this.dimensions().height) / 512) * 100)
+  );
   readonly detailThumbnailWidth = computed(() => {
     const width = this.dimensions().width;
     return Math.round(24 + ((width - 96) / (512 - 96)) * 296);
