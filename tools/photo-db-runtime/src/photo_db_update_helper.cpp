@@ -63,7 +63,7 @@ struct ScanStats {
     std::uint64_t metadataErrors = 0;
     std::map<std::wstring, std::uint64_t> metadataErrorsByExtension;
     std::map<std::wstring, std::map<std::string, std::uint64_t>> metadataErrorMessages;
-    std::vector<std::pair<std::wstring, std::string>> jpgMetadataErrorFiles;
+    std::vector<std::pair<std::wstring, std::string>> metadataErrorFiles;
     std::uint64_t cacheDirectoriesSkipped = 0;
     std::uint64_t filesInsideSkippedDirectories = 0;
     std::uint64_t reparseDirectoriesSkipped = 0;
@@ -472,8 +472,8 @@ void countMissingImageMetadata(const fs::path& file, const std::wstring& extensi
         ++stats.metadataErrorsByExtension[extension];
         ++stats.metadataErrorMessages[extension][error.what()];
         // Keep exact paths for JPG failures only; other image extensions remain aggregated.
-        if (extension == L".jpg") {
-            stats.jpgMetadataErrorFiles.emplace_back(file.wstring(), error.what());
+        if (isGpsMetadataCandidate(extension)) {
+            stats.metadataErrorFiles.emplace_back(file.wstring(), error.what());
         }
     }
 }
@@ -543,7 +543,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
                     {
                         auto& folderMissing = missingByFolder[absoluteNormalized(directory).wstring()];
                         ++folderMissing.files;
-                        if (extension == L".jpg") ++folderMissing.gpsCandidateFiles;
+                        if (isGpsMetadataCandidate(extension)) ++folderMissing.gpsCandidateFiles;
                     }
                     countMissingImageMetadata(child, extension, stats);
                     break;
@@ -681,7 +681,7 @@ int wmain(int argc, wchar_t** argv) {
         std::uint64_t totalMetadataErrors = 0;
         std::map<std::wstring, std::uint64_t> metadataErrorsByExtension;
         std::map<std::wstring, std::map<std::string, std::uint64_t>> metadataErrorMessages;
-        std::vector<std::pair<std::wstring, std::string>> jpgMetadataErrorFiles;
+        std::vector<std::pair<std::wstring, std::string>> metadataErrorFiles;
         for (const auto& stats : perRootStats) {
             excludedFiles += stats.filesInsideSkippedDirectories;
             totalImageFiles += stats.imageFiles;
@@ -694,8 +694,8 @@ int wmain(int argc, wchar_t** argv) {
             for (const auto& [extension, messages] : stats.metadataErrorMessages) {
                 for (const auto& [message, count] : messages) metadataErrorMessages[extension][message] += count;
             }
-            jpgMetadataErrorFiles.insert(jpgMetadataErrorFiles.end(),
-                stats.jpgMetadataErrorFiles.begin(), stats.jpgMetadataErrorFiles.end());
+            metadataErrorFiles.insert(metadataErrorFiles.end(),
+                stats.metadataErrorFiles.begin(), stats.metadataErrorFiles.end());
         }
         const auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - scanStartedAt).count();
         const auto filesPerSecond = elapsed > 0.0 ? static_cast<double>(totalScanned) / elapsed : 0.0;
@@ -726,12 +726,12 @@ int wmain(int argc, wchar_t** argv) {
                 }
             }
         }
-        if (!jpgMetadataErrorFiles.empty()) {
-            std::sort(jpgMetadataErrorFiles.begin(), jpgMetadataErrorFiles.end(),
+        if (!metadataErrorFiles.empty()) {
+            std::sort(metadataErrorFiles.begin(), metadataErrorFiles.end(),
                 [](const auto& left, const auto& right) { return left.first < right.first; });
-            std::wstring jpgErrorOutput = L"\nJPG files with EXIF/XMP read errors ("
-                + std::to_wstring(jpgMetadataErrorFiles.size()) + L"):\n";
-            for (const auto& [filePath, errorMessage] : jpgMetadataErrorFiles) {
+            std::wstring jpgErrorOutput = L"\nJPEG/DNG files with EXIF/XMP read errors ("
+                + std::to_wstring(metadataErrorFiles.size()) + L"):\n";
+            for (const auto& [filePath, errorMessage] : metadataErrorFiles) {
                 jpgErrorOutput += L"  " + filePath + L"\n"
                     + L"    " + fromUtf8(errorMessage) + L"\n";
             }
