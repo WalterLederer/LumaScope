@@ -456,9 +456,16 @@ export class FileSystem {
         // The filesystem remains the sole source of the displayed file list.
         // Use existing per-drive DB metadata only as an optional sort index;
         // do not reconcile/register files as a side effect of browsing.
-        const locations = await Injector.getInstance().inject('CacheManager')
-          .getDirectoryPhotoLocations(undefined as never, path, recursive, false);
-        const metadataByPath = new Map(locations.map(item => [item.path.toLocaleLowerCase(), item]));
+        let metadataByPath = new Map<string, Awaited<ReturnType<ReturnType<typeof Injector.getInstance>['inject']>['getDirectoryPhotoLocations']>[number]>();
+        try {
+          const locations = await Injector.getInstance().inject('CacheManager')
+            .getDirectoryPhotoLocations(undefined as never, path, recursive, false);
+          metadataByPath = new Map(locations.map(item => [item.path.toLocaleLowerCase(), item]));
+        } catch (error) {
+          // Photo DB metadata is optional. A missing/unavailable DB must never
+          // prevent the filesystem file list from being displayed.
+          console.warn('[FileSystem.readImages] Photo DB sort metadata unavailable:', error);
+        }
         const direction = sortDir === 'desc' ? -1 : 1;
         const pathOrder = (a: FileInfo, b: FileInfo): number =>
           a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' });
