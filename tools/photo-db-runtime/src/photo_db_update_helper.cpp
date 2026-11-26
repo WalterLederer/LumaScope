@@ -382,8 +382,14 @@ int wmain(int argc, wchar_t** argv) {
         }
 
         std::wcout << L"\nPhoto database scan complete\n"
-                   << L"Favorites:       " << selectedFavorites.size() << L"\n"
-                   << L"Files scanned:   " << totalScanned << L"\n"
+                   << L"Scan roots:      " << selectedFavorites.size() << L"\n";
+        for (std::size_t index = 0; index < selectedFavorites.size(); ++index) {
+            const auto& stats = perRootStats[index];
+            std::wcout << L"Root " << (index + 1) << L": files=" << stats.filesScanned
+                       << L", cache/thumbnails directories skipped=" << stats.cacheDirectoriesSkipped
+                       << L", reparse directories skipped=" << stats.reparseDirectoriesSkipped << L"\n";
+        }
+        std::wcout << L"Files scanned:   " << totalScanned << L"\n"
                    << L"Missing in DB:   " << totalCounts.newFiles << L"\n"
                    << L"Changed:         " << totalCounts.changedFiles << L"\n"
                    << L"Unchanged:       " << totalCounts.unchangedFiles << L"\n"
