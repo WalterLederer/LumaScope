@@ -130,7 +130,7 @@ public:
     enum class Match { Missing, Changed, Unchanged };
 
     Match compare(const std::wstring& relativeFolder, const std::wstring& fileName,
-                  std::uint64_t size, std::int64_t modifiedAtMs) {
+                  std::uint64_t size, double modifiedAtMs) {
         sqlite3_reset(lookup_);
         sqlite3_clear_bindings(lookup_);
         const auto folderUtf8 = toUtf8(relativeFolder);
@@ -144,7 +144,7 @@ public:
 
         const auto databaseSize = static_cast<std::uint64_t>(sqlite3_column_int64(lookup_, 0));
         const double databaseModifiedAt = sqlite3_column_double(lookup_, 1);
-        return databaseSize != size || databaseModifiedAt != static_cast<double>(modifiedAtMs)
+        return databaseSize != size || databaseModifiedAt != modifiedAtMs
             ? Match::Changed : Match::Unchanged;
     }
 
