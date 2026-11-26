@@ -25,7 +25,7 @@ export interface ProcessMemorySnapshot {
   error: string | null;
 }
 
-export interface DesktopProcessManager {
+export interface WindowsNumberFormatSettings { locale: string; decimalSeparator: string; groupSeparator: string; }\n\nexport interface DesktopProcessManager {
   readonly getProcessMemoryUsage: () => Promise<ProcessMemorySnapshot>;
   readonly getAppVersion: () => Promise<string>;
   readonly getFileTypeIcon: (filePath: string) => Promise<string | null>;
@@ -35,7 +35,7 @@ export interface DesktopProcessManager {
   readonly isPackaged: () => Promise<boolean>;
   readonly getDevToolsOpen: () => Promise<boolean>;
   readonly setDevToolsOpen: (open: boolean) => Promise<void>;
-  readonly getNumberLocale: () => Promise<string | null>;
+  readonly getNumberLocale: () => Promise<WindowsNumberFormatSettings | null>;
   readonly getPlatform: () => Promise<string>;
   readonly argv: () => Promise<Arguments>;
   readonly getSystemPaths: () => Promise<SystemPathMapping>;
