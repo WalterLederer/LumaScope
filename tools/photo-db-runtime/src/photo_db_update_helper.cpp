@@ -39,6 +39,12 @@ struct DatabaseCounts {
     std::uint64_t unchangedFiles = 0;
 };
 
+struct ExtensionCounts {
+    std::uint64_t missing = 0;
+    std::uint64_t changed = 0;
+    std::uint64_t unchanged = 0;
+};
+
 struct ScanStats {
     std::uint64_t filesScanned = 0;
     std::uint64_t cacheDirectoriesSkipped = 0;
@@ -268,8 +274,8 @@ std::uint64_t countFilesInTree(const fs::path& directory) {
 }
 
 void scanDirectory(const fs::path& directory, const std::wstring& drive,
-                   SqliteDatabase* database, DatabaseCounts& counts, ScanStats& stats,
-                   std::uint64_t& scanned, bool verbose, std::set<std::wstring>& visitedFiles) {
+                   SqliteDatabase* database, DatabaseCounts& counts, std::map<std::wstring, ExtensionCounts>& extensionCounts,
+                   ScanStats& stats, std::uint64_t& scanned, bool verbose, std::set<std::wstring>& visitedFiles) {
     const fs::path pattern = directory / L"*";
     WIN32_FIND_DATAW entry{};
     HANDLE handle = FindFirstFileExW(pattern.c_str(), FindExInfoBasic, &entry,
@@ -297,7 +303,7 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
                 stats.filesInsideSkippedDirectories += countFilesInTree(child);
                 continue;
             }
-            scanDirectory(child, drive, database, counts, stats, scanned, verbose, visitedFiles);
+            scanDirectory(child, drive, database, counts, extensionCounts, stats, scanned, verbose, visitedFiles);
             continue;
         }
 
@@ -309,13 +315,25 @@ void scanDirectory(const fs::path& directory, const std::wstring& drive,
         ++scanned;
         ++stats.filesScanned;
 
+        const auto extension = lower(child.extension().wstring());
+        auto& extensionCount = extensionCounts[extension.empty() ? L"(no extension)" : extension];
         if (!database) {
             ++counts.newFiles;
+            ++extensionCount.missing;
         } else {
             switch (database->compare(relativeFolderForDrive(directory, drive), child.filename().wstring(), size, modifiedAtMs)) {
-                case SqliteDatabase::Match::Missing: ++counts.newFiles; break;
-                case SqliteDatabase::Match::Changed: ++counts.changedFiles; break;
-                case SqliteDatabase::Match::Unchanged: ++counts.unchangedFiles; break;
+                case SqliteDatabase::Match::Missing:
+                    ++counts.newFiles;
+                    ++extensionCount.missing;
+                    break;
+                case SqliteDatabase::Match::Changed:
+                    ++counts.changedFiles;
+                    ++extensionCount.changed;
+                    break;
+                case SqliteDatabase::Match::Unchanged:
+                    ++counts.unchangedFiles;
+                    ++extensionCount.unchanged;
+                    break;
             }
         }
 
@@ -391,6 +409,7 @@ int wmain(int argc, wchar_t** argv) {
 
         std::map<std::wstring, std::unique_ptr<SqliteDatabase>> databases;
         DatabaseCounts totalCounts;
+        std::map<std::wstring, ExtensionCounts> extensionCounts;
         std::uint64_t totalScanned = 0;
         std::set<std::wstring> visitedFiles;
         std::vector<ScanStats> perRootStats(selectedFavorites.size());
@@ -412,7 +431,7 @@ int wmain(int argc, wchar_t** argv) {
                 }
             }
 
-            scanDirectory(favorite, drive, found->second.get(), totalCounts, perRootStats[selectedFavoritesIndex],
+            scanDirectory(favorite, drive, found->second.get(), totalCounts, extensionCounts, perRootStats[selectedFavoritesIndex],
                 totalScanned, options.verbose, visitedFiles);
         }
 
@@ -432,8 +451,14 @@ int wmain(int argc, wchar_t** argv) {
                    << L"Files accounted: " << (totalScanned + excludedFiles) << L"\n"
                    << L"Missing in DB:   " << totalCounts.newFiles << L"\n"
                    << L"Changed:         " << totalCounts.changedFiles << L"\n"
-                   << L"Unchanged:       " << totalCounts.unchangedFiles << L"\n"
-                   << L"Mode:            read-only diagnostic (no database changes)\n";
+                   << L"Unchanged:       " << totalCounts.unchangedFiles << L"\n";
+        std::wcout << L"\nFile extensions (missing / changed / unchanged):\n";
+        for (const auto& [extension, values] : extensionCounts) {
+            if (values.missing == 0 && values.changed == 0 && values.unchanged == 0) continue;
+            std::wcout << L"  " << extension << L": " << values.missing << L" / "
+                       << values.changed << L" / " << values.unchanged << L"\n";
+        }
+        std::wcout << L"Mode:            read-only diagnostic (no database changes)\n";
         return 0;
     }
     catch (const std::exception& error) {
