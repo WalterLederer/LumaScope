@@ -2346,6 +2346,15 @@ export class OfflineMapRenderer {
     for (const label of this.textLabels.values()) {
       label.element.style.opacity = String(this.textLabelOpacity);
     }
+    // Enabling labels must also create them when the initial source query ran
+    // while no vector features were available (or before the first idle event).
+    if (this.textLabelOpacity > 0) {
+      if (this.map.isStyleLoaded()) {
+        this.refreshTextLabels();
+      } else {
+        this.map.once('idle', () => this.refreshTextLabels());
+      }
+    }
   }
 
   setHillshadeDatabases(databases: OsmAndHillshadeDatabase[]): void {
