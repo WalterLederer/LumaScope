@@ -26,7 +26,8 @@ export class ViewNavigator {
     this.galleryState.selectedLocation(),
     this.galleryState.sortMode(),
     this.galleryState.includeUnsupportedFiles(),
-    this.galleryState.includeFilesRecursive()
+    this.galleryState.includeFilesRecursive(),
+    this.galleryState.dataSource()
   ]).pipe(
     switchMap(([path]) => {
       if (path === null) return of(-1);
@@ -57,9 +58,7 @@ export class ViewNavigator {
         return of(this.galleryState.getLoadedGalleryFileAtPosition(loadedPosition));
       }
       return from(firstValueFrom(this.galleryState.selectedLocation().pipe(take(1)))).pipe(
-        switchMap(folder => folder
-          ? from(this.cacheManager.getGalleryFileByPath(folder, path, this.galleryState.includeFilesRecursiveValue()))
-          : of(null)),
+        switchMap(() => from(this.galleryState.getGalleryFileByPath(path))),
         catchError(error => {
           console.error('Failed to load selected gallery file', path, error);
           return of(null);
