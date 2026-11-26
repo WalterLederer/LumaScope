@@ -4,6 +4,7 @@ import { Dirent, statSync } from 'node:fs';
 import { copyFile, mkdir, open, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 import { IpcHandler } from '../app/decorators/ipc-handler';
+import { Injector } from '../injector/injector';
 import { writeJsonAtomically } from './json-file';
 
 export class FileSystem {
@@ -450,7 +451,46 @@ export class FileSystem {
 
       const statDurationMs = performance.now() - statStartedAt;
       const sortStartedAt = performance.now();
-      const data = files.sort(this.sortFiles(sortBy, sortDir));
+      let data: FileInfo[];
+      if (sortBy === 'gpsDate' || sortBy === 'gps' || sortBy === 'location') {
+        // The filesystem remains the sole source of the displayed file list.
+        // Use existing per-drive DB metadata only as an optional sort index;
+        // do not reconcile/register files as a side effect of browsing.
+        const locations = await Injector.getInstance().inject('CacheManager')
+          .getDirectoryPhotoLocations(undefined as never, path, recursive, false);
+        const metadataByPath = new Map(locations.map(item => [item.path.toLocaleLowerCase(), item]));
+        const direction = sortDir === 'desc' ? -1 : 1;
+        const pathOrder = (a: FileInfo, b: FileInfo): number =>
+          a.path.localeCompare(b.path, undefined, { numeric: true, sensitivity: 'base' });
+        data = files.sort((a, b) => {
+          const left = metadataByPath.get(a.path.toLocaleLowerCase());
+          const right = metadataByPath.get(b.path.toLocaleLowerCase());
+          if (sortBy === 'gpsDate') {
+            const leftValue = left?.gpsTimestamp ?? null;
+            const rightValue = right?.gpsTimestamp ?? null;
+            if (leftValue === null || rightValue === null) {
+              return leftValue === rightValue ? pathOrder(a, b) : leftValue === null ? 1 : -1;
+            }
+            return (leftValue - rightValue) * direction || pathOrder(a, b);
+          }
+          if (sortBy === 'gps') {
+            const leftValid = left?.latitude !== null && left?.latitude !== undefined
+              && left?.longitude !== null && left?.longitude !== undefined;
+            const rightValid = right?.latitude !== null && right?.latitude !== undefined
+              && right?.longitude !== null && right?.longitude !== undefined;
+            if (!leftValid || !rightValid) return leftValid === rightValid ? pathOrder(a, b) : leftValid ? -1 : 1;
+            const leftValue = left!.latitude! * 1000 + left!.longitude!;
+            const rightValue = right!.latitude! * 1000 + right!.longitude!;
+            return (leftValue - rightValue) * direction || pathOrder(a, b);
+          }
+          const leftName = left?.displayName?.trim() ?? '';
+          const rightName = right?.displayName?.trim() ?? '';
+          if (!leftName || !rightName) return leftName === rightName ? pathOrder(a, b) : leftName ? -1 : 1;
+          return leftName.localeCompare(rightName, undefined, { numeric: true, sensitivity: 'base' }) * direction || pathOrder(a, b);
+        });
+      } else {
+        data = files.sort(this.sortFiles(sortBy, sortDir));
+      }
       const sortDurationMs = performance.now() - sortStartedAt;
       console.log('[FileSystem.readImages] DONE', JSON.stringify({
         path, count: data.length, directoriesRead, fileEntries: fileEntries.length,
