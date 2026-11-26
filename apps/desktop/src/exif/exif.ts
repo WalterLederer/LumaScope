@@ -2,7 +2,7 @@ import { IpcMainInvokeEvent } from 'electron';
 import { ExifTool } from 'exiftool-vendored';
 import { open, readdir, stat } from 'node:fs/promises';
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
-import { ApiResponse, ExifTags, FixPhotoLocationsResult, MissingGpsScanResult, formatOsDateTime } from 'internal-api';
+import { ApiResponse, ExifTags, FixPhotoLocationsResult, MissingGpsScanResult, MissingPhotoRecordsScanResult, formatOsDateTime, supportedFileExtensions } from 'internal-api';
 import { Injector } from '../injector/injector';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 
@@ -145,6 +145,132 @@ export class Exif {
       }
 
       console.info('[Exif] Missing-GPS scan complete:', result);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, errorMessage: error instanceof Error ? error.message : String(error) };
+    }
+  };
+
+  @IpcHandler({ name: 'Exif.scanMissingPhotoRecords' })
+  readonly scanMissingPhotoRecords = async (
+    _: IpcMainInvokeEvent, requestedRoots: string[], dryRun: boolean
+  ): Promise<ApiResponse<MissingPhotoRecordsScanResult>> => {
+    try {
+      if (!Array.isArray(requestedRoots) || requestedRoots.length === 0
+        || requestedRoots.some(root => typeof root !== 'string' || !root.trim())) {
+        throw new Error('Provide one or more valid photo-folder roots.');
+      }
+      if (typeof dryRun !== 'boolean') throw new Error('The dry-run flag must be explicitly true or false.');
+
+      const roots = [...new Set(requestedRoots.map(root => resolve(root)))].sort();
+      for (const root of roots) {
+        if (!/^[a-z]:\\/i.test(root)) throw new Error(`Only local drive folders are supported: ${root}`);
+      }
+      const databaseKeys = [...new Set(roots.map(root => root.slice(0, 2).toUpperCase()))].sort();
+      const injector = Injector.getInstance();
+      const cacheManager = injector.inject('CacheManager');
+      const result: MissingPhotoRecordsScanResult = {
+        dryRun, scannedFiles: 0, alreadyInDatabase: 0, missingRecords: 0,
+        imageFiles: 0, gpsFound: 0, withoutGps: 0, createdRecords: 0,
+        fileChangedSkipped: 0, errors: 0, databaseKeys, roots
+      };
+
+      const scanDirectory = async (directory: string): Promise<void> => {
+        let entries: Awaited<ReturnType<typeof readdir>>;
+        try {
+          entries = await readdir(directory, { withFileTypes: true }) as never;
+        } catch (error) {
+          result.errors++;
+          console.warn('[Exif] Could not scan directory:', directory, error);
+          return;
+        }
+
+        const childDirectories: string[] = [];
+        const files: Array<{ name: string; path: string; size: number; modifiedAt: number }> = [];
+        for (const entry of entries as unknown as Array<{
+          name: string; isDirectory(): boolean; isFile(): boolean; isSymbolicLink(): boolean
+        }>) {
+          if (entry.isSymbolicLink()) continue;
+          if (entry.isDirectory()) {
+            if (entry.name.toLowerCase() !== '.cache' && entry.name.toLowerCase() !== '.thumbnails') {
+              childDirectories.push(join(directory, entry.name));
+            }
+            continue;
+          }
+          const filePath = join(directory, entry.name);
+          try {
+            const metadata = await stat(filePath);
+            if (metadata.isFile()) files.push({
+              name: entry.name, path: filePath, size: metadata.size, modifiedAt: metadata.mtimeMs
+            });
+            else if (metadata.isDirectory()) childDirectories.push(filePath);
+          } catch {
+            result.errors++;
+          }
+        }
+
+        result.scannedFiles += files.length;
+        const missingNames = await cacheManager.getMissingPhotoFileNames(
+          undefined as never, directory, files.map(file => file.name)
+        );
+        const missingSet = new Set(missingNames.map(name => name.toLocaleLowerCase()));
+        result.alreadyInDatabase += files.length - missingSet.size;
+        result.missingRecords += missingSet.size;
+
+        for (const file of files) {
+          if (!missingSet.has(file.name.toLocaleLowerCase())) continue;
+          let gps: Awaited<ReturnType<Exif['readPhotoMetadata']>> | null = null;
+          const extension = extname(file.name).slice(1).toLowerCase();
+          if (supportedFileExtensions.includes(extension)) {
+            result.imageFiles++;
+            try {
+              const beforeRead = await stat(file.path);
+              if (!beforeRead.isFile() || beforeRead.size !== file.size
+                || Math.abs(beforeRead.mtimeMs - file.modifiedAt) > 0.01) {
+                result.fileChangedSkipped++;
+                continue;
+              }
+              gps = await this.readPhotoMetadata(file.path, true);
+              const afterRead = await stat(file.path);
+              if (afterRead.size !== file.size
+                || Math.abs(afterRead.mtimeMs - file.modifiedAt) > 0.01) {
+                result.fileChangedSkipped++;
+                continue;
+              }
+              if (gps.latitude !== null && gps.longitude !== null) result.gpsFound++;
+              else result.withoutGps++;
+            } catch (error) {
+              result.errors++;
+              console.warn('[Exif] Could not read metadata for new photo record:', file.path, error);
+            }
+          }
+
+          if (!dryRun) {
+            try {
+              const created = await cacheManager.registerMissingPhotoRecord(
+                undefined as never, file.path, file.size, file.modifiedAt
+              );
+              if (!created) continue;
+              result.createdRecords++;
+              if (gps?.gpsMetadataRead) {
+                await cacheManager.updatePhotoMetadata(undefined as never, file.path, false, gps);
+              }
+            } catch (error) {
+              result.errors++;
+              console.warn('[Exif] Could not create photo database record:', file.path, error);
+            }
+          }
+
+          if (result.scannedFiles % 10000 === 0) {
+            console.info('[Exif] Missing photo record scan progress:', { directory, ...result });
+          }
+        }
+
+        for (const childDirectory of childDirectories) await scanDirectory(childDirectory);
+      };
+
+      for (const root of roots) await scanDirectory(root);
+      console.info('[Exif] Missing photo record scan complete:', result);
       return { success: true, data: result };
     } catch (error) {
       return { success: false, errorMessage: error instanceof Error ? error.message : String(error) };
