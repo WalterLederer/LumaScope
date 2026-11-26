@@ -134,9 +134,9 @@ app-map-window {
     .settings-tab-content details.view-rerender-section.is-rendering{background:rgba(220,165,35,.14)!important;border-color:rgba(220,165,35,.55)!important}
     .settings-tab-content details.view-rerender-section.is-render-complete{background:rgba(45,150,75,.10)!important;border-color:rgba(65,165,95,.42)!important}
     .settings-tab-content details.view-rerender-section.has-render-errors{background:rgba(180,55,55,.14)!important;border-color:rgba(205,75,75,.52)!important}
-    .view-rerender-section.is-rendering>summary{background:rgba(220,165,35,.18);border-radius:4px;padding:3px 6px;margin:-3px -6px 0}
-    .view-rerender-section.is-render-complete>summary{background:rgba(45,150,75,.14);border-radius:4px;padding:3px 6px;margin:-3px -6px 0}
-    .view-rerender-section.has-render-errors>summary{background:rgba(180,55,55,.18);border-radius:4px;padding:3px 6px;margin:-3px -6px 0}
+    .view-rerender-section.is-rendering>summary{background:rgba(220,165,35,.18);border-radius:4px}
+    .view-rerender-section.is-render-complete>summary{background:rgba(45,150,75,.14);border-radius:4px}
+    .view-rerender-section.has-render-errors>summary{background:rgba(180,55,55,.18);border-radius:4px}
     .view-rerender-section>summary{display:list-item;box-sizing:border-box;margin:0;padding:0;font-family:inherit;font-size:13px;font-weight:700;line-height:1.4;cursor:pointer;white-space:nowrap;list-style:disclosure-closed}
     .view-rerender-section[open]>summary{list-style:disclosure-open;margin-bottom:4px}
     .map-window.light-theme .zoom-settings-section,.map-window.light-theme .opacity-settings{background:#fff;color:#202124;border-color:#c5c8ce}
