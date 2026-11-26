@@ -909,33 +909,33 @@
     <summary>
       <span>Visibility</span>
     </summary>
-    <div class="opacity-content">
-      <div class="range-setting">
+    <div class="opacity-content slider-settings-grid">
+      <div class="range-setting slider-setting-box">
         <label class="visibility-toggle">Map <input type="checkbox" [checked]="mapVisible()" (change)="changeMapVisibility($any($event.target).checked)" aria-label="Show map"></label>
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="mapOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeMapOpacity($event)" />
         @if (mapOpacity() !== 100) { <span class="range-value">{{ mapOpacity() }}%</span> }
       </div>
-      <div class="range-setting">
+      <div class="range-setting slider-setting-box">
         <div class="opacity-row-label"><label class="visibility-toggle">Tracks <input type="checkbox" [checked]="gpxVisible()" (change)="changeTrackVisibility($any($event.target).checked)" aria-label="Show tracks"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="fitSelectedTracksToMap()" [disabled]="!hasActiveTrackPoints()" title="Fit selected tracks to map" aria-label="Fit selected tracks to map"><span aria-hidden="true">⤢</span></button></div>
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="gpxOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeGpxOpacity($event)" />
         @if (gpxOpacity() !== 100) { <span class="range-value">{{ gpxOpacity() }}%</span> }
       </div>
-      <div class="range-setting">
+      <div class="range-setting slider-setting-box">
         <div class="opacity-row-label"><label class="visibility-toggle">Images <input type="checkbox" [checked]="markersVisible()" (change)="changeMarkersVisibility($any($event.target).checked)" aria-label="Show images"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="fitSelectedImagesToMap()" [disabled]="!hasDirectoryPhotoMarkers()" title="Fit selected images to map" aria-label="Fit selected images to map"><span aria-hidden="true">⤢</span></button></div>
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="markerOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeMarkerOpacity($event)" />
         @if (markerOpacity() !== 100) { <span class="range-value">{{ markerOpacity() }}%</span> }
       </div>
-      <div class="range-setting overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
+      <div class="range-setting slider-setting-box overlay-opacity-setting" [class.setting-unavailable]="!overlayMode">
         <label for="overlay-opacity">Window</label>
         <input id="overlay-opacity" class="opacity-slider" type="range" min="0" max="100" step="1" [value]="overlayOpacity()" (input)="changeOverlayOpacity($any($event.target).value)" [disabled]="!overlayMode" aria-label="Window opacity">
         @if (overlayOpacity() !== 100) { <span class="range-value">{{ overlayOpacity() }}%</span> }
       </div>
-      <div class="range-setting mbtiles-label-opacity-setting lumascope-surface-box label-opacity-surface-box" [class.setting-unavailable]="!canShowMbtilesLabels()">
+      <div class="range-setting slider-setting-box mbtiles-label-opacity-setting lumascope-surface-box label-opacity-surface-box" [class.setting-unavailable]="!canShowMbtilesLabels()">
         <label class="visibility-toggle">MBTiles <svg class="text-layer-symbol" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M3.5 2.5h8l4 4v10.8H3.5zM11.5 2.5v4h4M6 9h6M6 11.5h4" /><path d="m9.2 15.8 1-3.1 5.2-5.2a1.2 1.2 0 0 1 1.7 1.7l-5.2 5.2zM9.2 15.8l3.1-1" /></svg> <input type="checkbox" [checked]="labelsVisible()" (change)="changeLabelsVisibility($any($event.target).checked)" [disabled]="!canShowMbtilesLabels()" aria-label="Show MBTiles labels"></label>
         <ui-slider id="map-label-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="labelOpacity()" (valueChange)="changeLabelOpacity($event)" [color]="'#a78bfa'" [isDisabled]="!canShowMbtilesLabels() || !labelsVisible()" aria-label="MBTiles label opacity" />
         @if (labelOpacity() !== 100) { <span class="range-value">{{ labelOpacity() }}%</span> }
       </div>
-      <div class="range-setting osmand-label-opacity-setting lumascope-surface-box label-opacity-surface-box" [class.setting-unavailable]="configuredOsmandMapCount() === 0 || mapSource() === 'osmand-atlas'">
+      <div class="range-setting slider-setting-box osmand-label-opacity-setting lumascope-surface-box label-opacity-surface-box" [class.setting-unavailable]="configuredOsmandMapCount() === 0 || mapSource() === 'osmand-atlas'">
         <div class="opacity-row-label">
           <label class="visibility-toggle">OsmAnd <svg class="text-layer-symbol" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M3.5 2.5h8l4 4v10.8H3.5zM11.5 2.5v4h4M6 9h6M6 11.5h4" /><path d="m9.2 15.8 1-3.1 5.2-5.2a1.2 1.2 0 0 1 1.7 1.7l-5.2 5.2zM9.2 15.8l3.1-1" /></svg> <input type="checkbox" [checked]="osmAndLabelsVisible()" (change)="changeOsmAndLabelsVisibility($any($event.target).checked)" [disabled]="configuredOsmandMapCount() === 0 || mapSource() === 'osmand-atlas'" aria-label="Show OsmAnd Labels"></label>
           <button type="button" class="routing-help-button opacity-fit-button osmand-label-rerender-button" (click)="rerenderVisibleOsmAndLabels()"
@@ -950,7 +950,7 @@
           {{ rerenderOsmAndLabelsStatus() }}
         </span>
       </div>
-      <div class="range-setting lumascope-surface-box hillshade-opacity-surface-box" [class.setting-unavailable]="activeHillshadeDatabaseCount() === 0">
+      <div class="range-setting slider-setting-box lumascope-surface-box hillshade-opacity-surface-box" [class.setting-unavailable]="activeHillshadeDatabaseCount() === 0">
         <label class="visibility-toggle">Hillshade <input type="checkbox" [checked]="hillshadeVisible()" (change)="changeHillshadeVisibility($any($event.target).checked)" [disabled]="activeHillshadeDatabaseCount() === 0" aria-label="Show Hillshade"></label>
         <ui-slider id="hillshade-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="hillshadeOpacity()" (valueChange)="changeHillshadeOpacity($event)" [color]="themeService.sliderColor()" [isDisabled]="activeHillshadeDatabaseCount() === 0 || !hillshadeVisible()" aria-label="Hillshade opacity" />
         @if (hillshadeOpacity() !== 100) { <span class="range-value">{{ hillshadeOpacity() }}%</span> }
@@ -1174,25 +1174,25 @@
               <label class="visibility-toggle"><input type="checkbox" [checked]="renderVisualsEnabled()" (change)="changeRenderVisualsEnabled($any($event.target).checked)"> Show tile rendering overlay</label>
               <label class="visibility-toggle scale-visibility-toggle" [class.setting-unavailable]="!canShowMapBounds()" title="Map bounds are drawn only at zoom level 10 or lower (zoom ≤ 10). Zoom in beyond level 10 to hide them."><input type="checkbox" [checked]="mapBoundsVisible()" (change)="changeMapBoundsVisible($any($event.target).checked)" [disabled]="!canShowMapBounds()"> Show map bounds</label>
             </div>
-            <div class="view-visibility-controls">
-              <div class="range-setting lumascope-surface-box photo-preview-size-box photo-preview-size-setting">
+            <div class="view-visibility-controls slider-settings-grid">
+              <div class="range-setting slider-setting-box lumascope-surface-box photo-preview-size-box photo-preview-size-setting">
                 <label for="photo-preview-size">Image marker preview size</label>
                 <ui-slider id="photo-preview-size" class="opacity-slider" [min]="60" [max]="240" [step]="10"
                   [value]="photoPreviewSize()" (valueChange)="changePhotoPreviewSize($event)"
                   [color]="themeService.sliderColor()" aria-label="Image marker preview size" />
                 <span class="range-value">{{ photoPreviewSize() }} px</span>
               </div>
-      <div class="range-setting lumascope-surface-box location-opacity-surface-box">
+      <div class="range-setting slider-setting-box lumascope-surface-box location-opacity-surface-box">
         <div class="opacity-row-label"><label class="visibility-toggle">Location <input type="checkbox" [checked]="locationVisible()" (change)="changeLocationVisibility($any($event.target).checked)" aria-label="Show location"></label><button type="button" class="routing-help-button opacity-fit-button" (click)="centerSelectedImageLocation()" [disabled]="!canCenterSelectedImageLocation()" title="Center map on selected image" aria-label="Center map on selected image"><span aria-hidden="true">◎</span></button></div>
         <ui-slider class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="locationOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeLocationOpacity($event)" />
         @if (locationOpacity() !== 100) { <span class="range-value">{{ locationOpacity() }}%</span> }
       </div>
-      <div class="range-setting lumascope-surface-box crosshair-opacity-surface-box">
+      <div class="range-setting slider-setting-box lumascope-surface-box crosshair-opacity-surface-box">
         <label class="visibility-toggle">Crosshair <input type="checkbox" [checked]="fixLocationEnabled()" (change)="setFixLocationEnabled($any($event.target).checked)" aria-label="Show crosshair"></label>
         <ui-slider id="crosshair-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="crosshairOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeCrosshairOpacity($event)" [isDisabled]="!fixLocationEnabled()" aria-label="Crosshair opacity" />
         @if (crosshairOpacity() !== 100) { <span class="range-value">{{ crosshairOpacity() }}%</span> }
       </div>
-      <div class="range-setting lumascope-surface-box map-scale-opacity-surface-box">
+      <div class="range-setting slider-setting-box lumascope-surface-box map-scale-opacity-surface-box">
         <label class="visibility-toggle">Scale <input type="checkbox" [checked]="scaleVisible()" (change)="changeScaleVisible($any($event.target).checked)" aria-label="Show map scale"></label>
         <ui-slider id="map-scale-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="mapScaleOpacity()" [color]="themeService.sliderColor()" (valueChange)="changeMapScaleOpacity($event)" aria-label="Map scale opacity" [isDisabled]="!scaleVisible()" />
         @if (mapScaleOpacity() !== 100) { <span class="range-value">{{ mapScaleOpacity() }}%</span> }
