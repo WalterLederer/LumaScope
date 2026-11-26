@@ -11,6 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(unofficial-sqlite3 CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(exiv2 CONFIG REQUIRED)
 
 add_executable(photo_db_update_helper
   src/photo_db_update_helper.cpp
@@ -19,6 +20,7 @@ add_executable(photo_db_update_helper
 target_link_libraries(photo_db_update_helper PRIVATE
   unofficial::sqlite3::sqlite3
   nlohmann_json::nlohmann_json
+  Exiv2::exiv2
 )
 
 target_compile_definitions(photo_db_update_helper PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
