@@ -24,7 +24,6 @@ export class ProcessManager implements DesktopProcessManager {
 
   readonly setDevToolsOpen = (open: boolean): Promise<void> => window.desktop.ProcessManager.setDevToolsOpen(open);
 
-  readonly getNumberLocale = () => window.desktop.ProcessManager.getNumberLocale();
 
   readonly getPlatform = (): Promise<string> => window.desktop.ProcessManager.getPlatform();
 
