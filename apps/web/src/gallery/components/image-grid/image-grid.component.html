@@ -50,13 +50,15 @@
                    aria-label="Thumbnail size" />
         <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
       </div>
-      <label class="gallery-file-option" title="Choose where gallery file information is read from">
-        <span>File source</span>
-        <select [value]="dataSource()" (change)="setDataSource($any($event.target).value)" aria-label="File source">
-          <option value="filesystem">File system</option>
-          <option value="database">Photo database</option>
-        </select>
-      </label>
+      <div class="gallery-data-source-box lumascope-surface-box">
+        <label class="gallery-file-option" title="Choose where gallery file information is read from">
+          <span>File source</span>
+          <select [value]="dataSource()" (change)="setDataSource($any($event.target).value)" aria-label="File source">
+            <option value="filesystem">File system</option>
+            <option value="database">Photo database</option>
+          </select>
+        </label>
+      </div>
       <label class="gallery-file-option" title="Show files with unsupported formats">
         <input type="checkbox" [checked]="includeUnsupportedFiles()" (change)="setIncludeUnsupportedFiles($any($event.target).checked)" />
         <span>+ Unsupported</span>
