@@ -232,6 +232,16 @@ export interface GpxElevationProfile {
 export interface DesktopCacheManager {
   readonly getMissingPhotoFileNames: (directory: string, fileNames: string[]) => Promise<string[]>;
   readonly registerMissingPhotoRecord: (sourceName: string, fileSize: number, modifiedAt: number) => Promise<boolean>;
+  readonly updatePhotoMetadata: (sourceName: string, isHdr: boolean, gps: {
+    latitude: number | null;
+    longitude: number | null;
+    altitudeM: number | null;
+    gpsTimestamp: number | null;
+    directionDeg: number | null;
+    coordinateSourceId: number | null;
+    gpsManuallyCorrected: boolean;
+    gpsMetadataRead: boolean;
+  }) => Promise<void>;
   readonly getMissingGpsPhotoBatch: (databaseKey: string, afterId: number, limit?: number) => Promise<Array<{ id: number; path: string; fileSize: number; modifiedAt: number; manuallyCorrected: boolean }>>;
   readonly updateExistingPhotoGpsFromExif: (sourceName: string, expectedFileSize: number, expectedModifiedAt: number, gps: {
     latitude: number | null;
