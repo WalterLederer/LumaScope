@@ -82,7 +82,6 @@ interface PhotoRow {
   location_name_id: number | null;
   gps_manually_corrected: number;
   gps_manual_corrected_at: number | null;
-  gps_check_status: number;
 }
 
 
@@ -1555,7 +1554,6 @@ export class CacheManager {
         coordinate_source_id = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.coordinate_source_id END,
         gps_manually_corrected = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN 0 ELSE photos.gps_manually_corrected END,
         gps_manual_corrected_at = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN NULL ELSE photos.gps_manual_corrected_at END,
-        gps_check_status = CASE WHEN photos.file_size != excluded.file_size OR photos.modified_at != excluded.modified_at THEN 0 ELSE photos.gps_check_status END,
         file_name = excluded.file_name,
         file_size = excluded.file_size,
         modified_at = excluded.modified_at`);
@@ -2724,10 +2722,6 @@ export class CacheManager {
         WHEN :gpsManuallyCorrected = 0 THEN NULL
         WHEN gps_manually_corrected = 1 AND gps_manual_corrected_at IS NOT NULL THEN gps_manual_corrected_at
         ELSE :gpsManualCorrectedAt
-      END,
-      gps_check_status = CASE
-        WHEN :metadataRead = 1 THEN CASE WHEN :hasCoordinates = 1 THEN 1 ELSE 2 END
-        ELSE gps_check_status
       END
       WHERE id = :id`)
       .run({
@@ -2747,7 +2741,6 @@ export class CacheManager {
         sourceId: hasCoordinates ? gps.coordinateSourceId : null,
         gpsManuallyCorrected: gps.gpsManuallyCorrected && hasCoordinates ? 1 : 0,
         gpsManualCorrectedAt: Math.floor(Date.now() / 1000),
-        metadataRead: gps.gpsMetadataRead ? 1 : 0,
         id: row.id
       });
   };
