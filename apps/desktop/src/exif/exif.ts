@@ -2,7 +2,7 @@ import { IpcMainInvokeEvent } from 'electron';
 import { ExifTool } from 'exiftool-vendored';
 import { open, readdir, stat } from 'node:fs/promises';
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path';
-import { ApiResponse, ExifTags, FixPhotoLocationsResult, MissingPhotoRecordsScanResult, formatOsDateTime, supportedFileExtensions } from 'internal-api';
+import { ApiResponse, ExifTags, FixPhotoLocationsResult, MissingPhotoRecordsScanResult, formatOsDateTime } from 'internal-api';
 import { Injector } from '../injector/injector';
 import { IpcHandler } from '../app/decorators/ipc-handler';
 
@@ -96,6 +96,9 @@ export class Exif {
         fileChangedSkipped: 0, errors: 0, databaseKeys, roots
       };
 
+      // GPS metadata is relevant here only for JPEG photographs and DNG RAW files.
+      // Missing database records are still created for every file, regardless of extension.
+      const gpsMetadataExtensions = new Set(['jpg', 'jpeg', 'jpe', 'dng']);
       let processedFiles = 0;
       const scanDirectory = async (directory: string): Promise<void> => {
         let entries: Awaited<ReturnType<typeof readdir>>;
@@ -147,7 +150,7 @@ export class Exif {
           if (!missingSet.has(file.name.toLocaleLowerCase())) continue;
           let gps: Awaited<ReturnType<Exif['readPhotoMetadata']>> | null = null;
           const extension = extname(file.name).slice(1).toLowerCase();
-          if (supportedFileExtensions.includes(extension)) {
+          if (gpsMetadataExtensions.has(extension)) {
             result.imageFiles++;
             try {
               const beforeRead = await stat(file.path);
