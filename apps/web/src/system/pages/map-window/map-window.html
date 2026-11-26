@@ -946,20 +946,20 @@
         @if (overlayOpacity() !== 100) { <span class="range-value">{{ overlayOpacity() }}%</span> }
       </div>
       <div class="range-setting mbtiles-label-opacity-setting lumascope-surface-box label-opacity-surface-box" [class.setting-unavailable]="!canShowMbtilesLabels()">
-        <label class="visibility-toggle">MBTiles <svg class="text-layer-symbol" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M3.5 2.5h8l4 4v10.8H3.5zM11.5 2.5v4h4M6 9h6M6 11.5h4" /><path d="m9.2 15.8 1-3.1 5.2-5.2a1.2 1.2 0 0 1 1.7 1.7l-5.2 5.2zM9.2 15.8l3.1-1" /></svg> <input type="checkbox" [checked]="mapSource() !== 'osmand-atlas' && labelsVisible()" (change)="changeLabelsVisibility($any($event.target).checked)" [disabled]="!canShowMbtilesLabels()" aria-label="Show MBTiles labels"></label>
+        <label class="visibility-toggle">MBTiles <svg class="text-layer-symbol" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M3.5 2.5h8l4 4v10.8H3.5zM11.5 2.5v4h4M6 9h6M6 11.5h4" /><path d="m9.2 15.8 1-3.1 5.2-5.2a1.2 1.2 0 0 1 1.7 1.7l-5.2 5.2zM9.2 15.8l3.1-1" /></svg> <input type="checkbox" [checked]="labelsVisible()" (change)="changeLabelsVisibility($any($event.target).checked)" [disabled]="!canShowMbtilesLabels()" aria-label="Show MBTiles labels"></label>
         <ui-slider id="map-label-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="labelOpacity()" (valueChange)="changeLabelOpacity($event)" [color]="'#a78bfa'" [isDisabled]="!canShowMbtilesLabels() || !labelsVisible()" aria-label="MBTiles label opacity" />
         @if (labelOpacity() !== 100) { <span class="range-value">{{ labelOpacity() }}%</span> }
       </div>
-      <div class="range-setting osmand-label-opacity-setting lumascope-surface-box label-opacity-surface-box" [class.setting-unavailable]="configuredOsmandMapCount() === 0">
+      <div class="range-setting osmand-label-opacity-setting lumascope-surface-box label-opacity-surface-box" [class.setting-unavailable]="configuredOsmandMapCount() === 0 || mapSource() === 'osmand-atlas'">
         <div class="opacity-row-label">
-          <label class="visibility-toggle">OsmAnd <svg class="text-layer-symbol" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M3.5 2.5h8l4 4v10.8H3.5zM11.5 2.5v4h4M6 9h6M6 11.5h4" /><path d="m9.2 15.8 1-3.1 5.2-5.2a1.2 1.2 0 0 1 1.7 1.7l-5.2 5.2zM9.2 15.8l3.1-1" /></svg> <input type="checkbox" [checked]="osmAndLabelsVisible()" (change)="changeOsmAndLabelsVisibility($any($event.target).checked)" [disabled]="configuredOsmandMapCount() === 0" aria-label="Show OsmAnd Labels"></label>
+          <label class="visibility-toggle">OsmAnd <svg class="text-layer-symbol" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M3.5 2.5h8l4 4v10.8H3.5zM11.5 2.5v4h4M6 9h6M6 11.5h4" /><path d="m9.2 15.8 1-3.1 5.2-5.2a1.2 1.2 0 0 1 1.7 1.7l-5.2 5.2zM9.2 15.8l3.1-1" /></svg> <input type="checkbox" [checked]="osmAndLabelsVisible()" (change)="changeOsmAndLabelsVisibility($any($event.target).checked)" [disabled]="configuredOsmandMapCount() === 0 || mapSource() === 'osmand-atlas'" aria-label="Show OsmAnd Labels"></label>
           <button type="button" class="routing-help-button opacity-fit-button osmand-label-rerender-button" (click)="rerenderVisibleOsmAndLabels()"
-            [disabled]="configuredOsmandMapCount() === 0 || rerenderVisibleTilesBusy()"
+            [disabled]="configuredOsmandMapCount() === 0 || mapSource() === 'osmand-atlas' || rerenderVisibleTilesBusy()"
             title="Rerender tiles" aria-label="Rerender tiles">
             <span aria-hidden="true">↻</span>
           </button>
         </div>
-        <ui-slider id="osmand-labels-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="osmAndLabelsOpacity()" (valueChange)="changeOsmAndLabelsOpacity($event)" [color]="'#a78bfa'" [isDisabled]="configuredOsmandMapCount() === 0 || !osmAndLabelsVisible()" aria-label="OsmAnd Labels opacity" />
+        <ui-slider id="osmand-labels-opacity" class="opacity-slider" [min]="0" [max]="100" [step]="1" [value]="osmAndLabelsOpacity()" (valueChange)="changeOsmAndLabelsOpacity($event)" [color]="'#a78bfa'" [isDisabled]="configuredOsmandMapCount() === 0 || mapSource() === 'osmand-atlas' || !osmAndLabelsVisible()" aria-label="OsmAnd Labels opacity" />
         @if (osmAndLabelsOpacity() !== 100) { <span class="range-value">{{ osmAndLabelsOpacity() }}%</span> }
         <span class="offline-map-status osmand-label-rerender-status" role="status" aria-live="polite">
           {{ rerenderOsmAndLabelsStatus() }}
