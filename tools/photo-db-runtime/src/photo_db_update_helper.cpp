@@ -655,11 +655,11 @@ int wmain(int argc, wchar_t** argv) {
                    << L"Image files (missing records): " << totalImageFiles << L"\n"
                    << L"GPS found:       " << totalGpsFound << L"\n"
                    << L"Without GPS:     " << totalWithoutGps << L"\n"
-                   << L"EXIF errors:     " << totalMetadataErrors << L"\\n";
+                   << L"EXIF errors:     " << totalMetadataErrors << L"\n";
         if (!metadataErrorsByExtension.empty()) {
-            std::wcout << L"EXIF errors by image extension:\\n";
+            std::wcout << L"EXIF errors by image extension:\n";
             for (const auto& [extension, count] : metadataErrorsByExtension) {
-                std::wcout << L"  " << extension << L": " << count << L"\\n";
+                std::wcout << L"  " << extension << L": " << count << L"\n";
             }
         }
         std::wcout
