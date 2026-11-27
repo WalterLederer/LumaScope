@@ -50,25 +50,7 @@
                    aria-label="Thumbnail size" />
         <span class="zoom-factor" aria-live="polite">{{ thumbnailZoomFactor() }}</span>
       </div>
-      <div class="gallery-data-source-box lumascope-surface-box">
-        <label class="gallery-file-option" title="Choose where gallery file information is read from">
-          <span>File source</span>
-          <select [value]="dataSource()" (change)="setDataSource($any($event.target).value)" aria-label="File source">
-            <option value="filesystem">File system</option>
-            <option value="database">Photo database</option>
-          </select>
-        </label>
-      </div>
-      <label class="gallery-file-option" title="Show files with unsupported formats">
-        <input type="checkbox" [checked]="includeUnsupportedFiles()" (change)="setIncludeUnsupportedFiles($any($event.target).checked)" />
-        <span>+ Unsupported</span>
-      </label>
-      @if (dataSource() !== 'filesystem') {
-        <label class="gallery-file-option" title="Include files from all subfolders">
-          <input type="checkbox" [checked]="includeFilesRecursive()" (change)="setIncludeFilesRecursive($any($event.target).checked)" />
-          <span>+ Recursive</span>
-        </label>
-      }
+
 
       <label class="thumbnail-name-filter lumascope-surface-box" [class.filter-active]="nameFilterActive()" [style.--detail-filtered-row-color]="filteredRowColor()" title="Filter by filename: separate terms with spaces; every term must match">
         <span class="thumbnail-name-filter-label">Filter</span>
