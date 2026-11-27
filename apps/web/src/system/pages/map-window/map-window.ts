@@ -1534,6 +1534,7 @@ export class MapWindow implements OnInit, OnDestroy {
     return other;
   };
   protected readonly crosshairCoordinates = signal('—');
+  protected readonly crosshairPosition = signal<{ lat: number; lng: number } | null>(null);
   protected readonly photoGpsCoordinates = signal('Photo GPS position unavailable');
   protected readonly gpsRefreshBusy = signal(false);
   protected readonly offlineAddressQuery = signal('');
@@ -2347,8 +2348,24 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private updateCrosshairCoordinates(): void {
     const center = this.currentMapCenter();
+    this.crosshairPosition.set(center);
     this.crosshairCoordinates.set(center ? formatManualGpsPosition(center.lat, center.lng) : '—');
   }
+
+  protected readonly offlineAddressDistance = (result: import('internal-api').OsmAndAddressSearchResult): string => {
+    const center = this.crosshairPosition();
+    if (!center || !Number.isFinite(result.latitude) || !Number.isFinite(result.longitude)) return '—';
+    const toRadians = (degrees: number): number => degrees * Math.PI / 180;
+    const latitudeDelta = toRadians(result.latitude - center.lat);
+    const longitudeDelta = toRadians(result.longitude - center.lng);
+    const a = Math.sin(latitudeDelta / 2) ** 2
+      + Math.cos(toRadians(center.lat)) * Math.cos(toRadians(result.latitude))
+      * Math.sin(longitudeDelta / 2) ** 2;
+    const distanceMeters = 6371008.8 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return distanceMeters < 1000
+      ? `${Math.round(distanceMeters)} m`
+      : `${new Intl.NumberFormat('en', { maximumFractionDigits: 1 }).format(distanceMeters / 1000)} km`;
+  };
 
   private centerMapAt(latitude: number, longitude: number): void {
     if (this.offlineRenderer) {
