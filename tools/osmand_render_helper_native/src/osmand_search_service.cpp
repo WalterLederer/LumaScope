@@ -1759,8 +1759,21 @@ SearchCandidate makeAmenityCandidate(
     candidate.latitude = latLon.latitude;
     candidate.longitude = latLon.longitude;
     candidate.sourceKind = QStringLiteral("poi");
-    candidate.category = amenity->type;
-    candidate.subcategory = amenity->subType;
+    QStringList decodedCategories;
+    QStringList decodedSubcategories;
+    for (const auto& decodedCategory : amenity->getDecodedCategories())
+    {
+        const auto categoryName = decodedCategory.category.trimmed();
+        const auto subcategoryName = decodedCategory.subcategory.trimmed();
+        if (!categoryName.isEmpty() && !decodedCategories.contains(categoryName))
+            decodedCategories.push_back(categoryName);
+        if (!subcategoryName.isEmpty() && !decodedSubcategories.contains(subcategoryName))
+            decodedSubcategories.push_back(subcategoryName);
+    }
+    candidate.category = decodedCategories.isEmpty()
+        ? amenity->type : decodedCategories.join(QStringLiteral(", "));
+    candidate.subcategory = decodedSubcategories.isEmpty()
+        ? amenity->subType : decodedSubcategories.join(QStringLiteral(", "));
     candidate.typeRank = 10;
     const auto rank = computeMatchRank(query, names);
     candidate.matchRank = rank.first;
