@@ -432,6 +432,7 @@
           <div class="gpx-row-action-menu gpx-row-action-menu-floating" role="menu" [attr.aria-label]="'Actions for ' + actionTrack.name"
                [style.top.px]="gpxRowActionMenuPosition().top" [style.left.px]="gpxRowActionMenuPosition().left" (click)="$event.stopPropagation()">
             <button type="button" role="menuitem" (click)="saveGpxTrackAs(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">↧</span> Save as...</button>
+            <button type="button" role="menuitem" (click)="openGpxTrackPath(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)" [disabled]="actionTrack.path.startsWith('memory:')"><span aria-hidden="true">📂</span> Open path</button>
             <button type="button" role="menuitem" (click)="fitGpxTrack(actionTrack.path); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">⤢</span> Fit map to track</button>
             @if (gpxListMode() === 'recent') {
               <button type="button" role="menuitem" (click)="exportGpxFromMemory(actionTrack); gpxRowActionMenuOpen.set(null); gpxRowActionTrack.set(null)"><span aria-hidden="true">⇩</span> Export from memory</button>
