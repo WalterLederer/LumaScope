@@ -633,7 +633,7 @@
           <input class="routing-point-active" type="checkbox" [checked]="point.active !== false"
                  (change)="changeRouteWaypointActive(i, $any($event.target).checked)"
                  [attr.aria-label]="'Use route point ' + (i + 1)" title="Include this point in route calculation">
-          <span class="routing-point-endpoint-column">@if (routeWaypoints().length >= 2 && i === 0) { <span class="routing-point-endpoint start">▶</span> } @else if (routeWaypoints().length >= 2 && i === routeWaypoints().length - 1) { <span class="routing-point-endpoint end">■</span> }</span>
+          <span class="routing-point-endpoint-column">@if (activeRouteWaypointCount() >= 2 && i === firstActiveRouteWaypointIndex()) { <span class="routing-point-endpoint start">▶</span> } @else if (activeRouteWaypointCount() >= 2 && i === lastActiveRouteWaypointIndex()) { <span class="routing-point-endpoint end">■</span> }</span>
           <span class="routing-point-index">{{ i + 1 }}.</span>
           <span class="routing-point-location"><strong>{{ point.name || 'Location name not resolved' }}</strong><small>{{ point.latitude.toFixed(6) }}, {{ point.longitude.toFixed(6) }}</small></span>
           <div class="routing-point-actions">
