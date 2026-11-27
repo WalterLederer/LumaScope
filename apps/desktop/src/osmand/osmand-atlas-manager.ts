@@ -1259,7 +1259,12 @@ export class OsmAndAtlasManager {
     const targetBoundaryLineSegments = diagnosticRecords('target_boundary_line_segments').map(value => ({
       admin_level: typeof value['admin_level'] === 'number' ? value['admin_level'] : 0,
       osm_id: typeof value['osm_id'] === 'string' ? value['osm_id'] : '',
+      object_key: typeof value['object_key'] === 'string' ? value['object_key'] : '',
       raw_id: typeof value['raw_id'] === 'string' ? value['raw_id'] : '',
+      is_relation: value['is_relation'] === true,
+      is_split: value['is_split'] === true,
+      is_area: value['is_area'] === true,
+      is_closed_figure: value['is_closed_figure'] === true,
       point_count: typeof value['point_count'] === 'number' ? value['point_count'] : 0,
       first: typeof value['first'] === 'string' ? value['first'] : '',
       last: typeof value['last'] === 'string' ? value['last'] : '',
