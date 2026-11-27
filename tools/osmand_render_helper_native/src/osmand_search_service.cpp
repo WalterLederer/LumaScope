@@ -838,12 +838,21 @@ QJsonObject administrativeAreasForCoordinate(
         {
             const auto width = static_cast<qint64>(right) - left;
             const auto height = static_cast<qint64>(bottom) - top;
+            QJsonObject addressAttributes;
+            for (auto attribute = streetGroup->attributes.constBegin();
+                 attribute != streetGroup->attributes.constEnd(); ++attribute)
+                addressAttributes.insert(attribute.key(), attribute.value());
+            bool addressAdminLevelOk = false;
+            const int addressAdminLevel = streetGroup->attributes
+                .value(QStringLiteral("admin_level")).trimmed().toInt(&addressAdminLevelOk);
             addressBoundaryCandidateDetails.push_back(QJsonObject{
                 {QStringLiteral("name"), displayName},
                 {QStringLiteral("osm_id"), streetGroup->id.isOsmId()
                     ? QString::number(streetGroup->id.getOsmId()) : QString()},
                 {QStringLiteral("raw_id"), QString::number(streetGroup->id.id)},
                 {QStringLiteral("is_relation"), streetGroup->id.isIdFromRelation()},
+                {QStringLiteral("admin_level"), addressAdminLevelOk ? addressAdminLevel : -1},
+                {QStringLiteral("attributes"), addressAttributes},
                 {QStringLiteral("bbox31"), QJsonArray{left, top, right, bottom}},
                 {QStringLiteral("position31"), QJsonArray{
                     streetGroup->position31.x, streetGroup->position31.y}},
