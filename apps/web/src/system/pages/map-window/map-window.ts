@@ -1170,42 +1170,69 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.gpxTrackSettingsTrack.set(null);
   };
-  protected readonly saveGpxTrackAs = async (track: GpxTrackFile): Promise<void> => {
+  private async readGpxTrackSaveAsPath(slot: 1 | 2): Promise<string> {
+    if (!this.desktop) return '';
+    const settings = await this.desktop.ProcessManager.getAppSettings();
+    const gpx = settings['gpx'] && typeof settings['gpx'] === 'object'
+      ? settings['gpx'] as Record<string, unknown> : {};
+    const value = gpx[slot === 1 ? 'trackListSaveAsPath' : 'trackListSaveAsPath2'];
+    return typeof value === 'string' ? value : '';
+  }
+
+  private async persistGpxTrackSaveAsPath(slot: 1 | 2, path: string): Promise<void> {
+    if (!this.desktop || !path) return;
+    await this.desktop.ProcessManager.setAppSettingsSection('gpx', {
+      [slot === 1 ? 'trackListSaveAsPath' : 'trackListSaveAsPath2']: path
+    });
+  }
+
+  protected readonly saveGpxTrackAs = async (track: GpxTrackFile): Promise<void> =>
+    this.saveGpxTrackAsSlot(track, 1);
+
+  protected readonly saveGpxTrackAs2 = async (track: GpxTrackFile): Promise<void> =>
+    this.saveGpxTrackAsSlot(track, 2);
+
+  private async saveGpxTrackAsSlot(track: GpxTrackFile, slot: 1 | 2): Promise<void> {
     if (!this.desktop) return;
-    // In-memory tracks and database-backed tracks must be serialized from
-    // their current source; ordinary recent tracks can be copied byte-for-byte.
-    if (track.path.startsWith('memory:')) {
-      await this.exportGpxFromMemory(track);
-      return;
-    }
-    if (this.gpxListMode() === 'database') {
-      await this.exportGpxFromDatabase(track);
-      return;
-    }
     try {
+      const previousPath = await this.readGpxTrackSaveAsPath(slot);
+      // In-memory and database-backed tracks must be exported from their current source.
+      if (track.path.startsWith('memory:')) {
+        const exportedPath = await this.exportGpxFromMemory(track);
+        if (exportedPath) await this.persistGpxTrackSaveAsPath(slot, exportedPath);
+        return;
+      }
+      if (this.gpxListMode() === 'database') {
+        const exportedPath = await this.exportGpxFromDatabase(track);
+        if (exportedPath) await this.persistGpxTrackSaveAsPath(slot, exportedPath);
+        return;
+      }
       const suggestedName = track.name.toLowerCase().endsWith('.gpx') ? track.name : track.name + '.gpx';
-      const destination = await this.desktop.Dialogs.saveFile(suggestedName);
+      const destination = await this.desktop.Dialogs.saveFile(previousPath || suggestedName);
       if (!destination.success || !destination.data) return;
       const source = await this.desktop.FileSystem.readText(track.path);
       if (!source.success) throw new Error(source.errorMessage || 'Could not read the GPX file.');
       const saved = await this.desktop.FileSystem.writeText(destination.data, source.data);
       if (!saved.success) throw new Error(saved.errorMessage || 'Could not save the GPX file.');
+      await this.persistGpxTrackSaveAsPath(slot, destination.data);
       this.gpxDatabaseQueryStatus.set('Saved GPX as ' + destination.data);
     } catch (error) {
       this.gpxError.set(error instanceof Error ? error.message : String(error));
     }
   };
-  protected readonly exportGpxFromMemory = async (track: GpxTrackFile): Promise<void> => {
-    if (!this.desktop) return;
+
+  protected readonly exportGpxFromMemory = async (track: GpxTrackFile): Promise<string | null> => {
+    if (!this.desktop) return null;
     const segments = this.gpxPointDataByTrack.get(track.path) ?? [];
     if (!segments.some(segment => segment.length > 0)) {
       this.gpxError.set('No GPX points are available in the in-memory buffer for this track.');
-      return;
+      return null;
     }
     try {
       const result = await this.desktop.CacheManager.exportGpxTrackFromMemory(track.name, segments.map(segment => segment.map(point => ({ latitude: point.latitude, longitude: point.longitude, elevation: point.elevation, timestamp: point.timestamp }))));
       if (!result.cancelled && result.path) this.gpxDatabaseQueryStatus.set('Exported ' + formatNumber(result.points) + ' points (' + formatNumber(result.elevationPoints) + ' elevation values) to ' + result.path);
-    } catch (error) { this.gpxError.set(error instanceof Error ? error.message : String(error)); }
+      return result.cancelled ? null : result.path;
+    } catch (error) { this.gpxError.set(error instanceof Error ? error.message : String(error)); return null; }
   };
   protected readonly openGpxTrackPath = async (track: GpxTrackFile): Promise<void> => {
     if (!this.desktop || track.path.startsWith('memory:')) return;
@@ -1222,7 +1249,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.gpxRowActionMenuOpen() === track.path) { this.gpxRowActionMenuOpen.set(null); this.gpxRowActionTrack.set(null); return; }
     this.gpxRowActionMenuOpen.set(track.path);
     this.gpxRowActionTrack.set(track);
-    this.gpxRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 230, this.gpxListMode() === 'recent' ? 365 : 225, true));
+    this.gpxRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 230, this.gpxListMode() === 'recent' ? 395 : 255, true));
   };
   protected readonly deleteGpxDatabaseRecordsForFile = async (track: GpxTrackFile): Promise<void> => {
     if (!this.desktop || track.path.startsWith('memory:')) return;
@@ -1241,8 +1268,8 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
 
-  protected readonly exportGpxFromDatabase = async (track: GpxTrackFile): Promise<void> => {
-    if (!this.desktop || track.path.startsWith('memory:')) return;
+  protected readonly exportGpxFromDatabase = async (track: GpxTrackFile): Promise<string | null> => {
+    if (!this.desktop || track.path.startsWith('memory:')) return null;
     const sourcePath = track.databasePath || track.path;
     const absolutePath = /^[a-z]:[\\/]/i.test(sourcePath);
     const databaseKey = absolutePath
@@ -1253,9 +1280,12 @@ export class MapWindow implements OnInit, OnDestroy {
       const result = await this.desktop.CacheManager.exportGpxFileFromDatabase(sourcePath, databaseKey);
       if (!result.cancelled && result.path) {
         this.gpxDatabaseQueryStatus.set(`Exported ${formatNumber(result.points)} points (${formatNumber(result.elevationPoints)} elevation values) to ${result.path}`);
+        return result.path;
       }
+      return null;
     } catch (error) {
       this.gpxError.set(error instanceof Error ? error.message : String(error));
+      return null;
     }
   };
   protected readonly toggleRoutePointActionMenu = (index: number, event: MouseEvent): void => {
