@@ -1147,6 +1147,7 @@ export class OsmAndAtlasManager {
     administrative_areas: Array<{ admin_level: number; name: string }>;
     selection_comments: string[];
     helper_version: string;
+    osmand_sdk_revision: string;
     diagnostics: {
       loaded_map_objects: number;
       administrative_boundary_objects: number;
@@ -1197,6 +1198,7 @@ export class OsmAndAtlasManager {
       administrative_areas?: unknown;
       selection_comments?: unknown;
       helper_version?: unknown;
+      osmand_sdk_revision?: unknown;
       diagnostics?: unknown;
       distance_m?: number;
       source?: string;
@@ -1292,6 +1294,7 @@ export class OsmAndAtlasManager {
       administrative_areas: administrativeAreas,
       selection_comments: selectionComments,
       helper_version: typeof result.helper_version === 'string' ? result.helper_version : 'unknown',
+      osmand_sdk_revision: typeof result.osmand_sdk_revision === 'string' ? result.osmand_sdk_revision : 'unknown',
       diagnostics: {
         loaded_map_objects: diagnosticCount('loaded_map_objects'),
         administrative_boundary_objects: diagnosticCount('administrative_boundary_objects'),
