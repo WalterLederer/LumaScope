@@ -46,7 +46,14 @@
                    </div>
                   @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
                   @if (offlineAddressSearchResults().length > 0) {
-                    <div class="offline-address-results"><table aria-label="Offline address search results">
+                    <div class="offline-address-results"><table aria-label="Offline address search results" style="width: 100%; min-width: 680px; table-layout: fixed;">
+                      <colgroup>
+                        <col style="width: 55%;">
+                        <col style="width: 72px;">
+                        <col style="width: 82px;">
+                        <col style="width: 96px;">
+                        <col style="width: 180px;">
+                      </colgroup>
                       <thead><tr><th scope="col">Address</th><th scope="col">Type</th><th scope="col">Distance</th><th scope="col">Direction</th><th scope="col">Coordinates</th></tr></thead>
                       <tbody>
                         @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
