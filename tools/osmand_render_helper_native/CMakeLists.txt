@@ -167,8 +167,8 @@ else()
     endif()
 endif()
 
-# The SDK must provide the AddressIndex attribute support; never modify its
-# vendored OsmAndCore sources during a LumaScope configure/build.
+# The SDK must provide AddressIndex attribute support; do not patch the
+# AddressIndex reader or StreetGroup header during a LumaScope configure/build.
 set(OSMAND_STREET_GROUP_HEADER "${OSMAND_VENDOR_ROOT}/core/include/OsmAndCore/Data/StreetGroup.h")
 set(OSMAND_ADDRESS_READER_SOURCE "${OSMAND_VENDOR_ROOT}/core/src/Data/ObfAddressSectionReader_P.cpp")
 if(NOT EXISTS "${OSMAND_STREET_GROUP_HEADER}" OR NOT EXISTS "${OSMAND_ADDRESS_READER_SOURCE}")
