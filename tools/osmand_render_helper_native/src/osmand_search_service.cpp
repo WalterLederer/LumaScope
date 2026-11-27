@@ -1323,8 +1323,12 @@ QJsonObject administrativeAreasForCoordinate(
                                 {QStringLiteral("min_zoom"), mapLevel->minZoom},
                                 {QStringLiteral("osm_id"), mapObject->id.isOsmId()
                                     ? QString::number(mapObject->id.getOsmId()) : QString()},
+                                {QStringLiteral("object_key"), normalizedObjectId},
                                 {QStringLiteral("raw_id"), QString::number(mapObject->id.id)},
+                                {QStringLiteral("is_relation"), mapObject->id.isIdFromRelation()},
+                                {QStringLiteral("is_split"), mapObject->id.isIdFromSplit()},
                                 {QStringLiteral("is_area"), mapObject->isArea},
+                                {QStringLiteral("is_closed_figure"), mapObject->isClosedFigure()},
                                 {QStringLiteral("point_count"), mapObject->points31.size()},
                                 {QStringLiteral("first"), QStringLiteral("%1,%2").arg(firstPoint.x).arg(firstPoint.y)},
                                 {QStringLiteral("last"), QStringLiteral("%1,%2").arg(lastPoint.x).arg(lastPoint.y)},
