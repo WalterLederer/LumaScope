@@ -7304,14 +7304,14 @@ export class MapWindow implements OnInit, OnDestroy {
       };
       const startName = shortWaypointName(activePoints[0].name, 'Start');
       const endName = shortWaypointName(activePoints[activePoints.length - 1].name, 'End');
-      const routePrefix = safeFilePart(this.routeName().trim()) || 'Route';
+      const routePrefix = (safeFilePart(this.routeName().trim()) || 'Route').slice(0, 20);
       const suffix = '_' + timestamp + '.gpx';
       const separator = '_to_';
-      const availableLabelLength = Math.max(2, 100 - suffix.length - routePrefix.length - 2 - separator.length);
+      const availableLabelLength = Math.max(2, 100 - suffix.length - routePrefix.length - 1 - separator.length);
       const startLength = Math.max(1, Math.floor(availableLabelLength / 2));
       const endLength = Math.max(1, availableLabelLength - startLength);
-      const defaultName = (routePrefix + '_' + startName.slice(0, startLength) + separator
-        + endName.slice(0, endLength) + suffix).slice(0, 100 - '.gpx'.length) + '.gpx';
+      const defaultName = routePrefix + '_' + startName.slice(0, startLength) + separator
+        + endName.slice(0, endLength) + suffix;
       let destination = '';
       const selectedFolder = this.routeSaveDirectory().trim();
       if (selectedFolder) {
