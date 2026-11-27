@@ -144,6 +144,14 @@
 </div>
 
 <ui-toolbar class="image-status" [class.visible]="selectedLocation() !== null || hoveredFolderPath() !== null">
+  <div class="status-actions" role="group" aria-label="Folder image statistics">
+    <span>Total <strong class="status-count">{{ cacheStatsLoaded() ? formatNumber(cacheStats().total) : '?' }}</strong></span>
+    <span>Thumb <strong class="status-count" [class.incomplete]="cacheStatsLoaded() && cacheStats().thumbnails < cacheStats().total">{{ cacheStatsLoaded() ? formatNumber(cacheStats().thumbnails) : '?' }}</strong></span>
+    <span>Full-Size Conversion <strong class="status-count">{{ cacheStatsLoaded() ? formatNumber(cacheStats().fullSizeConversions) + ' / ' + formatNumber(cacheStats().fullSizeConversionTotal) : '?' }}</strong></span>
+    <span>GPS <strong class="status-count" [class.incomplete]="cacheStatsLoaded() && cacheStats().gps < cacheStats().total">{{ cacheStatsLoaded() ? formatNumber(cacheStats().gps) : '?' }}</strong></span>
+    <span><span class="dynamic-range hdr">HDR</span> <strong class="status-count" [class.incomplete]="cacheStatsLoaded() && cacheStats().hdr < cacheStats().total">{{ cacheStatsLoaded() ? formatNumber(cacheStats().hdr) : '?' }}</strong></span>
+    <span>Location <strong class="status-count" [class.incomplete]="cacheStatsLoaded() && cacheStats().location < cacheStats().total">{{ cacheStatsLoaded() ? formatNumber(cacheStats().location) : '?' }}</strong></span>
+  </div>
   <ui-text [title]="hoverStatusText()">{{ hoverStatusText() }}</ui-text>
 </ui-toolbar>
 
