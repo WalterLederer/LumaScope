@@ -34,13 +34,20 @@ if ($resolvedBash -ne $GitBashExe) {
 }
 
 Write-Host "Using Git Bash: $resolvedBash"
+Write-Host "Using OsmAnd SDK: $sdkRoot"
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $projectRoot "..\.."))
-$vendorRoot = Join-Path $repoRoot "vendor\osmand"
+$sdkRoot = if ($env:LUMASCOPE_OSMAND_SDK_ROOT) {
+    [IO.Path]::GetFullPath($env:LUMASCOPE_OSMAND_SDK_ROOT)
+} else {
+    Join-Path (Split-Path -Parent $repoRoot) "OsmAnd-SDK"
+}
+$vendorRoot = Join-Path $sdkRoot "vendor\osmand"
 $buildRoot = Join-Path $projectRoot "build"
 
 Assert-Exists $projectRoot
+Assert-Exists $sdkRoot
 Assert-Exists $vendorRoot
 Assert-Exists (Join-Path $vendorRoot "core\CMakeLists.txt")
 Assert-Exists (Join-Path $vendorRoot "core-legacy\CMakeLists.txt")
