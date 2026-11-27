@@ -1320,7 +1320,7 @@ export class OsmAndAtlasManager {
     paths: string[],
     query: string,
     limit = 5
-  ): Promise<Array<{ display_name: string; secondary_text: string; longitude: number; latitude: number; source_kind: string; match_kind: string }>> => {
+  ): Promise<Array<{ display_name: string; secondary_text: string; longitude: number; latitude: number; source_kind: string; match_kind: string; category: string; subcategory: string }>> => {
     if (!Array.isArray(paths) || paths.some(path => typeof path !== 'string' || !/\.obf$/i.test(path))) {
       throw new Error('Address search requires a valid list of active OBF files.');
     }
@@ -1358,11 +1358,16 @@ export class OsmAndAtlasManager {
     });
     const parsed: unknown = JSON.parse(output.trim());
     if (!Array.isArray(parsed)) throw new Error('Offline address search returned an invalid result.');
-    return parsed.filter((item): item is { display_name: string; secondary_text: string; longitude: number; latitude: number; source_kind: string; match_kind: string } =>
+    return parsed.filter((item): item is { display_name: string; secondary_text: string; longitude: number; latitude: number; source_kind: string; match_kind: string; category: string; subcategory: string } =>
       !!item && typeof item === 'object'
       && typeof (item as { display_name?: unknown }).display_name === 'string'
       && typeof (item as { latitude?: unknown }).latitude === 'number'
-      && typeof (item as { longitude?: unknown }).longitude === 'number');
+      && typeof (item as { longitude?: unknown }).longitude === 'number')
+      .map(item => ({
+        ...item,
+        category: typeof item.category === 'string' ? item.category : '',
+        subcategory: typeof item.subcategory === 'string' ? item.subcategory : ''
+      }));
   };
 
   @IpcHandler({ name: 'OsmAndAtlas.getRuntimeStatus' })
