@@ -3855,6 +3855,19 @@ export class MapWindow implements OnInit, OnDestroy {
     // MBTiles selection is validated against enabled maps and geographic bounds during initialization.
     const nextSource = value;
     const previousSource = this.mapSource();
+    // Preserve the actual map viewport, not the current photo's GPS position.
+    // A user may have navigated to a search result (e.g. Volkstheater) while
+    // the selected photo is elsewhere (e.g. Stockerau).
+    const visibleMapCenter = this.currentMapCenter();
+    const visibleMapZoom = this.offlineRenderer?.map.getZoom();
+    const nextCenter = visibleMapCenter
+      ?? (this.currentLatitude !== null && this.currentLongitude !== null
+        ? { lat: this.currentLatitude, lng: this.currentLongitude }
+        : null);
+    if (visibleMapZoom !== undefined && Number.isFinite(visibleMapZoom)) {
+      this.zoomLevel.set(this.validZoom(visibleMapZoom));
+      this.persistZoom(this.validZoom(visibleMapZoom));
+    }
     // Stop late requests from a map instance that is being replaced.
     setMapsforgeTileProtocolActive(false);
     if (nextSource !== 'offline') this.mapDisplayNotice.set('');
@@ -3909,9 +3922,9 @@ export class MapWindow implements OnInit, OnDestroy {
       this.activeOfflineMapId.set(null);
       this.offlineMapStatus.set(null);
     }
-    if (this.currentLatitude !== null && this.currentLongitude !== null) {
+    if (nextCenter) {
       this.offlineRenderer?.remove(); this.offlineRenderer = null; this.clearDirectoryMarkers();
-      void this.initialize(this.currentLatitude, this.currentLongitude);
+      void this.initialize(nextCenter.lat, nextCenter.lng);
     }
   };
   protected readonly changeOfflineMapStyle = (value: string): void => {
