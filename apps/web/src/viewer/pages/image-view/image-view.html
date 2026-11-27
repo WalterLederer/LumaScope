@@ -798,7 +798,7 @@
   }
 }
 
-  @if (!fullScreen && (selected !== null || activeImageSidebarTab() === 'gallery')) {
+  @if (!fullScreen && activeImageSidebarTab() !== 'gallery' && selected !== null) {
     @let imagePosition = imagePosition$ | async;
     <footer class="image-status-bar" aria-label="Image status"
             [style.margin-right.px]="activeImageSidebarTab() !== 'gallery' && controlsSidebarVisible() && !sidebarOnLeft() ? sidebarWidth() + 16 : 0"
