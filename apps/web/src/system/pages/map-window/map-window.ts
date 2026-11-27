@@ -1375,6 +1375,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly routeBusy = signal(false);
   protected readonly routeStatus = signal('');
   protected readonly lastSavedRouteGpxPath = signal('');
+  protected readonly calculatedRouteTrack = computed(() => {
+    const path = this.lastSavedRouteGpxPath();
+    return path ? this.gpxTracks().find(track => track.path === path) ?? null : null;
+  });
   private routeWaypointMarkers: Array<{ remove(): void }> = [];
   private routeRequestGeneration = 0;
   protected readonly gpxRestoreBusy = signal(false);
