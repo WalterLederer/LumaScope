@@ -1537,6 +1537,10 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly photoGpsCoordinates = signal('Photo GPS position unavailable');
   protected readonly gpsRefreshBusy = signal(false);
   protected readonly offlineAddressQuery = signal('');
+  protected readonly offlineAddressActiveObfFiles = computed(() => this.offlineMaps()
+    .filter(map => map.type === 'obf' && map.enabled && map.available && !!map.filePath)
+    .map(map => map.filePath)
+    .sort((a, b) => a.localeCompare(b)));
   protected readonly offlineAddressSearchResults = signal<import('internal-api').OsmAndAddressSearchResult[]>([]);
   protected readonly offlineAddressSearchBusy = signal(false);
   protected readonly offlineAddressSearchError = signal('');
@@ -2496,13 +2500,17 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly searchOfflineAddresses = async (): Promise<void> => {
     const query = this.offlineAddressQuery().trim();
     if (query.length < 2 || !this.desktop || this.offlineAddressSearchBusy()) return;
-    const activePaths = this.offlineMaps()
-      .filter(map => map.type === 'obf' && map.enabled && map.available && !!map.filePath)
-      .map(map => map.filePath);
     this.offlineAddressSearchBusy.set(true);
     this.offlineAddressSearchError.set('');
     this.offlineAddressSearchResults.set([]);
     try {
+      // Read the configured offline-file catalogue directly. Address lookup is
+      // independent of the currently selected map renderer/source.
+      const maps = await this.desktop.OfflineMap.getMaps();
+      this.offlineMaps.set(maps);
+      const activePaths = maps
+        .filter(map => map.type === 'obf' && map.enabled && map.available && !!map.filePath)
+        .map(map => map.filePath);
       if (!activePaths.length) throw new Error('No enabled and available OsmAnd OBF files are configured in Offline Files.');
       const results = await this.desktop.OsmAndAtlas.searchAddresses(activePaths, query, 0);
       this.offlineAddressSearchResults.set(results);
