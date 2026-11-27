@@ -55,7 +55,8 @@
                             <td class="offline-address-result-type">{{ result.source_kind === 'poi' ? 'POI' : result.source_kind === 'address' ? 'Address' : result.source_kind }}</td>
                             <td class="offline-address-result-distance">{{ offlineAddressDistance(result) }}</td>
                             <td class="offline-address-result-direction">
-                              @if (offlineAddressBearing(result); as direction) {
+                              @let direction = offlineAddressBearing(result);
+                              @if (direction !== null) {
                                 <span class="offline-address-direction-arrow" [style.transform]="'rotate(' + direction + 'deg)'" aria-hidden="true">↑</span>
                                 {{ offlineAddressBearingLabel(result) }}
                               } @else {
