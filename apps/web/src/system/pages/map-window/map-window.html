@@ -657,8 +657,7 @@
         <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'down')" [disabled]="pointIndex === routeWaypoints().length - 1"><span aria-hidden="true">↓</span> Move down</button>
       </div>
     }
-    @if (lastSavedRouteGpxPath(); as routePath) {
-      @if (gpxTracks().find(track => track.path === routePath); as routeTrack) {
+    @if (calculatedRouteTrack(); as routeTrack) {
         <section class="routing-route-preview" aria-label="Calculated route preview">
           <div class="routing-route-preview-heading">
             <strong>Calculated route</strong>
