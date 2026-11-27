@@ -631,6 +631,8 @@ export interface OsmAndAddressSearchResult {
   latitude: number;
   source_kind: string;
   match_kind: string;
+  category: string;
+  subcategory: string;
 }
 
 export interface OsmAndReverseGeocodeResult {
