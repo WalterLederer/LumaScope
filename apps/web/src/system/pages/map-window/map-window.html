@@ -657,6 +657,18 @@
         <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'down')" [disabled]="pointIndex === routeWaypoints().length - 1"><span aria-hidden="true">↓</span> Move down</button>
       </div>
     }
+    @if (lastSavedRouteGpxPath(); as routePath) {
+      @if (gpxTracks().find(track => track.path === routePath); as routeTrack) {
+        <section class="routing-route-preview" aria-label="Calculated route preview">
+          <div class="routing-route-preview-heading">
+            <strong>Calculated route</strong>
+            <button type="button" class="gpx-track-edit-button" (click)="openGpxTrackSettings(routeTrack)"
+                    title="Track Settings" aria-label="Track Settings">✎</button>
+          </div>
+          <app-gpx-track-preview [track]="routeTrack" variant="list" />
+        </section>
+      }
+    }
     @if (routeWaypoints().length === 0) { <div class="routing-pick-hint routing-pick-hint-bottom">Add route points by RIGHT clicking the map</div> }
     <details class="routing-advanced app-disclosure">
       <summary>Advanced</summary>
