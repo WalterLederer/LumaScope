@@ -58,7 +58,18 @@
                       </tbody>
                     </table></div>
                   }
-                  <span class="offline-map-status">Searches only enabled, available OsmAnd OBF files.</span>
+                  <div class="offline-map-status offline-address-obf-sources">
+                    <span>Active OBF files ({{ offlineAddressActiveObfFiles().length }}):</span>
+                    @if (offlineAddressActiveObfFiles().length > 0) {
+                      <ul>
+                        @for (path of offlineAddressActiveObfFiles(); track path) {
+                          <li><code>{{ path }}</code></li>
+                        }
+                      </ul>
+                    } @else {
+                      <span>No enabled and available OBF files.</span>
+                    }
+                  </div>
                 </form>
               </details>
               <details class="location-tools-section app-disclosure">
