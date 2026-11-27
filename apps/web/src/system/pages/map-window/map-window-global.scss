@@ -675,6 +675,7 @@ app-map-window {
     .routing-point-endpoint-column{display:flex;align-items:center;justify-content:center;width:28px;flex:0 0 28px}.routing-point-endpoint{font-size:12px;font-weight:800;white-space:nowrap;padding:3px 5px;border-radius:5px}
     .routing-point-endpoint.start{color:#067647;background:#d1fadf}
     .routing-point-endpoint.end{color:#b42318;background:#fee4e2}
+    .routing-route-preview{display:flex;flex-direction:column;gap:5px;min-width:0;padding:7px 9px;border:1px solid var(--color-content-default-low,#555);border-radius:6px;background:color-mix(in srgb,CanvasText 4%,Canvas)}.routing-route-preview-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;font-weight:700}.routing-route-preview .gpx-track-style-preview{padding:3px 0}
     .routing-last-saved-gpx{display:flex;align-items:center;gap:8px;min-width:0}
     .routing-last-saved-gpx .offline-map-status{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
     .hillshade-clear-visible-button{margin-left:auto}
