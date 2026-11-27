@@ -512,7 +512,7 @@ if ($currentBranch -ne $workBranch) {
 
 # Git aktualisieren
 # Invoke-CheckedCommand "git" @("pull", "--ff-only", "origin", $workBranch)
-Invoke-CheckedCommand $gitExe @("-C ..\OsmAnd-SDK", "pull", $workBranch)
+Invoke-CheckedCommand $gitExe @("-C ..\OsmAnd-SDK", "pull")
 Invoke-CheckedCommand $gitExe @("pull", "origin", $workBranch)
 
 Invoke-CheckedCommand "npx" @("nx", "reset")
