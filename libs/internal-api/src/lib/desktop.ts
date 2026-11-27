@@ -647,6 +647,7 @@ export interface OsmAndReverseGeocodeResult {
   administrative_areas: Array<{ admin_level: number; name: string }>;
   selection_comments: string[];
   helper_version: string;
+  osmand_sdk_revision: string;
   diagnostics: {
       loaded_map_objects: number;
       administrative_boundary_objects: number;
