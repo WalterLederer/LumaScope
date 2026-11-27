@@ -34,7 +34,6 @@ if ($resolvedBash -ne $GitBashExe) {
 }
 
 Write-Host "Using Git Bash: $resolvedBash"
-Write-Host "Using OsmAnd SDK: $sdkRoot"
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $projectRoot "..\.."))
@@ -44,6 +43,7 @@ $sdkRoot = if ($env:LUMASCOPE_OSMAND_SDK_ROOT) {
     Join-Path (Split-Path -Parent $repoRoot) "OsmAnd-SDK"
 }
 $vendorRoot = Join-Path $sdkRoot "vendor\osmand"
+Write-Host "Using OsmAnd SDK: $sdkRoot"
 $buildRoot = Join-Path $projectRoot "build"
 
 Assert-Exists $projectRoot
