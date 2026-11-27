@@ -439,6 +439,45 @@
   }
 
   @if (mode() === 'general') {
+    <section class="browse-settings">
+      <details class="app-disclosure">
+        <summary>Browse</summary>
+        <div class="browse-settings-content">
+          <div class="setting-row">
+            <div class="setting-description">
+              <strong>File source</strong>
+              <span>Choose where gallery file information is read from.</span>
+            </div>
+            <select class="browse-source-select" [value]="browseDataSource()" (change)="setBrowseDataSource($any($event.target).value)" aria-label="File source">
+              <option value="filesystem">File system</option>
+              <option value="database">Photo database</option>
+            </select>
+          </div>
+          <div class="setting-row">
+            <div class="setting-description">
+              <strong>Unsupported files</strong>
+              <span>Include files with unsupported formats in the gallery.</span>
+            </div>
+            <label class="setting-toggle">
+              <input type="checkbox" [checked]="browseIncludeUnsupportedFiles()" (change)="setBrowseIncludeUnsupportedFiles($any($event.target).checked)" />
+              <span>+ Unsupported</span>
+            </label>
+          </div>
+          @if (browseDataSource() !== 'filesystem') {
+            <div class="setting-row">
+              <div class="setting-description">
+                <strong>Recursive</strong>
+                <span>Include files from all subfolders.</span>
+              </div>
+              <label class="setting-toggle">
+                <input type="checkbox" [checked]="browseIncludeFilesRecursive()" (change)="setBrowseIncludeFilesRecursive($any($event.target).checked)" />
+                <span>+ Recursive</span>
+              </label>
+            </div>
+          }
+        </div>
+      </details>
+    </section>
   <section class="debug-settings">
     <details class="app-disclosure">
       <summary>Debug</summary>
