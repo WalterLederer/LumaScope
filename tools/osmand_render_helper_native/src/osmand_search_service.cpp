@@ -891,9 +891,8 @@ QJsonObject administrativeAreasForCoordinate(
         if (objectName.isEmpty())
             continue;
 
-        // Read admin_level from the original CityIndex attributes. OsmAndCore's
-        // default StreetGroup parser drops these attributes, so CMake patches
-        // the vendored reader to preserve them on StreetGroup.
+        // Read admin_level from the original CityIndex attributes. The
+        // PySide6-OsmAnd-SDK StreetGroup parser preserves CityIndex attributes.
         bool addressAdminLevelOk = false;
         const int addressAdminLevel = streetGroup->attributes
             .value(QStringLiteral("admin_level")).trimmed().toInt(&addressAdminLevelOk);
@@ -2306,7 +2305,8 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.24")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.25")},
+        {QStringLiteral("osmand_sdk_revision"), QStringLiteral(LUMASCOPE_OSMAND_SDK_REVISION)},
     };
 
     // Administrative areas are resolved independently from the address
