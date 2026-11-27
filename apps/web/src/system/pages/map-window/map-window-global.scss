@@ -88,6 +88,8 @@ app-map-window {
     .settings-tab-content.location-tab{width:100%}
     .offline-address-search{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0}
     .offline-address-search form{display:flex;flex-direction:column;gap:7px;min-width:0}
+    .offline-address-search .location-actions{align-items:center;flex-wrap:wrap}
+    .offline-address-reverse-result{flex:1 1 260px;min-width:180px;max-width:100%;font-size:12px;line-height:1.35;color:var(--color-content-default,#e8eaed);overflow-wrap:anywhere}
     .offline-address-results{width:100%;min-width:0;max-height:260px;overflow:auto}
     .offline-address-results table{width:max-content;min-width:100%;border-collapse:collapse;table-layout:auto;font-size:12px}
     .offline-address-results th{position:sticky;top:0;z-index:1;padding:4px 7px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#555);font-size:11px;font-weight:600;text-align:left;white-space:nowrap}
@@ -96,6 +98,7 @@ app-map-window {
     .offline-address-results th:last-child{text-align:right}
     .offline-address-results tbody tr{height:27px;border-bottom:1px solid var(--color-content-default-low,#454545);cursor:pointer}
     .offline-address-results tbody tr:hover{background:color-mix(in srgb,var(--color-surface-default-medium,#454545) 45%,transparent)}
+    .offline-address-results tbody tr.selected{background:color-mix(in srgb,var(--color-accent,#4285f4) 22%,var(--color-surface-default-low,#252629))}
     .offline-address-results td{padding:3px 7px;white-space:nowrap;vertical-align:middle}
     .offline-address-results td:not(:first-child){width:1%}
     .offline-address-result-name{min-width:300px;max-width:620px;overflow:hidden;text-overflow:ellipsis}
