@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
             std::cerr << "Search result limit must be zero (unlimited) or between 1 and 1000000." << std::endl;
             return 2;
         }
-        result = service.search(query, limit, locale, false, errorMessage);
+        result = service.search(query, limit, locale, true, errorMessage);
     }
 
     if (!errorMessage.isEmpty())
