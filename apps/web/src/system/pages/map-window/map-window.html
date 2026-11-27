@@ -43,6 +43,9 @@
                     <button type="submit" class="map-toolbar-button" [disabled]="offlineAddressSearchBusy() || offlineAddressQuery().trim().length < 2">
                       {{ offlineAddressSearchBusy() ? 'Searching…' : 'Search' }}
                     </button>
+                    @if (offlineAddressReverseGeocodeText()) {
+                      <span class="offline-address-reverse-result" role="status" aria-live="polite">{{ offlineAddressReverseGeocodeText() }}</span>
+                    }
                    </div>
                   @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
                   @if (offlineAddressSearchResults().length > 0) {
@@ -50,7 +53,7 @@
                       <thead><tr><th scope="col">Address</th><th scope="col">Type</th><th scope="col">Category</th><th scope="col">Subcategory</th><th scope="col">Match</th><th scope="col">Distance</th><th scope="col">Direction</th><th scope="col">Coordinates</th></tr></thead>
                       <tbody>
                         @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
-                          <tr tabindex="0" (click)="goToOfflineAddress(result)" (keydown.enter)="goToOfflineAddress(result)" (keydown.space)="$event.preventDefault(); goToOfflineAddress(result)">
+                          <tr tabindex="0" [class.selected]="offlineAddressSelectedResult() === result" (click)="selectOfflineAddress(result)" (keydown.enter)="selectOfflineAddress(result)" (keydown.space)="$event.preventDefault(); selectOfflineAddress(result)">
                             <td class="offline-address-result-name"><strong>{{ result.display_name }}</strong>@if (result.secondary_text) { <span> · {{ result.secondary_text }}</span> }</td>
                             <td class="offline-address-result-type">{{ result.source_kind === 'poi' ? 'POI' : result.source_kind === 'address' ? 'Address' : result.source_kind }}</td>
                             <td class="offline-address-result-metadata">{{ result.category || '—' }}</td>
