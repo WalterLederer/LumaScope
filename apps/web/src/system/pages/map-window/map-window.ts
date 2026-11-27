@@ -1155,11 +1155,19 @@ export class MapWindow implements OnInit, OnDestroy {
     const elevationMinM = Math.max(-12000, Math.min(100000, Math.round(Number(draft.elevationMinM) || 0)));
     const elevationMaxM = Math.max(elevationMinM + 1, Math.min(100001, Math.round(Number(draft.elevationMaxM) || 3000)));
     const savedSettings = { ...draft, directionIntervalPx: Math.max(20, Math.min(200, Math.round(Number(draft.directionIntervalPx) / 10) * 10)), directionArrowSizePx: Math.max(8, Math.min(40, Math.round(Number(draft.directionArrowSizePx) || 16))), directionArrowOutlineWidthPx: Math.max(0, Math.min(6, Number(draft.directionArrowOutlineWidthPx) || 0)), trackShadowStrength: Math.max(0, Math.min(100, Number(draft.trackShadowStrength) || 0)), arrowShadowStrength: Math.max(0, Math.min(100, Number(draft.arrowShadowStrength) || 0)), trackOutlineStrength: Math.max(0, Math.min(100, Number(draft.trackOutlineStrength) || 0)), speedMinKmh: min, speedMaxKmh: max, elevationMinM, elevationMaxM, lineWidth: Math.max(1, Math.min(10, Math.round(Number(draft.lineWidth) || 3))) };
-    this.changeGpxListTrack(track.path, savedSettings);
-    // Keep both list data sources synchronized so the GPX row preview refreshes
-    // immediately regardless of whether the list is showing recent or database tracks.
-    this.gpxTracks.update(tracks => tracks.map(item => item.path === track.path ? { ...item, ...savedSettings } : item));
-    this.gpxDatabaseTracks.update(tracks => tracks.map(item => item.path === track.path ? { ...item, ...savedSettings } : item));
+    if (track.path === this.lastSavedRouteGpxPath()) {
+      // A newly calculated route is a regular GPX track, even when the Track tab
+      // currently displays database-backed tracks. Persist its appearance with
+      // the recent GPX list so the routing preview and Track list stay in sync.
+      this.gpxTracks.update(tracks => tracks.map(item => item.path === track.path ? { ...item, ...savedSettings } : item));
+      void this.persistGpxTracks(this.gpxTracks().filter(item => !item.path.startsWith('memory:')));
+    } else {
+      this.changeGpxListTrack(track.path, savedSettings);
+      // Keep both list data sources synchronized so the GPX row preview refreshes
+      // immediately regardless of whether the list is showing recent or database tracks.
+      this.gpxTracks.update(tracks => tracks.map(item => item.path === track.path ? { ...item, ...savedSettings } : item));
+      this.gpxDatabaseTracks.update(tracks => tracks.map(item => item.path === track.path ? { ...item, ...savedSettings } : item));
+    }
     this.gpxTrackSettingsTrack.set(null);
   };
   protected readonly exportGpxFromMemory = async (track: GpxTrackFile): Promise<void> => {
