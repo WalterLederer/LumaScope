@@ -1625,7 +1625,12 @@ export class OfflineMapRenderer {
     this.map.on('moveend', refreshOverlays);
     this.map.on('zoomend', refreshOverlays);
     this.map.on('sourcedata', event => {
-      if ((event.sourceId === 'shortbread' || event.sourceId === 'photo-markers') && event.isSourceLoaded) refreshOverlays();
+      // Vector sources can emit tile updates while the overall source is not
+      // yet marked fully loaded. Refresh on each Shortbread tile update so the
+      // first MBTiles label overlay is populated without a visibility toggle.
+      if (event.sourceId === 'shortbread' || (event.sourceId === 'photo-markers' && event.isSourceLoaded)) {
+        refreshOverlays();
+      }
     });
     this.map.on('click', 'photo-clusters', event => {
       this.clusterPreviewRequestId++;
