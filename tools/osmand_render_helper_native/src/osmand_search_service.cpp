@@ -865,12 +865,16 @@ QJsonObject administrativeAreasForCoordinate(
         {
             const auto groupName = streetGroup->getName(locale, false).trimmed();
             const auto displayName = groupName.isEmpty() ? streetGroup->nativeName.trimmed() : groupName;
-            addressBoundaryObjectIds.push_back(QStringLiteral("id=%1 osmId=%2 relation=%3 split=%4 name=%5")
+            const auto attributes = streetGroup->attributes;
+            addressBoundaryObjectIds.push_back(QStringLiteral("id=%1 osmId=%2 relation=%3 split=%4 name=%5 admin_level=%6 boundary=%7 place=%8")
                 .arg(streetGroup->id.id)
                 .arg(streetGroup->id.getOsmId())
                 .arg(streetGroup->id.isIdFromRelation() ? 1 : 0)
                 .arg(streetGroup->id.isIdFromSplit() ? 1 : 0)
-                .arg(displayName));
+                .arg(displayName)
+                .arg(attributes.value(QStringLiteral("admin_level"), QStringLiteral("-")))
+                .arg(attributes.value(QStringLiteral("boundary"), QStringLiteral("-")))
+                .arg(attributes.value(QStringLiteral("place"), QStringLiteral("-"))));
         }
         const auto addressObjectKey = administrativeObjectKey(streetGroup->id);
         const auto levelIt = addressObjectKey.isEmpty()
