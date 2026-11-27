@@ -2367,6 +2367,25 @@ export class MapWindow implements OnInit, OnDestroy {
       : `${new Intl.NumberFormat('en', { maximumFractionDigits: 1 }).format(distanceMeters / 1000)} km`;
   };
 
+  protected readonly offlineAddressBearing = (result: import('internal-api').OsmAndAddressSearchResult): number | null => {
+    const center = this.crosshairPosition();
+    if (!center || !Number.isFinite(result.latitude) || !Number.isFinite(result.longitude)) return null;
+    const toRadians = (degrees: number): number => degrees * Math.PI / 180;
+    const latitude1 = toRadians(center.lat);
+    const latitude2 = toRadians(result.latitude);
+    const longitudeDelta = toRadians(result.longitude - center.lng);
+    const y = Math.sin(longitudeDelta) * Math.cos(latitude2);
+    const x = Math.cos(latitude1) * Math.sin(latitude2)
+      - Math.sin(latitude1) * Math.cos(latitude2) * Math.cos(longitudeDelta);
+    if (Math.abs(x) < 1e-12 && Math.abs(y) < 1e-12) return null;
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  };
+
+  protected readonly offlineAddressBearingLabel = (result: import('internal-api').OsmAndAddressSearchResult): string => {
+    const bearing = this.offlineAddressBearing(result);
+    return bearing === null ? '—' : `${Math.round(bearing)}°`;
+  };
+
   private centerMapAt(latitude: number, longitude: number): void {
     if (this.offlineRenderer) {
       // fitBounds() can leave MapLibre camera padding active. Clear it so
