@@ -1170,6 +1170,31 @@ export class MapWindow implements OnInit, OnDestroy {
     }
     this.gpxTrackSettingsTrack.set(null);
   };
+  protected readonly saveGpxTrackAs = async (track: GpxTrackFile): Promise<void> => {
+    if (!this.desktop) return;
+    // In-memory tracks and database-backed tracks must be serialized from
+    // their current source; ordinary recent tracks can be copied byte-for-byte.
+    if (track.path.startsWith('memory:')) {
+      await this.exportGpxFromMemory(track);
+      return;
+    }
+    if (this.gpxListMode() === 'database') {
+      await this.exportGpxFromDatabase(track);
+      return;
+    }
+    try {
+      const suggestedName = track.name.toLowerCase().endsWith('.gpx') ? track.name : track.name + '.gpx';
+      const destination = await this.desktop.Dialogs.saveFile(suggestedName);
+      if (!destination.success || !destination.data) return;
+      const source = await this.desktop.FileSystem.readText(track.path);
+      if (!source.success) throw new Error(source.errorMessage || 'Could not read the GPX file.');
+      const saved = await this.desktop.FileSystem.writeText(destination.data, source.data);
+      if (!saved.success) throw new Error(saved.errorMessage || 'Could not save the GPX file.');
+      this.gpxDatabaseQueryStatus.set('Saved GPX as ' + destination.data);
+    } catch (error) {
+      this.gpxError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
   protected readonly exportGpxFromMemory = async (track: GpxTrackFile): Promise<void> => {
     if (!this.desktop) return;
     const segments = this.gpxPointDataByTrack.get(track.path) ?? [];
@@ -1186,7 +1211,7 @@ export class MapWindow implements OnInit, OnDestroy {
     if (this.gpxRowActionMenuOpen() === track.path) { this.gpxRowActionMenuOpen.set(null); this.gpxRowActionTrack.set(null); return; }
     this.gpxRowActionMenuOpen.set(track.path);
     this.gpxRowActionTrack.set(track);
-    this.gpxRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 230, this.gpxListMode() === 'recent' ? 325 : 195, true));
+    this.gpxRowActionMenuPosition.set(this.getRowActionMenuPosition(event, 230, this.gpxListMode() === 'recent' ? 365 : 225, true));
   };
   protected readonly deleteGpxDatabaseRecordsForFile = async (track: GpxTrackFile): Promise<void> => {
     if (!this.desktop || track.path.startsWith('memory:')) return;
