@@ -628,6 +628,8 @@
     <div class="routing-points-list">
       @for (point of routeWaypoints(); track $index; let i = $index) {
         <div class="routing-point-row" [class.inactive]="point.active === false">
+          <button type="button" class="routing-point-remove-button" (click)="removeRouteWaypoint(i)"
+                  [disabled]="routeBusy()" [attr.aria-label]="'Remove route point ' + (i + 1)" title="Remove point">×</button>
           <input class="routing-point-active" type="checkbox" [checked]="point.active !== false"
                  (change)="changeRouteWaypointActive(i, $any($event.target).checked)"
                  [attr.aria-label]="'Use route point ' + (i + 1)" title="Include this point in route calculation">
@@ -651,7 +653,6 @@
            [style.top.px]="routePointActionMenuPosition().top" [style.left.px]="routePointActionMenuPosition().left"
            (click)="$event.stopPropagation()">
         <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'resolve-name')"><span aria-hidden="true">⌖</span> Resolve location name</button>
-        <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'remove')"><span aria-hidden="true">×</span> Remove point</button>
         <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'up')" [disabled]="pointIndex === 0"><span aria-hidden="true">↑</span> Move up</button>
         <button type="button" role="menuitem" (click)="runRoutePointAction(pointIndex, 'down')" [disabled]="pointIndex === routeWaypoints().length - 1"><span aria-hidden="true">↓</span> Move down</button>
       </div>
