@@ -882,14 +882,14 @@ QJsonObject administrativeAreasForCoordinate(
         if (objectName.isEmpty())
             continue;
 
-        // AddressIndex Boundary alternatives are provisionally classified by
-        // word count: two-word names (for example, "Bezirk Korneuburg") are
-        // treated as District (admin_level 6). This is an interim heuristic,
-        // not a final administrative hierarchy resolver. Other names retain a
-        // map-derived level when available, otherwise remain unclassified.
-        const int nameWordCount = objectName.simplified().count(QLatin1Char(' ')) + 1;
-        const int candidateAdminLevel = nameWordCount == 2
-            ? 6
+        // Read admin_level from the original CityIndex attributes. OsmAndCore's
+        // default StreetGroup parser drops these attributes, so CMake patches
+        // the vendored reader to preserve them on StreetGroup.
+        bool addressAdminLevelOk = false;
+        const int addressAdminLevel = streetGroup->attributes
+            .value(QStringLiteral("admin_level")).trimmed().toInt(&addressAdminLevelOk);
+        const int candidateAdminLevel = addressAdminLevelOk && addressAdminLevel > 0
+            ? addressAdminLevel
             : (hasResolvedAdminLevel ? levelIt.value() : 99);
         const auto normalizedName = OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed();
         const auto objectKey = QStringLiteral("%1|%2").arg(candidateAdminLevel).arg(normalizedName);
@@ -2836,6 +2836,13 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
                         names.push_back(displayName);
                     addressBoundaryNamesByKey.insert(key, names);
                 }
+                QJsonObject addressAttributes;
+                for (auto attribute = group->attributes.constBegin();
+                     attribute != group->attributes.constEnd(); ++attribute)
+                    addressAttributes.insert(attribute.key(), attribute.value());
+                bool addressAdminLevelOk = false;
+                const int addressAdminLevel = group->attributes
+                    .value(QStringLiteral("admin_level")).trimmed().toInt(&addressAdminLevelOk);
                 QJsonArray metadata = addressBoundaryMetadataByKey.value(key);
                 metadata.push_back(QJsonObject{
                     {QStringLiteral("name"), displayName},
@@ -2843,6 +2850,8 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
                     {QStringLiteral("raw_id"), QString::number(group->id.id)},
                     {QStringLiteral("is_relation"), group->id.isIdFromRelation()},
                     {QStringLiteral("is_split"), group->id.isIdFromSplit()},
+                    {QStringLiteral("admin_level"), addressAdminLevelOk ? addressAdminLevel : -1},
+                    {QStringLiteral("attributes"), addressAttributes},
                     {QStringLiteral("bbox31"), QJsonArray{
                         group->bbox31[0], group->bbox31[1], group->bbox31[2], group->bbox31[3]}},
                     {QStringLiteral("position31"), QJsonArray{
