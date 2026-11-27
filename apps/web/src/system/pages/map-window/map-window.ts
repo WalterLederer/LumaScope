@@ -1545,6 +1545,8 @@ export class MapWindow implements OnInit, OnDestroy {
   protected readonly offlineAddressSearchResults = signal<import('internal-api').OsmAndAddressSearchResult[]>([]);
   protected readonly offlineAddressSearchBusy = signal(false);
   protected readonly offlineAddressSearchError = signal('');
+  protected readonly offlineAddressSelectedResult = signal<import('internal-api').OsmAndAddressSearchResult | null>(null);
+  protected readonly offlineAddressReverseGeocodeText = signal('');
   protected readonly bearing = signal<number | null>(null);
   protected readonly bearingLabel = computed(() => this.bearing() === null ? '' : String(Math.round(this.bearing()!)) + '° ' + this.compassDirection(this.bearing()!));
   protected readonly gpxColors: ReadonlyArray<{ name: string; value: string; textColor?: string }> = [
@@ -2539,6 +2541,8 @@ export class MapWindow implements OnInit, OnDestroy {
     this.offlineAddressSearchBusy.set(true);
     this.offlineAddressSearchError.set('');
     this.offlineAddressSearchResults.set([]);
+    this.offlineAddressSelectedResult.set(null);
+    this.offlineAddressReverseGeocodeText.set('');
     try {
       // Read the configured offline-file catalogue directly. Address lookup is
       // independent of the currently selected map renderer/source.
@@ -2556,6 +2560,21 @@ export class MapWindow implements OnInit, OnDestroy {
     } finally {
       this.offlineAddressSearchBusy.set(false);
     }
+  };
+  protected readonly selectOfflineAddress = (result: import('internal-api').OsmAndAddressSearchResult): void => {
+    if (!Number.isFinite(result.latitude) || !Number.isFinite(result.longitude)) return;
+    this.offlineAddressSelectedResult.set(result);
+    this.offlineAddressReverseGeocodeText.set('Reverse geocoding…');
+    this.goToOfflineAddress(result);
+    void this.reverseGeocodingManager.lookupBothReverseGeocoders(
+      result.latitude, result.longitude, false, navigator.language || 'en'
+    ).then(display => {
+      if (this.offlineAddressSelectedResult() !== result) return;
+      this.offlineAddressReverseGeocodeText.set(this.reverseGeocodeSourceText(display.text, 'Offline') || 'No result');
+    }).catch(error => {
+      if (this.offlineAddressSelectedResult() !== result) return;
+      this.offlineAddressReverseGeocodeText.set('Reverse geocoding failed: ' + (error instanceof Error ? error.message : String(error)));
+    });
   };
   protected readonly goToOfflineAddress = (result: import('internal-api').OsmAndAddressSearchResult): void => {
     if (!Number.isFinite(result.latitude) || !Number.isFinite(result.longitude)) return;
