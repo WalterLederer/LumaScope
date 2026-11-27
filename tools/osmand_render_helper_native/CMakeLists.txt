@@ -200,6 +200,10 @@ if(NOT _osmand_city_header_attribute_tags_index EQUAL -1)
 endif()
 
 set(_osmand_city_header_attribute_value_block [=[
+            case OBF::CityIndex::kAttributeValuesFieldNumber:
+            {
+                QString nm;
+                ObfReaderUtilities::readQString(cis, nm);
                 if (!additionalTags.isEmpty())
                 {
                     QString tg = additionalTags.front();
@@ -211,8 +215,14 @@ set(_osmand_city_header_attribute_value_block [=[
                         localizedNamesOrder.append(m);
                     }
                 }
+                break;
+            }
 ]=])
 set(_osmand_city_header_attribute_value_block_patched [=[
+            case OBF::CityIndex::kAttributeValuesFieldNumber:
+            {
+                QString nm;
+                ObfReaderUtilities::readQString(cis, nm);
                 if (!additionalTags.isEmpty())
                 {
                     QString tg = additionalTags.front();
@@ -225,12 +235,58 @@ set(_osmand_city_header_attribute_value_block_patched [=[
                         localizedNamesOrder.append(m);
                     }
                 }
+                break;
+            }
 ]=])
 string(FIND "\${_osmand_address_reader_source}" "\${_osmand_city_header_attribute_value_block}" _osmand_city_header_attribute_value_index)
 if(NOT _osmand_city_header_attribute_value_index EQUAL -1)
     string(REPLACE "\${_osmand_city_header_attribute_value_block}" "\${_osmand_city_header_attribute_value_block_patched}"
         _osmand_address_reader_source "\${_osmand_address_reader_source}")
 endif()
+
+# If an earlier configure used the broader legacy match, undo any accidental
+# insertion in StreetIndex parsing; street attributes are not part of this patch.
+set(_osmand_street_index_attribute_value_block_patched [=[
+            case OBF::StreetIndex::kAttributeValuesFieldNumber:
+            {
+                QString nm;
+                ObfReaderUtilities::readQString(cis, nm);
+                if (!additionalTags.isEmpty())
+                {
+                    QString tg = additionalTags.front();
+                    additionalTags.pop_front();
+                    attributes.insert(tg, nm);
+                    if (tg.startsWith(QLatin1String("name:")))
+                    {
+                        const QString & m = tg.mid(5);
+                        localizedNames.insert(m, nm);
+                        localizedNamesOrder.append(m);
+                    }
+                }
+                break;
+            }
+]=])
+set(_osmand_street_index_attribute_value_block [=[
+            case OBF::StreetIndex::kAttributeValuesFieldNumber:
+            {
+                QString nm;
+                ObfReaderUtilities::readQString(cis, nm);
+                if (!additionalTags.isEmpty())
+                {
+                    QString tg = additionalTags.front();
+                    additionalTags.pop_front();
+                    if (tg.startsWith(QLatin1String("name:")))
+                    {
+                        const QString & m = tg.mid(5);
+                        localizedNames.insert(m, nm);
+                        localizedNamesOrder.append(m);
+                    }
+                }
+                break;
+            }
+]=])
+string(REPLACE "\${_osmand_street_index_attribute_value_block_patched}" "\${_osmand_street_index_attribute_value_block}"
+    _osmand_address_reader_source "\${_osmand_address_reader_source}")
 
 set(_osmand_city_header_attribute_assignment "                outStreetGroup->bbox31 = boundaryBbox;")
 set(_osmand_city_header_attribute_assignment_patched "                outStreetGroup->bbox31 = boundaryBbox;\n                outStreetGroup->attributes = attributes;")
