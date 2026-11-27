@@ -63,6 +63,8 @@ struct SearchCandidate
     double latitude = 0.0;
     QString sourceKind;
     QString matchKind;
+    QString category;
+    QString subcategory;
     int matchRank = 99;
     int typeRank = 99;
     QString dedupeKey;
@@ -1757,6 +1759,8 @@ SearchCandidate makeAmenityCandidate(
     candidate.latitude = latLon.latitude;
     candidate.longitude = latLon.longitude;
     candidate.sourceKind = QStringLiteral("poi");
+    candidate.category = amenity->type;
+    candidate.subcategory = amenity->subType;
     candidate.typeRank = 10;
     const auto rank = computeMatchRank(query, names);
     candidate.matchRank = rank.first;
@@ -1793,6 +1797,8 @@ QJsonObject candidateToJson(const SearchCandidate& candidate)
         {QStringLiteral("latitude"), candidate.latitude},
         {QStringLiteral("source_kind"), candidate.sourceKind},
         {QStringLiteral("match_kind"), candidate.matchKind},
+        {QStringLiteral("category"), candidate.category},
+        {QStringLiteral("subcategory"), candidate.subcategory},
     };
 }
 
