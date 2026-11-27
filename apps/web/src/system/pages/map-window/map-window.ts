@@ -6859,6 +6859,7 @@ export class MapWindow implements OnInit, OnDestroy {
     this.routeWaypoints.update(points => [...points, waypoint]);
     this.persistRouteWaypoints();
     this.updateRouteWaypointMarkers();
+    void this.resolveRouteWaypointName(waypoint);
   };
 
   protected readonly changeRouteWaypointActive = (index: number, active: boolean): void => {
@@ -6901,13 +6902,19 @@ export class MapWindow implements OnInit, OnDestroy {
 
   private async resolveRouteWaypointName(waypoint: RouteWaypoint): Promise<void> {
     try {
-      const result = await lookupReverseGeocoding(waypoint.latitude, waypoint.longitude, navigator.language || 'en');
-      const name = result?.displayName?.trim();
-      if (!name) return;
-      this.routeWaypoints.update(points => points.map(point => point.latitude === waypoint.latitude && point.longitude === waypoint.longitude ? { ...point, name } : point));
+      const result = await this.reverseGeocodingManager.lookupBothReverseGeocoders(
+        waypoint.latitude, waypoint.longitude, false, navigator.language || 'en'
+      );
+      const name = this.reverseGeocodeSourceText(result.text, 'Offline');
+      if (!name || name === 'No result' || name === 'No address details available') return;
+      this.routeWaypoints.update(points => points.map(point =>
+        point.latitude === waypoint.latitude && point.longitude === waypoint.longitude
+          ? { ...point, name }
+          : point
+      ));
       this.persistRouteWaypoints();
     } catch (error) {
-      console.warn('[Routing] Could not resolve route point location:', error);
+      console.warn('[Routing] Could not resolve route point location offline:', error);
     }
   }
 
