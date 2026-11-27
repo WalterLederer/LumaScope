@@ -520,6 +520,7 @@
         <label class="routing-waypoints-visibility" title="Show routing points on map" aria-label="Show routing points on map">
           <input type="checkbox" [checked]="routeWaypointMarkersVisible()" (change)="changeRouteWaypointMarkersVisible($any($event.target).checked)" title="Show routing points on map" aria-label="Show routing points on map">
         </label>
+        <button type="button" class="map-toolbar-button routing-fit-points-button" (click)="fitMapToRoutingPoints()" [disabled]="activeRouteWaypointCount() === 0" title="Fit map to active routing points" aria-label="Fit map to active routing points"><span aria-hidden="true">⤢</span></button>
         <button type="button" class="offline-map-add-button routing-calculate-button" (click)="calculateRoute()" [disabled]="routeBusy() || activeRouteWaypointCount() < 2 || activeRouteWaypointCount() > 50 || (routeProvider() === 'openrouteservice' && !routeApiKey().trim())">{{ routeBusy() ? 'Calculating…' : 'Calculate route…' }}</button>
       </div>
       <div class="routing-name-card">
