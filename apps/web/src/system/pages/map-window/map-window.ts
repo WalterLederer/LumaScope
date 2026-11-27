@@ -1207,6 +1207,17 @@ export class MapWindow implements OnInit, OnDestroy {
       if (!result.cancelled && result.path) this.gpxDatabaseQueryStatus.set('Exported ' + formatNumber(result.points) + ' points (' + formatNumber(result.elevationPoints) + ' elevation values) to ' + result.path);
     } catch (error) { this.gpxError.set(error instanceof Error ? error.message : String(error)); }
   };
+  protected readonly openGpxTrackPath = async (track: GpxTrackFile): Promise<void> => {
+    if (!this.desktop || track.path.startsWith('memory:')) return;
+    try {
+      const filePath = track.databasePath || track.path;
+      const folderPath = await this.desktop.FileSystem.dirname(filePath);
+      const error = await this.desktop.ProcessManager.openPath(folderPath);
+      if (error) this.gpxError.set(error);
+    } catch (error) {
+      this.gpxError.set(error instanceof Error ? error.message : String(error));
+    }
+  };
   protected readonly toggleGpxRowActionMenu = (track: GpxTrackFile, event: MouseEvent): void => {
     if (this.gpxRowActionMenuOpen() === track.path) { this.gpxRowActionMenuOpen.set(null); this.gpxRowActionTrack.set(null); return; }
     this.gpxRowActionMenuOpen.set(track.path);
