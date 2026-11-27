@@ -310,11 +310,6 @@ export class ImageGridComponent {
   };
 
   readonly refreshDirectoryCacheStats = async (): Promise<void> => {
-    const mode = this.viewMode();
-    if (mode !== 'details' && mode !== 'details-no-thumbnails') {
-      this.resetDirectoryCacheStats();
-      return;
-    }
     const folder = this.selectedLocation();
     const recursive = this.dataSource() === 'database' && this.includeFilesRecursive();
     const scope = [folder ?? '', this.dataSource(), this.includeUnsupportedFiles(), recursive,
