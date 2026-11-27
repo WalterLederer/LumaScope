@@ -49,7 +49,7 @@ $sdkRoot = if ($env:LUMASCOPE_OSMAND_SDK_ROOT) {
 $vendorRoot = Join-Path $sdkRoot "vendor\osmand"
 Write-Host "Using OsmAnd SDK: $sdkRoot"
 
-$sdkRevision = (& git -C $sdkRoot rev-parse --short=12 HEAD 2>$null).Trim()
+$sdkRevision = ((& git -C $sdkRoot rev-parse --short=12 HEAD 2>$null) | Out-String).Trim()
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($sdkRevision)) {
     throw "Could not determine the Git revision of the OsmAnd SDK checkout: $sdkRoot"
 }
