@@ -7,7 +7,8 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-VENDOR_ROOT="${REPO_ROOT}/vendor/osmand"
+SDK_ROOT="${LUMASCOPE_OSMAND_SDK_ROOT:-${REPO_ROOT}/../OsmAnd-SDK}"
+VENDOR_ROOT="${SDK_ROOT}/vendor/osmand"
 BUILD_ROOT="${SCRIPT_DIR}/build-linux"
 DIST_DIR="${SCRIPT_DIR}/dist-linux"
 
@@ -126,6 +127,7 @@ build() {
     echo "Build type: ${BUILD_TYPE}"
     echo "Parallel jobs: ${JOBS}"
     echo "Qt root: ${QT_ROOT}"
+    echo "OsmAnd SDK: ${SDK_ROOT}"
     echo "Vendor root: ${VENDOR_ROOT}"
 
     # Create build directory
