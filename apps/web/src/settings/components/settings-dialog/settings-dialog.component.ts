@@ -1,11 +1,13 @@
 import { ButtonTooltipDirective } from '@light-matter/ui';
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { BackgroundReverseGeocodingStatus, CacheClearResult, CacheInfo, CacheSummary, ExternalProcessCall, GlobalShortcutStatus, supportedFileFormats, formatOsDateTime } from 'internal-api';
 import { CacheManager } from '../../../ipc/cache-manager';
 import { ThemeService } from '../../../system/services/theme/theme.service';
 import { ProcessManager } from '../../../ipc/process-manager';
 import { ByteSizePipe } from '../../../ui/pipes/byte-size/byte-size.pipe';
 import { GalleryLocations } from '../../../gallery/services/gallery-locations/gallery-locations';
+import { GalleryState } from '../../../gallery/services/gallery-state/gallery-state';
 
 @Component({
   selector: 'app-settings-panel',
@@ -20,6 +22,15 @@ import { GalleryLocations } from '../../../gallery/services/gallery-locations/ga
 })
 export class SettingsPanelComponent {
   readonly mode = input<'all' | 'general' | 'cache' | 'help'>('all');
+  private readonly galleryState = inject(GalleryState);
+  protected readonly browseDataSource = toSignal(this.galleryState.dataSource(), { initialValue: 'filesystem' as 'filesystem' | 'database' });
+  protected readonly browseIncludeUnsupportedFiles = toSignal(this.galleryState.includeUnsupportedFiles(), { initialValue: false });
+  protected readonly browseIncludeFilesRecursive = toSignal(this.galleryState.includeFilesRecursive(), { initialValue: false });
+  protected readonly setBrowseDataSource = (value: string): void => {
+    if (value === 'filesystem' || value === 'database') this.galleryState.setDataSource(value);
+  };
+  protected readonly setBrowseIncludeUnsupportedFiles = (value: boolean): void => this.galleryState.setIncludeUnsupportedFiles(value);
+  protected readonly setBrowseIncludeFilesRecursive = (value: boolean): void => this.galleryState.setIncludeFilesRecursive(value);
   readonly formatDateTime = (value: number | Date | string | null | undefined): string => formatOsDateTime(value);
   readonly cacheBuildActive = input(false);
   readonly cacheBuildProgress = input({ completed: 0, total: 0 });
