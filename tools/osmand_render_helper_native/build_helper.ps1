@@ -37,13 +37,28 @@ Write-Host "Using Git Bash: $resolvedBash"
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $projectRoot "..\.."))
+$defaultSdkRoot = Join-Path $env:LOCALAPPDATA "LumaScope\OsmAnd-SDK"
+if (-not (Test-Path $defaultSdkRoot)) {
+    $defaultSdkRoot = Join-Path (Split-Path -Parent $repoRoot) "OsmAnd-SDK"
+}
 $sdkRoot = if ($env:LUMASCOPE_OSMAND_SDK_ROOT) {
     [IO.Path]::GetFullPath($env:LUMASCOPE_OSMAND_SDK_ROOT)
 } else {
-    Join-Path (Split-Path -Parent $repoRoot) "OsmAnd-SDK"
+    [IO.Path]::GetFullPath($defaultSdkRoot)
 }
 $vendorRoot = Join-Path $sdkRoot "vendor\osmand"
 Write-Host "Using OsmAnd SDK: $sdkRoot"
+
+$sdkRevision = (& git -C $sdkRoot rev-parse --short=12 HEAD 2>$null).Trim()
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($sdkRevision)) {
+    throw "Could not determine the Git revision of the OsmAnd SDK checkout: $sdkRoot"
+}
+$sdkWorkingTree = (& git -C $sdkRoot status --porcelain 2>$null)
+if ($LASTEXITCODE -ne 0) {
+    throw "Could not inspect the OsmAnd SDK working tree: $sdkRoot"
+}
+if ($sdkWorkingTree) { $sdkRevision = "$sdkRevision-dirty" }
+Write-Host "Using OsmAnd SDK revision: $sdkRevision"
 $buildRoot = Join-Path $projectRoot "build"
 
 Assert-Exists $projectRoot
@@ -69,7 +84,8 @@ $env:PATH = "$($QtRoot)\bin;$($MinGWRoot)\bin;$env:PATH"
     "-DCMAKE_CXX_COMPILER=$MinGWRoot\bin\g++.exe" `
     "-DQT_ROOT=$QtRoot" `
     "-DMINGW_ROOT=$MinGWRoot" `
-    "-DOSMAND_VENDOR_ROOT=$vendorRoot"
+    "-DOSMAND_VENDOR_ROOT=$vendorRoot" `
+    "-DLUMASCOPE_OSMAND_SDK_REVISION=$sdkRevision"
 if ($LASTEXITCODE -ne 0) {
     throw "CMake configure failed with exit code $LASTEXITCODE"
 }
@@ -79,6 +95,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "CMake build failed with exit code $LASTEXITCODE"
 }
 
+Write-Host "Helper version: 0.25 (OsmAnd SDK $sdkRevision)"
 Write-Host "Helper built at: $(Join-Path $projectRoot 'dist\osmand_render_helper.exe')"
 Write-Host "Atlas frame POC built at: $(Join-Path $projectRoot 'dist\osmand_atlas_frame_poc.exe')"
 Write-Host "Persistent Atlas helper built at: $(Join-Path $projectRoot 'dist\osmand_atlas_render_helper.exe')"
