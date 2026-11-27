@@ -167,6 +167,86 @@ else()
     endif()
 endif()
 
+# Preserve all AddressIndex CityIndex attributes on StreetGroup objects.
+# OsmAndCore currently keeps only name:* attributes, silently dropping admin_level.
+set(OSMAND_STREET_GROUP_HEADER "\${OSMAND_VENDOR_ROOT}/core/include/OsmAndCore/Data/StreetGroup.h")
+set(OSMAND_ADDRESS_READER_SOURCE "\${OSMAND_VENDOR_ROOT}/core/src/Data/ObfAddressSectionReader_P.cpp")
+if(NOT EXISTS "\${OSMAND_STREET_GROUP_HEADER}" OR NOT EXISTS "\${OSMAND_ADDRESS_READER_SOURCE}")
+    message(FATAL_ERROR "Missing OsmAndCore AddressIndex source files required for admin-level attribute support.")
+endif()
+
+file(READ "\${OSMAND_STREET_GROUP_HEADER}" _osmand_street_group_header)
+set(_osmand_street_group_member "std::vector<int32_t> bbox31; // unused")
+set(_osmand_street_group_member_patched "std::vector<int32_t> bbox31; // unused\n        QHash<QString, QString> attributes;")
+string(FIND "\${_osmand_street_group_header}" "\${_osmand_street_group_member}" _osmand_street_group_member_index)
+if(NOT _osmand_street_group_member_index EQUAL -1)
+    string(REPLACE "\${_osmand_street_group_member}" "\${_osmand_street_group_member_patched}"
+        _osmand_street_group_header "\${_osmand_street_group_header}")
+    file(WRITE "\${OSMAND_STREET_GROUP_HEADER}" "\${_osmand_street_group_header}")
+else()
+    string(FIND "\${_osmand_street_group_header}" "QHash<QString, QString> attributes;" _osmand_street_group_member_patched_index)
+    if(_osmand_street_group_member_patched_index EQUAL -1)
+        message(FATAL_ERROR "Could not patch OsmAndCore StreetGroup.h: expected bbox31 member not found.")
+    endif()
+endif()
+
+file(READ "\${OSMAND_ADDRESS_READER_SOURCE}" _osmand_address_reader_source)
+set(_osmand_city_header_attribute_tags "    QStringList additionalTags;\n    QStringList attributeTagsTable;\n    if (section)")
+set(_osmand_city_header_attribute_tags_patched "    QStringList additionalTags;\n    QStringList attributeTagsTable;\n    QHash<QString, QString> attributes;\n    if (section)")
+string(FIND "\${_osmand_address_reader_source}" "\${_osmand_city_header_attribute_tags}" _osmand_city_header_attribute_tags_index)
+if(NOT _osmand_city_header_attribute_tags_index EQUAL -1)
+    string(REPLACE "\${_osmand_city_header_attribute_tags}" "\${_osmand_city_header_attribute_tags_patched}"
+        _osmand_address_reader_source "\${_osmand_address_reader_source}")
+endif()
+
+set(_osmand_city_header_attribute_value_block [=[
+                if (!additionalTags.isEmpty())
+                {
+                    QString tg = additionalTags.front();
+                    additionalTags.pop_front();
+                    if (tg.startsWith(QLatin1String("name:")))
+                    {
+                        const QString & m = tg.mid(5);
+                        localizedNames.insert(m, nm);
+                        localizedNamesOrder.append(m);
+                    }
+                }
+]=])
+set(_osmand_city_header_attribute_value_block_patched [=[
+                if (!additionalTags.isEmpty())
+                {
+                    QString tg = additionalTags.front();
+                    additionalTags.pop_front();
+                    attributes.insert(tg, nm);
+                    if (tg.startsWith(QLatin1String("name:")))
+                    {
+                        const QString & m = tg.mid(5);
+                        localizedNames.insert(m, nm);
+                        localizedNamesOrder.append(m);
+                    }
+                }
+]=])
+string(FIND "\${_osmand_address_reader_source}" "\${_osmand_city_header_attribute_value_block}" _osmand_city_header_attribute_value_index)
+if(NOT _osmand_city_header_attribute_value_index EQUAL -1)
+    string(REPLACE "\${_osmand_city_header_attribute_value_block}" "\${_osmand_city_header_attribute_value_block_patched}"
+        _osmand_address_reader_source "\${_osmand_address_reader_source}")
+endif()
+
+set(_osmand_city_header_attribute_assignment "                outStreetGroup->bbox31 = boundaryBbox;")
+set(_osmand_city_header_attribute_assignment_patched "                outStreetGroup->bbox31 = boundaryBbox;\n                outStreetGroup->attributes = attributes;")
+string(FIND "\${_osmand_address_reader_source}" "\${_osmand_city_header_attribute_assignment}" _osmand_city_header_attribute_assignment_index)
+if(NOT _osmand_city_header_attribute_assignment_index EQUAL -1)
+    string(REPLACE "\${_osmand_city_header_attribute_assignment}" "\${_osmand_city_header_attribute_assignment_patched}"
+        _osmand_address_reader_source "\${_osmand_address_reader_source}")
+endif()
+
+string(FIND "\${_osmand_address_reader_source}" "outStreetGroup->attributes = attributes;" _osmand_city_header_patch_check)
+string(FIND "\${_osmand_address_reader_source}" "attributes.insert(tg, nm);" _osmand_city_header_attribute_check)
+if(_osmand_city_header_patch_check EQUAL -1 OR _osmand_city_header_attribute_check EQUAL -1)
+    message(FATAL_ERROR "Could not patch OsmAndCore AddressIndex attribute reader; review the vendored OsmAndCore source version.")
+endif()
+file(WRITE "\${OSMAND_ADDRESS_READER_SOURCE}" "\${_osmand_address_reader_source}")
+
 include("${OSMAND_VENDOR_ROOT}/core/core.cmake")
 
 set(OSMAND_COMMON_SOURCES
