@@ -1473,9 +1473,9 @@ QJsonObject administrativeAreasForCoordinate(
             return QString::compare(left.name, right.name, Qt::CaseInsensitive) < 0;
         });
 
-    // Select the nearest bbox centre only when multiple candidates share a
-    // known level. Unclassified AddressIndex candidates remain visible.
-    // AddressIndex name-word classification is provisional and will be refined.
+    // Select one AddressIndex candidate per known admin_level. The AddressIndex
+    // supplies bounding boxes, not polygon geometry, so this is still a provisional
+    // spatial choice when multiple same-level boxes overlap the query coordinate.
     QSet<int> emittedAdminLevels;
     QHash<int, AdministrativeAreaCandidate> selectedByLevel;
     for (const auto& candidate : candidates)
@@ -1487,7 +1487,7 @@ QJsonObject administrativeAreasForCoordinate(
                 {QStringLiteral("name"), candidate.name}
             });
             selectionComments.push_back(QStringLiteral(
-                "Retained '%1' as an unclassified AddressIndex boundary; the interim name-word heuristic did not identify its level.")
+                "Retained '%1' as an unclassified AddressIndex boundary; neither its admin_level attribute nor a matching map object supplied a level.")
                 .arg(candidate.name));
             continue;
         }
