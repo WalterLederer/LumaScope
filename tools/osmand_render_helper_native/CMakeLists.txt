@@ -168,7 +168,8 @@ else()
 endif()
 
 # Preserve all AddressIndex CityIndex attributes on StreetGroup objects.
-# OsmAndCore currently keeps only name:* attributes, silently dropping admin_level.
+# Use token-based insertion rather than matching a complete source block: vendor
+# snapshots can differ in whitespace and line endings.
 set(OSMAND_STREET_GROUP_HEADER "${OSMAND_VENDOR_ROOT}/core/include/OsmAndCore/Data/StreetGroup.h")
 set(OSMAND_ADDRESS_READER_SOURCE "${OSMAND_VENDOR_ROOT}/core/src/Data/ObfAddressSectionReader_P.cpp")
 if(NOT EXISTS "${OSMAND_STREET_GROUP_HEADER}" OR NOT EXISTS "${OSMAND_ADDRESS_READER_SOURCE}")
@@ -176,49 +177,43 @@ if(NOT EXISTS "${OSMAND_STREET_GROUP_HEADER}" OR NOT EXISTS "${OSMAND_ADDRESS_RE
 endif()
 
 file(READ "${OSMAND_STREET_GROUP_HEADER}" _osmand_street_group_header)
-set(_osmand_street_group_member "std::vector<int32_t> bbox31; // unused")
-set(_osmand_street_group_member_patched "std::vector<int32_t> bbox31; // unused\n        QHash<QString, QString> attributes;")
-string(FIND "${_osmand_street_group_header}" "${_osmand_street_group_member}" _osmand_street_group_member_index)
-if(NOT _osmand_street_group_member_index EQUAL -1)
-    string(REPLACE "${_osmand_street_group_member}" "${_osmand_street_group_member_patched}"
-        _osmand_street_group_header "${_osmand_street_group_header}")
-    file(WRITE "${OSMAND_STREET_GROUP_HEADER}" "${_osmand_street_group_header}")
-else()
-    string(FIND "${_osmand_street_group_header}" "QHash<QString, QString> attributes;" _osmand_street_group_member_patched_index)
-    if(_osmand_street_group_member_patched_index EQUAL -1)
-        message(FATAL_ERROR "Could not patch OsmAndCore StreetGroup.h: expected bbox31 member not found.")
+string(FIND "${_osmand_street_group_header}" "QHash<QString, QString> attributes;" _osmand_attributes_member_index)
+if(_osmand_attributes_member_index EQUAL -1)
+    string(FIND "${_osmand_street_group_header}" "std::vector<int32_t> bbox31;" _osmand_bbox_member_index)
+    if(_osmand_bbox_member_index EQUAL -1)
+        message(FATAL_ERROR "Could not locate StreetGroup::bbox31 in the vendored OsmAndCore header.")
     endif()
+    string(FIND "${_osmand_street_group_header}" ";" _osmand_bbox_member_end)
+    if(_osmand_bbox_member_end LESS _osmand_bbox_member_index)
+        message(FATAL_ERROR "Could not locate the end of StreetGroup::bbox31.")
+    endif()
+    math(EXPR _osmand_bbox_member_after "${_osmand_bbox_member_end} + 1")
+    string(SUBSTRING "${_osmand_street_group_header}" 0 ${_osmand_bbox_member_after} _osmand_header_prefix)
+    string(SUBSTRING "${_osmand_street_group_header}" ${_osmand_bbox_member_after} -1 _osmand_header_suffix)
+    set(_osmand_street_group_header "${_osmand_header_prefix}\n        QHash<QString, QString> attributes;${_osmand_header_suffix}")
+    file(WRITE "${OSMAND_STREET_GROUP_HEADER}" "${_osmand_street_group_header}")
 endif()
 
 file(READ "${OSMAND_ADDRESS_READER_SOURCE}" _osmand_address_reader_source)
-set(_osmand_city_header_attribute_tags "    QStringList additionalTags;\n    QStringList attributeTagsTable;\n    if (section)")
-set(_osmand_city_header_attribute_tags_patched "    QStringList additionalTags;\n    QStringList attributeTagsTable;\n    QHash<QString, QString> attributes;\n    if (section)")
-string(FIND "${_osmand_address_reader_source}" "${_osmand_city_header_attribute_tags}" _osmand_city_header_attribute_tags_index)
-if(NOT _osmand_city_header_attribute_tags_index EQUAL -1)
-    string(REPLACE "${_osmand_city_header_attribute_tags}" "${_osmand_city_header_attribute_tags_patched}"
-        _osmand_address_reader_source "${_osmand_address_reader_source}")
+string(FIND "${_osmand_address_reader_source}" "QHash<QString, QString> attributes;" _osmand_reader_attributes_index)
+if(_osmand_reader_attributes_index EQUAL -1)
+    string(FIND "${_osmand_address_reader_source}" "QStringList attributeTagsTable;" _osmand_attribute_table_index)
+    if(_osmand_attribute_table_index EQUAL -1)
+        message(FATAL_ERROR "Could not locate the CityIndex attribute tag table in the vendored AddressIndex reader.")
+    endif()
+    string(FIND "${_osmand_address_reader_source}" ";" _osmand_attribute_table_end)
+    math(EXPR _osmand_attribute_table_after "${_osmand_attribute_table_end} + 1")
+    string(SUBSTRING "${_osmand_address_reader_source}" 0 ${_osmand_attribute_table_after} _osmand_reader_prefix)
+    string(SUBSTRING "${_osmand_address_reader_source}" ${_osmand_attribute_table_after} -1 _osmand_reader_suffix)
+    set(_osmand_address_reader_source "${_osmand_reader_prefix}\n    QHash<QString, QString> attributes;${_osmand_reader_suffix}")
 endif()
 
-set(_osmand_city_header_attribute_value_block [=[
-            case OBF::CityIndex::kAttributeValuesFieldNumber:
-            {
-                QString nm;
-                ObfReaderUtilities::readQString(cis, nm);
-                if (!additionalTags.isEmpty())
-                {
-                    QString tg = additionalTags.front();
-                    additionalTags.pop_front();
-                    if (tg.startsWith(QLatin1String("name:")))
-                    {
-                        const QString & m = tg.mid(5);
-                        localizedNames.insert(m, nm);
-                        localizedNamesOrder.append(m);
-                    }
-                }
-                break;
-            }
-]=])
-set(_osmand_city_header_attribute_value_block_patched [=[
+string(FIND "${_osmand_address_reader_source}" "case OBF::CityIndex::kAttributeValuesFieldNumber:" _osmand_city_values_start)
+string(FIND "${_osmand_address_reader_source}" "case OBF::CityIndex::kIdFieldNumber:" _osmand_city_id_start)
+if(_osmand_city_values_start EQUAL -1 OR _osmand_city_id_start LESS _osmand_city_values_start)
+    message(FATAL_ERROR "Could not locate CityIndex attribute-value parsing in the vendored AddressIndex reader.")
+endif()
+set(_osmand_city_values_replacement [=[
             case OBF::CityIndex::kAttributeValuesFieldNumber:
             {
                 QString nm;
@@ -238,69 +233,23 @@ set(_osmand_city_header_attribute_value_block_patched [=[
                 break;
             }
 ]=])
-string(FIND "${_osmand_address_reader_source}" "${_osmand_city_header_attribute_value_block}" _osmand_city_header_attribute_value_index)
-if(NOT _osmand_city_header_attribute_value_index EQUAL -1)
-    string(REPLACE "${_osmand_city_header_attribute_value_block}" "${_osmand_city_header_attribute_value_block_patched}"
-        _osmand_address_reader_source "${_osmand_address_reader_source}")
+string(SUBSTRING "${_osmand_address_reader_source}" 0 ${_osmand_city_values_start} _osmand_reader_prefix)
+string(SUBSTRING "${_osmand_address_reader_source}" ${_osmand_city_id_start} -1 _osmand_reader_suffix)
+set(_osmand_address_reader_source "${_osmand_reader_prefix}${_osmand_city_values_replacement}${_osmand_reader_suffix}")
+
+string(FIND "${_osmand_address_reader_source}" "outStreetGroup->bbox31 = boundaryBbox;" _osmand_bbox_assignment_index)
+if(_osmand_bbox_assignment_index EQUAL -1)
+    message(FATAL_ERROR "Could not locate the StreetGroup boundary bbox assignment in the vendored AddressIndex reader.")
+endif()
+string(FIND "${_osmand_address_reader_source}" "outStreetGroup->attributes = attributes;" _osmand_attributes_assignment_index)
+if(_osmand_attributes_assignment_index EQUAL -1)
+    string(LENGTH "outStreetGroup->bbox31 = boundaryBbox;" _osmand_bbox_assignment_length)
+    math(EXPR _osmand_attributes_insert_at "${_osmand_bbox_assignment_index} + ${_osmand_bbox_assignment_length}")
+    string(SUBSTRING "${_osmand_address_reader_source}" 0 ${_osmand_attributes_insert_at} _osmand_reader_prefix)
+    string(SUBSTRING "${_osmand_address_reader_source}" ${_osmand_attributes_insert_at} -1 _osmand_reader_suffix)
+    set(_osmand_address_reader_source "${_osmand_reader_prefix}\n                outStreetGroup->attributes = attributes;${_osmand_reader_suffix}")
 endif()
 
-# If an earlier configure used the broader legacy match, undo any accidental
-# insertion in StreetIndex parsing; street attributes are not part of this patch.
-set(_osmand_street_index_attribute_value_block_patched [=[
-            case OBF::StreetIndex::kAttributeValuesFieldNumber:
-            {
-                QString nm;
-                ObfReaderUtilities::readQString(cis, nm);
-                if (!additionalTags.isEmpty())
-                {
-                    QString tg = additionalTags.front();
-                    additionalTags.pop_front();
-                    attributes.insert(tg, nm);
-                    if (tg.startsWith(QLatin1String("name:")))
-                    {
-                        const QString & m = tg.mid(5);
-                        localizedNames.insert(m, nm);
-                        localizedNamesOrder.append(m);
-                    }
-                }
-                break;
-            }
-]=])
-set(_osmand_street_index_attribute_value_block [=[
-            case OBF::StreetIndex::kAttributeValuesFieldNumber:
-            {
-                QString nm;
-                ObfReaderUtilities::readQString(cis, nm);
-                if (!additionalTags.isEmpty())
-                {
-                    QString tg = additionalTags.front();
-                    additionalTags.pop_front();
-                    if (tg.startsWith(QLatin1String("name:")))
-                    {
-                        const QString & m = tg.mid(5);
-                        localizedNames.insert(m, nm);
-                        localizedNamesOrder.append(m);
-                    }
-                }
-                break;
-            }
-]=])
-string(REPLACE "${_osmand_street_index_attribute_value_block_patched}" "${_osmand_street_index_attribute_value_block}"
-    _osmand_address_reader_source "${_osmand_address_reader_source}")
-
-set(_osmand_city_header_attribute_assignment "                outStreetGroup->bbox31 = boundaryBbox;")
-set(_osmand_city_header_attribute_assignment_patched "                outStreetGroup->bbox31 = boundaryBbox;\n                outStreetGroup->attributes = attributes;")
-string(FIND "${_osmand_address_reader_source}" "${_osmand_city_header_attribute_assignment}" _osmand_city_header_attribute_assignment_index)
-if(NOT _osmand_city_header_attribute_assignment_index EQUAL -1)
-    string(REPLACE "${_osmand_city_header_attribute_assignment}" "${_osmand_city_header_attribute_assignment_patched}"
-        _osmand_address_reader_source "${_osmand_address_reader_source}")
-endif()
-
-string(FIND "${_osmand_address_reader_source}" "outStreetGroup->attributes = attributes;" _osmand_city_header_patch_check)
-string(FIND "${_osmand_address_reader_source}" "attributes.insert(tg, nm);" _osmand_city_header_attribute_check)
-if(_osmand_city_header_patch_check EQUAL -1 OR _osmand_city_header_attribute_check EQUAL -1)
-    message(FATAL_ERROR "Could not patch OsmAndCore AddressIndex attribute reader; review the vendored OsmAndCore source version.")
-endif()
 file(WRITE "${OSMAND_ADDRESS_READER_SOURCE}" "${_osmand_address_reader_source}")
 
 include("${OSMAND_VENDOR_ROOT}/core/core.cmake")
