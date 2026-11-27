@@ -89,13 +89,17 @@ app-map-window {
     .offline-address-search{display:flex;flex-direction:column;gap:7px;width:100%;min-width:0}
     .offline-address-search form{display:flex;flex-direction:column;gap:7px;min-width:0}
     .offline-address-results{width:100%;min-width:0;max-height:260px;overflow:auto}
-    .offline-address-results table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px}
-    .offline-address-results th{position:sticky;top:0;z-index:1;padding:4px 6px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#555);font-size:11px;font-weight:600;text-align:left}
-    .offline-address-results th:last-child{width:190px;text-align:right}
+    .offline-address-results table{width:max-content;min-width:100%;border-collapse:collapse;table-layout:auto;font-size:12px}
+    .offline-address-results th{position:sticky;top:0;z-index:1;padding:4px 7px;background:var(--color-surface-default-low,#252629);border-bottom:1px solid var(--color-content-default-low,#555);font-size:11px;font-weight:600;text-align:left;white-space:nowrap}
+    .offline-address-results th:first-child{min-width:300px;width:45%}
+    .offline-address-results th:not(:first-child){width:1%;white-space:nowrap}
+    .offline-address-results th:last-child{text-align:right}
     .offline-address-results tbody tr{height:27px;border-bottom:1px solid var(--color-content-default-low,#454545);cursor:pointer}
     .offline-address-results tbody tr:hover{background:color-mix(in srgb,var(--color-surface-default-medium,#454545) 45%,transparent)}
-    .offline-address-results td{padding:3px 6px;white-space:nowrap;vertical-align:middle}
-    .offline-address-result-name{overflow:hidden;text-overflow:ellipsis}
+    .offline-address-results td{padding:3px 7px;white-space:nowrap;vertical-align:middle}
+    .offline-address-results td:not(:first-child){width:1%}
+    .offline-address-result-name{min-width:300px;max-width:620px;overflow:hidden;text-overflow:ellipsis}
+    .offline-address-result-metadata{color:var(--color-content-default-medium,#aaa)}
     .offline-address-result-name strong{font-weight:600;white-space:nowrap}
     .offline-address-result-name span{color:var(--color-content-default-medium,#aaa);font-size:11px;white-space:nowrap}
     .offline-address-result-coordinates{text-align:right;font:11px/1.3 ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums;color:var(--color-content-default-medium,#aaa)}
