@@ -47,13 +47,21 @@
                   @if (offlineAddressSearchError()) { <span class="location-address location-address-error" role="alert">{{ offlineAddressSearchError() }}</span> }
                   @if (offlineAddressSearchResults().length > 0) {
                     <div class="offline-address-results"><table aria-label="Offline address search results">
-                      <thead><tr><th scope="col">Address</th><th scope="col">Type</th><th scope="col">Distance</th><th scope="col">Coordinates</th></tr></thead>
+                      <thead><tr><th scope="col">Address</th><th scope="col">Type</th><th scope="col">Distance</th><th scope="col">Direction</th><th scope="col">Coordinates</th></tr></thead>
                       <tbody>
                         @for (result of offlineAddressSearchResults(); track result.latitude + ':' + result.longitude + ':' + result.display_name) {
                           <tr tabindex="0" (click)="goToOfflineAddress(result)" (keydown.enter)="goToOfflineAddress(result)" (keydown.space)="$event.preventDefault(); goToOfflineAddress(result)">
                             <td class="offline-address-result-name"><strong>{{ result.display_name }}</strong>@if (result.secondary_text) { <span> · {{ result.secondary_text }}</span> }</td>
                             <td class="offline-address-result-type">{{ result.source_kind === 'poi' ? 'POI' : result.source_kind === 'address' ? 'Address' : result.source_kind }}</td>
                             <td class="offline-address-result-distance">{{ offlineAddressDistance(result) }}</td>
+                            <td class="offline-address-result-direction">
+                              @if (offlineAddressBearing(result); as direction) {
+                                <span class="offline-address-direction-arrow" [style.transform]="'rotate(' + direction + 'deg)'" aria-hidden="true">↑</span>
+                                {{ offlineAddressBearingLabel(result) }}
+                              } @else {
+                                —
+                              }
+                            </td>
                             <td class="offline-address-result-coordinates">{{ formatGpsCoordinates(result.latitude, result.longitude) }}</td>
                           </tr>
                         }
