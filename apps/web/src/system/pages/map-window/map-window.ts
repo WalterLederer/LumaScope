@@ -7408,7 +7408,7 @@ export class MapWindow implements OnInit, OnDestroy {
       this.rebuildGpxSegments();
       this.applyGpxTrack();
       this.fitGpxTrack(destination);
-      this.routeStatus.set('Saved GPX: ' + destination + ' (' + returnedWaypointCount + ' waypoints returned by routing server). Route added to GPX track list; route points were kept.');
+      this.routeStatus.set('Route calculated successfully. New track added to Track list: ' + fileName + ' (' + returnedWaypointCount + ' waypoints returned by routing server). Route points were kept.');
     } catch (error) {
       this.routeStatus.set(error instanceof Error ? error.message : String(error));
     } finally {
