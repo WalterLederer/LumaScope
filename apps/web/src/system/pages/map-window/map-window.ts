@@ -7262,6 +7262,16 @@ export class MapWindow implements OnInit, OnDestroy {
     }
   };
 
+  protected readonly fitMapToRoutingPoints = (): void => {
+    const points = this.routeWaypoints()
+      .filter(point => point.active !== false)
+      .filter(point => Number.isFinite(point.latitude) && Number.isFinite(point.longitude)
+        && point.latitude >= -90 && point.latitude <= 90
+        && point.longitude >= -180 && point.longitude <= 180)
+      .map(point => [point.latitude, point.longitude] as [number, number]);
+    this.fitMapToCoordinates(points, 40, 16);
+  };
+
   protected readonly calculateRoute = async (): Promise<void> => {
     const desktop = this.desktop;
     if (!desktop) { this.routeStatus.set('The desktop file system is unavailable.'); return; }
