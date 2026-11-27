@@ -50,6 +50,11 @@ if(NOT EXISTS "${OSMAND_VENDOR_ROOT}/core-legacy/CMakeLists.txt")
     message(FATAL_ERROR "Missing '${OSMAND_VENDOR_ROOT}/core-legacy/CMakeLists.txt'. Copy the vendored OsmAnd sources into '../../vendor/osmand'.")
 endif()
 
+if(NOT DEFINED LUMASCOPE_OSMAND_SDK_REVISION OR LUMASCOPE_OSMAND_SDK_REVISION STREQUAL "")
+    message(FATAL_ERROR "LUMASCOPE_OSMAND_SDK_REVISION must be supplied by build_helper.ps1.")
+endif()
+add_compile_definitions(LUMASCOPE_OSMAND_SDK_REVISION="${LUMASCOPE_OSMAND_SDK_REVISION}")
+
 list(PREPEND CMAKE_PREFIX_PATH "${QT_ROOT}")
 set(Qt5Core_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Qt5Core" CACHE PATH "Qt5Core compatibility shim")
 set(Qt5Network_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Qt5Network" CACHE PATH "Qt5Network compatibility shim")
