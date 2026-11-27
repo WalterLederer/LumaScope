@@ -1349,6 +1349,12 @@ export class MapWindow implements OnInit, OnDestroy {
   private gpxDatabaseQueryGeneration = 0;
   private gpxDatabaseViewportRefreshTimer: number | null = null;
   protected readonly routeWaypoints = signal<RouteWaypoint[]>([]);
+  protected readonly firstActiveRouteWaypointIndex = computed(() => this.routeWaypoints().findIndex(point => point.active !== false));
+  protected readonly lastActiveRouteWaypointIndex = computed(() => {
+    const points = this.routeWaypoints();
+    for (let i = points.length - 1; i >= 0; i--) if (points[i].active !== false) return i;
+    return -1;
+  });
   protected readonly routeWaypointMarkersVisible = signal(this.readSetting('routeWaypointMarkersVisible', 'true') !== 'false');
   protected readonly routeProfile = signal<RouteProfile>('driving-car');
   protected readonly routeProvider = signal<RouteProviderId>('offline-valhalla');
