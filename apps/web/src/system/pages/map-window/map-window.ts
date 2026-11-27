@@ -7289,8 +7289,29 @@ export class MapWindow implements OnInit, OnDestroy {
       const routePoints = routeResult.coordinates;
       if (generation !== this.routeRequestGeneration) return;
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').replace(/Z$/, '');
-      const baseName = this.routeName().trim().replace(/[\\/:*?"<>|]/g, '-').replace(/[. ]+$/g, '') || 'Route';
-      const defaultName = baseName + '_' + timestamp + '.gpx';
+      const safeFilePart = (value: string): string => value
+        .normalize('NFKD')
+        .replace(/[\\/:*?"<>|]/g, '-')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9_-]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^[-_. ]+|[-_. ]+$/g, '');
+      const shortWaypointName = (value: string | undefined, fallback: string): string => {
+        const parts = (value ?? '').split(/[,;\n]+/).map(part => part.trim()).filter(Boolean);
+        // Prefer a compact locality-level label rather than the complete reverse-geocoded address.
+        const locality = parts.length > 1 ? parts.slice(1, 3).join('-') : parts[0] ?? '';
+        return safeFilePart(locality || parts[0] || fallback).slice(0, 24) || fallback;
+      };
+      const startName = shortWaypointName(activePoints[0].name, 'Start');
+      const endName = shortWaypointName(activePoints[activePoints.length - 1].name, 'End');
+      const routePrefix = safeFilePart(this.routeName().trim()) || 'Route';
+      const suffix = '_' + timestamp + '.gpx';
+      const separator = '_to_';
+      const availableLabelLength = Math.max(2, 100 - suffix.length - routePrefix.length - 2 - separator.length);
+      const startLength = Math.max(1, Math.floor(availableLabelLength / 2));
+      const endLength = Math.max(1, availableLabelLength - startLength);
+      const defaultName = (routePrefix + '_' + startName.slice(0, startLength) + separator
+        + endName.slice(0, endLength) + suffix).slice(0, 100 - '.gpx'.length) + '.gpx';
       let destination = '';
       const selectedFolder = this.routeSaveDirectory().trim();
       if (selectedFolder) {
