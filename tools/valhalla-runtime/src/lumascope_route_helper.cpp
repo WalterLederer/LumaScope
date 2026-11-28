@@ -4,8 +4,8 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
-#include <spatialite.h>
 #include <sqlite3.h>
+#include <spatialite.h>
 
 #include <exception>
 #include <iostream>
