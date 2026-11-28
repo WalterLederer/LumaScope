@@ -1158,6 +1158,7 @@ export class OsmAndAtlasManager {
       address_boundary_object_ids: string[];
       matched_boundary_object_ids: string[];
       resolved_administrative_areas: number;
+      address_section_regions: Array<{ name: string; contains_point: boolean; bbox31: number[] }>;
       boundary_search_area_available: boolean;
       boundary_line_diagnostics_enabled: boolean;
       boundary_line_counts: Array<{ admin_level: number; line_segments: number; unique_endpoints: number; dangling_endpoints: number; degree_two_endpoints: number; branch_or_duplicate_endpoints: number }>;
@@ -1273,6 +1274,13 @@ export class OsmAndAtlasManager {
       bbox: typeof value['bbox'] === 'string' ? value['bbox'] : '',
       name: typeof value['name'] === 'string' ? value['name'] : ''
     }));
+    const addressSectionRegions = diagnosticRecords('address_section_regions').map(value => ({
+      name: typeof value['name'] === 'string' ? value['name'] : '',
+      contains_point: value['contains_point'] === true,
+      bbox31: Array.isArray(value['bbox31'])
+        ? value['bbox31'].filter((coordinate): coordinate is number => typeof coordinate === 'number')
+        : []
+    }));
     const boundaryLineSamples = diagnosticRecords('boundary_line_samples').map(value => ({
       id: typeof value['id'] === 'string' ? value['id'] : '',
       osm_id: typeof value['osm_id'] === 'string' ? value['osm_id'] : '',
@@ -1305,6 +1313,7 @@ export class OsmAndAtlasManager {
         address_boundary_object_ids: Array.isArray(rawDiagnostics['address_boundary_object_ids']) ? rawDiagnostics['address_boundary_object_ids'].filter((value): value is string => typeof value === 'string').slice(0, 20) : [],
         matched_boundary_object_ids: Array.isArray(rawDiagnostics['matched_boundary_object_ids']) ? rawDiagnostics['matched_boundary_object_ids'].filter((value): value is string => typeof value === 'string').slice(0, 20) : [],
         resolved_administrative_areas: diagnosticCount('resolved_administrative_areas'),
+        address_section_regions: addressSectionRegions,
         boundary_search_area_available: rawDiagnostics['boundary_search_area_available'] === true,
         boundary_line_diagnostics_enabled: rawDiagnostics['boundary_line_diagnostics_enabled'] === true,
         boundary_line_counts: boundaryLineCounts,
