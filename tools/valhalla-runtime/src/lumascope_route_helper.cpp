@@ -30,7 +30,7 @@ public:
         if (!cache_) {
             sqlite3_close(database_);
             database_ = nullptr;
-            std::cerr << "[LumaScope] Could not allocate SpatiaLite connection cache.\\n";
+            std::cerr << "[LumaScope] Could not allocate SpatiaLite connection cache.\n";
             return;
         }
         spatialite_init_ex(database_, cache_, 0);
