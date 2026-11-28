@@ -2327,7 +2327,7 @@ QString OsmAndSearchService::reverseGeocode(
         {QStringLiteral("latitude"), latitude},
         {QStringLiteral("longitude"), longitude},
         {QStringLiteral("source"), QStringLiteral("OsmAnd")},
-        {QStringLiteral("helper_version"), QStringLiteral("0.25")},
+        {QStringLiteral("helper_version"), QStringLiteral("0.26")},
         {QStringLiteral("osmand_sdk_revision"), QStringLiteral(LUMASCOPE_OSMAND_SDK_REVISION)},
     };
 
