@@ -554,6 +554,18 @@ export interface ValhallaRouteResult {
   coordinates: ValhallaRoutePoint[];
 }
 
+export interface ValhallaAdminArea {
+  admin_level: number;
+  name: string;
+  name_en?: string;
+  iso_code?: string;
+}
+
+export interface ValhallaAdminLookupResult {
+  available: boolean;
+  admin_areas: ValhallaAdminArea[];
+}
+
 export interface ValhallaConfigEntry {
   path: string;
   name: string;
@@ -576,6 +588,7 @@ export interface DesktopValhalla {
   readonly removeConfig: (configPath: string) => Promise<ValhallaRuntimeStatus>;
   readonly setConfigPath: (configPath: string) => Promise<ValhallaRuntimeStatus>;
   readonly route: (request: ValhallaRouteRequest) => Promise<ValhallaRouteResult>;
+  readonly lookupAdminAreas: (latitude: number, longitude: number) => Promise<ValhallaAdminLookupResult>;
   readonly shutdown: () => Promise<void>;
 }
 
