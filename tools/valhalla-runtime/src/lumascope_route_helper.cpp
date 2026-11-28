@@ -4,6 +4,9 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
+#include <spatialite.h>
+#include <sqlite3.h>
+
 #include <exception>
 #include <iostream>
 #include <sstream>
@@ -11,6 +14,77 @@
 #include <string>
 
 namespace {
+
+class AdminDatabase {
+public:
+    explicit AdminDatabase(const std::string& path) {
+        if (path.empty()) return;
+        if (sqlite3_open_v2(path.c_str(), &database_, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nullptr) != SQLITE_OK) {
+            const std::string message = database_ ? sqlite3_errmsg(database_) : "SQLite open failed";
+            if (database_) sqlite3_close(database_);
+            database_ = nullptr;
+            throw std::runtime_error("Could not open Valhalla admin database: " + message);
+        }
+        cache_ = spatialite_alloc_connection();
+        if (!cache_) {
+            sqlite3_close(database_);
+            database_ = nullptr;
+            throw std::runtime_error("Could not allocate SpatiaLite connection cache.");
+        }
+        spatialite_init_ex(database_, cache_, 0);
+    }
+
+    ~AdminDatabase() {
+        if (cache_) spatialite_cleanup_ex(cache_);
+        if (database_) sqlite3_close(database_);
+    }
+
+    boost::property_tree::ptree lookup(double longitude, double latitude) const {
+        boost::property_tree::ptree response;
+        boost::property_tree::ptree areas;
+        if (!database_) {
+            response.put("available", false);
+            response.add_child("admin_areas", areas);
+            return response;
+        }
+
+        static constexpr const char* sql =
+            "SELECT admin_level, name, name_en, iso_code FROM admins "
+            "WHERE rowid IN (SELECT pkid FROM idx_admins_geom "
+            "WHERE xmin <= ?1 AND xmax >= ?1 AND ymin <= ?2 AND ymax >= ?2) "
+            "AND ST_Intersects(geom, MakePoint(?1, ?2, 4326)) ORDER BY admin_level";
+
+        sqlite3_stmt* statement = nullptr;
+        if (sqlite3_prepare_v2(database_, sql, -1, &statement, nullptr) != SQLITE_OK)
+            throw std::runtime_error("Could not prepare Valhalla admin lookup: " + std::string(sqlite3_errmsg(database_)));
+        sqlite3_bind_double(statement, 1, longitude);
+        sqlite3_bind_double(statement, 2, latitude);
+
+        int result = SQLITE_ROW;
+        while ((result = sqlite3_step(statement)) == SQLITE_ROW) {
+            boost::property_tree::ptree area;
+            area.put("admin_level", sqlite3_column_int(statement, 0));
+            const auto* name = sqlite3_column_text(statement, 1);
+            const auto* name_en = sqlite3_column_text(statement, 2);
+            const auto* iso_code = sqlite3_column_text(statement, 3);
+            if (name) area.put("name", reinterpret_cast<const char*>(name));
+            if (name_en) area.put("name_en", reinterpret_cast<const char*>(name_en));
+            if (iso_code) area.put("iso_code", reinterpret_cast<const char*>(iso_code));
+            areas.push_back(std::make_pair("", area));
+        }
+        sqlite3_finalize(statement);
+        if (result != SQLITE_DONE)
+            throw std::runtime_error("Valhalla admin lookup failed: " + std::string(sqlite3_errmsg(database_)));
+
+        response.put("available", true);
+        response.add_child("admin_areas", areas);
+        return response;
+    }
+
+private:
+    sqlite3* database_ = nullptr;
+    void* cache_ = nullptr;
+};
 
 std::string make_error_response(const std::string& message) {
     boost::property_tree::ptree response;
@@ -58,6 +132,7 @@ int main(int argc, char** argv) {
         std::cerr << "[LumaScope] Initializing Valhalla from in-memory configuration...\n";
 
         valhalla::tyr::actor_t actor(*config, false);
+        AdminDatabase admin_database(config->get<std::string>("mjolnir.admin", ""));
 
         std::cerr << "[LumaScope] Valhalla initialized. Waiting for requests.\n";
         std::cout << make_ready_response() << '\n' << std::flush;
@@ -70,8 +145,22 @@ int main(int argc, char** argv) {
             }
 
             try {
-                const std::string response = actor.route(request);
-                std::cout << response << '\n' << std::flush;
+                boost::property_tree::ptree request_tree;
+                std::istringstream request_stream(request);
+                boost::property_tree::read_json(request_stream, request_tree);
+                if (request_tree.get<std::string>("type", "") == "admin_lookup") {
+                    const double latitude = request_tree.get<double>("latitude");
+                    const double longitude = request_tree.get<double>("longitude");
+                    if (latitude < -90.0 || latitude > 90.0 || longitude < -180.0 || longitude > 180.0)
+                        throw std::runtime_error("Invalid coordinates for Valhalla admin lookup.");
+                    const auto response_tree = admin_database.lookup(longitude, latitude);
+                    std::ostringstream response_stream;
+                    boost::property_tree::write_json(response_stream, response_tree, false);
+                    std::cout << response_stream.str() << std::flush;
+                } else {
+                    const std::string response = actor.route(request);
+                    std::cout << response << '\n' << std::flush;
+                }
             }
             catch (const std::exception& ex) {
                 std::cerr << "[LumaScope] Route error: " << ex.what() << '\n';
