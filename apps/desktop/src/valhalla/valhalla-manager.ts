@@ -298,7 +298,7 @@ export class ValhallaManager {
     const reader = this.reader;
     if (!reader) throw new Error('Valhalla helper output stream is unavailable.');
     const raw = await this.withTimeout(reader.readLine(), 15000, 'Valhalla administrative lookup timed out.');
-    let response: ValhallaAdminLookupResult & { available?: boolean | string; error?: string };
+    let response: Omit<ValhallaAdminLookupResult, 'available'> & { available?: boolean | string; error?: string };
     try {
       response = JSON.parse(raw) as ValhallaAdminLookupResult & { available?: boolean | string; error?: string };
     } catch {
