@@ -156,7 +156,7 @@ int main(int argc, char** argv) {
                     const auto response_tree = admin_database.lookup(longitude, latitude);
                     std::ostringstream response_stream;
                     boost::property_tree::write_json(response_stream, response_tree, false);
-                    std::cout << response_stream.str() << std::flush;
+                    std::cout << response_stream.str() << '\n' << std::flush;
                 } else {
                     const std::string response = actor.route(request);
                     std::cout << response << '\n' << std::flush;
