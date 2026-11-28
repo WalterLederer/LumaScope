@@ -658,6 +658,7 @@ export interface OsmAndReverseGeocodeResult {
       address_boundary_object_ids: string[];
       matched_boundary_object_ids: string[];
       resolved_administrative_areas: number;
+      address_section_regions: Array<{ name: string; contains_point: boolean; bbox31: number[] }>;
       boundary_search_area_available: boolean;
       boundary_line_diagnostics_enabled: boolean;
       boundary_line_counts: Array<{ admin_level: number; line_segments: number; unique_endpoints: number; dangling_endpoints: number; degree_two_endpoints: number; branch_or_duplicate_endpoints: number }>;
