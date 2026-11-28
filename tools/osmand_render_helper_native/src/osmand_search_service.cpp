@@ -1542,6 +1542,32 @@ QJsonObject administrativeAreasForCoordinate(
     }
     result.insert(QStringLiteral("administrative_areas"), areas);
     result.insert(QStringLiteral("selection_comments"), selectionComments);
+    QJsonArray addressSectionRegions;
+    for (const auto& reader : dataInterface->obfReaders)
+    {
+        if (!reader)
+            continue;
+        const auto info = reader->obtainInfo();
+        if (!info)
+            continue;
+        for (const auto& section : info->addressSections)
+        {
+            if (!section)
+                continue;
+            const auto& bounds = section->area31;
+            const bool containsPoint = point31.x >= bounds.left()
+                && point31.x <= bounds.right()
+                && point31.y >= bounds.top()
+                && point31.y <= bounds.bottom();
+            addressSectionRegions.push_back(QJsonObject{
+                {QStringLiteral("name"), section->name},
+                {QStringLiteral("contains_point"), containsPoint},
+                {QStringLiteral("bbox31"), QJsonArray{
+                    bounds.left(), bounds.top(), bounds.right(), bounds.bottom()}}
+            });
+        }
+    }
+
     result.insert(QStringLiteral("diagnostics"), QJsonObject{
         {QStringLiteral("loaded_map_objects"), loadedMapObjectCount},
         {QStringLiteral("administrative_boundary_objects"), administrativeBoundaryObjectCount},
@@ -1572,6 +1598,7 @@ QJsonObject administrativeAreasForCoordinate(
         {QStringLiteral("address_boundary_bbox_map_search_skipped_count"), addressBoundaryBboxMapSearchSkippedCount},
         {QStringLiteral("matched_boundary_object_ids"), matchedBoundaryObjectIds},
         {QStringLiteral("resolved_administrative_areas"), areas.size()},
+        {QStringLiteral("address_section_regions"), addressSectionRegions},
         {QStringLiteral("address_boundary_admin_level_id_matches"), addressBoundaryAdminLevelMatches},
         {QStringLiteral("boundary_search_area_available"), hasBoundarySearchArea},
         {QStringLiteral("boundary_line_diagnostics_enabled"), boundaryLineDiagnosticsEnabled},
