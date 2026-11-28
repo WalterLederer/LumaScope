@@ -92,6 +92,19 @@ double bboxCenterDistanceMeters(
     return std::hypot(dx, dy) * earthCircumferenceMeters / 2147483648.0;
 }
 
+QString streetGroupAttribute(
+    const QHash<QString, QString>& attributes,
+    const QString& key)
+{
+    const auto directValue = attributes.value(key);
+    if (!directValue.isNull() && !directValue.isEmpty())
+        return directValue;
+
+    // OsmAnd's AddressIndex CityIndex stores OSM tags in the name:* namespace.
+    // For example, admin_level=8 is exposed as name:admin_level=8.
+    return attributes.value(QStringLiteral("name:") + key);
+}
+
 QString administrativeObjectKey(const OsmAnd::ObfObjectId& objectId)
 {
     if (!objectId.isOsmId())
@@ -843,8 +856,8 @@ QJsonObject administrativeAreasForCoordinate(
                  attribute != streetGroup->attributes.constEnd(); ++attribute)
                 addressAttributes.insert(attribute.key(), attribute.value());
             bool addressAdminLevelOk = false;
-            const int addressAdminLevel = streetGroup->attributes
-                .value(QStringLiteral("admin_level")).trimmed().toInt(&addressAdminLevelOk);
+            const int addressAdminLevel = streetGroupAttribute(streetGroup->attributes, QStringLiteral("admin_level"))
+                .trimmed().toInt(&addressAdminLevelOk);
             addressBoundaryCandidateDetails.push_back(QJsonObject{
                 {QStringLiteral("name"), displayName},
                 {QStringLiteral("osm_id"), streetGroup->id.isOsmId()
@@ -903,8 +916,8 @@ QJsonObject administrativeAreasForCoordinate(
         // Read admin_level from the original CityIndex attributes. The
         // PySide6-OsmAnd-SDK StreetGroup parser preserves CityIndex attributes.
         bool addressAdminLevelOk = false;
-        const int addressAdminLevel = streetGroup->attributes
-            .value(QStringLiteral("admin_level")).trimmed().toInt(&addressAdminLevelOk);
+        const int addressAdminLevel = streetGroupAttribute(streetGroup->attributes, QStringLiteral("admin_level"))
+            .trimmed().toInt(&addressAdminLevelOk);
         const int candidateAdminLevel = addressAdminLevelOk && addressAdminLevel > 0
             ? addressAdminLevel
             : (hasResolvedAdminLevel ? levelIt.value() : 99);
@@ -2859,8 +2872,8 @@ QString OsmAndSearchService::exportAdministrativeBoundaryCandidatesGpx(
                      attribute != group->attributes.constEnd(); ++attribute)
                     addressAttributes.insert(attribute.key(), attribute.value());
                 bool addressAdminLevelOk = false;
-                const int addressAdminLevel = group->attributes
-                    .value(QStringLiteral("admin_level")).trimmed().toInt(&addressAdminLevelOk);
+                const int addressAdminLevel = streetGroupAttribute(group->attributes, QStringLiteral("admin_level"))
+                    .trimmed().toInt(&addressAdminLevelOk);
                 QJsonArray metadata = addressBoundaryMetadataByKey.value(key);
                 metadata.push_back(QJsonObject{
                     {QStringLiteral("name"), displayName},
