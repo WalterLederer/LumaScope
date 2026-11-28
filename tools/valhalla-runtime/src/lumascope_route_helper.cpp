@@ -23,7 +23,7 @@ public:
             const std::string message = database_ ? sqlite3_errmsg(database_) : "SQLite open failed";
             if (database_) sqlite3_close(database_);
             database_ = nullptr;
-            std::cerr << "[LumaScope] Admin database unavailable: " << message << '\\n';
+            std::cerr << "[LumaScope] Admin database unavailable: " << message << '\n';
             return;
         }
         cache_ = spatialite_alloc_connection();
