@@ -54,10 +54,32 @@ export class ReverseGeocodingManager {
           this.onOfflineRequestChange(1);
           return Promise.resolve().then(() => this.desktop!.OsmAndAtlas.reverseGeocode(latitude, longitude, language));
         })()
-        .then(result => {
+        .then(async result => {
           if (!result.found) return { text: 'No result', offlineParts: [], comments: [] };
 
-          const areas = result.administrative_areas ?? [];
+          // OsmAnd supplies the street/place hierarchy; Valhalla's SpatiaLite
+          // admin polygons provide the country and state through true
+          // point-in-polygon checks.
+          let valhallaAreas: Array<{ admin_level: number; name: string }> = [];
+          try {
+            const status = await this.desktop!.Valhalla.getRuntimeStatus();
+            if (status.configAvailable) {
+              const lookup = await this.desktop!.Valhalla.lookupAdminAreas(latitude, longitude);
+              if (lookup.available) {
+                valhallaAreas = lookup.admin_areas
+                  .filter(area => area.admin_level === 2 || area.admin_level === 4)
+                  .map(area => ({ admin_level: area.admin_level, name: area.name }));
+              }
+            }
+          } catch {
+            // Keep the OsmAnd result usable when Valhalla is not configured
+            // or its optional administrative database cannot be queried.
+          }
+
+          const areas = [
+            ...(result.administrative_areas ?? []).filter(area => area.admin_level !== 2 && area.admin_level !== 4),
+            ...valhallaAreas
+          ];
           const areaForLevel = (level: number): string => areas
             .filter(area => area.admin_level === level)
             .map(area => area.name.trim())
