@@ -298,15 +298,18 @@ export class ValhallaManager {
     const reader = this.reader;
     if (!reader) throw new Error('Valhalla helper output stream is unavailable.');
     const raw = await this.withTimeout(reader.readLine(), 15000, 'Valhalla administrative lookup timed out.');
-    let response: ValhallaAdminLookupResult & { error?: string };
+    let response: ValhallaAdminLookupResult & { available?: boolean | string; error?: string };
     try {
-      response = JSON.parse(raw) as ValhallaAdminLookupResult & { error?: string };
+      response = JSON.parse(raw) as ValhallaAdminLookupResult & { available?: boolean | string; error?: string };
     } catch {
       throw new Error('Valhalla helper returned invalid administrative lookup JSON: ' + raw.slice(0, 500));
     }
     if (response.error) throw new Error(response.error);
+    // Boost.PropertyTree serializes scalar values as JSON strings. Accept
+    // both representations so older helper builds remain compatible.
+    const available = response.available === true || response.available === 'true';
     return {
-      available: response.available === true,
+      available,
       admin_areas: Array.isArray(response.admin_areas) ? response.admin_areas : []
     };
   }
