@@ -22,6 +22,18 @@ export interface ValhallaRouteResult {
   coordinates: ValhallaRoutePoint[];
 }
 
+export interface ValhallaAdminArea {
+  admin_level: number;
+  name: string;
+  name_en?: string;
+  iso_code?: string;
+}
+
+export interface ValhallaAdminLookupResult {
+  available: boolean;
+  admin_areas: ValhallaAdminArea[];
+}
+
 export interface ValhallaConfigEntry {
   path: string;
   name: string;
@@ -93,6 +105,8 @@ interface ValhallaResponse {
     status_message?: string;
     legs?: Array<{ shape?: string }>;
   };
+  available?: boolean;
+  admin_areas?: ValhallaAdminArea[];
 }
 
 export class ValhallaManager {
@@ -239,6 +253,21 @@ export class ValhallaManager {
     return operation;
   };
 
+  @IpcHandler({ name: 'Valhalla.lookupAdminAreas' })
+  readonly lookupAdminAreas = async (
+    _event: IpcMainInvokeEvent,
+    point: ValhallaRoutePoint
+  ): Promise<ValhallaAdminLookupResult> => {
+    if (!point || !Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)
+      || point.latitude < -90 || point.latitude > 90
+      || point.longitude < -180 || point.longitude > 180) {
+      throw new Error('Valhalla received an invalid administrative lookup coordinate.');
+    }
+    const operation = this.queue.then(() => this.lookupAdminAreasQueued(point));
+    this.queue = operation.then(() => undefined, () => undefined);
+    return operation;
+  };
+
   @IpcHandler({ name: 'Valhalla.shutdown' })
   readonly shutdown = async (): Promise<void> => {
     await this.stop();
@@ -257,6 +286,29 @@ export class ValhallaManager {
         throw new Error('Valhalla received an invalid route coordinate.');
       }
     }
+  }
+
+  private async lookupAdminAreasQueued(point: ValhallaRoutePoint): Promise<ValhallaAdminLookupResult> {
+    await this.ensureStarted();
+    await this.writeRequest({
+      type: 'admin_lookup',
+      latitude: point.latitude,
+      longitude: point.longitude
+    });
+    const reader = this.reader;
+    if (!reader) throw new Error('Valhalla helper output stream is unavailable.');
+    const raw = await this.withTimeout(reader.readLine(), 15000, 'Valhalla administrative lookup timed out.');
+    let response: ValhallaAdminLookupResult & { error?: string };
+    try {
+      response = JSON.parse(raw) as ValhallaAdminLookupResult & { error?: string };
+    } catch {
+      throw new Error('Valhalla helper returned invalid administrative lookup JSON: ' + raw.slice(0, 500));
+    }
+    if (response.error) throw new Error(response.error);
+    return {
+      available: response.available === true,
+      admin_areas: Array.isArray(response.admin_areas) ? response.admin_areas : []
+    };
   }
 
   private async routeQueued(request: ValhallaRouteRequest): Promise<ValhallaRouteResult> {
