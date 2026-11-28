@@ -95,7 +95,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "CMake build failed with exit code $LASTEXITCODE"
 }
 
-Write-Host "Helper version: 0.26 (OsmAnd SDK $sdkRevision)"
+Write-Host "Helper version: 0.27 (OsmAnd SDK $sdkRevision)"
 Write-Host "Helper built at: $(Join-Path $projectRoot 'dist\osmand_render_helper.exe')"
 Write-Host "Atlas frame POC built at: $(Join-Path $projectRoot 'dist\osmand_atlas_frame_poc.exe')"
 Write-Host "Persistent Atlas helper built at: $(Join-Path $projectRoot 'dist\osmand_atlas_render_helper.exe')"
