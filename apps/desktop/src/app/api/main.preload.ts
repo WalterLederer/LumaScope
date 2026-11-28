@@ -218,6 +218,7 @@ const api: Desktop = {
     removeConfig: (configPath: string) => ipcRenderer.invoke('Valhalla.removeConfig', configPath),
     setConfigPath: (configPath: string) => ipcRenderer.invoke('Valhalla.setConfigPath', configPath),
     route: (request: unknown) => ipcRenderer.invoke('Valhalla.route', request),
+    lookupAdminAreas: (latitude: number, longitude: number) => ipcRenderer.invoke('Valhalla.lookupAdminAreas', { latitude, longitude }),
     shutdown: () => ipcRenderer.invoke('Valhalla.shutdown')
   },
 
