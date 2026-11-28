@@ -343,7 +343,7 @@ QJsonObject administrativeAreasForCoordinate(
                     // fragment or its bounding box cannot establish membership.
                     if (isAdministrativeBoundary && mapObjectContainsPoint(*mapObject, point))
                     {
-                        const localizedName = mapObject->getName(locale, false).trimmed();
+                        const auto localizedName = mapObject->getName(locale, false).trimmed();
                         const auto objectName = localizedName.isEmpty()
                             ? mapObject->getCaptionInNativeLanguage().trimmed()
                             : localizedName;
