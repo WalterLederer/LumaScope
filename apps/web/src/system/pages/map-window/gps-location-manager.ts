@@ -61,19 +61,23 @@ export class ReverseGeocodingManager {
           // admin polygons provide the country and state through true
           // point-in-polygon checks.
           let valhallaAreas: Array<{ admin_level: number; name: string }> = [];
+          let valhallaDiagnostic = 'Valhalla admin lookup: not attempted';
           try {
             const status = await this.desktop!.Valhalla.getRuntimeStatus();
-            if (status.configAvailable) {
+            if (!status.configAvailable) {
+              valhallaDiagnostic = 'Valhalla admin lookup: skipped (no active configuration)';
+            } else {
               const lookup = await this.desktop!.Valhalla.lookupAdminAreas(latitude, longitude);
+              const levels = lookup.admin_areas.map(area => area.admin_level).join(',') || 'none';
+              valhallaDiagnostic = `Valhalla admin lookup: ${lookup.available ? 'available' : 'admin database unavailable'}; areas=${lookup.admin_areas.length}; levels=${levels}`;
               if (lookup.available) {
                 valhallaAreas = lookup.admin_areas
                   .filter(area => area.admin_level === 2 || area.admin_level === 4)
                   .map(area => ({ admin_level: area.admin_level, name: area.name }));
               }
             }
-          } catch {
-            // Keep the OsmAnd result usable when Valhalla is not configured
-            // or its optional administrative database cannot be queried.
+          } catch (error) {
+            valhallaDiagnostic = `Valhalla admin lookup error: ${error instanceof Error ? error.message : String(error)}`;
           }
 
           const areas = [
@@ -141,7 +145,7 @@ export class ReverseGeocodingManager {
           return {
             text: `${address} (${helperInfo})`,
             offlineParts: parts,
-            comments: result.selection_comments ?? []
+            comments: [...(result.selection_comments ?? []), valhallaDiagnostic]
           };
         })
         .catch(error => ({
