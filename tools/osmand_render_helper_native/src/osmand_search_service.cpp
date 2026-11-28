@@ -893,30 +893,8 @@ QJsonObject administrativeAreasForCoordinate(
                 matchedBoundaryObjectIds.push_back(QString::number(streetGroup->id.id));
         }
 
-        const auto localizedName = streetGroup->getName(locale, false).trimmed();
-        const auto objectName = localizedName.isEmpty()
-            ? streetGroup->nativeName.trimmed()
-            : localizedName;
-        if (objectName.isEmpty())
-            continue;
-
-        // Read admin_level from the original CityIndex attributes. The
-        // PySide6-OsmAnd-SDK StreetGroup parser preserves CityIndex attributes.
-        bool addressAdminLevelOk = false;
-        const int addressAdminLevel = streetGroupAttribute(streetGroup->attributes, QStringLiteral("admin_level"))
-            .trimmed().toInt(&addressAdminLevelOk);
-        const int candidateAdminLevel = addressAdminLevelOk && addressAdminLevel > 0
-            ? addressAdminLevel
-            : (hasResolvedAdminLevel ? levelIt.value() : 99);
-        const auto normalizedName = OsmAnd::CollatorStringMatcher::lowercaseAndAlignChars(objectName).trimmed();
-        const auto objectKey = QStringLiteral("%1|%2").arg(candidateAdminLevel).arg(normalizedName);
-        const auto width = static_cast<qint64>(right) - left;
-        const auto height = static_cast<qint64>(bottom) - top;
-        // AddressIndex Boundary groups expose a bounding box and tags, but
-        // not the boundary polygon. Keep them for diagnostics only: selecting
-        // one by bbox overlap or centre distance produces false regions (for
-        // example, Bezirk Tulln at Volkstheater in Vienna).
-
+        // AddressIndex Boundary groups are retained for diagnostics above.
+        // They do not expose polygon geometry and must not create selected areas.
     }
 
     QJsonArray addressBoundaryBboxMapSearches;
