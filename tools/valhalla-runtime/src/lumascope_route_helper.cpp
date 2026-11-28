@@ -23,13 +23,15 @@ public:
             const std::string message = database_ ? sqlite3_errmsg(database_) : "SQLite open failed";
             if (database_) sqlite3_close(database_);
             database_ = nullptr;
-            throw std::runtime_error("Could not open Valhalla admin database: " + message);
+            std::cerr << "[LumaScope] Admin database unavailable: " << message << '\\n';
+            return;
         }
         cache_ = spatialite_alloc_connection();
         if (!cache_) {
             sqlite3_close(database_);
             database_ = nullptr;
-            throw std::runtime_error("Could not allocate SpatiaLite connection cache.");
+            std::cerr << "[LumaScope] Could not allocate SpatiaLite connection cache.\\n";
+            return;
         }
         spatialite_init_ex(database_, cache_, 0);
     }
